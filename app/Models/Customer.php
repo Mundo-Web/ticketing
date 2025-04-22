@@ -13,10 +13,12 @@ class Customer extends Model
         'name',
         'email',
         'phone',
-        'address'
+        'address',
+        'image'
     ];
 
-    public function Tickets(){
+    public function Tickets()
+    {
         return $this->hasMany(Ticket::class);
     }
 }
