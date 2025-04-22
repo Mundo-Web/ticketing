@@ -2,8 +2,22 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { LayoutGrid, Table, Plus, Edit, Trash2, X } from 'lucide-react';
+import { LayoutGrid, Table, Plus, Edit, Trash2, X, Upload, UploadCloud, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+
+} from "@/components/ui/dialog"
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Customer {
     id: number;
@@ -22,8 +36,11 @@ interface PaginationLink {
 
 interface PaginationMeta {
     current_page: number;
+    from: number;
     last_page: number;
-    per_page?: number;
+    path: string;
+    per_page: number;
+    to: number;
     total: number;
     links: PaginationLink[];
 }
@@ -32,7 +49,7 @@ interface Props {
     customers: {
         data: Customer[];
         links: PaginationLink[];
-        meta?: PaginationMeta;
+        meta: PaginationMeta;
     };
 }
 
@@ -63,6 +80,7 @@ export default function Index({ customers }: Props) {
         formData.append('image', data.image);
         formData.append('description', data.description);
         formData.append('status', data.status);
+
 
         post(route('customers.store'), {
             data: formData,
@@ -152,191 +170,213 @@ export default function Index({ customers }: Props) {
             <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <h1 className="text-2xl font-bold text-gray-800">Clientes</h1>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                        <div className="bg-gray-100 p-1 rounded flex">
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white shadow' : ''}`}
-                            >
-                                <LayoutGrid className="w-5 h-5 text-gray-600" />
-                            </button>
-                            <button
-                                onClick={() => setViewMode('table')}
-                                className={`p-2 rounded ${viewMode === 'table' ? 'bg-white shadow' : ''}`}
-                            >
-                                <Table className="w-5 h-5 text-gray-600" />
-                            </button>
-                        </div>
+                    <div className="bg-gray-100 p-1 rounded flex">
                         <button
-                            type="button"
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white shadow ' : ''}`}
+                        >
+                            <LayoutGrid className={`w-5 h-5 text-gray-600 ${viewMode === 'grid' ? ' !text-red-500' : ''}`} />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('table')}
+                            className={`p-2 rounded ${viewMode === 'table' ? 'bg-white shadow' : ''}`}
+                        >
+                            <Table className={`w-5 h-5 text-gray-600 ${viewMode === 'table' ? ' !text-red-500' : ''}`} />
+                        </button>
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+
+                        <Button
                             onClick={() => {
                                 reset();
                                 setCurrentCustomer(null);
                                 setShowCreateModal(true);
                             }}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 flex-1 justify-center sm:flex-none"
+                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white transition-all duration-300"
                         >
-                            <Plus className="w-5 h-5" />
+                            <Star className="w-5 h-5" />
                             <span className="hidden sm:block">Nuevo Cliente</span>
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
                 {/* Create/Edit Customer Modal */}
-                {showCreateModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-xl w-full max-w-md">
-                            <div className="flex justify-between items-center p-4 border-b">
-                                <h3 className="text-lg font-semibold">
+                <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+                    <DialogContent
+                        className="w-full max-w-none sm:max-w-2xl mx-0 sm:mx-4 p-0 overflow-hidden"
+                        style={{ maxHeight: '90vh' }}
+                    >
+                        <div className="overflow-y-auto px-6 py-8" style={{ maxHeight: '90vh' }}>
+                            <DialogHeader className="mb-6">
+                                <DialogTitle className="text-2xl">
                                     {currentCustomer ? 'Editar Cliente' : 'Crear Nuevo Cliente'}
-                                </h3>
-                                <button
-                                    onClick={() => {
-                                        setShowCreateModal(false);
-                                        setCurrentCustomer(null);
-                                    }}
-                                    className="text-gray-500 hover:text-gray-700"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Completa los campos requeridos para {currentCustomer ? 'actualizar' : 'crear'} el cliente
+                                </DialogDescription>
+                            </DialogHeader>
 
                             <form
                                 onSubmit={currentCustomer ? handleUpdateSubmit : handleCreateSubmit}
-                                className="p-4 space-y-4"
-                                encType="multipart/form-data"
+                                className="space-y-6"
                             >
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Nombre *
-                                    </label>
-                                    <input
-                                        type="text"
+                                {/* Nombre */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="name" className="text-base">
+                                        Nombre <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="name"
                                         value={data.name}
-                                        onChange={e => setData('name', e.target.value)}
-                                        className={`w-full rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-200'} p-2`}
+                                        onChange={(e) => setData('name', e.target.value)}
+                                        className={`text-base h-12 ${errors.name ? 'border-red-500' : ''}`}
                                         required
                                     />
-                                    {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                                    {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Imagen {!currentCustomer && '*'}
-                                    </label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                            if (e.target.files && e.target.files[0]) {
-                                                setData('image', e.target.files[0]);
+                                {/* Imagen Drag & Drop */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="image" className="text-base">
+                                        Imagen {!currentCustomer && <span className="text-red-500">*</span>}
+                                    </Label>
+
+                                    <div
+                                        className={`relative w-full h-64 border-2 border-dashed rounded-lg overflow-hidden cursor-pointer transition-colors duration-200 
+                            ${errors.image ? 'border-red-500' : 'border-gray-300 hover:border-gray-400 bg-gray-50'}`}
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            const file = e.dataTransfer.files[0];
+                                            if (file) {
+                                                setData('image', file);
                                             }
                                         }}
-                                        className="w-full rounded-lg border border-gray-200 p-2"
-                                        required={!currentCustomer}
-                                    />
-                                    {errors.image && <p className="text-red-500 text-sm mt-1">{errors.image}</p>}
-                                    {currentCustomer?.image && (
-                                        <div className="mt-2">
-                                            <p className="text-sm text-gray-500">Imagen actual:</p>
+                                        onClick={() => document.getElementById('image-upload')?.click()}
+                                    >
+                                        {data.image ? (
+                                            <img
+                                                src={URL.createObjectURL(data.image)}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : currentCustomer?.image ? (
                                             <img
                                                 src={`/storage/${currentCustomer.image}`}
                                                 alt="Imagen actual"
-                                                className="h-20 object-cover rounded mt-1"
+                                                className="w-full h-full object-cover"
                                             />
-                                        </div>
-                                    )}
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-2">
+                                                <UploadCloud className="w-12 h-12" />
+                                                <span>Arrastra una imagen o haz clic para seleccionar</span>
+                                            </div>
+                                        )}
+
+                                        <Input
+                                            id="image-upload"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    setData('image', e.target.files[0]);
+                                                }
+                                            }}
+                                            className="hidden"
+                                        />
+                                    </div>
+
+                                    {errors.image && <p className="text-sm text-red-500">{errors.image}</p>}
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {/* Descripción */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="description" className="text-base">
                                         Descripción
-                                    </label>
-                                    <textarea
+                                    </Label>
+                                    <Textarea
+                                        id="description"
                                         value={data.description}
-                                        onChange={e => setData('description', e.target.value)}
-                                        className="w-full rounded-lg border border-gray-200 p-2"
-                                        rows={3}
+                                        onChange={(e) => setData('description', e.target.value)}
+                                        rows={5}
+                                        className="text-base"
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Estado *
-                                    </label>
-                                    <select
+                                {/* Estado */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="status" className="text-base">
+                                        Estado <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Select
                                         value={data.status}
-                                        onChange={e => setData('status', e.target.value)}
-                                        className="w-full rounded-lg border border-gray-200 p-2"
+                                        onValueChange={(value) => setData('status', value)}
                                         required
                                     >
-                                        <option value="active">Activo</option>
-                                        <option value="inactive">Inactivo</option>
-                                    </select>
+                                        <SelectTrigger className="h-12 text-base w-full">
+                                            <SelectValue placeholder="Selecciona un estado" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="active" className="text-base">Activo</SelectItem>
+                                            <SelectItem value="inactive" className="text-base">Inactivo</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
 
-                                <div className="flex justify-end gap-2 pt-4">
-                                    <button
+                                {/* Botones */}
+                                <div className="flex justify-end gap-4 pt-8 pb-4">
+                                    <Button
                                         type="button"
-                                        onClick={() => {
-                                            setShowCreateModal(false);
-                                            setCurrentCustomer(null);
-                                        }}
-                                        className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                                        variant="outline"
+                                        className="h-12 text-base"
+                                        onClick={() => setShowCreateModal(false)}
                                     >
                                         Cancelar
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         type="submit"
                                         disabled={processing}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                        className="h-12 text-base"
                                     >
                                         {processing
                                             ? (currentCustomer ? 'Actualizando...' : 'Creando...')
                                             : (currentCustomer ? 'Actualizar Cliente' : 'Crear Cliente')}
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
                         </div>
-                    </div>
-                )}
+                    </DialogContent>
+                </Dialog>
+
 
                 {/* Delete Confirmation Modal */}
-                {showDeleteModal && currentCustomer && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-xl w-full max-w-md">
-                            <div className="flex justify-between items-center p-4 border-b">
-                                <h3 className="text-lg font-semibold">Confirmar Eliminación</h3>
-                                <button
-                                    onClick={() => setShowDeleteModal(false)}
-                                    className="text-gray-500 hover:text-gray-700"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                            <div className="p-4">
-                                <p>¿Estás seguro de que deseas eliminar al cliente <strong>{currentCustomer.name}</strong>? Esta acción no se puede deshacer.</p>
-                                <div className="flex justify-end gap-2 pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowDeleteModal(false)}
-                                        className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={confirmDelete}
-                                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-                                    >
-                                        Eliminar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Confirmar Eliminación</DialogTitle>
+                            <DialogDescription>
+                                ¿Estás seguro de que deseas eliminar al cliente <strong>{currentCustomer?.name}</strong>?
+                                Esta acción no se puede deshacer.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowDeleteModal(false)}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={confirmDelete}
+                            >
+                                Eliminar
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Content Section */}
                 {customers.data.length === 0 ? (
@@ -370,14 +410,14 @@ const GridView = ({ customers, onEdit, onDelete }: {
     onEdit: (customer: Customer) => void,
     onDelete: (customer: Customer) => void
 }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-col-4 gap-4">
         {customers.map((customer) => (
             <div key={customer.id} className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow border relative">
                 {customer.image && (
                     <img
                         src={`/storage/${customer.image}`}
                         alt={customer.name}
-                        className="w-full h-40 object-cover rounded-lg mb-4"
+                        className=" object-cover rounded-lg mb-4 aspect-[4/3]"
                     />
                 )}
                 <div className="flex flex-col gap-2">
@@ -385,12 +425,23 @@ const GridView = ({ customers, onEdit, onDelete }: {
                         <h3 className="font-semibold text-gray-800 truncate">{customer.name}</h3>
                         <StatusBadge status={customer.status} />
                     </div>
-                    {customer.description && (
+                    {customer.description ? (
                         <p className="text-sm text-gray-600 line-clamp-2">{customer.description}</p>
+                    ) : (
+                        <p className="text-sm text-gray-600 line-clamp-2 italic">Sin descripción</p>
                     )}
                     <div className="text-xs text-gray-400 mt-2">
                         Creado: {new Date(customer.created_at).toLocaleDateString()}
                     </div>
+                    <Button
+
+                        className="flex items-center gap-2  transition-all duration-300 w-max px-8 bg-slate-200 hover:bg-slate-300 text-black"
+                    >
+
+                        <span className="hidden sm:block">Admin</span>
+                        <ChevronRight className="w-5 h-5" />
+                    </Button>
+
                 </div>
                 <div className="absolute top-2 right-2 flex gap-1">
                     <button
@@ -509,7 +560,7 @@ const Pagination = ({ links, meta }: { links: PaginationLink[], meta: Pagination
                     <Link
                         key={index}
                         href={link.url}
-                        className={`px-3 py-1 rounded-md ${link.active
+                        className={`px-3 py-1 rounded-lg ${link.active
                             ? 'bg-blue-600 text-white'
                             : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                             }`}

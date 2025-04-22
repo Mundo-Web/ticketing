@@ -16,8 +16,44 @@ class CustomerController extends Controller
     public function index()
     {
         $customers = Customer::latest()->paginate(6);
-        return Inertia::render('Customers/index', ['customers' => $customers]);
+
+        // Asegúrate de incluir tanto los datos como los links y meta
+        $data = $customers->toArray();
+
+        return Inertia::render('Customers/index', [
+            'customers' => [
+                'data' => $data['data'],
+                'links' => $data['links'],
+                'meta' => [
+                    'current_page' => $data['current_page'],
+                    'from' => $data['from'],
+                    'last_page' => $data['last_page'],
+                    'path' => $data['path'],
+                    'per_page' => $data['per_page'],
+                    'to' => $data['to'],
+                    'total' => $data['total'],
+                ],
+            ]
+        ]);
     }
+
+    /*public function index()
+    {
+        $customers = Customer::latest()->paginate(6);
+
+        return Inertia::render('Customers/index', [
+            'customers' => $customers->through(function ($customer) {
+                return [
+                    'id' => $customer->id,
+                    'name' => $customer->name,
+                    'image' => $customer->image,
+                    'description' => $customer->description,
+                    'status' => $customer->status,
+                    'created_at' => $customer->created_at
+                ];
+            }),
+        ]);
+    } */
 
     public function store(Request $request)
     {
@@ -28,7 +64,7 @@ class CustomerController extends Controller
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'status' => 'required|in:active,inactive',
-                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
             ]);
 
             // Procesar imagen según tu método preferido

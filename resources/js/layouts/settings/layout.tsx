@@ -6,6 +6,7 @@ import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
+
 const sidebarNavItems: NavItem[] = [
     {
         title: 'Profile',
