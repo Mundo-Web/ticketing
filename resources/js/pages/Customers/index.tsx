@@ -11,20 +11,19 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-
 } from "@/components/ui/dialog"
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 interface Customer {
     id: number;
     name: string;
     image: string;
     description: string;
-    status: string;
+    status: boolean;
     created_at: string;
 }
 
@@ -58,29 +57,53 @@ export default function Index({ customers }: Props) {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState<number | null>(null);
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         id: null as number | null,
         name: '',
         image: null as File | null,
         description: '',
-        status: 'active'
     });
+
+    const toggleStatus = async (customer: Customer) => {
+        setIsUpdatingStatus(customer.id);
+
+        // Convertir explícitamente a booleano
+        const newStatus = !customer.status;
+
+        try {
+            await router.put(
+                route('customers.update-status', customer.id),
+                { status: newStatus }, // Asegurar tipo booleano
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        toast.success('Cliente activado exitosamente');
+
+                    }
+                }
+            );
+        } catch (error) {
+            toast.error('Error de conexión');
+        } finally {
+            setIsUpdatingStatus(null);
+        }
+    };
+
+
+
+
 
     const handleCreateSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!data.image) {
-            toast.error('Debes seleccionar una imagen');
-            return;
-        }
+
 
         const formData = new FormData();
         formData.append('name', data.name);
-        formData.append('image', data.image);
+        formData.append('image', data.image || "");
         formData.append('description', data.description);
-        formData.append('status', data.status);
-
 
         post(route('customers.store'), {
             data: formData,
@@ -105,28 +128,29 @@ export default function Index({ customers }: Props) {
             name: customer.name,
             image: null,
             description: customer.description,
-            status: customer.status
         });
         setCurrentCustomer(customer);
         setShowCreateModal(true);
     };
 
+    // components/Customers/Index.tsx
     const handleUpdateSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (!data.id) return;
+
         const formData = new FormData();
         formData.append('name', data.name);
+        formData.append('description', data.description || "");
         if (data.image) {
             formData.append('image', data.image);
         }
-        formData.append('description', data.description);
-        formData.append('status', data.status);
+
+        // ✅ Laravel espera _method como parte del FormData
         formData.append('_method', 'PUT');
 
-        if (!data.id) return;
-
-        post(route('customers.update', data.id), {
-            data: formData,
+        // ✅ Usar router.post() directamente con FormData y method: 'put'
+        router.post(route('customers.update', data.id), formData, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -136,12 +160,13 @@ export default function Index({ customers }: Props) {
                 toast.success('Cliente actualizado exitosamente');
             },
             onError: (errors) => {
-                console.error('Errores:', errors);
-                if (errors.image) toast.error(errors.image);
                 if (errors.name) toast.error(errors.name);
+                if (errors.image) toast.error(errors.image);
             }
         });
     };
+
+
 
     const handleDelete = (customer: Customer) => {
         setCurrentCustomer(customer);
@@ -185,7 +210,6 @@ export default function Index({ customers }: Props) {
                         </button>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
-
                         <Button
                             onClick={() => {
                                 reset();
@@ -303,26 +327,6 @@ export default function Index({ customers }: Props) {
                                     />
                                 </div>
 
-                                {/* Estado */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="status" className="text-base">
-                                        Estado <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Select
-                                        value={data.status}
-                                        onValueChange={(value) => setData('status', value)}
-                                        required
-                                    >
-                                        <SelectTrigger className="h-12 text-base w-full">
-                                            <SelectValue placeholder="Selecciona un estado" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="active" className="text-base">Activo</SelectItem>
-                                            <SelectItem value="inactive" className="text-base">Inactivo</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
                                 {/* Botones */}
                                 <div className="flex justify-end gap-4 pt-8 pb-4">
                                     <Button
@@ -347,7 +351,6 @@ export default function Index({ customers }: Props) {
                         </div>
                     </DialogContent>
                 </Dialog>
-
 
                 {/* Delete Confirmation Modal */}
                 <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
@@ -386,12 +389,16 @@ export default function Index({ customers }: Props) {
                         customers={customers.data}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
+                        onToggleStatus={toggleStatus}
+                        isUpdatingStatus={isUpdatingStatus}
                     />
                 ) : (
                     <TableView
                         customers={customers.data}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
+                        onToggleStatus={toggleStatus}
+                        isUpdatingStatus={isUpdatingStatus}
                     />
                 )}
 
@@ -405,10 +412,12 @@ export default function Index({ customers }: Props) {
 }
 
 // Componentes Auxiliares
-const GridView = ({ customers, onEdit, onDelete }: {
+const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatus }: {
     customers: Customer[],
     onEdit: (customer: Customer) => void,
-    onDelete: (customer: Customer) => void
+    onDelete: (customer: Customer) => void,
+    onToggleStatus: (customer: Customer) => void,
+    isUpdatingStatus: number | null
 }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-col-4 gap-4">
         {customers.map((customer) => (
@@ -417,13 +426,21 @@ const GridView = ({ customers, onEdit, onDelete }: {
                     <img
                         src={`/storage/${customer.image}`}
                         alt={customer.name}
-                        className=" object-cover rounded-lg mb-4 aspect-[4/3]"
+                        className="object-cover rounded-lg mb-4 aspect-[4/3]"
                     />
                 )}
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-gray-800 truncate">{customer.name}</h3>
-                        <StatusBadge status={customer.status} />
+                        <div className="flex items-center gap-2">
+                            <Switch
+                                checked={customer.status}
+                                onCheckedChange={() => onToggleStatus(customer)}
+                                className="data-[state=checked]:bg-green-500"
+                                disabled={isUpdatingStatus === customer.id}
+                            />
+                            <StatusBadge status={customer.status ? "active" : "inactive"} />
+                        </div>
                     </div>
                     {customer.description ? (
                         <p className="text-sm text-gray-600 line-clamp-2">{customer.description}</p>
@@ -434,14 +451,11 @@ const GridView = ({ customers, onEdit, onDelete }: {
                         Creado: {new Date(customer.created_at).toLocaleDateString()}
                     </div>
                     <Button
-
-                        className="flex items-center gap-2  transition-all duration-300 w-max px-8 bg-slate-200 hover:bg-slate-300 text-black"
+                        className="flex items-center gap-2 transition-all duration-300 w-max px-8 bg-slate-200 hover:bg-slate-300 text-black"
                     >
-
                         <span className="hidden sm:block">Admin</span>
                         <ChevronRight className="w-5 h-5" />
                     </Button>
-
                 </div>
                 <div className="absolute top-2 right-2 flex gap-1">
                     <button
@@ -464,10 +478,12 @@ const GridView = ({ customers, onEdit, onDelete }: {
     </div>
 );
 
-const TableView = ({ customers, onEdit, onDelete }: {
+const TableView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatus }: {
     customers: Customer[],
     onEdit: (customer: Customer) => void,
-    onDelete: (customer: Customer) => void
+    onDelete: (customer: Customer) => void,
+    onToggleStatus: (customer: Customer) => void,
+    isUpdatingStatus: number | null
 }) => (
     <div className="rounded-xl border shadow-sm overflow-hidden">
         <table className="w-full">
@@ -493,7 +509,17 @@ const TableView = ({ customers, onEdit, onDelete }: {
                             )}
                         </TableCell>
                         <TableCell className="font-medium">{customer.name}</TableCell>
-                        <TableCell><StatusBadge status={customer.status} /></TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    checked={customer.status}
+                                    onCheckedChange={() => onToggleStatus(customer)}
+                                    className="data-[state=checked]:bg-green-500"
+                                    disabled={isUpdatingStatus === customer.id}
+                                />
+                                <StatusBadge status={customer.status ? "active" : "inactive"} />
+                            </div>
+                        </TableCell>
                         <TableCell className="max-w-[200px]">
                             <p className="truncate">{customer.description || 'Sin descripción'}</p>
                         </TableCell>
@@ -504,14 +530,14 @@ const TableView = ({ customers, onEdit, onDelete }: {
                                     className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
                                 >
                                     <Edit className="w-4 h-4" />
-                                    Editar
+
                                 </button>
                                 <button
                                     onClick={() => onDelete(customer)}
                                     className="text-red-600 hover:text-red-800 flex items-center gap-1"
                                 >
                                     <Trash2 className="w-4 h-4" />
-                                    Eliminar
+
                                 </button>
                             </div>
                         </TableCell>

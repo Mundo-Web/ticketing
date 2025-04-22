@@ -18,6 +18,10 @@ class Customer extends Model
         'status',
         'image'
     ];
+    protected $casts = [
+        'status' => 'boolean',
+    ];
+
 
     public function Tickets()
     {

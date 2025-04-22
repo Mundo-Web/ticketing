@@ -17,7 +17,6 @@ class CustomerController extends Controller
     {
         $customers = Customer::latest()->paginate(6);
 
-        // Asegúrate de incluir tanto los datos como los links y meta
         $data = $customers->toArray();
 
         return Inertia::render('Customers/index', [
@@ -37,23 +36,23 @@ class CustomerController extends Controller
         ]);
     }
 
-    /*public function index()
+    public function updateStatus(Request $request, Customer $customer)
     {
-        $customers = Customer::latest()->paginate(6);
+        \Log::info('Payload recibido:', $request->all());
+        \Log::info('Estado antes:', ['status' => $customer->status]);
 
-        return Inertia::render('Customers/index', [
-            'customers' => $customers->through(function ($customer) {
-                return [
-                    'id' => $customer->id,
-                    'name' => $customer->name,
-                    'image' => $customer->image,
-                    'description' => $customer->description,
-                    'status' => $customer->status,
-                    'created_at' => $customer->created_at
-                ];
-            }),
+        $validated = $request->validate([
+            'status' => 'required|boolean'
         ]);
-    } */
+
+        $customer->update($validated);
+
+        \Log::info('Estado después:', ['status' => $customer->fresh()->status]);
+
+        return back()->with('success', 'Estado actualizado');
+    }
+
+
 
     public function store(Request $request)
     {
@@ -63,25 +62,26 @@ class CustomerController extends Controller
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'status' => 'required|in:active,inactive',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
             ]);
 
-            // Procesar imagen según tu método preferido
             $full = $request->file('image');
             $uuid = Crypto::randomUUID();
             $ext = $full->getClientOriginalExtension();
             $path = "images/{$snake_case}/{$uuid}.{$ext}";
 
-            // Crear directorio si no existe
-            if (!Storage::exists("images/{$snake_case}")) {
-                Storage::makeDirectory("images/{$snake_case}");
+            if (!Storage::disk('public')->exists("images/{$snake_case}")) {
+                Storage::disk('public')->makeDirectory("images/{$snake_case}");
             }
 
             Storage::disk('public')->put($path, file_get_contents($full));
-            $validated['image'] = $path; // Guardamos la ruta completa
 
-            Customer::create($validated);
+            Customer::create([
+                'name' => $validated['name'],
+                'description' => $validated['description'],
+                'image' => $path,
+                'status' => true // Por defecto activo
+            ]);
 
             return redirect()->route('customers.index')
                 ->with('success', 'Cliente creado correctamente');
@@ -92,33 +92,30 @@ class CustomerController extends Controller
         }
     }
 
-    public function edit(Customer $customer)
-    {
-        return Inertia::render('Customers/Edit', ['customer' => $customer]);
-    }
-
     public function update(Request $request, Customer $customer)
     {
+
+        $snake_case = Text::camelToSnakeCase(str_replace('App\\Models\\', '', get_class($customer)));
+
         try {
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'status' => 'required|in:active,inactive',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
             ]);
 
+            // Si se proporciona una nueva imagen, la reemplazamos
             if ($request->hasFile('image')) {
-                // Eliminar imagen anterior si existe
-                if ($customer->image && Storage::exists($customer->image)) {
-                    Storage::delete($customer->image);
+                if ($customer->image && Storage::disk('public')->exists($customer->image)) {
+                    Storage::disk('public')->delete($customer->image);
                 }
 
-                // Procesar nueva imagen
                 $full = $request->file('image');
                 $uuid = Crypto::randomUUID();
                 $ext = $full->getClientOriginalExtension();
-                $path = "images/customer/{$uuid}.{$ext}";
-                Storage::put($path, file_get_contents($full));
+                $path = "images/{$snake_case}/{$uuid}.{$ext}";
+
+                Storage::disk('public')->put($path, file_get_contents($full));
                 $validated['image'] = $path;
             }
 
@@ -136,9 +133,8 @@ class CustomerController extends Controller
     public function destroy(Customer $customer)
     {
         try {
-            // Eliminar imagen asociada
-            if ($customer->image && Storage::exists($customer->image)) {
-                Storage::delete($customer->image);
+            if ($customer->image && Storage::disk('public')->exists($customer->image)) {
+                Storage::disk('public')->delete($customer->image);
             }
 
             $customer->delete();
