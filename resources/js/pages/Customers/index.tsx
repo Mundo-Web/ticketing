@@ -300,7 +300,7 @@ export default function Index({ customers }: Props) {
                                         <Input
                                             id="image-upload"
                                             type="file"
-                                            accept="image/*"
+                                            accept="image/png, image/jpeg,image/jpg"
                                             onChange={(e) => {
                                                 if (e.target.files && e.target.files[0]) {
                                                     setData('image', e.target.files[0]);
@@ -419,14 +419,14 @@ const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatu
     onToggleStatus: (customer: Customer) => void,
     isUpdatingStatus: number | null
 }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-col-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3  gap-4">
         {customers.map((customer) => (
             <div key={customer.id} className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow border relative">
                 {customer.image && (
                     <img
                         src={`/storage/${customer.image}`}
                         alt={customer.name}
-                        className="object-cover rounded-lg mb-4 aspect-[4/3]"
+                        className="object-cover rounded-lg mb-4 w-full aspect-[4/3]"
                     />
                 )}
                 <div className="flex flex-col gap-2">
@@ -505,7 +505,8 @@ const TableView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStat
                                 <img
                                     src={`/storage/${customer.image}`}
                                     alt={customer.name}
-                                    className="w-12 h-12 rounded-full object-cover"
+                                    className="w-12 h-12 rounded-full  object-cover"
+
                                 />
                             )}
                         </TableCell>
