@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('customers', function (Blueprint $table) {
             $table->id(); // id int auto_increment primary key
             $table->string('name', 255);
+            $table->string('image', 255)->nullable();
             $table->string('description', 255)->nullable();
             $table->string('status', 255)->nullable();
             $table->timestamps();
