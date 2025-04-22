@@ -22,7 +22,7 @@ const mainNavItems: NavItem[] = [
 
   },
   {
-    title: 'Tenenats',
+    title: 'Areas',
     icon: UsersRound,
     href: '/tenants',
     isActive: route().current('tenants.*'),

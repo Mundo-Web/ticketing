@@ -1,57 +1,123 @@
-"use client"
 
-import { useState } from "react"
-import { ChevronRight } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Switch } from "@/components/ui/switch"
-import { Card, CardContent } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import DeviceTable from "./device-table"
-import ImageUploader from "./image-uploader"
+
+
 import AppLayout from "@/layouts/app-layout"
 import { Head } from "@inertiajs/react"
 import { BreadcrumbItem } from "@/types"
+import ApartmentForm from "./ApartmentForm"
+import ApartmentTable from "./ApartmentTable"
+import { useState } from "react"
 
-type Device = {
-    id: number
-    device: string
-    brand: string
-    system: string
-}
 
-export default function Index() {
-    const [devices, setDevices] = useState<Device[]>([
-        { id: 1, device: "Laptop", brand: "Hp", system: "Windows" },
-        { id: 2, device: "Impresora", brand: "Epson", system: "Android" },
-        { id: 3, device: "Smart TV", brand: "choose", system: "WebOs" },
-    ])
 
-    const addDevice = () => {
-        const newId = devices.length > 0 ? Math.max(...devices.map((d) => d.id)) + 1 : 1
-        setDevices([...devices, { id: newId, device: "", brand: "", system: "" }])
-    }
+type PageProps = {
+    customer: {
+        id: number;
+        apartments: {
+            id: number;
+            name: string;
+            ubicacion: string;
+            devices: {
+                id: number;
+                name: string;
+                brand: { name: string };
+                model: { name: string };
+                system: { name: string };
+            }[];
+        }[];
+    };
+    brands: { id: number; name: string }[];
+    models: { id: number; name: string }[];
+    systems: { id: number; name: string }[];
+};
 
-    const removeDevice = (id: number) => {
-        setDevices(devices.filter((device) => device.id !== id))
-    }
+export default function Index({ customer, brands, models, systems }: PageProps) {
 
-    const duplicateDevice = (id: number) => {
-        const deviceToDuplicate = devices.find((device) => device.id === id)
-        if (deviceToDuplicate) {
-            const newId = Math.max(...devices.map((d) => d.id)) + 1
-            setDevices([...devices, { ...deviceToDuplicate, id: newId }])
-        }
-    }
+    const [apartments, setApartments] = useState(customer.apartments);
+    // Función para actualizar la lista de apartamentos
+    const handleApartmentCreated = (newApartment: any) => {
+        setApartments((prevApartments) => [...prevApartments, newApartment]);
+    };
 
+    // Función para manejar el cambio de datos en un dispositivo específico
+    const handleChangeDevice = (apartmentId: number, deviceId: number, field: string, value: string) => {
+        setApartments((prevApartments) => {
+            return prevApartments.map((apartment) => {
+                if (apartment.id === apartmentId) {
+                    return {
+                        ...apartment,
+                        devices: apartment.devices.map((device) => {
+                            if (device.id === deviceId) {
+                                return { ...device, [field]: value };  // Actualiza el campo específico
+                            }
+                            return device;
+                        })
+                    };
+                }
+                return apartment;
+            });
+        });
+    };
+
+    // Función para eliminar un dispositivo
+    const handleRemoveDevice = (apartmentId: number, deviceId: number) => {
+        setApartments((prevApartments) => {
+            return prevApartments.map((apartment) => {
+                if (apartment.id === apartmentId) {
+                    return {
+                        ...apartment,
+                        devices: apartment.devices.filter((device) => device.id !== deviceId)
+                    };
+                }
+                return apartment;
+            });
+        });
+    };
+
+    // Función para duplicar un dispositivo
+    const handleDuplicateDevice = (apartmentId: number, deviceId: number) => {
+        setApartments((prevApartments) => {
+            return prevApartments.map((apartment) => {
+                if (apartment.id === apartmentId) {
+                    const deviceToDuplicate = apartment.devices.find((device) => device.id === deviceId);
+                    if (deviceToDuplicate) {
+                        return {
+                            ...apartment,
+                            devices: [
+                                ...apartment.devices,
+                                { ...deviceToDuplicate, id: Date.now() }  // Duplicar con nuevo ID
+                            ]
+                        };
+                    }
+                }
+                return apartment;
+            });
+        });
+    };
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Tenants" />
             <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-                <div className="flex gap-4">
+
+
+                <ApartmentForm
+                    brands={brands}
+                    models={models}
+                    systems={systems}
+                    customerId={customer.id}
+                    onApartmentCreated={handleApartmentCreated}
+                />
+                <ApartmentTable
+                    apartments={apartments}
+                    brands={brands}  // Asegúrate de que brands, models y systems son arrays.
+                    models={models}
+                    systems={systems}
+                    handleChangeDevice={handleChangeDevice}
+                    handleRemoveDevice={handleRemoveDevice}
+                    handleDuplicateDevice={handleDuplicateDevice}
+                />
+
+                {/*   <div className="flex gap-4">
                     <Card className="mb-8 shadow-sm w-8/12">
                         <CardContent className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -139,10 +205,10 @@ export default function Index() {
                         Save tenant
                     </Button>
                 </div>
-            </div>
+             */}</div>
         </AppLayout>
     )
 }
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Tenants', href: '/tenants' }
+    { title: 'Departamentos', href: '/apartments' }
 ];

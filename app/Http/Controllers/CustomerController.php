@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Brand;
 use App\Models\Customer;
+use App\Models\DeviceModel;
+use App\Models\System;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -145,5 +148,16 @@ class CustomerController extends Controller
             return back()
                 ->with('error', 'Error al eliminar cliente: ' . $e->getMessage());
         }
+    }
+
+    // app/Http/Controllers/ClientController.php
+    public function apartments(Customer $customer)
+    {
+        return Inertia::render('Tenants/index', [
+            'customer' => $customer->load(['apartments.devices.brand', 'apartments.devices.system', 'apartments.devices.model']),
+            'brands' => Brand::all(),
+            'systems' => System::all(),
+            'models' => DeviceModel::all()
+        ]);
     }
 }

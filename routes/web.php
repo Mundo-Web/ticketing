@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\ApartmentController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\TicketController;
 use App\Models\Support;
@@ -24,9 +26,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
 
 
-    Route::get('tenants', function () {
-        return Inertia::render('Tenants/index');
-    })->name('tenants.index');
+    Route::get('customers/{customer}/apartments', [CustomerController::class, 'apartments'])->name('customers.apartments');
+
+    Route::post('/apartments', [ApartmentController::class, 'store'])->name('apartments.store');
+
+
+
 
     Route::resource('supports', SupportController::class);
     Route::resource('tickets', TicketController::class);

@@ -450,12 +450,13 @@ const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatu
                     <div className="text-xs text-gray-400 mt-2">
                         Creado: {new Date(customer.created_at).toLocaleDateString()}
                     </div>
-                    <Button
-                        className="flex items-center gap-2 transition-all duration-300 w-max px-8 bg-slate-200 hover:bg-slate-300 text-black"
+                    <Link
+                        href={route('customers.apartments', customer)}
+                        className="flex  py-2 rounded-lg items-center gap-2 transition-all duration-300 w-max px-8 bg-slate-200 hover:bg-slate-300 text-black"
                     >
                         <span className="hidden sm:block">Admin</span>
                         <ChevronRight className="w-5 h-5" />
-                    </Button>
+                    </Link>
                 </div>
                 <div className="absolute top-2 right-2 flex gap-1">
                     <button

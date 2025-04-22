@@ -2,65 +2,84 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreApartmentRequest;
-use App\Http\Requests\UpdateApartmentRequest;
+use App\Models\Customer;
 use App\Models\Apartment;
+use App\Models\Brand;
+use App\Models\Device;
+use App\Models\DeviceModel;
+use App\Models\System;
+
+use Illuminate\Http\Request;
+
 
 class ApartmentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+
+    public function store(Request $request)
     {
-        //
+        try {
+            \Log::info('Request Data:', $request->all());
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'ubicacion' => 'nullable|string|max:255',
+                'devices' => 'array',
+                'devices.*.name' => 'required|string|max:255',
+                'devices.*.brand' => 'required|string|max:255',
+                'devices.*.model' => 'required|string|max:255',
+                'devices.*.system' => 'required|string|max:255',
+            ]);
+
+            // ✅ Crear el departamento
+            $apartment = Apartment::create([
+                'name' => $request->name,
+                'ubicacion' => $request->ubicacion,
+                'customers_id' => $request->customer_id ?? 1, // Cambia según cómo pases el cliente
+            ]);
+
+            // ✅ Procesar cada dispositivo
+            foreach ($request->devices as $deviceData) {
+                $brand = Brand::firstOrCreate(['name' => $deviceData['brand']], ['status' => true]);
+                $model = DeviceModel::firstOrCreate(['name' => $deviceData['model']], ['status' => true]);
+                $system = System::firstOrCreate(['name' => $deviceData['system']], ['status' => true]);
+
+                $device = Device::create([
+                    'name' => $deviceData['name'],
+                    'brand_id' => $brand->id,
+                    'model_id' => $model->id,
+                    'system_id' => $system->id,
+                    'status' => true,
+                ]);
+
+                $apartment->devices()->attach($device->id);
+            }
+
+            return response()->json([
+                'success' => true,
+                'apartment' => $apartment->load('devices.brand', 'devices.model', 'devices.system'),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error al guardar apartamento: ' . $e->getMessage());
+            return response()->json(['error' => 'Hubo un problema al guardar el departamento.'], 500);
+        }
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+
+    public function update(Customer $customer, Apartment $apartment, Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'ubicacion' => 'sometimes|string|max:255',
+            'status' => 'sometimes|boolean'
+        ]);
+
+        $apartment->update($validated);
+
+        return redirect()->back()->with('success', 'Departamento actualizado');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreApartmentRequest $request)
+    public function destroy(Customer $customer, Apartment $apartment)
     {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Apartment $apartment)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Apartment $apartment)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateApartmentRequest $request, Apartment $apartment)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Apartment $apartment)
-    {
-        //
+        $apartment->delete();
+        return redirect()->back()->with('success', 'Departamento eliminado');
     }
 }
