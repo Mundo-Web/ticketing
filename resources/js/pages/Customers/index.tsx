@@ -419,7 +419,7 @@ const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatu
     onToggleStatus: (customer: Customer) => void,
     isUpdatingStatus: number | null
 }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3  gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {customers.map((customer) => (
             <div key={customer.id} className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow border relative">
                 {customer.image && (
