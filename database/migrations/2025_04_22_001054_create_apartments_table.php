@@ -11,12 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('customers', function (Blueprint $table) {
-            $table->id(); // id int auto_increment primary key
+        Schema::create('apartments', function (Blueprint $table) {
+            
+            $table->id(); // id autoincrement primary key
             $table->string('name', 255);
-            $table->string('description', 255)->nullable();
-            $table->string('status', 255)->nullable();
+            $table->string('ubicacion', 255);
+            $table->unsignedBigInteger('customers_id');
             $table->timestamps();
+
+            // Relación con customers
+            $table->foreign('customers_id')->references('id')->on('customers')->onDelete('cascade');
+            
         });
     }
 
@@ -25,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('customers');
+        Schema::dropIfExists('apartments');
     }
 };

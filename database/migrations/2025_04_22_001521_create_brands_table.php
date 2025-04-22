@@ -11,10 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('customers', function (Blueprint $table) {
-            $table->id(); // id int auto_increment primary key
+        Schema::create('brands', function (Blueprint $table) {
+            $table->id();
             $table->string('name', 255);
-            $table->string('description', 255)->nullable();
             $table->string('status', 255)->nullable();
             $table->timestamps();
         });
@@ -25,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('customers');
+        Schema::dropIfExists('brands');
     }
 };
