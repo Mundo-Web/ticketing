@@ -23,6 +23,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('customers.update-status');
     Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
 
+
+    Route::get('tenants', function () {
+        return Inertia::render('Tenants/index');
+    })->name('tenants.index');
+
     Route::resource('supports', SupportController::class);
     Route::resource('tickets', TicketController::class);
 });

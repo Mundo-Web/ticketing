@@ -21,6 +21,13 @@ const mainNavItems: NavItem[] = [
     isActive: route().current('customers.*'),
 
   },
+  {
+    title: 'Tenenats',
+    icon: UsersRound,
+    href: '/tenants',
+    isActive: route().current('tenants.*'),
+
+  },
   /*
      title: 'Support',
      icon: LifeBuoy,
