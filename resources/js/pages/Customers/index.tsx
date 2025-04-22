@@ -431,7 +431,7 @@ const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatu
                 )}
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-gray-800 truncate">{customer.name}</h3>
+                        <h3 className="font-semibold text-lg text-gray-800 truncate">{customer.name}</h3>
                         <div className="flex items-center gap-2">
                             <Switch
                                 checked={customer.status}
