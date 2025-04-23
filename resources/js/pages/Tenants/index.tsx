@@ -452,6 +452,7 @@ const GridView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingStat
                             onClick={() => handleShowDevices(customer)}
                             className="flex  py-2 rounded-lg items-center gap-2 transition-all duration-300 w-6/12 px-8 bg-primary text-primary-foreground"
                         >
+                            {customer.devices?.length}
                             <span className="hidden sm:block">Dispositivos</span>
                             <ChevronRight className="w-5 h-5" />
                         </Button>
