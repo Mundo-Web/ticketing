@@ -3,40 +3,127 @@
 namespace App\Http\Controllers;
 
 use App\Models\Apartment;
+use App\Models\Brand;
 use App\Models\Device;
+use App\Models\DeviceModel;
+use App\Models\NameDevice;
+use App\Models\System;
 use Illuminate\Http\Request;
 
 class DeviceController extends Controller
 {
-    public function store(Apartment $apartment, Request $request)
+    public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'brand_id' => 'required|exists:brands,id',
-            'system_id' => 'required|exists:systems,id'
+        //dd($request->all());
+        $request->validate([
+
+            'apartment_id' => 'required|exists:apartments,id',
+        ]);
+        if ($request->filled('new_name_device')) {
+            $name_device = NameDevice::firstOrCreate(['name' => $request->new_name_device]);
+
+            $name_device_id = $name_device->id;
+        } else {
+            // Si no se pasó el nuevo nombre de dispositivo, intenta con el ID proporcionado
+            $name_device_id = $request->name_device_id;
+            if (!$name_device_id) {
+                return redirect()->back()->with('error', 'El ID del nombre de dispositivo es obligatorio.');
+            }
+        }
+
+        // Marca
+        if ($request->filled('new_brand')) {
+            $brand = Brand::firstOrCreate(['name' => $request->new_brand]);
+            $brand_id = $brand->id;
+        } else {
+            $brand_id = $request->brand_id;
+        }
+
+        // Modelo
+        if ($request->filled('new_model')) {
+            $model = DeviceModel::firstOrCreate(['name' => $request->new_model]);
+            $model_id = $model->id;
+        } else {
+            $model_id = $request->model_id;
+        }
+
+        // Sistema
+        if ($request->filled('new_system')) {
+            $system = System::firstOrCreate(['name' => $request->new_system]);
+            $system_id = $system->id;
+        } else {
+            $system_id = $request->system_id;
+        }
+
+        // Crear dispositivo
+        $device = Device::create([
+            'name' => $request->name,
+            'brand_id' => $brand_id,
+            'model_id' => $model_id,
+            'system_id' => $system_id,
+            'name_device_id' => $name_device_id,
+            'apartment_id' => $request->apartment_id, // Esto es solo para la relación directa
         ]);
 
-        $device = $apartment->devices()->create($validated);
+        // Asociar el dispositivo al apartamento en la tabla pivot
+        $device->apartments()->attach($request->apartment_id);
 
-        return redirect()->back()->with('success', 'Dispositivo agregado');
+        return response()->json([
+            'device' => Device::with(['brand', 'model', 'system', 'name_device'])->find($device->id)
+        ]);
     }
 
-    public function update(Apartment $apartment, Device $device, Request $request)
+
+    public function update(Request $request, Device $device)
     {
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'brand_id' => 'sometimes|exists:brands,id',
-            'system_id' => 'sometimes|exists:systems,id'
+        if ($request->filled('new_name_device')) {
+            $name_device = NameDevice::firstOrCreate(['name' => $request->new_name_device]);
+            $name_device_id = $name_device->id;
+        } else {
+            $name_device_id = $request->name_device_id;
+        }
+
+        // Marca
+        if ($request->filled('new_brand')) {
+            $brand = Brand::firstOrCreate(['name' => $request->new_brand]);
+            $brand_id = $brand->id;
+        } else {
+            $brand_id = $request->brand_id;
+        }
+
+        // Modelo
+        if ($request->filled('new_model')) {
+            $model = DeviceModel::firstOrCreate(['name' => $request->new_model]);
+            $model_id = $model->id;
+        } else {
+            $model_id = $request->model_id;
+        }
+
+        // Sistema
+        if ($request->filled('new_system')) {
+            $system = System::firstOrCreate(['name' => $request->new_system]);
+            $system_id = $system->id;
+        } else {
+            $system_id = $request->system_id;
+        }
+
+        $device->update([
+
+            'brand_id' => $brand_id,
+            'model_id' => $model_id,
+            'system_id' => $system_id,
+            'name_device_id' => $name_device_id,
         ]);
 
-        $device->update($validated);
-
-        return redirect()->back()->with('success', 'Dispositivo actualizado');
+        return response()->json([
+            'device' => Device::with(['brand', 'model', 'system', 'name_device'])->find($device->id)
+        ]);
     }
 
-    public function destroy(Apartment $apartment, Device $device)
+
+    public function destroy(Device $device)
     {
         $device->delete();
-        return redirect()->back()->with('success', 'Dispositivo eliminado');
+        return response()->json(['message' => 'Dispositivo eliminado correctamente.']);
     }
 }

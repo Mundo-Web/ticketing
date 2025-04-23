@@ -419,7 +419,7 @@ const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatu
     onToggleStatus: (customer: Customer) => void,
     isUpdatingStatus: number | null
 }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 ">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ">
         {customers.map((customer) => (
             <div key={customer.id} className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow border relative">
                 {customer.image && (
@@ -443,9 +443,9 @@ const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatu
                         </div>
                     </div>
                     {customer.description ? (
-                        <p className="text-sm text-gray-600 line-clamp-2">{customer.description}</p>
+                        <p className="text-sm text-gray-600 line-clamp-2">{customer.apartments?.length} departamentos</p>
                     ) : (
-                        <p className="text-sm text-gray-600 line-clamp-2 italic">Sin descripción</p>
+                        <p className="text-sm text-gray-600 line-clamp-2 ">{customer.apartments?.length} departamentos</p>
                     )}
                     <div className="text-xs text-gray-400 mt-2">
                         Creado: {new Date(customer.created_at).toLocaleDateString()}
@@ -564,15 +564,15 @@ const StatusBadge = ({ status }: { status: string }) => (
 );
 
 const EmptyState = ({ onAddNew }: { onAddNew: () => void }) => (
-    <div className="bg-blue-50/50 p-8 rounded-xl text-center border-2 border-dashed border-blue-100">
-        <div className="text-blue-500 mb-4 flex justify-center">
+    <div className="bg-sidebar p-8 rounded-xl text-center border-2 border-dashed ">
+        <div className="text-primary mb-4 flex justify-center">
             <LayoutGrid className="w-12 h-12" />
         </div>
-        <h3 className="text-xl font-semibold text-blue-800 mb-2">No hay clientes registrados</h3>
-        <p className="text-blue-600 mb-4">Comienza agregando tu primer cliente</p>
+        <h3 className="text-xl font-semibold text-primary mb-2">No hay clientes registrados</h3>
+        <p className="text-primary mb-4">Comienza agregando tu primer cliente</p>
         <button
             onClick={onAddNew}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg  transition-colors"
         >
             <Plus className="w-5 h-5" />
             Crear Primer Cliente

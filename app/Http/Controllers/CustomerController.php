@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Apartment;
 use App\Models\Brand;
 use App\Models\Customer;
 use App\Models\DeviceModel;
+use App\Models\NameDevice;
 use App\Models\System;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +20,7 @@ class CustomerController extends Controller
 
     public function index()
     {
-        $customers = Customer::latest()->paginate(6);
+        $customers = Customer::with('apartments')->latest()->paginate(6);
 
         $data = $customers->toArray();
 
@@ -151,13 +153,45 @@ class CustomerController extends Controller
     }
 
     // app/Http/Controllers/ClientController.php
-    public function apartments(Customer $customer)
+    /* public function apartments(Customer $customer)
     {
         return Inertia::render('Tenants/index', [
             'customer' => $customer->load(['apartments.devices.brand', 'apartments.devices.system', 'apartments.devices.model']),
             'brands' => Brand::all(),
             'systems' => System::all(),
             'models' => DeviceModel::all()
+        ]);
+    }*/
+    public function apartments(Customer $customer)
+    {
+        $apartments = Apartment::with(['devices.brand', 'devices.system', 'devices.model', 'devices.name_device'])
+            ->where('customers_id', $customer->id)
+            ->latest()
+            ->paginate(6);
+
+
+
+        $data = $apartments->toArray();
+
+        return Inertia::render('Tenants/index', [
+            'customer' => $customer,
+            'apartments' => [
+                'data' => $data['data'],
+                'links' => $data['links'],
+                'meta' => [
+                    'current_page' => $data['current_page'],
+                    'from' => $data['from'],
+                    'last_page' => $data['last_page'],
+                    'path' => $data['path'],
+                    'per_page' => $data['per_page'],
+                    'to' => $data['to'],
+                    'total' => $data['total'],
+                ],
+            ],
+            'brands' => Brand::all(),
+            'systems' => System::all(),
+            'models' => DeviceModel::all(),
+            'name_devices' => NameDevice::all()
         ]);
     }
 }

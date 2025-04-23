@@ -83,4 +83,47 @@ class ApartmentController extends Controller
         $apartment->delete();
         return redirect()->back()->with('success', 'Departamento eliminado');
     }
+
+
+    public function storeApartment(Request $request, Customer $customer)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'ubicacion' => 'nullable|string|max:255',
+            // Validación adicional si necesitas
+        ]);
+
+        $apartment = $customer->apartments()->create($validated);
+
+        return redirect()->back()->with('success', 'Departamento creado correctamente.');
+    }
+
+    public function updateApartment(Apartment $apartment, Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'string|max:255',
+            'ubicacion' => 'string|max:255',
+
+        ]);
+
+        $apartment->update($validated);
+
+        return redirect()->back()->with('success', 'Departamento creado correctamente.');
+    }
+
+    public function updateStatus(Request $request, Apartment $apartment)
+    {
+        \Log::info('Payload recibido:', $request->all());
+        \Log::info('Estado antes:', ['status' => $apartment->status]);
+
+        $validated = $request->validate([
+            'status' => 'required|boolean'
+        ]);
+
+        $apartment->update($validated);
+
+        \Log::info('Estado después:', ['status' => $apartment->fresh()->status]);
+
+        return back()->with('success', 'Estado actualizado');
+    }
 }

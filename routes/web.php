@@ -28,7 +28,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('customers/{customer}/apartments', [CustomerController::class, 'apartments'])->name('customers.apartments');
 
-    Route::post('/apartments', [ApartmentController::class, 'store'])->name('apartments.store');
+    Route::post('/customers/{customer}/apartments', [ApartmentController::class, 'storeApartment'])->name('customers.apartments.store');
+    Route::put('/apartments/{apartment}', [ApartmentController::class, 'updateApartment'])->name('apartments.update');
+    Route::put('/apartments/{apartment}/update-status', [ApartmentController::class, 'updateStatus'])
+        ->name('apartments.update-status');
+
+
+    Route::resource('devices', DeviceController::class);
+    Route::delete('/devices/{device}', [DeviceController::class, 'destroy'])->name('devices.destroy');
 
 
 

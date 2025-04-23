@@ -14,6 +14,7 @@ class Device extends Model
         'brand_id',
         'system_id',
         'model_id',
+        'name_device_id',
         'status',
     ];
 
@@ -38,5 +39,9 @@ class Device extends Model
     public function model()
     {
         return $this->belongsTo(DeviceModel::class);
+    }
+    public function name_device()
+    {
+        return $this->belongsTo(NameDevice::class);
     }
 }

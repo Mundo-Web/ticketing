@@ -20,14 +20,7 @@ const mainNavItems: NavItem[] = [
     href: '/customers',
     isActive: route().current('customers.*'),
 
-  },
-  {
-    title: 'Areas',
-    icon: UsersRound,
-    href: '/tenants',
-    isActive: route().current('tenants.*'),
-
-  },
+  }
   /*
      title: 'Support',
      icon: LifeBuoy,
@@ -68,7 +61,7 @@ const mainNavItems: NavItem[] = [
    }*/
 ];
 
-const footerNavItems: NavItem[] = [
+/*const footerNavItems: NavItem[] = [
   {
     title: 'Repository',
     href: 'https://github.com/laravel/react-starter-kit',
@@ -79,7 +72,7 @@ const footerNavItems: NavItem[] = [
     href: 'https://laravel.com/docs/starter-kits',
     icon: BookOpen,
   },
-];
+];*/
 
 export function AppSidebar() {
   return (
@@ -101,7 +94,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <NavFooter items={footerNavItems} className="mt-auto" />
+        {/* <NavFooter items={footerNavItems} className="mt-auto" />*/}
         <NavUser />
       </SidebarFooter>
     </Sidebar>
