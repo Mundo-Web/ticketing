@@ -384,6 +384,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                         onDelete={handleDelete}
                         onToggleStatus={toggleStatus}
                         isUpdatingStatus={isUpdatingStatus}
+                        handleShowDevices={handleShowDevices}
                     />
                 ) : (
                     <TableView
@@ -411,12 +412,14 @@ export default function Index({ apartments, brands, models, systems, name_device
 }
 
 // Componentes Auxiliares
-const GridView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingStatus }: {
+const GridView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingStatus, handleShowDevices }: {
     apartments: Apartment[],
     onEdit: (customer: Apartment) => void,
     onDelete: (customer: Apartment) => void,
     onToggleStatus: (customer: Apartment) => void,
-    isUpdatingStatus: number | null
+    isUpdatingStatus: number | null,
+    handleShowDevices: (apartment: Apartment) => void;
+
 }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 ">
         {apartments && apartments.map((customer) => (
@@ -444,13 +447,14 @@ const GridView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingStat
                         Creado: {new Date(customer.created_at).toLocaleDateString()}
                     </div>
                     <div className='flex gap-4'>
-                        <Link
+                        <Button
                             //  href={route('apartments.apartments', customer)}
+                            onClick={() => handleShowDevices(customer)}
                             className="flex  py-2 rounded-lg items-center gap-2 transition-all duration-300 w-6/12 px-8 bg-primary text-primary-foreground"
                         >
-                            <span className="hidden sm:block">Admin</span>
+                            <span className="hidden sm:block">Dispositivos</span>
                             <ChevronRight className="w-5 h-5" />
-                        </Link>
+                        </Button>
                         <div className="relative   flex gap-4 w-6/12 justify-end items-center">
                             <button
                                 onClick={() => onEdit(customer)}
