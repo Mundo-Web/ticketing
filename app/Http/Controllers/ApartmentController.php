@@ -22,11 +22,11 @@ class ApartmentController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'ubicacion' => 'nullable|string|max:255',
-                'devices' => 'array',
-                'devices.*.name' => 'required|string|max:255',
-                'devices.*.brand' => 'required|string|max:255',
-                'devices.*.model' => 'required|string|max:255',
-                'devices.*.system' => 'required|string|max:255',
+                //  'devices' => 'array',
+                // 'devices.*.name' => 'required|string|max:255',
+                //  'devices.*.brand' => 'required|string|max:255',
+                //  'devices.*.model' => 'required|string|max:255',
+                //  'devices.*.system' => 'required|string|max:255',
             ]);
 
             // ✅ Crear el departamento
@@ -37,7 +37,7 @@ class ApartmentController extends Controller
             ]);
 
             // ✅ Procesar cada dispositivo
-            foreach ($request->devices as $deviceData) {
+            /*  foreach ($request->devices as $deviceData) {
                 $brand = Brand::firstOrCreate(['name' => $deviceData['brand']], ['status' => true]);
                 $model = DeviceModel::firstOrCreate(['name' => $deviceData['model']], ['status' => true]);
                 $system = System::firstOrCreate(['name' => $deviceData['system']], ['status' => true]);
@@ -51,11 +51,12 @@ class ApartmentController extends Controller
                 ]);
 
                 $apartment->devices()->attach($device->id);
-            }
+            }*/
 
             return response()->json([
                 'success' => true,
-                'apartment' => $apartment->load('devices.brand', 'devices.model', 'devices.system'),
+                //'apartment' => $apartment->load('devices.brand', 'devices.model', 'devices.system'),
+                'apartment' => $apartment,
             ]);
         } catch (\Exception $e) {
             \Log::error('Error al guardar apartamento: ' . $e->getMessage());

@@ -216,7 +216,7 @@ export default function Index({ customers }: Props) {
                                 setCurrentCustomer(null);
                                 setShowCreateModal(true);
                             }}
-                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white transition-all duration-300"
+                            className="flex items-center gap-2  text-white transition-all duration-300"
                         >
                             <Star className="w-5 h-5" />
                             <span className="hidden sm:block">Nuevo Cliente</span>
@@ -419,7 +419,7 @@ const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatu
     onToggleStatus: (customer: Customer) => void,
     isUpdatingStatus: number | null
 }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 ">
         {customers.map((customer) => (
             <div key={customer.id} className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow border relative">
                 {customer.image && (
@@ -450,30 +450,34 @@ const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatu
                     <div className="text-xs text-gray-400 mt-2">
                         Creado: {new Date(customer.created_at).toLocaleDateString()}
                     </div>
-                    <Link
-                        href={route('customers.apartments', customer)}
-                        className="flex  py-2 rounded-lg items-center gap-2 transition-all duration-300 w-max px-8 bg-slate-200 hover:bg-slate-300 text-black"
-                    >
-                        <span className="hidden sm:block">Admin</span>
-                        <ChevronRight className="w-5 h-5" />
-                    </Link>
+                    <div className='flex gap-4'>
+                        <Link
+                            href={route('customers.apartments', customer)}
+                            className="flex  py-2 rounded-lg items-center gap-2 transition-all duration-300 w-6/12 px-8 bg-primary text-primary-foreground"
+                        >
+                            <span className="hidden sm:block">Admin</span>
+                            <ChevronRight className="w-5 h-5" />
+                        </Link>
+                        <div className="relative   flex gap-4 w-6/12 justify-end items-center">
+                            <button
+                                onClick={() => onEdit(customer)}
+                                className="p-2 bg-secondary text-secondary-foreground rounded-lg "
+                                title="Editar"
+                            >
+                                <Edit className="w-6 h-6" />
+                            </button>
+                            <button
+                                onClick={() => onDelete(customer)}
+                                className="p-2 bg-accent text-accent-foreground rounded-lg"
+                                title="Eliminar"
+                            >
+                                <Trash2 className="w-6 h-6" />
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
-                <div className="absolute top-2 right-2 flex gap-1">
-                    <button
-                        onClick={() => onEdit(customer)}
-                        className="p-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
-                        title="Editar"
-                    >
-                        <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => onDelete(customer)}
-                        className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
-                        title="Eliminar"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                </div>
+
             </div>
         ))}
     </div>

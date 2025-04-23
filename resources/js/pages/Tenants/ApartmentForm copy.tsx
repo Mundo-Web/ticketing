@@ -52,13 +52,13 @@ type Props = {
     onApartmentCreated: (apartment: any) => void;
 };
 
-export default function ApartmentForm({
+const ApartmentForm = ({
     brands,
     models,
     systems,
     customerId,
     onApartmentCreated,
-}: Props) {
+}: Props) => {
 
 
     const [name, setName] = useState('');
@@ -196,3 +196,11 @@ export default function ApartmentForm({
         </div >
     );
 }
+const TableHeader = ({ children }: { children: React.ReactNode }) => (
+    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{children}</th>
+);
+
+const TableCell = ({ children }: { children: React.ReactNode }) => (
+    <td className="px-4 py-3 text-sm text-gray-600">{children}</td>
+);
+export default ApartmentForm;

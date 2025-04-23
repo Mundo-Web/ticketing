@@ -106,6 +106,7 @@ export default function Index({ customer, brands, models, systems }: PageProps) 
                     systems={systems}
                     customerId={customer.id}
                     onApartmentCreated={handleApartmentCreated}
+                    apartments={apartments}
                 />
                 <ApartmentTable
                     apartments={apartments}
