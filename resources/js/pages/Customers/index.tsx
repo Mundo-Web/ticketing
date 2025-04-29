@@ -58,6 +58,7 @@ export default function Index({ customers }: Props) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<number | null>(null);
+    const [gridColumns, setGridColumns] = useState<number>(4); // Add this new state
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         id: null as number | null,
@@ -195,19 +196,34 @@ export default function Index({ customers }: Props) {
             <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div className="bg-gray-100 p-1 rounded flex">
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white shadow ' : ''}`}
-                        >
-                            <LayoutGrid className={`w-5 h-5 text-gray-600 ${viewMode === 'grid' ? ' !text-red-500' : ''}`} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('table')}
-                            className={`p-2 rounded ${viewMode === 'table' ? 'bg-white shadow' : ''}`}
-                        >
-                            <Table className={`w-5 h-5 text-gray-600 ${viewMode === 'table' ? ' !text-red-500' : ''}`} />
-                        </button>
+                    <div className="flex items-center gap-4">
+                        <div className="bg-gray-100 p-1 rounded flex">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white shadow ' : ''}`}
+                            >
+                                <LayoutGrid className={`w-5 h-5 text-gray-600 ${viewMode === 'grid' ? ' !text-red-500' : ''}`} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('table')}
+                                className={`p-2 rounded ${viewMode === 'table' ? 'bg-white shadow' : ''}`}
+                            >
+                                <Table className={`w-5 h-5 text-gray-600 ${viewMode === 'table' ? ' !text-red-500' : ''}`} />
+                            </button>
+                        </div>
+                        {viewMode === 'grid' && (
+                            <select
+                                value={gridColumns}
+                                onChange={(e) => setGridColumns(Number(e.target.value))}
+                                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                            >
+                                <option value={2}>2 Columnas</option>
+                                <option value={3}>3 Columnas</option>
+                                <option value={4}>4 Columnas</option>
+                                <option value={5}>5 Columnas</option>
+                                <option value={6}>6 Columnas</option>
+                            </select>
+                        )}
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
                         <Button
@@ -391,6 +407,7 @@ export default function Index({ customers }: Props) {
                         onDelete={handleDelete}
                         onToggleStatus={toggleStatus}
                         isUpdatingStatus={isUpdatingStatus}
+                        gridColumns={gridColumns}
                     />
                 ) : (
                     <TableView
@@ -411,77 +428,98 @@ export default function Index({ customers }: Props) {
     );
 }
 
-// Componentes Auxiliares
-const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatus }: {
+// Update GridView component
+const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatus, gridColumns }: {
     customers: Customer[],
     onEdit: (customer: Customer) => void,
     onDelete: (customer: Customer) => void,
     onToggleStatus: (customer: Customer) => void,
-    isUpdatingStatus: number | null
-}) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ">
-        {customers.map((customer) => (
-            <div key={customer.id} className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow border relative">
-                {customer.image && (
-                    <img
-                        src={`/storage/${customer.image}`}
-                        alt={customer.name}
-                        className="object-cover rounded-lg mb-4 w-full aspect-[4/3]"
-                    />
-                )}
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-xl text-gray-800 truncate">{customer.name}</h3>
-                        <div className="flex items-center gap-2">
-                            <Switch
-                                checked={customer.status}
-                                onCheckedChange={() => onToggleStatus(customer)}
-                                className="data-[state=checked]:bg-green-500"
-                                disabled={isUpdatingStatus === customer.id}
-                            />
-                            <StatusBadge status={customer.status ? "active" : "inactive"} />
-                        </div>
-                    </div>
-                    {customer.description ? (
-                        <p className="text-sm text-gray-600 line-clamp-2">{customer.apartments?.length} departamentos</p>
-                    ) : (
-                        <p className="text-sm text-gray-600 line-clamp-2 ">{customer.apartments?.length} departamentos</p>
+    isUpdatingStatus: number | null,
+    gridColumns: number
+}) => {
+    // Función para determinar las clases de grid basadas en el número de columnas
+    const getGridClass = () => {
+        switch (gridColumns) {
+            case 2:
+                return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-2';
+            case 3:
+                return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+            case 4:
+                return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4';
+            case 5:
+                return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-5';
+            case 6:
+                return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-6';
+            default:
+                return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4';
+        }
+    };
+
+    return (
+        <div className={`grid ${getGridClass()} gap-6`}>
+            {customers.map((customer) => (
+                <div key={customer.id} className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow border relative">
+                    {customer.image && (
+                        <img
+                            src={`/storage/${customer.image}`}
+                            alt={customer.name}
+                            className="object-cover rounded-lg mb-4 w-full aspect-[4/3]"
+                        />
                     )}
-                    <div className="text-xs text-gray-400 mt-2">
-                        Creado: {new Date(customer.created_at).toLocaleDateString()}
-                    </div>
-                    <div className='flex gap-4'>
-                        <Link
-                            href={route('customers.apartments', customer)}
-                            className="flex  py-2 rounded-lg items-center gap-2 transition-all duration-300 w-6/12 px-8 bg-primary text-primary-foreground"
-                        >
-                            <span className="hidden sm:block">Admin</span>
-                            <ChevronRight className="w-5 h-5" />
-                        </Link>
-                        <div className="relative   flex gap-4 w-6/12 justify-end items-center">
-                            <button
-                                onClick={() => onEdit(customer)}
-                                className="p-2 bg-secondary text-secondary-foreground rounded-lg "
-                                title="Editar"
-                            >
-                                <Edit className="w-6 h-6" />
-                            </button>
-                            <button
-                                onClick={() => onDelete(customer)}
-                                className="p-2 bg-accent text-accent-foreground rounded-lg"
-                                title="Eliminar"
-                            >
-                                <Trash2 className="w-6 h-6" />
-                            </button>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-xl text-gray-800 truncate">{customer.name}</h3>
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    checked={customer.status}
+                                    onCheckedChange={() => onToggleStatus(customer)}
+                                    className="data-[state=checked]:bg-green-500"
+                                    disabled={isUpdatingStatus === customer.id}
+                                />
+                                <StatusBadge status={customer.status ? "active" : "inactive"} />
+                            </div>
                         </div>
+                        {customer.description ? (
+                            <p className="text-sm text-gray-600 line-clamp-2">{customer.apartments?.length} departamentos</p>
+                        ) : (
+                            <p className="text-sm text-gray-600 line-clamp-2 ">{customer.apartments?.length} departamentos</p>
+                        )}
+                        <div className="text-xs text-gray-400 mt-2">
+                            Creado: {new Date(customer.created_at).toLocaleDateString()}
+                        </div>
+                        <div className='flex gap-4'>
+                            <Link
+                                href={route('customers.apartments', customer)}
+                                className="flex  py-2 rounded-lg items-center gap-2 transition-all duration-300 w-6/12 px-8 bg-primary text-primary-foreground"
+                            >
+                                <span className="hidden sm:block">Admin</span>
+                                <ChevronRight className="w-5 h-5" />
+                            </Link>
+                            <div className="relative   flex gap-4 w-6/12 justify-end items-center">
+                                <button
+                                    onClick={() => onEdit(customer)}
+                                    className="p-2 bg-secondary text-secondary-foreground rounded-lg "
+                                    title="Editar"
+                                >
+                                    <Edit className="w-6 h-6" />
+                                </button>
+                                <button
+                                    onClick={() => onDelete(customer)}
+                                    className="p-2 bg-accent text-accent-foreground rounded-lg"
+                                    title="Eliminar"
+                                >
+                                    <Trash2 className="w-6 h-6" />
+                                </button>
+                            </div>
+                        </div>
+
                     </div>
 
                 </div>
-
-            </div>
-        ))}
-    </div>
-);
+            ))}
+        </div>
+    );
+};
 
 const TableView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatus }: {
     customers: Customer[],
