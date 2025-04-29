@@ -458,7 +458,7 @@ const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatu
     return (
         <div className={`grid ${getGridClass()} gap-6`}>
             {customers.map((customer) => (
-                <div key={customer.id} className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow border relative">
+                <div key={customer.id} className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow border relative">
                     {customer.image && (
                         <img
                             src={`/storage/${customer.image}`}
