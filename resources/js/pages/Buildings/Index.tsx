@@ -113,7 +113,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
     const [rowSelection, setRowSelection] = useState({});
 
     // Estados para la vista y modales
-    const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [currentBuilding, setCurrentBuilding] = useState<Building | null>(null);
