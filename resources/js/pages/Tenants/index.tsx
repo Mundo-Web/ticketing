@@ -64,7 +64,7 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [currentApartment, setCurrentApartment] = useState<Apartment | null>(null);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<number | null>(null);
-    const { customer } = usePage().props as { customer: { id: number, name: string } };
+    const { building } = usePage().props as { building: { id: number, name: string } };
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         id: null as number | null,
         name: '',
@@ -111,7 +111,7 @@ export default function Index({ apartments, brands, models, systems, name_device
 
         formData.append('ubicacion', data.ubicacion);
 
-        post(route('customers.apartments.store', customer.id), {
+        post(route('buildings.apartments.store', building.id), {
             data: formData,
             forceFormData: true,
             preserveScroll: true,
@@ -214,11 +214,11 @@ export default function Index({ apartments, brands, models, systems, name_device
                     <CardContent className="p-0">
                         <div className='flex gap-4 items-center'>
                             <img
-                                src={`/storage/${customer.image}`}
-                                alt={customer.name}
+                                src={`/storage/${building.image}`}
+                                alt={building.name}
                                 className="object-cover rounded-full   h-15 w-15 border-2 border-primary p-1"
                             />
-                            <h2 className='text-xl font-medium'>{customer.name}</h2>
+                            <h2 className='text-xl font-medium'>{building.name}</h2>
                         </div>
                     </CardContent>
                 </Card>

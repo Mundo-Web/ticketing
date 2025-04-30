@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { NavItem } from '@/types';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -64,9 +64,9 @@ export function NavMain({ items, className, level = 0 }: NavMainProps) {
                                 </div>
                                 {item.items?.length && (
                                     expandedItems[item.title] ? (
-                                        <ChevronDown className="h-4 w-4" />
+                                        <ChevronUp className="h-4 w-4" />
                                     ) : (
-                                        <ChevronRight className="h-4 w-4" />
+                                        <ChevronDown className="h-4 w-4" />
                                     )
                                 )}
                             </button>

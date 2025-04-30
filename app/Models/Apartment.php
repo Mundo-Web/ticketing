@@ -13,7 +13,7 @@ class Apartment extends Model
     protected $fillable = [
         'name',
         'ubicacion',
-        'customers_id',
+        'buildings_id',
         'status',
 
     ];
@@ -26,8 +26,8 @@ class Apartment extends Model
         return $this->belongsToMany(Device::class, 'apartment_device');
     }
 
-    public function customer(): BelongsTo
+    public function building(): BelongsTo
     {
-        return $this->belongsTo(Customer::class, 'customers_id');
+        return $this->belongsTo(Building::class, 'buildings_id');
     }
 }

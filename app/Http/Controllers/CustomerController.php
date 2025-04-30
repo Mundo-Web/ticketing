@@ -67,7 +67,8 @@ class CustomerController extends Controller
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'address' => 'nullable|url',
             ]);
 
             $full = $request->file('image');
@@ -84,6 +85,7 @@ class CustomerController extends Controller
             Customer::create([
                 'name' => $validated['name'],
                 'description' => $validated['description'],
+                'address' => $validated['address'],
                 'image' => $path,
                 'status' => true // Por defecto activo
             ]);
@@ -106,6 +108,7 @@ class CustomerController extends Controller
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
+                'address' => 'nullable|url',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
             ]);
 

@@ -14,15 +14,38 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+/*interface Customer {
+    id: number;
+    name: string;
+    image: string;
+    description: string;
+    address: string;
+    status: boolean;
+    created_at: string;
+}*/
 interface Customer {
     id: number;
     name: string;
     image: string;
     description: string;
+    location_link: string;
+    owner: {
+        name: string;
+        email: string;
+        photo: string;
+        phone: string;
+    };
+    doormen: Array<{
+        name: string;
+        photo: string;
+        email: string;
+        phone: string;
+    }>;
     status: boolean;
     created_at: string;
 }
@@ -52,6 +75,12 @@ interface Props {
     };
 }
 
+
+
+
+
+import { Input } from "@/components/ui/input"
+
 export default function Index({ customers }: Props) {
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -60,11 +89,31 @@ export default function Index({ customers }: Props) {
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<number | null>(null);
     const [gridColumns, setGridColumns] = useState<number>(4); // Add this new state
 
+    /*const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
+        id: null as number | null,
+        name: '',
+        image: null as File | null,
+        description: '',
+        address: '',
+    });*/
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         id: null as number | null,
         name: '',
         image: null as File | null,
         description: '',
+        location_link: '',
+        owner: {
+            name: '',
+            email: '',
+            photo: null as File | null,
+            phone: ''
+        },
+        doormen: [] as Array<{
+            name: string;
+            photo: File | null;
+            email: string;
+            phone: string;
+        }>,
     });
 
     const toggleStatus = async (customer: Customer) => {
@@ -105,6 +154,7 @@ export default function Index({ customers }: Props) {
         formData.append('name', data.name);
         formData.append('image', data.image || "");
         formData.append('description', data.description);
+        formData.append('address', data.address);
 
         post(route('customers.store'), {
             data: formData,
@@ -129,6 +179,7 @@ export default function Index({ customers }: Props) {
             name: customer.name,
             image: null,
             description: customer.description,
+            address: customer.address,
         });
         setCurrentCustomer(customer);
         setShowCreateModal(true);
@@ -143,6 +194,7 @@ export default function Index({ customers }: Props) {
         const formData = new FormData();
         formData.append('name', data.name);
         formData.append('description', data.description || "");
+        formData.append('address', data.address || "");
         if (data.image) {
             formData.append('image', data.image);
         }
@@ -202,13 +254,13 @@ export default function Index({ customers }: Props) {
                                 onClick={() => setViewMode('grid')}
                                 className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white shadow ' : ''}`}
                             >
-                                <LayoutGrid className={`w-5 h-5 text-gray-600 ${viewMode === 'grid' ? ' !text-red-500' : ''}`} />
+                                <LayoutGrid className={`w-5 h-5 text-gray-600 ${viewMode === 'grid' ? ' !text-primary' : ''}`} />
                             </button>
                             <button
                                 onClick={() => setViewMode('table')}
                                 className={`p-2 rounded ${viewMode === 'table' ? 'bg-white shadow' : ''}`}
                             >
-                                <Table className={`w-5 h-5 text-gray-600 ${viewMode === 'table' ? ' !text-red-500' : ''}`} />
+                                <Table className={`w-5 h-5 text-gray-600  ${viewMode === 'table' ? ' !text-primary' : ''}`} />
                             </button>
                         </div>
                         {viewMode === 'grid' && (
@@ -235,132 +287,446 @@ export default function Index({ customers }: Props) {
                             className="flex items-center gap-2  text-white transition-all duration-300"
                         >
                             <Star className="w-5 h-5" />
-                            <span className="hidden sm:block">Nuevo Cliente</span>
+                            <span className="hidden sm:block">New Building
+                            </span>
                         </Button>
                     </div>
                 </div>
 
                 {/* Create/Edit Customer Modal */}
                 <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-                    <DialogContent
-                        className="w-full max-w-none sm:max-w-2xl mx-0 sm:mx-4 p-0 overflow-hidden"
-                        style={{ maxHeight: '90vh' }}
-                    >
+                    <DialogContent className="w-full max-w-none sm:max-w-4xl mx-0 sm:mx-4 p-0 overflow-hidden bg-background">
                         <div className="overflow-y-auto px-6 py-8" style={{ maxHeight: '90vh' }}>
-                            <DialogHeader className="mb-6">
-                                <DialogTitle className="text-2xl">
-                                    {currentCustomer ? 'Editar Cliente' : 'Crear Nuevo Cliente'}
+                            <DialogHeader className="mb-8">
+                                <DialogTitle className="text-3xl font-semibold tracking-tight">
+                                    {currentCustomer ? 'Edit Building' : 'New Building'}
                                 </DialogTitle>
-                                <DialogDescription>
-                                    Completa los campos requeridos para {currentCustomer ? 'actualizar' : 'crear'} el cliente
+                                <DialogDescription className="text-muted-foreground">
+                                    {currentCustomer ? 'Update the building information below.' : 'Fill in the building information below to create a new record.'}
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <form
-                                onSubmit={currentCustomer ? handleUpdateSubmit : handleCreateSubmit}
-                                className="space-y-6"
-                            >
-                                {/* Nombre */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="name" className="text-base">
-                                        Nombre <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Input
-                                        id="name"
-                                        value={data.name}
-                                        onChange={(e) => setData('name', e.target.value)}
-                                        className={`text-base h-12 ${errors.name ? 'border-red-500' : ''}`}
-                                        required
-                                    />
-                                    {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
-                                </div>
 
-                                {/* Imagen Drag & Drop */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="image" className="text-base">
-                                        Imagen {!currentCustomer && <span className="text-red-500">*</span>}
-                                    </Label>
 
-                                    <div
-                                        className={`relative w-full h-64 border-2 border-dashed rounded-lg overflow-hidden cursor-pointer transition-colors duration-200 
-                            ${errors.image ? 'border-red-500' : 'border-gray-300 hover:border-gray-400 bg-gray-50'}`}
-                                        onDragOver={(e) => e.preventDefault()}
-                                        onDrop={(e) => {
-                                            e.preventDefault();
-                                            const file = e.dataTransfer.files[0];
-                                            if (file) {
-                                                setData('image', file);
-                                            }
-                                        }}
-                                        onClick={() => document.getElementById('image-upload')?.click()}
-                                    >
-                                        {data.image ? (
-                                            <img
-                                                src={URL.createObjectURL(data.image)}
-                                                alt="Preview"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : currentCustomer?.image ? (
-                                            <img
-                                                src={`/storage/${currentCustomer.image}`}
-                                                alt="Imagen actual"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-2">
-                                                <UploadCloud className="w-12 h-12" />
-                                                <span>Arrastra una imagen o haz clic para seleccionar</span>
+
+                            <form onSubmit={currentCustomer ? handleUpdateSubmit : handleCreateSubmit} className="space-y-8">
+                                <Tabs defaultValue="building" className="w-full">
+                                    <TabsList className="grid w-full grid-cols-3">
+                                        <TabsTrigger value="building">Building</TabsTrigger>
+                                        <TabsTrigger value="owner">Owner</TabsTrigger>
+                                        <TabsTrigger value="doorman">Doorman</TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="building">
+                                        <div className="grid grid-cols-12 gap-6 p-4">
+                                            {/* Left Column - Enhanced Image Upload */}
+                                            <div className="col-span-12 md:col-span-5 space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <Label htmlFor="image" className="text-base">
+                                                        Building Photo
+                                                    </Label>
+                                                    {!currentCustomer && <span className="text-[0.8rem] text-muted-foreground">Required *</span>}
+                                                </div>
+
+                                                <div
+                                                    className={`group relative w-full aspect-[4/3] rounded-lg overflow-hidden transition-all duration-300 
+                                            ${errors.image
+                                                            ? 'ring-2 ring-destructive'
+                                                            : 'hover:ring-2 hover:ring-ring'} 
+                                            bg-muted/50`}
+                                                >
+                                                    <input
+                                                        id="image-upload"
+                                                        type="file"
+                                                        accept="image/png, image/jpeg,image/jpg"
+                                                        onChange={(e) => {
+                                                            if (e.target.files?.[0]) {
+                                                                setData('image', e.target.files[0]);
+                                                            }
+                                                        }}
+                                                        className="hidden"
+                                                    />
+
+                                                    <label
+                                                        htmlFor="image-upload"
+                                                        className="flex flex-col items-center justify-center w-full h-full cursor-pointer"
+                                                    >
+                                                        {data.image || currentCustomer?.image ? (
+                                                            <div className="relative w-full h-full group">
+                                                                <img
+                                                                    src={data.image
+                                                                        ? URL.createObjectURL(data.image)
+                                                                        : `/storage/${currentCustomer?.image}`}
+                                                                    alt="Building preview"
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+                                                                    <UploadCloud className="w-8 h-8 text-white" />
+                                                                    <p className="text-sm text-white font-medium">Click to change photo</p>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center justify-center p-4 text-center h-full">
+                                                                <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center mb-3">
+                                                                    <UploadCloud className="w-6 h-6 text-muted-foreground" />
+                                                                </div>
+                                                                <p className="text-sm font-medium text-muted-foreground mb-1">Drag & drop or click to upload</p>
+                                                                <p className="text-xs text-muted-foreground">PNG, JPG or JPEG (max. 2MB)</p>
+                                                            </div>
+                                                        )}
+                                                    </label>
+                                                </div>
+                                                {errors.image && (
+                                                    <p className="text-sm text-destructive">{errors.image}</p>
+                                                )}
                                             </div>
-                                        )}
 
-                                        <Input
-                                            id="image-upload"
-                                            type="file"
-                                            accept="image/png, image/jpeg,image/jpg"
-                                            onChange={(e) => {
-                                                if (e.target.files && e.target.files[0]) {
-                                                    setData('image', e.target.files[0]);
-                                                }
-                                            }}
-                                            className="hidden"
-                                        />
-                                    </div>
+                                            {/* Right Column - Form Fields */}
+                                            <div className="col-span-12 md:col-span-7 space-y-6">
+                                                <div className="grid gap-6">
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <Label htmlFor="name" className="text-base">
+                                                                Building Name
+                                                            </Label>
+                                                            <span className="text-[0.8rem] text-muted-foreground">Required *</span>
+                                                        </div>
+                                                        <Input
+                                                            id="name"
+                                                            value={data.name}
+                                                            onChange={(e) => setData('name', e.target.value)}
+                                                            className={`h-11 ${errors.name ? 'ring-2 ring-destructive' : ''}`}
+                                                            placeholder="Enter building name"
+                                                            required
+                                                        />
+                                                        {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                                                    </div>
 
-                                    {errors.image && <p className="text-sm text-red-500">{errors.image}</p>}
-                                </div>
+                                                    <div className="space-y-4">
+                                                        <Label htmlFor="description" className="text-base">
+                                                            Address
+                                                        </Label>
+                                                        <Textarea
+                                                            id="description"
+                                                            value={data.description}
+                                                            onChange={(e) => setData('description', e.target.value)}
+                                                            rows={4}
+                                                            className="resize-none"
+                                                            placeholder="Enter building description..."
+                                                        />
+                                                    </div>
 
-                                {/* Descripción */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="description" className="text-base">
-                                        Descripción
-                                    </Label>
-                                    <Textarea
-                                        id="description"
-                                        value={data.description}
-                                        onChange={(e) => setData('description', e.target.value)}
-                                        rows={5}
-                                        className="text-base"
-                                    />
-                                </div>
+                                                    <div className="space-y-4">
+                                                        <Label htmlFor="maps_url" className="text-base">
+                                                            Location URL
+                                                        </Label>
+                                                        <Input
+                                                            id="maps_url"
+                                                            value={data.address}
+                                                            onChange={(e) => setData('address', e.target.value)}
+                                                            type="url"
+                                                            placeholder="https://maps.google.com/..."
+                                                            className="h-11"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="owner">
+                                        <div className="grid grid-cols-12 gap-6 p-4">
+                                            {/* Left Column - Enhanced Image Upload */}
+                                            <div className="col-span-12 md:col-span-5 space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <Label htmlFor="image" className="text-base">
+                                                        Owner Photo
+                                                    </Label>
+                                                    {!currentCustomer && <span className="text-[0.8rem] text-muted-foreground">Required *</span>}
+                                                </div>
 
-                                {/* Botones */}
-                                <div className="flex justify-end gap-4 pt-8 pb-4">
+                                                <div
+                                                    className={`group relative w-full aspect-[4/3] rounded-lg overflow-hidden transition-all duration-300 
+                                            ${errors.image
+                                                            ? 'ring-2 ring-destructive'
+                                                            : 'hover:ring-2 hover:ring-ring'} 
+                                            bg-muted/50`}
+                                                >
+                                                    <input
+                                                        id="image-upload"
+                                                        type="file"
+                                                        accept="image/png, image/jpeg,image/jpg"
+
+                                                        onChange={(e) => {
+                                                            if (e.target.files?.[0]) {
+                                                                setData('owner', { ...data.owner, photo: e.target.files?.[0] || null })
+                                                            }
+                                                        }}
+                                                        className="hidden"
+                                                    />
+
+                                                    <label
+                                                        htmlFor="image-upload"
+                                                        className="flex flex-col items-center justify-center w-full h-full cursor-pointer"
+                                                    >
+                                                        {data.image || currentCustomer?.image ? (
+                                                            <div className="relative w-full h-full group">
+                                                                <img
+                                                                    src={data.image
+                                                                        ? URL.createObjectURL(data.image)
+                                                                        : `/storage/${currentCustomer?.image}`}
+                                                                    alt="Building preview"
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+                                                                    <UploadCloud className="w-8 h-8 text-white" />
+                                                                    <p className="text-sm text-white font-medium">Click to change photo</p>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center justify-center p-4 text-center h-full">
+                                                                <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center mb-3">
+                                                                    <UploadCloud className="w-6 h-6 text-muted-foreground" />
+                                                                </div>
+                                                                <p className="text-sm font-medium text-muted-foreground mb-1">Drag & drop or click to upload</p>
+                                                                <p className="text-xs text-muted-foreground">PNG, JPG or JPEG (max. 2MB)</p>
+                                                            </div>
+                                                        )}
+                                                    </label>
+                                                </div>
+                                                {errors.image && (
+                                                    <p className="text-sm text-destructive">{errors.image}</p>
+                                                )}
+                                            </div>
+
+                                            {/* Right Column - Form Fields */}
+                                            <div className="col-span-12 md:col-span-7 space-y-6">
+                                                <div className="grid gap-6">
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <Label htmlFor="name" className="text-base">
+                                                                Owner Name
+                                                            </Label>
+                                                            <span className="text-[0.8rem] text-muted-foreground">Required *</span>
+                                                        </div>
+                                                        <Input
+                                                            id="name"
+                                                            value={data.owner.name}
+                                                            onChange={(e) => setData('owner', { ...data.owner, name: e.target.value })}
+                                                            className={`h-11 ${errors.name ? 'ring-2 ring-destructive' : ''}`}
+                                                            placeholder="Enter building name"
+                                                            required
+                                                        />
+                                                        {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                                                    </div>
+
+                                                    <div className="space-y-4">
+                                                        <Label htmlFor="email" className="text-base">
+                                                            Email
+                                                        </Label>
+                                                        <Input
+                                                            id="email"
+                                                            value={data.owner.email}
+                                                            onChange={(e) => setData('owner', { ...data.owner, email: e.target.value })}
+
+                                                            className="resize-none"
+                                                            placeholder="Enter email..."
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-4">
+                                                        <Label htmlFor="phone" className="text-base">
+                                                            Phone Number
+                                                        </Label>
+                                                        <Input
+                                                            id="phone"
+                                                            value={data.owner.phone}
+                                                            onChange={(e) => setData('owner', { ...data.owner, phone: e.target.value })}
+                                                            placeholder="+1 (555) 000-0000"
+                                                            type="text"
+
+                                                            className="h-11"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="doorman" className="space-y-6">
+                                        <div className="space-y-4">
+                                            <div className="flex justify-end items-center">
+
+                                                <Button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (data.doormen.length < 3) {
+                                                            setData('doormen', [...data.doormen, {
+                                                                name: '',
+                                                                photo: null,
+                                                                email: '',
+                                                                phone: ''
+                                                            }]);
+                                                        }
+                                                    }}
+                                                    disabled={data.doormen.length >= 3}
+                                                    variant={'default'}
+                                                >
+                                                    <Plus />
+                                                    Add Doorman
+                                                </Button>
+                                            </div>
+
+                                            {data.doormen.map((doorman, index) => (
+                                                <div key={index} className="border rounded-lg p-4 space-y-4 shadow-xl">
+                                                    <div className="grid grid-cols-12 gap-6 p-4">
+                                                        {/* Left Column */}
+                                                        <div className="col-span-12 md:col-span-7 space-y-6">
+                                                            <div className="grid gap-6">
+                                                                <div>
+                                                                    <Label>Doorman Name    {!currentCustomer && <span className="text-[0.8rem] text-muted-foreground">Required *</span>}</Label>
+                                                                    <Input
+                                                                        value={doorman.name}
+                                                                        onChange={(e) => {
+                                                                            const newDoormen = [...data.doormen];
+                                                                            newDoormen[index].name = e.target.value;
+                                                                            setData('doormen', newDoormen);
+                                                                        }}
+                                                                        required
+                                                                        className="h-11"
+                                                                    />
+                                                                </div>
+
+                                                                <div>
+                                                                    <Label>Email *</Label>
+                                                                    <Input
+                                                                        type="email"
+                                                                        value={doorman.email}
+                                                                        onChange={(e) => {
+                                                                            const newDoormen = [...data.doormen];
+                                                                            newDoormen[index].email = e.target.value;
+                                                                            setData('doormen', newDoormen);
+                                                                        }}
+                                                                        required
+                                                                        className="h-11"
+                                                                    />
+                                                                </div>
+
+                                                                <div>
+                                                                    <Label>Phone Number</Label>
+                                                                    <Input
+                                                                        value={doorman.phone}
+                                                                        onChange={(e) => {
+                                                                            const newDoormen = [...data.doormen];
+                                                                            newDoormen[index].phone = e.target.value;
+                                                                            setData('doormen', newDoormen);
+                                                                        }}
+                                                                        placeholder="+1 (555) 000-0000"
+                                                                        className="h-11"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+
+                                                        <div className="col-span-12 md:col-span-5 space-y-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <Label htmlFor="image" className="text-base">
+                                                                    Doorman Photo
+                                                                </Label>
+                                                                {!currentCustomer && <span className="text-[0.8rem] text-muted-foreground">Required *</span>}
+                                                            </div>
+
+                                                            <div
+                                                                className={`group relative w-full aspect-[4/3] rounded-lg overflow-hidden transition-all duration-300 
+                                            ${errors.image
+                                                                        ? 'ring-2 ring-destructive'
+                                                                        : 'hover:ring-2 hover:ring-ring'} 
+                                            bg-muted/50`}
+                                                            >
+                                                                <input
+                                                                    id="image-upload"
+                                                                    type="file"
+                                                                    accept="image/png, image/jpeg,image/jpg"
+
+                                                                    onChange={(e) => {
+                                                                        const newDoormen = [...data.doormen];
+                                                                        newDoormen[index].photo = e.target.files?.[0] || null;
+                                                                        setData('doormen', newDoormen);
+                                                                    }}
+                                                                    className="hidden"
+                                                                />
+
+                                                                <label
+                                                                    htmlFor="image-upload"
+                                                                    className="flex flex-col items-center justify-center w-full h-full cursor-pointer"
+                                                                >
+                                                                    {data.image || currentCustomer?.image ? (
+                                                                        <div className="relative w-full h-full group">
+                                                                            <img
+                                                                                src={data.image
+                                                                                    ? URL.createObjectURL(data.image)
+                                                                                    : `/storage/${currentCustomer?.image}`}
+                                                                                alt="Building preview"
+                                                                                className="w-full h-full object-cover"
+                                                                            />
+                                                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+                                                                                <UploadCloud className="w-8 h-8 text-white" />
+                                                                                <p className="text-sm text-white font-medium">Click to change photo</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="flex flex-col items-center justify-center p-4 text-center h-full">
+                                                                            <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center mb-3">
+                                                                                <UploadCloud className="w-6 h-6 text-muted-foreground" />
+                                                                            </div>
+                                                                            <p className="text-sm font-medium text-muted-foreground mb-1">Drag & drop or click to upload</p>
+                                                                            <p className="text-xs text-muted-foreground">PNG, JPG or JPEG (max. 2MB)</p>
+                                                                        </div>
+                                                                    )}
+                                                                </label>
+                                                            </div>
+                                                            {errors.image && (
+                                                                <p className="text-sm text-destructive">{errors.image}</p>
+                                                            )}
+                                                        </div>
+
+                                                        <Button
+                                                            type="button"
+                                                            variant="destructive"
+                                                            onClick={() => {
+                                                                const newDoormen = [...data.doormen];
+                                                                newDoormen.splice(index, 1);
+                                                                setData('doormen', newDoormen);
+                                                            }}
+                                                        >
+                                                            <Trash2 />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </TabsContent>
+
+
+
+                                </Tabs>
+
+                                {/* Action Buttons */}
+                                <div className="flex justify-end gap-4 pt-6">
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        className="h-12 text-base"
+                                        className="h-11"
                                         onClick={() => setShowCreateModal(false)}
                                     >
-                                        Cancelar
+                                        Cancel
                                     </Button>
                                     <Button
                                         type="submit"
                                         disabled={processing}
-                                        className="h-12 text-base"
+                                        className="h-11"
                                     >
                                         {processing
-                                            ? (currentCustomer ? 'Actualizando...' : 'Creando...')
-                                            : (currentCustomer ? 'Actualizar Cliente' : 'Crear Cliente')}
+                                            ? (currentCustomer ? 'Updating...' : 'Creating...')
+                                            : (currentCustomer ? 'Update Building' : 'Create Building')}
                                     </Button>
                                 </div>
                             </form>
@@ -369,6 +735,7 @@ export default function Index({ customers }: Props) {
                 </Dialog>
 
                 {/* Delete Confirmation Modal */}
+
                 <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
                     <DialogContent>
                         <DialogHeader>
@@ -458,17 +825,17 @@ const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatu
     return (
         <div className={`grid ${getGridClass()} gap-6`}>
             {customers.map((customer) => (
-                <div key={customer.id} className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow border relative">
+                <div key={customer.id} className="bg-card text-card-foreground p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow border relative">
                     {customer.image && (
                         <img
                             src={`/storage/${customer.image}`}
                             alt={customer.name}
-                            className="object-cover rounded-lg mb-4 w-full aspect-[4/3]"
+                            className="object-cover rounded-md mb-4 w-full aspect-[4/3]"
                         />
                     )}
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-xl text-gray-800 truncate">{customer.name}</h3>
+                            <h3 className="font-semibold text-xl  truncate">{customer.name}</h3>
                             <div className="flex items-center gap-2">
                                 <Switch
                                     checked={customer.status}
@@ -479,37 +846,39 @@ const GridView = ({ customers, onEdit, onDelete, onToggleStatus, isUpdatingStatu
                                 <StatusBadge status={customer.status ? "active" : "inactive"} />
                             </div>
                         </div>
-                        {customer.description ? (
-                            <p className="text-sm text-gray-600 line-clamp-2">{customer.apartments?.length} departamentos</p>
-                        ) : (
-                            <p className="text-sm text-gray-600 line-clamp-2 ">{customer.apartments?.length} departamentos</p>
+                        {customer.apartments && (
+                            <p className="text-sm  line-clamp-2">{customer.apartments?.length} departamentos</p>
                         )}
-                        <div className="text-xs text-gray-400 mt-2">
+                        <div className="text-xs  mt-2">
                             Creado: {new Date(customer.created_at).toLocaleDateString()}
                         </div>
-                        <div className='flex gap-4'>
+                        <div className='flex space-x-4'>
                             <Link
                                 href={route('customers.apartments', customer)}
-                                className="flex  py-2 rounded-lg items-center gap-2 transition-all duration-300 w-6/12 px-8 bg-primary text-primary-foreground"
+                                className="flex  rounded-lg items-center justify-center gap-2 transition-all duration-300 w-7/12  bg-primary text-primary-foreground"
                             >
                                 <span className="hidden sm:block">Admin</span>
                                 <ChevronRight className="w-5 h-5" />
                             </Link>
-                            <div className="relative   flex gap-4 w-6/12 justify-end items-center">
-                                <button
+                            <div className="relative   flex gap-4 w-5/12 justify-end items-center">
+                                <Button
                                     onClick={() => onEdit(customer)}
-                                    className="p-2 bg-secondary text-secondary-foreground rounded-lg "
+                                    variant="secondary"
+
                                     title="Editar"
+                                    size="icon"
                                 >
                                     <Edit className="w-6 h-6" />
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={() => onDelete(customer)}
-                                    className="p-2 bg-accent text-accent-foreground rounded-lg"
+                                    variant="destructive"
                                     title="Eliminar"
+                                    size="icon"
+
                                 >
                                     <Trash2 className="w-6 h-6" />
-                                </button>
+                                </Button>
                             </div>
                         </div>
 

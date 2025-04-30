@@ -85,7 +85,7 @@ class ApartmentController extends Controller
     }
 
 
-    public function storeApartment(Request $request, Customer $customer)
+    public function storeApartment(Request $request, Customer $building)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -93,7 +93,7 @@ class ApartmentController extends Controller
             // Validación adicional si necesitas
         ]);
 
-        $apartment = $customer->apartments()->create($validated);
+        $apartment = $building->apartments()->create($validated);
 
         return redirect()->back()->with('success', 'Departamento creado correctamente.');
     }
