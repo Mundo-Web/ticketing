@@ -6,7 +6,8 @@ import { useState } from 'react';
 import {
     LayoutGrid, Table as TableIcon, Plus, Edit, Trash2, Upload, UploadCloud,
     Star, ChevronLeft, ChevronRight, Archive, MapPin, ArchiveRestore,
-    ChevronDown, MoreHorizontal, Download, Sliders, Building, X, CheckCircle
+    ChevronDown, MoreHorizontal, Download, Sliders, Building, X, CheckCircle,
+    User
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -121,6 +122,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
     const [gridColumns, setGridColumns] = useState<number>(4);
     const [showLocationModal, setShowLocationModal] = useState(false);
 
+
+    const [activeDoormanIndex, setActiveDoormanIndex] = useState<number | null>(0);
     // Formulario
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         id: null as number | null,
@@ -1082,159 +1085,248 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                     </TabsContent>
 
                                     {/* Doorman Tab */}
+
                                     <TabsContent value="doorman" className="space-y-6">
                                         <div className="space-y-4">
-                                            <div className="flex justify-end items-center">
-                                                <Button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (data.doormen.length < 3) {
-                                                            setData('doormen', [...data.doormen, {
-                                                                name: '',
-                                                                photo: null,
-                                                                email: '',
-                                                                phone: ''
-                                                            }]);
-                                                        }
-                                                    }}
-                                                    disabled={data.doormen.length >= 3}
-                                                    variant={'default'}
-                                                >
-                                                    <Plus />
-                                                    Add Doorman
-                                                </Button>
-                                            </div>
+                                            <div className="flex flex-col gap-4">
+                                                {data.doormen.map((doorman, index) => (
+                                                    <div key={index} className="group relative">
+                                                        {activeDoormanIndex === index ? (
+                                                            <div className="border rounded-lg p-4 space-y-4 shadow-xl bg-card">
+                                                                <div className="grid grid-cols-12 gap-6 p-4">
+                                                                    {/* Sección Foto */}
+                                                                    <div className="col-span-12 md:col-span-4 space-y-4">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <Label>Doorman Photo</Label>
+                                                                            {!currentBuilding && <span className="text-xs text-muted-foreground">Required *</span>}
+                                                                        </div>
+                                                                        <div className={`relative aspect-square rounded-lg overflow-hidden border-2 border-dashed ${errors[`doormen.${index}.photo`] ? 'border-destructive' : 'border-muted'
+                                                                            }`}>
+                                                                            <input
+                                                                                id={`doorman-photo-${index}`}
+                                                                                type="file"
+                                                                                accept="image/*"
+                                                                                onChange={(e) => {
+                                                                                    const newDoormen = [...data.doormen];
+                                                                                    newDoormen[index].photo = e.target.files?.[0] || null;
+                                                                                    setData('doormen', newDoormen);
+                                                                                }}
 
-                                            {data.doormen.map((doorman, index) => (
-                                                <div key={index} className="border rounded-lg p-4 space-y-4 shadow-xl">
-                                                    <div className="grid grid-cols-12 gap-6 p-4">
-                                                        <div className="col-span-12 md:col-span-7 space-y-6">
-                                                            <div className="grid gap-6">
-                                                                <div>
-                                                                    <Label>Doorman Name {!currentBuilding && <span className="text-[0.8rem] text-muted-foreground">Required *</span>}</Label>
-                                                                    <Input
-                                                                        value={doorman.name}
-                                                                        onChange={(e) => {
-                                                                            const newDoormen = [...data.doormen];
-                                                                            newDoormen[index].name = e.target.value;
-                                                                            setData('doormen', newDoormen);
-                                                                        }}
-                                                                        required
-                                                                        className={`h-11 ${errors[`doormen.${index}.name`] ? 'ring-2 ring-destructive' : ''}`}
-                                                                    />
-                                                                    {errors[`doormen.${index}.name`] && (
-                                                                        <p className="text-sm text-destructive">{errors[`doormen.${index}.name`]}</p>
-                                                                    )}
+                                                                                className="hidden"
+                                                                            />
+                                                                            <label
+                                                                                htmlFor={`doorman-photo-${index}`}
+                                                                                className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer bg-background hover:bg-accent/50 transition-colors"
+                                                                            >
+                                                                                {doorman.photo ? (
+                                                                                    <img
+                                                                                        src={doorman.photo instanceof File
+                                                                                            ? URL.createObjectURL(doorman.photo)
+                                                                                            : `/storage/${doorman.photo}`}
+                                                                                        alt="Preview"
+                                                                                        className="w-full h-full object-cover"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="flex flex-col items-center p-4 text-center">
+                                                                                        <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
+                                                                                        <span className="text-sm font-medium text-muted-foreground">
+                                                                                            Click to upload photo
+                                                                                        </span>
+                                                                                        <span className="text-xs text-muted-foreground">
+                                                                                            PNG, JPG (max 2MB)
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+                                                                            </label>
+                                                                        </div>
+                                                                        {errors[`doormen.${index}.photo`] && (
+                                                                            <p className="text-sm text-destructive">{errors[`doormen.${index}.photo`]}</p>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Sección Campos */}
+                                                                    <div className="col-span-12 md:col-span-8 space-y-6">
+                                                                        <div className="grid gap-4">
+                                                                            <div className='space-y-4'>
+                                                                                <Label className="flex items-center gap-2">
+                                                                                    Full Name
+                                                                                    <span className="text-xs text-muted-foreground">* Required</span>
+                                                                                </Label>
+                                                                                <Input
+                                                                                    value={doorman.name}
+                                                                                    onChange={(e) => {
+                                                                                        const newDoormen = [...data.doormen];
+                                                                                        newDoormen[index].name = e.target.value;
+                                                                                        setData('doormen', newDoormen);
+                                                                                    }}
+                                                                                    placeholder="John Doe"
+                                                                                    className="h-11"
+                                                                                />
+                                                                                {errors[`doormen.${index}.name`] && (
+                                                                                    <p className="text-sm text-destructive">{errors[`doormen.${index}.name`]}</p>
+                                                                                )}
+                                                                            </div>
+
+                                                                            <div className='space-y-4'>
+                                                                                <Label className="flex items-center gap-2">
+                                                                                    Email
+                                                                                    <span className="text-xs text-muted-foreground">* Required</span>
+                                                                                </Label>
+                                                                                <Input
+                                                                                    type="email"
+                                                                                    value={doorman.email}
+                                                                                    onChange={(e) => {
+                                                                                        const newDoormen = [...data.doormen];
+                                                                                        newDoormen[index].email = e.target.value;
+                                                                                        setData('doormen', newDoormen);
+                                                                                    }}
+                                                                                    placeholder="doorman@example.com"
+                                                                                    className="h-11"
+                                                                                />
+                                                                                {errors[`doormen.${index}.email`] && (
+                                                                                    <p className="text-sm text-destructive">{errors[`doormen.${index}.email`]}</p>
+                                                                                )}
+                                                                            </div>
+
+                                                                            <div>
+                                                                                <Label >Phone Number</Label>
+                                                                                <Input
+                                                                                    value={doorman.phone}
+                                                                                    onChange={(e) => {
+                                                                                        const newDoormen = [...data.doormen];
+                                                                                        newDoormen[index].phone = e.target.value;
+                                                                                        setData('doormen', newDoormen);
+                                                                                    }}
+                                                                                    placeholder="+1 (555) 000-0000"
+                                                                                    className="h-11 mt-4"
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
 
-                                                                <div>
-                                                                    <Label>Email *</Label>
-                                                                    <Input
-                                                                        type="email"
-                                                                        value={doorman.email}
-                                                                        onChange={(e) => {
+                                                                {/* Acciones del Formulario */}
+                                                                <div className="flex justify-between items-center pt-4 border-t">
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="destructive"
+                                                                        size="sm"
+                                                                        onClick={() => {
                                                                             const newDoormen = [...data.doormen];
-                                                                            newDoormen[index].email = e.target.value;
+                                                                            newDoormen.splice(index, 1);
                                                                             setData('doormen', newDoormen);
+                                                                            setActiveDoormanIndex(null);
                                                                         }}
-                                                                        required
-                                                                        className={`h-11 ${errors[`doormen.${index}.email`] ? 'ring-2 ring-destructive' : ''}`}
-                                                                    />
-                                                                    {errors[`doormen.${index}.email`] && (
-                                                                        <p className="text-sm text-destructive">{errors[`doormen.${index}.email`]}</p>
-                                                                    )}
-                                                                </div>
+                                                                    >
+                                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                                        Delete
+                                                                    </Button>
 
-                                                                <div>
-                                                                    <Label>Phone Number</Label>
-                                                                    <Input
-                                                                        value={doorman.phone}
-                                                                        onChange={(e) => {
-                                                                            const newDoormen = [...data.doormen];
-                                                                            newDoormen[index].phone = e.target.value;
-                                                                            setData('doormen', newDoormen);
-                                                                        }}
-                                                                        placeholder="+1 (555) 000-0000"
-                                                                        className="h-11"
-                                                                    />
+                                                                    <div className="flex gap-2">
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => setActiveDoormanIndex(null)}
+                                                                        >
+                                                                            Cancel
+                                                                        </Button>
+                                                                        <Button
+                                                                            type="button"
+                                                                            size="sm"
+                                                                            onClick={() => {
+                                                                                if (!doorman.name || !doorman.email) {
+                                                                                    toast.error('Name and email are required');
+                                                                                    return;
+                                                                                }
+                                                                                setActiveDoormanIndex(null);
+                                                                            }}
+                                                                        >
+                                                                            <CheckCircle className="mr-2 h-4 w-4" />
+                                                                            Save
+                                                                        </Button>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
+                                                        ) : (
 
-                                                        <div className="col-span-12 md:col-span-5 space-y-4">
-                                                            <div className="flex items-center justify-between">
-                                                                <Label htmlFor={`doorman-photo-${index}`} className="text-base">
-                                                                    Doorman Photo
-                                                                </Label>
-                                                                {!currentBuilding && <span className="text-[0.8rem] text-muted-foreground">Required *</span>}
-                                                            </div>
-
-                                                            <div className={`group relative w-full aspect-[4/3] rounded-lg overflow-hidden transition-all duration-300 
-                                  ${errors[`doormen.${index}.photo`] ? 'ring-2 ring-destructive' : 'hover:ring-2 hover:ring-ring'} 
-                                  bg-muted/50`}>
-                                                                <input
-                                                                    id={`doorman-photo-upload-${index}`}
-                                                                    type="file"
-                                                                    accept="image/png, image/jpeg, image/jpg"
-                                                                    onChange={(e) => {
-                                                                        const newDoormen = [...data.doormen];
-                                                                        newDoormen[index].photo = e.target.files?.[0] || null;
-                                                                        setData('doormen', newDoormen);
-                                                                    }}
-                                                                    className="hidden"
-                                                                />
-                                                                <label
-                                                                    htmlFor={`doorman-photo-upload-${index}`}
-                                                                    className="flex flex-col items-center justify-center w-full h-full cursor-pointer"
-                                                                >
-                                                                    {doorman.photo || (currentBuilding?.doormen[index]?.photo) ? (
-                                                                        <div className="relative w-full h-full group">
+                                                            <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-sidebar transition-colors cursor-pointer group">
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="relative w-12 h-12 rounded-full overflow-hidden border">
+                                                                        {doorman.photo ? (
                                                                             <img
-                                                                                src={doorman.photo
-                                                                                    ? URL.createObjectURL(doorman.photo)
-                                                                                    : `/storage/${currentBuilding?.doormen[index]?.photo}`}
-                                                                                alt={`Doorman ${index + 1} preview`}
+                                                                                src={typeof doorman.photo === 'string'
+                                                                                    ? `/storage/${doorman.photo}`
+                                                                                    : URL.createObjectURL(doorman.photo)}
+                                                                                alt={doorman.name}
                                                                                 className="w-full h-full object-cover"
                                                                             />
-                                                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2">
-                                                                                <UploadCloud className="w-8 h-8 text-white" />
-                                                                                <p className="text-sm text-white font-medium">Click to change photo</p>
+                                                                        ) : (
+                                                                            <div className="w-full h-full bg-muted flex items-center justify-center">
+                                                                                <User className="w-5 h-5 text-muted-foreground" />
                                                                             </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="flex flex-col items-center justify-center p-4 text-center h-full">
-                                                                            <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center mb-3">
-                                                                                <UploadCloud className="w-6 h-6 text-muted-foreground" />
-                                                                            </div>
-                                                                            <p className="text-sm font-medium text-muted-foreground mb-1">Drag & drop or click to upload</p>
-                                                                            <p className="text-xs text-muted-foreground">PNG, JPG or JPEG (max. 2MB)</p>
-                                                                        </div>
-                                                                    )}
-                                                                </label>
-                                                            </div>
-                                                            {errors[`doormen.${index}.photo`] && (
-                                                                <p className="text-sm text-destructive">{errors[`doormen.${index}.photo`]}</p>
-                                                            )}
-                                                        </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div>
+                                                                        <h4 className="font-medium">{doorman.name || 'Unnamed Doorman'}</h4>
+                                                                        <p className="text-sm text-muted-foreground">{doorman.email}</p>
+                                                                    </div>
+                                                                </div>
 
-                                                        <Button
-                                                            type="button"
-                                                            variant="destructive"
-                                                            onClick={() => {
-                                                                const newDoormen = [...data.doormen];
-                                                                newDoormen.splice(index, 1);
-                                                                setData('doormen', newDoormen);
-                                                            }}
-                                                            className="col-span-12"
-                                                        >
-                                                            <Trash2 className="w-4 h-4 mr-2" />
-                                                            Remove Doorman
-                                                        </Button>
+                                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setActiveDoormanIndex(index);
+                                                                        }}
+                                                                    >
+                                                                        <Edit className="h-4 w-4" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="destructive"
+                                                                        size="icon"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const newDoormen = [...data.doormen];
+                                                                            newDoormen.splice(index, 1);
+                                                                            setData('doormen', newDoormen);
+                                                                        }}
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
+
+                                            {/* Botón Agregar */}
+                                            {data.doormen.length < 3 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="dashed"
+                                                    className="w-full h-12 border-2 border-dashed text-muted-foreground hover:text-primary hover:border-primary"
+                                                    onClick={() => {
+                                                        const newDoorman = {
+                                                            name: '',
+                                                            photo: null,
+                                                            email: '',
+                                                            phone: ''
+                                                        };
+                                                        setData('doormen', [...data.doormen, newDoorman]);
+                                                        setActiveDoormanIndex(data.doormen.length);
+                                                    }}
+                                                >
+                                                    <Plus className="mr-2 h-4 w-4" />
+                                                    Add Doorman
+                                                </Button>
+                                            )}
                                         </div>
                                     </TabsContent>
+
                                 </Tabs>
 
                                 {/* Action Buttons */}
@@ -1316,7 +1408,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                     <Pagination links={buildings.links} meta={buildings.meta} />
                 )}
             </div>
-        </AppLayout>
+        </AppLayout >
     );
 }
 
