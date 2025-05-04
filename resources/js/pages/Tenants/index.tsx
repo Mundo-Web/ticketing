@@ -328,7 +328,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                                                     checked={data.share}
                                                     onCheckedChange={(checked) => setData('share', checked)}
                                                 />
-                                                <Label htmlFor="share">Compartido</Label>
+                                                <Label htmlFor="share">Share</Label>
                                             </div>
                                         </div>
                                     </TabsContent>
