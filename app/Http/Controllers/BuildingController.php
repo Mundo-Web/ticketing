@@ -241,7 +241,7 @@ class BuildingController extends Controller
 
     public function apartments(Building $building)
     {
-        $apartments = Apartment::with(['devices.brand', 'devices.system', 'devices.model', 'devices.name_device'])
+        $apartments = Apartment::with(['tenant', 'devices.brand', 'devices.system', 'devices.model', 'devices.name_device'])
             ->where('buildings_id', $building->id)
             ->latest()
             ->paginate(6);
