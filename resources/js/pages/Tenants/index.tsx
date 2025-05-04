@@ -26,6 +26,7 @@ type Apartment = {
     id: number;
     name: string;
     ubicacion: string;
+    share: boolean;
     status: boolean;
     created_at: string;
     tenant?: Tenant;
@@ -90,6 +91,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
         id: null as number | null,
         name: '',
         ubicacion: '',
+        share: false,
         tenant: {
             name: '',
             email: '',
@@ -122,7 +124,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
 
         formData.append('name', data.name);
         formData.append('ubicacion', data.ubicacion);
-
+        formData.append('share', data.share.toString());
         if (data.tenant.name) {
             formData.append('tenant[name]', data.tenant.name);
             formData.append('tenant[email]', data.tenant.email);
@@ -152,6 +154,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
             id: apartment.id,
             name: apartment.name,
             ubicacion: apartment.ubicacion,
+            share: apartment.share,
             tenant: {
                 name: apartment.tenant?.name || '',
                 email: apartment.tenant?.email || '',
@@ -301,8 +304,9 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                                                 id="name"
                                                 value={data.name}
                                                 onChange={(e) => setData('name', e.target.value)}
-                                                className={`h-12 ${errors.name ? 'border-red-500' : ''}`}
+                                                className={`h-11 mt-2 ${errors.name ? 'border-red-500' : ''}`}
                                                 required
+
                                             />
                                             {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                                         </div>
@@ -314,95 +318,125 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                                                 value={data.ubicacion}
                                                 onChange={(e) => setData('ubicacion', e.target.value)}
                                                 rows={3}
+                                                className='mt-2'
                                             />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center space-x-2">
+                                                <Switch
+                                                    id="share"
+                                                    checked={data.share}
+                                                    onCheckedChange={(checked) => setData('share', checked)}
+                                                />
+                                                <Label htmlFor="share">Compartido</Label>
+                                            </div>
                                         </div>
                                     </TabsContent>
 
                                     <TabsContent value="tenant" className="space-y-6">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="tenant-name">Tenant Name</Label>
-                                            <Input
-                                                id="tenant-name"
-                                                value={data.tenant.name}
-                                                onChange={(e) => setData('tenant', {
-                                                    ...data.tenant,
-                                                    name: e.target.value
-                                                })}
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="tenant-email">Email</Label>
-                                                <Input
-                                                    id="tenant-email"
-                                                    type="email"
-                                                    value={data.tenant.email}
-                                                    onChange={(e) => setData('tenant', {
-                                                        ...data.tenant,
-                                                        email: e.target.value
-                                                    })}
-                                                />
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="tenant-phone">Phone</Label>
-                                                <Input
-                                                    id="tenant-phone"
-                                                    value={data.tenant.phone}
-                                                    onChange={(e) => setData('tenant', {
-                                                        ...data.tenant,
-                                                        phone: e.target.value
-                                                    })}
-                                                />
-                                            </div>
-                                        </div>
-
-
-
-
-                                        <div className="space-y-2">
-                                            <Label htmlFor="tenant-photo">Photo</Label>
-                                            <div className={`group relative w-full aspect-[4/3] rounded-lg overflow-hidden transition-all duration-300 
-    ${errors['tenant.photo'] ? 'ring-2 ring-destructive' : 'hover:ring-2 hover:ring-ring'} 
-    bg-muted/50`}>
-                                                <input
-                                                    id="tenant-photo-upload"
-                                                    type="file"
-                                                    accept="image/png, image/jpeg, image/jpg"
-                                                    onChange={(e) => setData('tenant', {
-                                                        ...data.tenant,
-                                                        photo: e.target.files?.[0] || null
-                                                    })}
-                                                    className="hidden"
-                                                />
-                                                <label htmlFor="tenant-photo-upload" className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
-                                                    {data.tenant.photo || currentApartment?.tenant?.photo ? (
-                                                        <div className="relative w-full h-full group">
-                                                            <img
-                                                                src={data.tenant.photo
-                                                                    ? URL.createObjectURL(data.tenant.photo)
-                                                                    : `/storage/${currentApartment?.tenant?.photo}`}
-                                                                alt="Tenant preview"
-                                                                className="w-full h-full object-cover"
-                                                            />
-                                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2">
-                                                                <UploadCloud className="w-8 h-8 text-white" />
-                                                                <p className="text-sm text-white font-medium">Click to change photo</p>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex flex-col items-center justify-center p-4 text-center h-full">
-                                                            <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center mb-3">
-                                                                <User className="w-6 h-6 text-muted-foreground" />
-                                                            </div>
-                                                            <p className="text-sm font-medium text-muted-foreground mb-1">Drag & drop or click to upload</p>
-                                                            <p className="text-xs text-muted-foreground">PNG, JPG or JPEG (max. 2MB)</p>
-                                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                                            {/* Columna izquierda - Foto */}
+                                            <div className="md:col-span-2 space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="tenant-photo">Photo</Label>
+                                                    <div className={`mt-2 group relative w-full aspect-square rounded-lg overflow-hidden transition-all duration-300 
+          ${errors['tenant.photo'] ? 'ring-2 ring-destructive' : 'hover:ring-2 hover:ring-ring'} 
+          bg-muted/50`}>
+                                                        <input
+                                                            id="tenant-photo-upload"
+                                                            type="file"
+                                                            accept="image/png, image/jpeg, image/jpg"
+                                                            onChange={(e) => setData('tenant', {
+                                                                ...data.tenant,
+                                                                photo: e.target.files?.[0] || null
+                                                            })}
+                                                            className="hidden"
+                                                        />
+                                                        <label
+                                                            htmlFor="tenant-photo-upload"
+                                                            className="flex flex-col items-center justify-center w-full h-full cursor-pointer"
+                                                        >
+                                                            {data.tenant.photo || currentApartment?.tenant?.photo ? (
+                                                                <div className="relative w-full h-full group">
+                                                                    <img
+                                                                        src={data.tenant.photo
+                                                                            ? URL.createObjectURL(data.tenant.photo)
+                                                                            : `/storage/${currentApartment?.tenant?.photo}`}
+                                                                        alt="Tenant preview"
+                                                                        className="w-full h-full object-cover"
+                                                                    />
+                                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+                                                                        <UploadCloud className="w-8 h-8 text-white" />
+                                                                        <p className="text-sm text-white font-medium">Click to change photo</p>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex flex-col items-center justify-center p-4 text-center h-full">
+                                                                    <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center mb-3">
+                                                                        <User className="w-6 h-6 text-muted-foreground" />
+                                                                    </div>
+                                                                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                                                                        Drag & drop or click to upload
+                                                                    </p>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        PNG, JPG or JPEG (max. 2MB)
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </label>
+                                                    </div>
+                                                    {errors['tenant.photo'] && (
+                                                        <p className="text-sm text-destructive">{errors['tenant.photo']}</p>
                                                     )}
-                                                </label>
+                                                </div>
                                             </div>
-                                            {errors['tenant.photo'] && <p className="text-sm text-destructive">{errors['tenant.photo']}</p>}
+
+                                            {/* Columna derecha - Campos del formulario */}
+                                            <div className="md:col-span-3 space-y-4">
+                                                <div className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="tenant-name">Tenant Name</Label>
+                                                        <Input
+                                                            id="tenant-name"
+                                                            value={data.tenant.name}
+                                                            onChange={(e) => setData('tenant', {
+                                                                ...data.tenant,
+                                                                name: e.target.value
+                                                            })}
+                                                            className="w-full h-11 mt-2"
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="tenant-email">Email</Label>
+                                                            <Input
+                                                                id="tenant-email"
+                                                                type="email"
+                                                                value={data.tenant.email}
+                                                                onChange={(e) => setData('tenant', {
+                                                                    ...data.tenant,
+                                                                    email: e.target.value
+                                                                })}
+                                                                className="w-full h-11 mt-2"
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="tenant-phone">Phone</Label>
+                                                            <Input
+                                                                id="tenant-phone"
+                                                                value={data.tenant.phone}
+                                                                onChange={(e) => setData('tenant', {
+                                                                    ...data.tenant,
+                                                                    phone: e.target.value
+                                                                })}
+                                                                className="w-full h-11 mt-2"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </TabsContent>
 

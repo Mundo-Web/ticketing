@@ -16,10 +16,12 @@ class Apartment extends Model
         'ubicacion',
         'buildings_id',
         'status',
+        'share',
 
     ];
     protected $casts = [
         'status' => 'boolean',
+        'share' => 'boolean'
     ];
 
     public function devices()

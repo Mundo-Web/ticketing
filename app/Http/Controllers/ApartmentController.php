@@ -118,6 +118,7 @@ class ApartmentController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'ubicacion' => 'nullable|string|max:255',
+                'share' => 'boolean',
                 'tenant.name' => 'nullable|string|max:255',
                 'tenant.email' => 'nullable|email|max:255',
                 'tenant.phone' => 'nullable|string|max:20',
@@ -127,6 +128,7 @@ class ApartmentController extends Controller
             $apartment = $building->apartments()->create([
                 'name' => $request->name,
                 'ubicacion' => $request->ubicacion,
+                'share' => $request->share ?? false,
                 'status' => true
             ]);
 
@@ -147,6 +149,7 @@ class ApartmentController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'ubicacion' => 'nullable|string|max:255',
+                'share' => 'sometimes|boolean',
                 'tenant.name' => 'nullable|string|max:255',
                 'tenant.email' => 'nullable|email|max:255',
                 'tenant.phone' => 'nullable|string|max:20',
@@ -155,7 +158,8 @@ class ApartmentController extends Controller
 
             $apartment->update([
                 'name' => $request->name,
-                'ubicacion' => $request->ubicacion
+                'ubicacion' => $request->ubicacion,
+                'share' => $request->share ?? false
             ]);
 
             $this->saveTenant($request, $apartment);
