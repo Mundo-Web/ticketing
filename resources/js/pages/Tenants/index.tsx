@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import { LayoutGrid, Table, Plus, Edit, Trash2, ChevronRight, Laptop, User, UploadCloud } from 'lucide-react';
+import { LayoutGrid, Table, Plus, Edit, Trash2, ChevronRight, Laptop, User, UploadCloud, ChevronsUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     Dialog,
@@ -21,6 +21,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ModalDispositivos from './ModalDispositivos';
 
+import Select, { components } from 'react-select';
+import { BuildingCombobox } from './ComboBox';
 
 type Apartment = {
     id: number;
@@ -85,7 +87,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
     const [selectedDevices, setSelectedDevices] = useState<Device[]>([]);
     const [showDevicesModal, setShowDevicesModal] = useState(false);
 
-    const { building } = usePage().props as { building: { id: number, name: string, image: string } };
+    const { building, all_buildings } = usePage().props as { building: { id: number, name: string, image: string }, all_buildings: { id: number, name: string, image: string }[] };
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         id: null as number | null,
@@ -226,11 +228,12 @@ export default function Index({ apartments, brands, models, systems, deviceNames
         setShowDevicesModal(true);
     };
 
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Apartments" />
             <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-                {/* Header Section */}
+                {/* Header Section 
                 <Card className='w-full border-none py-0 shadow-none'>
                     <CardContent className="p-0">
                         <div className='flex gap-4 items-center'>
@@ -241,6 +244,21 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                             />
                             <h2 className='text-xl font-medium'>{building.name}</h2>
                         </div>
+                    </CardContent>
+                </Card>*/}
+
+
+
+
+                <Card className='w-full border-none py-0 shadow-none'>
+                    <CardContent className="p-0">
+                        <BuildingCombobox
+                            buildings={all_buildings}
+                            selectedId={building.id}
+                            onChange={(id) => router.visit(route('buildings.apartments', id))}
+                        />
+
+
                     </CardContent>
                 </Card>
 
@@ -659,10 +677,11 @@ const TableView = ({
 
                         <TableCell>
                             {apartment.tenant ? (
-                                <div className="text-sm">
+                                <div className='flex gap-2 items-center'> <img src={`/storage/${apartment.tenant.photo}`} className='h-12 w-12 object-cover rounded-full border-2 border-white' /> <div className="text-sm">
                                     <p className="truncate">{apartment.tenant.name}</p>
                                     <p className="text-xs text-gray-500 truncate">{apartment.tenant.email}</p>
-                                </div>
+                                </div></div>
+
                             ) : '-'}
                         </TableCell>
 

@@ -178,4 +178,24 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    .react-select__input-container {
+        @apply text-foreground;
+    }
+
+    .react-select__placeholder {
+        @apply text-muted-foreground;
+    }
+
+    .react-select__single-value {
+        @apply text-foreground;
+    }
+
+    .react-select__menu {
+        @apply z-50;
+    }
+
+    .react-select__option {
+        @apply flex items-center gap-4;
+    }
 }

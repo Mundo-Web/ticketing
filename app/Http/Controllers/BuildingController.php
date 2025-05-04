@@ -254,6 +254,7 @@ class BuildingController extends Controller
 
         return Inertia::render('Tenants/index', [
             'building' => $building,
+            'all_buildings' => Building::select('id', 'name', 'image')->get(),
             'apartments' => [
                 'data' => $data['data'],
                 'links' => $data['links'],
