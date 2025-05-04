@@ -61,7 +61,7 @@ class BuildingController extends Controller
             'owner.email' => 'required|email',
             'owner.phone' => 'nullable|string',
             'owner.photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'doormen' => 'array|max:3',
+            'doormen' => 'array',
             'doormen.*.name' => 'required|string|max:255',
             'doormen.*.email' => 'required|email',
             'doormen.*.phone' => 'nullable|string',
