@@ -539,6 +539,12 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-between">
                                 <h3 className="font-semibold text-xl truncate">{building.name}</h3>
+                                <div className='flex gap-1'>
+                                    {building.doormen.length > 0 && building.doormen.map((doorman, index) => (
+                                        <div key={doorman.id} className="bg-secondary h-4 w-4 rounded-full">
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                             {building.apartments && (
                                 <p className="text-sm line-clamp-2">{building.apartments.length} apartments</p>
