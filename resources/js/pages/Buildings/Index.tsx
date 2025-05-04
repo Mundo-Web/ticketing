@@ -51,6 +51,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Owner {
     name: string;
@@ -65,6 +66,7 @@ interface Doorman {
     photo: string | null;
     email: string;
     phone: string;
+    shift: 'morning' | 'afternoon' | 'night';
 }
 
 interface Building {
@@ -141,6 +143,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
             photo: File | null;
             email: string;
             phone: string;
+            shift: 'morning' | 'afternoon' | 'night';
         }>,
     });
 
@@ -354,6 +357,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
             formData.append(`doormen[${index}][name]`, doorman.name);
             formData.append(`doormen[${index}][email]`, doorman.email);
             formData.append(`doormen[${index}][phone]`, doorman.phone);
+            formData.append(`doormen[${index}][shift]`, doorman.shift);
             if (doorman.id) formData.append(`doormen[${index}][id]`, doorman.id.toString());
             if (doorman.photo) formData.append(`doormen[${index}][photo]`, doorman.photo);
         });
@@ -392,7 +396,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                 name: d.name,
                 photo: null,
                 email: d.email,
-                phone: d.phone || ''
+                phone: d.phone || '',
+                shift: d.shift || 'morning'
             }))
         });
         setCurrentBuilding(building);
@@ -421,6 +426,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
             formData.append(`doormen[${index}][name]`, doorman.name);
             formData.append(`doormen[${index}][email]`, doorman.email);
             formData.append(`doormen[${index}][phone]`, doorman.phone);
+            formData.append(`doormen[${index}][shift]`, doorman.shift);
             if (doorman.id) formData.append(`doormen[${index}][id]`, doorman.id.toString());
             if (doorman.photo) formData.append(`doormen[${index}][photo]`, doorman.photo);
         });
@@ -649,9 +655,13 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                             className="w-24 h-24 rounded-full object-cover border-4 border-primary"
                                         />
                                         <div className="text-center">
-                                            <h4 className="text-xl font-semibold">{selectedDoorman.name}</h4>
-                                            <p className="text-muted-foreground">{selectedDoorman.email}</p>
-                                            <p className="text-muted-foreground">{selectedDoorman.phone}</p>
+                                            <h4 className="text-xl font-semibold">  {selectedDoorman.name}</h4>
+                                            <p className="text-muted-foreground"> Email: {selectedDoorman.email}</p>
+                                            <p className="text-muted-foreground"> Phone: {selectedDoorman.phone}</p>
+                                            <p className="text-muted-foreground">
+                                                Shift: {selectedDoorman.shift === 'morning' ? 'Morning' :
+                                                    selectedDoorman.shift === 'afternoon' ? 'Afternoon' : 'Night'}
+                                            </p>
                                         </div>
                                         <Button
                                             variant="destructive"
@@ -1165,7 +1175,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                                             name: '',
                                                             photo: null,
                                                             email: '',
-                                                            phone: ''
+                                                            phone: '',
+                                                            shift: 'morning',
                                                         }]);
                                                     }}
                                                     //disabled={data.doormen.length >= 5}
@@ -1270,6 +1281,27 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                                                 }}
                                                                 className="h-11"
                                                             />
+                                                            <div className="space-y-2">
+
+                                                                <Select
+                                                                    value={doorman.shift}
+                                                                    onValueChange={(value) => {
+                                                                        const newDoormen = [...data.doormen];
+                                                                        newDoormen[index].shift = value as 'morning' | 'afternoon' | 'night';
+                                                                        setData('doormen', newDoormen);
+                                                                    }}
+
+                                                                >
+                                                                    <SelectTrigger className="w-full h-11">
+                                                                        <SelectValue placeholder="Select work shift" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="morning">Morning</SelectItem>
+                                                                        <SelectItem value="afternoon">Afternoon</SelectItem>
+                                                                        <SelectItem value="night">Night</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}

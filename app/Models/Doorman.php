@@ -14,7 +14,10 @@ class Doorman extends Model
         'name',
         'email',
         'photo',
-        'phone'
+        'phone',
+        'shift',
+        'status',
+        'visible'
     ];
 
     public function building()

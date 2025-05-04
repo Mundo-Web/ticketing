@@ -92,11 +92,12 @@ class BuildingController extends Controller
             'owner.email' => 'required|email',
             'owner.phone' => 'nullable|string',
             'owner.photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'doormen' => 'array|max:3',
+            'doormen' => 'array',
             'doormen.*.name' => 'required|string|max:255',
             'doormen.*.email' => 'required|email',
             'doormen.*.phone' => 'nullable|string',
-            'doormen.*.photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'doormen.*.photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'doormen.*.shift' => 'required|in:morning,afternoon,night',
         ]);
 
         // Update Building
@@ -186,7 +187,8 @@ class BuildingController extends Controller
             $data = [
                 'name' => $doormanData['name'],
                 'email' => $doormanData['email'],
-                'phone' => $doormanData['phone']
+                'phone' => $doormanData['phone'],
+                'shift' => $doormanData['shift']
             ];
 
             if (isset($doormanData['photo']) && $doormanData['photo'] instanceof \Illuminate\Http\UploadedFile) {
