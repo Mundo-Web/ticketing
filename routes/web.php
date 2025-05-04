@@ -5,6 +5,7 @@ use App\Http\Controllers\BuildingController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\SupportController;
+use App\Http\Controllers\TechnicalController;
 use App\Http\Controllers\TicketController;
 use App\Models\Support;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +46,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('buildings/{building}/update-status', [BuildingController::class, 'updateStatus'])->name('buildings.update-status');
     Route::get('buildings/{building}/apartments', [BuildingController::class, 'apartments'])->name('buildings.apartments');
     Route::post('/buildings/{building}/apartments', [ApartmentController::class, 'storeApartment'])->name('buildings.apartments.store');
+
+    Route::resource('technicals', TechnicalController::class);
+    Route::put('technicals/{technical}/update-status', [TechnicalController::class, 'updateStatus'])
+        ->name('technicals.update-status');
 });
 
 require __DIR__ . '/settings.php';
