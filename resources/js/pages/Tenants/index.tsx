@@ -616,7 +616,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                             {building.doormen && building.doormen.length > 0 && (
                                 <div className="space-y-4 w-full">
                                     <h3 className="text-lg font-semibold px-2">Doormen</h3>
-                                    <div className="grid grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-2 gap-4">
                                         {building.doormen.map((doorman) => (
                                             <Card key={doorman.id}>
                                                 <CardContent className="px-2 ">
@@ -628,7 +628,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                                                     <div className="flex flex-col items-center justify-center gap-2 mt-4">
 
 
-                                                        <h4 className="font-medium">{doorman.name}</h4>
+                                                        <h4 className="font-medium line-clamp-1">{doorman.name}</h4>
                                                         <p className="text-sm text-muted-foreground">{doorman.shift}</p>
 
 
