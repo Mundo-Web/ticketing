@@ -179,7 +179,7 @@ const ModalDispositivos = ({
         list: any[]
     ) => {
         if (newValue) return { label: newValue, value: '' };
-        const item = list.find((el) => el.id.toString() === id?.toString());
+        const item = list?.find((el) => el.id.toString() === id?.toString());
         return item ? { label: item.name, value: item.id } : null;
     };
 
@@ -204,7 +204,7 @@ const ModalDispositivos = ({
                                 isClearable
                                 placeholder="Seleccionar o crear nombre"
                                 onChange={(option) => handleSelectChange(option, 'name_device')}
-                                options={name_devices.map((s) => ({ label: s.name, value: s.id }))}
+                                options={name_devices?.map((s) => ({ label: s.name, value: s.id }))}
                                 value={getSelectedValue(data.name_device_id, data.new_name_device, name_devices)}
                             />
                             {errors.name_device_id && <p className="text-red-500 text-sm">{errors.name_device_id}</p>}

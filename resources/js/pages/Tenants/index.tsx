@@ -514,6 +514,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
 
                 {/* Devices Modal */}
                 <Dialog open={showDevicesModal} onOpenChange={setShowDevicesModal}>
+                    <DialogTitle></DialogTitle>
                     <DialogContent className="min-w-3xl">
                         <ModalDispositivos
                             apartmentName={selectedApartment?.name || ''}
