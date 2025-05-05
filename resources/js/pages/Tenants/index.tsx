@@ -803,13 +803,15 @@ const TableView = ({
                         </TableCell>
 
                         <TableCell>
-                            {apartment.tenant ? (
-                                <div className='flex gap-2 items-center'> <img src={`/storage/${apartment.tenant.photo}`} className='h-12 w-12 object-cover rounded-full border-2 border-white' /> <div className="text-sm">
-                                    <p className="truncate">{apartment.tenant.name}</p>
-                                    <p className="text-xs text-gray-500 truncate">{apartment.tenant.email}</p>
-                                </div></div>
+                            <div className='max-w-40'>
+                                {apartment.tenant ? (
+                                    <div className='flex gap-2 items-center'> <img src={`/storage/${apartment.tenant.photo}`} className='h-12 w-12 object-cover rounded-full border-2 border-white' /> <div className="text-sm">
+                                        <p className="truncate line-clamp-1">{apartment.tenant.name}</p>
+                                        <p className="text-xs line-clamp-1 text-gray-500 truncate">{apartment.tenant.email}</p>
+                                    </div></div>
 
-                            ) : '-'}
+                                ) : '-'}
+                            </div>
                         </TableCell>
 
                         <TableCell>
