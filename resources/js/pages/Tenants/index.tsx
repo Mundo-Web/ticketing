@@ -309,7 +309,8 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                     </CardContent>
                 </Card>
 
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
+                    {/*
                     <div className="bg-gray-100 p-1 rounded flex">
                         <button
                             onClick={() => setViewMode('grid')}
@@ -323,7 +324,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                         >
                             <Table className={`w-5 h-5 ${viewMode === 'table' ? 'text-primary' : 'text-gray-600'}`} />
                         </button>
-                    </div>
+                    </div> */}
 
                     <div className="flex gap-2 w-full sm:w-auto">
                         <Button
@@ -658,7 +659,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                                 </div>
                             )}
                         </div>
-                        <div className='lg:w-8/12'>
+                        <div className='lg:w-8/12 flex flex-col'>
                             <TableView
 
                                 apartments={apartments.data}
@@ -668,14 +669,16 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                                 isUpdatingStatus={isUpdatingStatus}
                                 handleShowDevices={handleShowDevices}
                             />
+                            {/* Pagination */}
+                            {apartments.data.length > 0 && (
+                                <Pagination links={apartments.links} meta={apartments.meta} />
+                            )}
                         </div>
+
                     </div>
                 )}
 
-                {/* Pagination */}
-                {apartments.data.length > 0 && (
-                    <Pagination links={apartments.links} meta={apartments.meta} />
-                )}
+
             </div>
         </AppLayout>
     );
