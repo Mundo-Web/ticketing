@@ -251,8 +251,9 @@ class BuildingController extends Controller
 
 
         $data = $apartments->toArray();
-
+        $building->load(['owner', 'doormen']);
         return Inertia::render('Tenants/index', [
+            'googleMapsApiKey' => env('GMAPS_API_KEY'),
             'building' => $building,
             'all_buildings' => Building::select('id', 'name', 'image')->get(),
             'apartments' => [

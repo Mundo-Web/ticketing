@@ -35,6 +35,8 @@ type Apartment = {
     devices?: Device[];
 };
 
+
+
 type Tenant = {
     id?: number;
     name?: string;
@@ -87,7 +89,30 @@ export default function Index({ apartments, brands, models, systems, deviceNames
     const [selectedDevices, setSelectedDevices] = useState<Device[]>([]);
     const [showDevicesModal, setShowDevicesModal] = useState(false);
 
-    const { building, all_buildings } = usePage().props as { building: { id: number, name: string, image: string }, all_buildings: { id: number, name: string, image: string }[] };
+    const { building, all_buildings, googleMapsApiKey } = usePage().props as {
+        building: {
+            id: number,
+            name: string,
+            image: string,
+            location_link: string,
+            owner?: {
+                name: string,
+                email: string,
+                phone: string,
+                photo: string
+            },
+            doormen?: Array<{
+                id: number,
+                name: string,
+                email: string,
+                phone: string,
+                photo: string,
+                shift: string
+            }>
+        },
+        all_buildings: { id: number, name: string, image: string }[],
+        googleMapsApiKey: string
+    };
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         id: null as number | null,
@@ -228,7 +253,29 @@ export default function Index({ apartments, brands, models, systems, deviceNames
         setShowDevicesModal(true);
     };
 
+    const getEmbedUrl = (locationLink: string): string => {
+        if (!locationLink) return '';
 
+        if (locationLink.includes('maps.app.goo.gl')) {
+            return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=-10.916879,-74.883391&zoom=15`;
+        }
+
+        if (locationLink.includes('/embed')) return locationLink;
+
+        if (locationLink.includes('google.com/maps')) {
+            const coordsMatch = locationLink.match(/@([-0-9.]+),([-0-9.]+)/);
+            if (coordsMatch) {
+                return `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${coordsMatch[1]},${coordsMatch[2]}&zoom=15`;
+            }
+
+            const placeIdMatch = locationLink.match(/place\/([^\/]+)/);
+            if (placeIdMatch) {
+                return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=place_id:${placeIdMatch[1]}`;
+            }
+        }
+
+        return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(locationLink)}`;
+    };
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Apartments" />
@@ -541,14 +588,88 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                         handleShowDevices={handleShowDevices}
                     />
                 ) : (
-                    <TableView
-                        apartments={apartments.data}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onToggleStatus={toggleStatus}
-                        isUpdatingStatus={isUpdatingStatus}
-                        handleShowDevices={handleShowDevices}
-                    />
+                    <div className='flex flex-col lg:flex-row gap-4'>
+                        <div className="w-full lg:w-4/12 space-y-6">
+                            {/* Card del Owner */}
+                            {building.owner && (
+                                <Card>
+                                    <CardContent className="p-6">
+                                        <div className="flex items-start gap-4">
+                                            <img
+                                                src={`/storage/${building.owner.photo}`}
+                                                alt={building.owner.name}
+                                                className="w-16 h-16 rounded-full object-cover border-2 border-primary"
+                                            />
+                                            <div className="space-y-2">
+                                                <h3 className="text-lg font-semibold">{building.owner.name}</h3>
+                                                <div className="space-y-1 text-sm">
+                                                    <p className="text-muted-foreground">{building.owner.email}</p>
+                                                    <p className="text-muted-foreground">{building.owner.phone}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            {/* Sección de Doormen */}
+                            {building.doormen && building.doormen.length > 0 && (
+                                <div className="space-y-4 w-full">
+                                    <h3 className="text-lg font-semibold px-2">Doormen</h3>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {building.doormen.map((doorman) => (
+                                            <Card key={doorman.id}>
+                                                <CardContent className="px-2 ">
+                                                    <img
+                                                        src={`/storage/${doorman.photo}`}
+                                                        alt={doorman.name}
+                                                        className=" aspect-square rounded-full object-cover"
+                                                    />
+                                                    <div className="flex flex-col items-center justify-center gap-2 mt-4">
+
+
+                                                        <h4 className="font-medium">{doorman.name}</h4>
+                                                        <p className="text-sm text-muted-foreground">{doorman.shift}</p>
+
+
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Mapa */}
+                            {building.location_link && (
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-semibold px-2">Location</h3>
+                                    <div className="aspect-video rounded-lg overflow-hidden border">
+                                        <iframe
+                                            src={getEmbedUrl(building?.location_link || '')}
+                                            width="100%"
+                                            height="100%"
+                                            style={{ border: 0 }}
+                                            allowFullScreen
+                                            loading="lazy"
+                                            referrerPolicy="no-referrer-when-downgrade"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className='lg:w-8/12'>
+                            <TableView
+
+                                apartments={apartments.data}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                                onToggleStatus={toggleStatus}
+                                isUpdatingStatus={isUpdatingStatus}
+                                handleShowDevices={handleShowDevices}
+                            />
+                        </div>
+                    </div>
                 )}
 
                 {/* Pagination */}
@@ -641,6 +762,7 @@ const GridView = ({
 );
 
 const TableView = ({
+
     apartments,
     onEdit,
     onDelete,
@@ -648,6 +770,7 @@ const TableView = ({
     isUpdatingStatus,
     handleShowDevices
 }: {
+
     apartments: Apartment[];
     onEdit: (apartment: Apartment) => void;
     onDelete: (apartment: Apartment) => void;
