@@ -445,16 +445,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                 {/* Content Section */}
                 {apartments.data.length === 0 ? (
                     <EmptyState onAddNew={() => setShowCreateModal(true)} />
-                ) : viewMode === 'grid' ? (
-                    <GridView
-                        apartments={apartments.data}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onToggleStatus={toggleStatus}
-                        isUpdatingStatus={isUpdatingStatus}
-                        handleShowDevices={handleShowDevices}
-                    />
-                ) : (
+                ): (
                     <div className='flex flex-col lg:flex-row gap-4'>
                         <div className="w-full lg:w-4/12 space-y-6">
                             {/* Card del Owner */}
@@ -550,85 +541,6 @@ export default function Index({ apartments, brands, models, systems, name_device
     );
 }
 
-const GridView = ({
-    apartments,
-    onEdit,
-    onDelete,
-    onToggleStatus,
-    isUpdatingStatus,
-    handleShowDevices
-}: {
-    apartments: Apartment[];
-    onEdit: (apartment: Apartment) => void;
-    onDelete: (apartment: Apartment) => void;
-    onToggleStatus: (apartment: Apartment) => void;
-    isUpdatingStatus: number | null;
-    handleShowDevices: (apartment: Apartment) => void;
-}) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {apartments.map((apartment) => (
-            <div key={apartment.id} className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow border relative">
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-xl truncate">{apartment.name}</h3>
-                        <div className="flex items-center gap-2">
-                            <Switch
-                                checked={apartment.status}
-                                onCheckedChange={() => onToggleStatus(apartment)}
-                                className="data-[state=checked]:bg-green-500"
-                                disabled={isUpdatingStatus === apartment.id}
-                            />
-                            <StatusBadge status={apartment.status ? "active" : "inactive"} />
-                        </div>
-                    </div>
-
-                    {apartment.ubicacion && (
-                        <p className="text-sm text-gray-600 line-clamp-2">{apartment.ubicacion}</p>
-                    )}
-
-                    {apartment.tenant && (
-                        <div className="text-sm text-gray-500">
-                            <p className="truncate">Tenant: {apartment.tenant.name}</p>
-                            <p className="truncate">{apartment.tenant.email}</p>
-                        </div>
-                    )}
-
-                    <div className="text-xs text-gray-400 mt-2">
-                        Created: {new Date(apartment.created_at).toLocaleDateString()}
-                    </div>
-
-                    <div className='flex gap-4 mt-4'>
-                        <Button
-                            onClick={() => handleShowDevices(apartment)}
-                            className="flex py-2 rounded-lg items-center gap-2 transition-all w-6/12 bg-primary text-primary-foreground"
-                        >
-                            {apartment.devices?.length || 0}
-                            <span className="hidden sm:block">Devices</span>
-                            <ChevronRight className="w-5 h-5" />
-                        </Button>
-
-                        <div className="flex gap-4 w-6/12 justify-end items-center">
-                            <Button
-                                onClick={() => onEdit(apartment)}
-                                variant="secondary"
-                                size="icon"
-                            >
-                                <Edit className="w-5 h-5" />
-                            </Button>
-                            <Button
-                                onClick={() => onDelete(apartment)}
-                                variant="destructive"
-                                size="icon"
-                            >
-                                <Trash2 className="w-5 h-5" />
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        ))}
-    </div>
-);
 
 const TableView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingStatus, handleShowDevices }) => {
     const [expandedRows, setExpandedRows] = useState<number[]>([]);
@@ -655,7 +567,9 @@ const TableView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingSta
                     </tr>
                 </thead>
                 <tbody>
-                    {apartments.map((apartment) => (
+                    {apartments.map((apartment) => {  
+                    console.log(apartment.tenants)
+                        return(
                         <>
                             <tr key={apartment.id} className="border-b">
                                 <td 
@@ -719,6 +633,12 @@ const TableView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingSta
                                                             <p className="text-sm text-muted-foreground">{tenant.phone}</p>
                                                         </div>
                                                     </div>
+                                                    <div className='flex gap-2 items-center'>
+                                                    {Number(Number(tenant.devices?.length) + Number(tenant.shared_devices?.length)) || 0}
+                                                            <Laptop className="w-4 h-4" />
+                                                          
+                                                            
+                                                        </div>
                                                     <div className="flex items-center gap-2">
                                                         <Button
                                                             variant="outline"
@@ -737,7 +657,7 @@ const TableView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingSta
                                 </tr>
                             )}
                         </>
-                    ))}
+                    )})}
                 </tbody>
             </table>
         </div>

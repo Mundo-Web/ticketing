@@ -94,7 +94,7 @@ class DeviceController extends Controller
             'new_system' => 'nullable|string|max:255',
             'new_name_device' => 'nullable|string|max:255',
             'tenant_id' => 'required|exists:tenants,id',
-            'tenants' => 'required|array',
+            'tenants' => 'sometimes|array',
             'tenants.*' => 'exists:tenants,id',
         ]);
 
@@ -124,12 +124,21 @@ class DeviceController extends Controller
 
             // Asignar inquilinos
             $device->tenants()->attach($request->tenant_id);
-            if (!empty($request->tenants)) {
+          /*  if (!empty($request->tenants)) {
                 $device->tenants()->attach($request->tenants);
+            }*/
+            if ($request->has('tenants')) {
+                $shareData = collect($request->tenants)->mapWithKeys(function($tenantId) use ($request) {
+                    return [$tenantId => [
+                        'owner_tenant_id' => $request->tenant_id
+                    ]];
+                });
+                $device->sharedWith()->syncWithoutDetaching($shareData);
+           
             }
 
             // Cargar relaciones para la respuesta
-            $device->load(['brand', 'model', 'system', 'name_device', 'tenants']);
+            $device->load(['tenants', 'sharedWith', 'brand', 'model', 'system', 'name_device']);
 
             DB::commit();
 
