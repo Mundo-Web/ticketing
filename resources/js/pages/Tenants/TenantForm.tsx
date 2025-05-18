@@ -15,7 +15,7 @@ export const TenantForm = ({
     errors: Record<string, string>;
 }) => {
     const handleAddTenant = () => {
-        onTenantsChange([...tenants, { name: '', email: '', phone: '', photo: null }]);
+        onTenantsChange([...tenants, { name: '', email: '', phone: '', photo: '' }]);
     };
 
     const handleRemoveTenant = (index: number) => {
@@ -28,102 +28,132 @@ export const TenantForm = ({
         onTenantsChange(newTenants);
     };
 
+
+    const handlePhotoChange = (index: number, file: File | null) => {
+        const newTenants = [...tenants];
+        if (file) {
+            newTenants[index] = { 
+                ...newTenants[index], 
+                photo: file 
+            };
+        } else {
+            // Preserve existing photo path if no new file is selected
+            const existingPhoto = typeof newTenants[index].photo === 'string' 
+                ? newTenants[index].photo 
+                : null;
+            newTenants[index] = { 
+                ...newTenants[index], 
+                photo: existingPhoto 
+            };
+        }
+        onTenantsChange(newTenants);
+    };
     return (
-        <div className="space-y-6">
-            {tenants.map((tenant, index) => (
-                <div key={index} className="border rounded-lg p-4 relative">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-medium">Tenant {index + 1}</h3>
+        <div className="space-y-8">
+            <div className="sticky top-0 bg-background z-10 pb-4">
+                <Button
+                    type="button"
+                    onClick={handleAddTenant}
+                    className="w-max h-12 rounded-xl shadow-sm hover:shadow-md transition-all"
+                >
+                    <Plus className="w-5 h-5 mr-2" />
+                    Add New Member
+                </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tenants.map((tenant, index) => (
+                    <div key={index} className="relative group border rounded-2xl p-4 shadow-sm hover:shadow-md transition-all">
+                        {/* Botón flotante de eliminar */}
                         <Button
                             type="button"
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleRemoveTenant(index)}
+                            className="absolute -top-3 -right-3 bg-destructive/90 text-white rounded-full w-8 h-8 hover:bg-destructive z-20 shadow-lg"
                         >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="w-4 h-4" />
                         </Button>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                        <div className="md:col-span-2">
+                        {/* Sección de imagen */}
+                        <div className="mb-6">
                             <input
                                 type="file"
                                 accept="image/*"
-                                onChange={(e) => updateTenant(index, 'photo', e.target.files?.[0])}
+                                onChange={(e) => handlePhotoChange(index, e.target.files?.[0] || null)}
                                 className="hidden"
                                 id={`tenant-photo-${index}`}
                             />
                             <label
                                 htmlFor={`tenant-photo-${index}`}
-                                className="block aspect-square rounded-lg border-2 border-dashed cursor-pointer hover:border-primary transition-colors"
+                                className="block aspect-square rounded-xl border-2 border-dashed cursor-pointer hover:border-primary overflow-hidden transition-all"
                             >
                                 {tenant?.photo ? (
                                     <img
-                                        src={tenant.photo instanceof File ? URL.createObjectURL(tenant.photo) : `/storage/${tenant.photo}`}
+                                        src={tenant.photo instanceof File 
+                                            ? URL.createObjectURL(tenant.photo)
+                                            : `/storage/${tenant.photo}`}
                                         alt={`Tenant ${index + 1}`}
-                                        className="w-full h-full object-cover rounded-lg"
+                                        className="w-full h-full object-cover hover:scale-105 transition-transform"
                                     />
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center p-4 text-center h-full">
-                                    <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center mb-3">
-                                        <UploadCloud className="w-6 h-6 text-muted-foreground" />
+                                    <div className="flex flex-col items-center justify-center h-full p-4 bg-muted/20">
+                                        <div className="w-16 h-16 rounded-full bg-muted/40 flex items-center justify-center mb-4">
+                                            <User className="w-8 h-8 text-muted-foreground" />
+                                        </div>
+                                        <p className="text-sm font-medium text-muted-foreground text-center">
+                                            Click to upload photo
+                                        </p>
                                     </div>
-                                    <p className="text-sm font-medium text-muted-foreground mb-1">Drag & drop or click to upload</p>
-                                    <p className="text-xs text-muted-foreground">PNG, JPG or JPEG (max. 2MB)</p>
-                                </div>
                                 )}
                             </label>
                         </div>
 
-                        <div className="md:col-span-3 space-y-4">
-                        <Label htmlFor="name">
-                                                Tenant Name <span className="text-red-500">*</span>
-                                            </Label>
-                            <Input
-                                label="Name"
-                                value={tenant.name || ''}
-                                onChange={(e) => updateTenant(index, 'name', e.target.value)}
-                                error={errors[`tenants.${index}.name`]}
-                                className={`h-11 mt-2 ${errors.name ? 'border-red-500' : ''}`}
-                                required
-                            />
-                              <Label htmlFor="name">
-                                                Email <span className="text-red-500">*</span>
-                                            </Label>
-                            <Input
-                                label="Email"
-                                type="email"
-                                value={tenant.email || ''}
-                                onChange={(e) => updateTenant(index, 'email', e.target.value)}
-                                error={errors[`tenants.${index}.email`]}
-                                className={`h-11 mt-2 ${errors.name ? 'border-red-500' : ''}`}
-                                required
-                            />
+                        {/* Campos del formulario */}
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                           
+                                <Input
+                                    value={tenant.name || ''}
+                                    onChange={(e) => updateTenant(index, 'name', e.target.value)}
+                                    placeholder="Name"
+                                    className="h-12 rounded-lg"
+                                />
+                                {errors[`tenants.${index}.name`] && (
+                                    <p className="text-xs text-destructive">{errors[`tenants.${index}.name`]}</p>
+                                )}
+                            </div>
 
-<Label htmlFor="name">
-                                                Phone <span className="text-red-500">*</span>
-                                            </Label>
-                            <Input
-                                label="Phone"
-                                value={tenant.phone || ''}
-                                onChange={(e) => updateTenant(index, 'phone', e.target.value)}
-                                error={errors[`tenants.${index}.phone`]}
-                                className={`h-11 mt-2 ${errors.name ? 'border-red-500' : ''}`}
-                                required
-                            />
+                            <div className="space-y-2">
+                             
+                                <Input
+                                    type="email"
+                                    value={tenant.email || ''}
+                                    onChange={(e) => updateTenant(index, 'email', e.target.value)}
+                                    placeholder="john@example.com"
+                                    className="h-12 rounded-lg"
+                                />
+                                {errors[`tenants.${index}.email`] && (
+                                    <p className="text-xs text-destructive">{errors[`tenants.${index}.email`]}</p>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                              
+                                <Input
+                                    value={tenant.phone || ''}
+                                    onChange={(e) => updateTenant(index, 'phone', e.target.value)}
+                                    placeholder="+1 234 567 890"
+                                    className="h-12 rounded-lg"
+                                />
+                                {errors[`tenants.${index}.phone`] && (
+                                    <p className="text-xs text-destructive">{errors[`tenants.${index}.phone`]}</p>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            ))}
-
-            <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddTenant}
-                className="w-full"
-            >
-                <Plus className="w-4 h-4 mr-2" /> Add Tenant
-            </Button>
+                ))}
+            </div>
         </div>
     );
 };

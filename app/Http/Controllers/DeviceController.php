@@ -37,8 +37,9 @@ class DeviceController extends Controller
         ]);
 
         return response()->json([
+            'success' => true, // Agrega 'success' => true para indicar éxito en la respuesta
             'message' => 'Dispositivo compartido exitosamente',
-            'device' => $device->load(['owner', 'sharedWith'])
+            'device' => Device::with(['brand', 'model', 'system', 'name_device'])->find($device->id)
         ]);
     }
 

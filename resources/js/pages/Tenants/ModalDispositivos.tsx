@@ -49,44 +49,14 @@ const ModalDispositivos = ({
     const [showShareModal, setShowShareModal] = useState(false);
     const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
-    const handleShareDevice = async (deviceId: number, tenantIds: number[]) => {
-        try {
-            const response = await axios.post(route('devices.share', deviceId), {
-                tenant_id: tenantId, // ID del inquilino actual que está compartiendo el dispositiv
-                tenant_ids: tenantIds,
-                apartment_id: apartmentId
-
-            });
-
-            if (response.data.success) {
-                setDeviceList(prevDevices =>
-                    prevDevices.map(device => {
-                        if (device.id === deviceId) {
-                            return {
-                                ...device,
-                                tenants: [
-                                    ...(device.tenants || []),
-                                    ...tenants.filter(t => tenantIds.includes(t.id))
-                                ]
-                            };
-                        }
-                        return device;
-                    })
-                );
-
-                toast.success('Dispositivo compartido exitosamente');
-                setShowShareModal(false);
-            }
-        } catch (error) {
-            console.error('Error al compartir dispositivo:', error);
-            toast.error('Error al compartir el dispositivo');
-        }
-    };
+  
 
     const [deviceList, setDeviceList] = useState<Device[]>(devices);
     const [deviceShareList, setDeviceShareList] = useState<Device[]>(shareDevice);
     const [showForm, setShowForm] = useState(false);
     const [editMode, setEditMode] = useState(false);
+
+    
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         id: null as number | null,
         name: '',
@@ -102,6 +72,34 @@ const ModalDispositivos = ({
         tenant_id: tenantId,
     });
 
+    const handleShareDevice = async (deviceId: number, tenantIds: number[]) => {
+        try {
+            const response = await axios.post(route('devices.share', deviceId), {
+                tenant_id: tenantId, // ID del inquilino actual que está compartiendo el dispositiv
+                tenant_ids: tenantIds,
+                apartment_id: apartmentId
+
+            });
+
+            if (response.data.success) {
+                // Actualizar la lista de dispositivos compartidos
+                const updatedShareDevices = response.data.sharedDevices || [];
+                setDeviceShareList(updatedShareDevices);
+                
+                // Opcional: Actualizar el dispositivo en deviceList si tiene cambios
+                setDeviceList(prev => prev.map(device => 
+                    device.id === deviceId ? {...device, shared_with: response.data.updatedSharedWith} : device
+                ));
+    
+                toast.success('Dispositivo compartido exitosamente');
+                setShowShareModal(false);
+            }
+        } catch (error) {
+            console.error('Error al compartir dispositivo:', error);
+            toast.error('Error al compartir el dispositivo');
+        }
+    };
+
     const handleShowCreate = () => {
         reset();
         setShowForm(true);
@@ -112,10 +110,10 @@ const ModalDispositivos = ({
         setData({
             id: device.id,
             name: device.name,
-            brand_id: device.brand_id.toString(),
-            model_id: device.model_id.toString(),
-            system_id: device.system_id.toString(),
-            name_device_id: device.name_device_id.toString(),
+            brand_id: device.brand_id?.toString() || '',
+            model_id: device.model_id?.toString() || '',
+            system_id: device.system_id?.toString() || '',
+            name_device_id: device.name_device_id?.toString() || '',
             new_brand: '',
             new_model: '',
             new_system: '',
