@@ -1,3 +1,4 @@
+// pages/Apartments/Index.tsx
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
@@ -20,15 +21,12 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ModalDispositivos from './ModalDispositivos';
-
 import Select, { components } from 'react-select';
 import { BuildingCombobox } from './ComboBox';
 import { Tenant } from '@/types/models/Tenant';
 import { TenantForm } from './TenantForm';
 import { Apartment } from '@/types/models/Apartment';
-
-
-
+import _ from 'lodash';
 
 type Device = {
     id: number;
@@ -75,6 +73,8 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [selectedDevices, setSelectedDevices] = useState<Device[]>([]);
     const [selectedShareDevices, setSelectedShareDevices] = useState<Device[]>([]);
     const [showDevicesModal, setShowDevicesModal] = useState(false);
+    const [initialFormData, setInitialFormData] = useState<any>();
+    const [showConfirmClose, setShowConfirmClose] = useState(false);
 
     const { building, all_buildings, googleMapsApiKey } = usePage().props as {
         building: {
@@ -105,32 +105,18 @@ export default function Index({ apartments, brands, models, systems, name_device
         id: null as number | null,
         name: '',
         ubicacion: '',
-      
         tenants: [] as Array<{
-            name: '',
-            email: '',
-            phone: '',
+            id?: number;
+            name: string;
+            email: string;
+            phone: string;
             photo: File | null;
+            photoPreview?: string;
         }>,
     });
 
-    console.log(apartments);
-    const toggleStatus = async (apartment: Apartment) => {
-        setIsUpdatingStatus(apartment.id);
-        try {
-            await router.put(
-                route('apartments.update-status', apartment.id),
-                { status: !apartment.status },
-                {
-                    preserveScroll: true,
-                    onSuccess: () => toast.success('Status updated successfully'),
-                }
-            );
-        } catch (error) {
-            toast.error('Connection error');
-        } finally {
-            setIsUpdatingStatus(null);
-        }
+    const hasUnsavedChanges = () => {
+        return !_.isEqual(data, initialFormData);
     };
 
     const handleCreateSubmit = (e: React.FormEvent) => {
@@ -147,6 +133,9 @@ export default function Index({ apartments, brands, models, systems, name_device
             if (tenant.photo) {
                 formData.append(`tenants[${index}][photo]`, tenant.photo);
             }
+            if (tenant.id) {
+                formData.append(`tenants[${index}][id]`, tenant.id.toString());
+            }
         });
 
         post(route('buildings.apartments.store', building), {
@@ -155,6 +144,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             preserveScroll: true,
             onSuccess: () => {
                 reset();
+                setInitialFormData(undefined);
                 setShowCreateModal(false);
                 toast.success('Apartment created successfully');
             },
@@ -165,20 +155,22 @@ export default function Index({ apartments, brands, models, systems, name_device
     };
 
     const handleEdit = (apartment: Apartment) => {
-        setData({
+        const initialData = {
             id: apartment.id,
             name: apartment.name,
             ubicacion: apartment.ubicacion,
-          
             tenants: apartment.tenants?.map(t => ({
-                id: t.id, // Asegúrate de incluir el ID si existe
+                id: t.id,
                 name: t.name || '',
                 email: t.email || '',
                 phone: t.phone || '',
-                photo: null, // Inicializar como null, no como string
-                photoPreview: t.photo || '' // Inicializar como cadena vacía si es null
+                photo: null,
+                photoPreview: t.photo || ''
             })) || []
-        });
+        };
+        
+        setData(initialData);
+        setInitialFormData(initialData);
         setCurrentApartment(apartment);
         setShowCreateModal(true);
     };
@@ -193,7 +185,6 @@ export default function Index({ apartments, brands, models, systems, name_device
         formData.append('ubicacion', data.ubicacion);
 
         data.tenants.forEach((tenant, index) => {
-            // Incluir el ID del inquilino si existe
             if (tenant.id) {
                 formData.append(`tenants[${index}][id]`, tenant.id.toString());
             }
@@ -210,6 +201,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             preserveScroll: true,
             onSuccess: () => {
                 reset();
+                setInitialFormData(undefined);
                 setShowCreateModal(false);
                 setCurrentApartment(null);
                 toast.success('Apartment updated successfully');
@@ -218,6 +210,20 @@ export default function Index({ apartments, brands, models, systems, name_device
                 Object.values(errors).forEach(error => toast.error(error));
             }
         });
+    };
+
+    const handleShowCreate = () => {
+        const emptyData = {
+            id: null,
+            name: '',
+            ubicacion: '',
+            tenants: []
+        };
+        
+        reset();
+        setInitialFormData(emptyData);
+        setCurrentApartment(null);
+        setShowCreateModal(true);
     };
 
     const handleDelete = (apartment: Apartment) => {
@@ -241,45 +247,37 @@ export default function Index({ apartments, brands, models, systems, name_device
         });
     };
 
-    const handleShowDevices = (apartment: Apartment, tenant:Tenant) => {
+    const handleShowDevices = (apartment: Apartment, tenant: Tenant) => {
         setSelectedApartment(apartment);
         setSelectedTenant(tenant);
         setSelectedDevices(tenant.devices || []);
-        setSelectedShareDevices(tenant.shared_devices || []); // Set the selected devices to the tenant's devices by default
+        setSelectedShareDevices(tenant.shared_devices || []);
         setShowDevicesModal(true);
     };
 
     const getEmbedUrl = (locationLink: string): string => {
         if (!locationLink) return '';
-
         if (locationLink.includes('maps.app.goo.gl')) {
             return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=-10.916879,-74.883391&zoom=15`;
         }
-
         if (locationLink.includes('/embed')) return locationLink;
-
         if (locationLink.includes('google.com/maps')) {
             const coordsMatch = locationLink.match(/@([-0-9.]+),([-0-9.]+)/);
             if (coordsMatch) {
                 return `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${coordsMatch[1]},${coordsMatch[2]}&zoom=15`;
             }
-
             const placeIdMatch = locationLink.match(/place\/([^\/]+)/);
             if (placeIdMatch) {
                 return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=place_id:${placeIdMatch[1]}`;
             }
         }
-
         return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(locationLink)}`;
     };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Apartments" />
             <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-             
-
-
-
                 <Card className='w-full border-none py-0 shadow-none'>
                     <CardContent className="p-0">
                         <BuildingCombobox
@@ -287,21 +285,13 @@ export default function Index({ apartments, brands, models, systems, name_device
                             selectedId={building.id}
                             onChange={(id) => router.visit(route('buildings.apartments', id))}
                         />
-
-
                     </CardContent>
                 </Card>
 
                 <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
-
-
                     <div className="flex gap-2 w-full sm:w-auto">
                         <Button
-                            onClick={() => {
-                                reset();
-                                setCurrentApartment(null);
-                                setShowCreateModal(true);
-                            }}
+                            onClick={handleShowCreate}
                             className="flex items-center gap-2"
                         >
                             <Plus className="w-5 h-5" />
@@ -310,8 +300,16 @@ export default function Index({ apartments, brands, models, systems, name_device
                     </div>
                 </div>
 
-                {/* Create/Edit Apartment Modal */}
-                <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+                <Dialog 
+                    open={showCreateModal} 
+                    onOpenChange={(open) => {
+                        if (!open && hasUnsavedChanges()) {
+                            setShowConfirmClose(true);
+                        } else {
+                            setShowCreateModal(open);
+                        }
+                    }}
+                >
                     <DialogContent className="w-full max-w-none sm:max-w-2xl mx-0 sm:mx-4 p-0 overflow-hidden">
                         <div className="overflow-y-auto px-6 py-8" style={{ maxHeight: '90vh' }}>
                             <DialogHeader className="mb-6">
@@ -341,7 +339,6 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                 onChange={(e) => setData('name', e.target.value)}
                                                 className={`h-11 mt-2 ${errors.name ? 'border-red-500' : ''}`}
                                                 required
-
                                             />
                                             {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                                         </div>
@@ -356,7 +353,6 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                 className='mt-2'
                                             />
                                         </div>
-                                      
                                     </TabsContent>
 
                                     <TabsContent value="tenant" className="space-y-6">
@@ -390,9 +386,35 @@ export default function Index({ apartments, brands, models, systems, name_device
                             </Tabs>
                         </div>
                     </DialogContent>
+
+                    <Dialog open={showConfirmClose} onOpenChange={setShowConfirmClose}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>¿Tienes cambios sin guardar?</DialogTitle>
+                                <DialogDescription>
+                                    Tienes modificaciones pendientes en el formulario. ¿Seguro que quieres salir sin guardar?
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setShowConfirmClose(false)}>
+                                    Cancelar
+                                </Button>
+                                <Button 
+                                    variant="destructive" 
+                                    onClick={() => {
+                                        setShowCreateModal(false);
+                                        setShowConfirmClose(false);
+                                        reset();
+                                        setInitialFormData(undefined);
+                                    }}
+                                >
+                                    Descartar cambios
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </Dialog>
 
-                {/* Delete Confirmation Modal */}
                 <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
                     <DialogContent>
                         <DialogHeader>
@@ -421,13 +443,11 @@ export default function Index({ apartments, brands, models, systems, name_device
                     </DialogContent>
                 </Dialog>
 
-                {/* Devices Modal */}
                 <Dialog open={showDevicesModal} onOpenChange={setShowDevicesModal}>
-                    <DialogTitle></DialogTitle>
                     <DialogContent className="min-w-3xl">
                         <ModalDispositivos
-                        onClose={() => setShowDevicesModal(false)}
-                        visible={showDevicesModal}
+                            onClose={() => setShowDevicesModal(false)}
+                            visible={showDevicesModal}
                             tenantName={selectedTenant?.name || ''}
                             devices={selectedDevices}
                             shareDevice={selectedShareDevices}
@@ -442,13 +462,24 @@ export default function Index({ apartments, brands, models, systems, name_device
                     </DialogContent>
                 </Dialog>
 
-                {/* Content Section */}
                 {apartments.data.length === 0 ? (
-                    <EmptyState onAddNew={() => setShowCreateModal(true)} />
-                ): (
+                    <div className="bg-background p-8 rounded-xl text-center border-2 border-dashed">
+                        <div className="text-primary mb-4 flex justify-center">
+                            <LayoutGrid className="w-12 h-12" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-primary mb-2">No apartments registered</h3>
+                        <p className="text-primary mb-4">Start by adding your first apartment</p>
+                        <Button
+                            onClick={handleShowCreate}
+                            className="inline-flex items-center gap-2"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Create First Apartment
+                        </Button>
+                    </div>
+                ) : (
                     <div className='flex flex-col lg:flex-row gap-4'>
                         <div className="w-full lg:w-4/12 space-y-6">
-                            {/* Card del Owner */}
                             {building.owner && (
                                 <Card>
                                     <CardContent className="p-6">
@@ -470,7 +501,6 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 </Card>
                             )}
 
-                            {/* Sección de Doormen */}
                             {building.doormen && building.doormen.length > 0 && (
                                 <div className="space-y-4 w-full">
                                     <h3 className="text-lg font-semibold px-2">Doormen</h3>
@@ -484,12 +514,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                         className=" aspect-square rounded-full object-cover"
                                                     />
                                                     <div className="flex flex-col items-center justify-center gap-0 mt-4">
-
-
                                                         <h4 className="text-sm font-medium line-clamp-1">{doorman.name}</h4>
                                                         <p className="text-xs text-muted-foreground">{doorman.shift}</p>
-
-
                                                     </div>
                                                 </CardContent>
                                             </Card>
@@ -498,226 +524,170 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 </div>
                             )}
 
-                            {/* Mapa */}
                             {building.location_link && (
-                                <div className="space-y-4">
-                                    <h3 className="text-lg font-semibold px-2">Location</h3>
-                                    <div className="aspect-video rounded-lg overflow-hidden border">
-                                        <iframe
-                                            src={getEmbedUrl(building?.location_link || '')}
-                                            width="100%"
-                                            height="100%"
-                                            style={{ border: 0 }}
-                                            allowFullScreen
-                                            loading="lazy"
-                                            referrerPolicy="no-referrer-when-downgrade"
-                                        />
-                                    </div>
+                                <div className="aspect-video rounded-lg overflow-hidden border">
+                                    <iframe
+                                        src={getEmbedUrl(building?.location_link || '')}
+                                        width="100%"
+                                        height="100%"
+                                        style={{ border: 0 }}
+                                        allowFullScreen
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                    />
                                 </div>
                             )}
                         </div>
                         <div className='lg:w-8/12 flex flex-col'>
-                            <TableView
-
-                                apartments={apartments.data}
-                                onEdit={handleEdit}
-                                onDelete={handleDelete}
-                                onToggleStatus={toggleStatus}
-                                isUpdatingStatus={isUpdatingStatus}
-                                handleShowDevices={handleShowDevices}
-                            />
-                            {/* Pagination */}
+                            <div className="rounded-md border">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b bg-muted/50">
+                                            <th className="h-12 px-4 text-left align-middle font-medium">Tenants</th>
+                                            <th className="h-12 px-4 text-left align-middle font-medium">Apartment</th>
+                                            <th className="h-12 px-4 text-left align-middle font-medium">Ubication</th>
+                                            <th className="h-12 px-4 text-left align-middle font-medium">State</th>
+                                            <th className="h-12 px-4 text-left align-middle font-medium">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {apartments.data.map((apartment) => (
+                                            <ApartmentRow
+                                                key={apartment.id}
+                                                apartment={apartment}
+                                                onEdit={handleEdit}
+                                                onDelete={handleDelete}
+                                                onToggleStatus={() => toggleStatus(apartment)}
+                                                isUpdatingStatus={isUpdatingStatus === apartment.id}
+                                                handleShowDevices={handleShowDevices}
+                                            />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
                             {apartments.data.length > 0 && (
-                                <Pagination links={apartments.links} meta={apartments.meta} />
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+                                    <div className="text-sm text-muted-foreground">
+                                        Showing {apartments.meta.per_page * (apartments.meta.current_page - 1) + 1} -{' '}
+                                        {Math.min(apartments.meta.per_page * apartments.meta.current_page, apartments.meta.total)} of {apartments.meta.total}
+                                    </div>
+                                    <div className="flex gap-1">
+                                        {apartments.links.map((link, index) => (
+                                            link.url && (
+                                                <Link
+                                                    key={index}
+                                                    href={link.url}
+                                                    className={`px-3 py-1 rounded-lg ${link.active ? 'bg-primary text-primary-foreground' : 'bg-gray-100 hover:bg-gray-200'
+                                                        }`}
+                                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                                />
+                                            )
+                                        ))}
+                                    </div>
+                                </div>
                             )}
                         </div>
-
                     </div>
                 )}
-
-
             </div>
         </AppLayout>
     );
 }
 
-
-const TableView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingStatus, handleShowDevices }) => {
-    const [expandedRows, setExpandedRows] = useState<number[]>([]);
-
-    const toggleRow = (apartmentId: number) => {
-        setExpandedRows(prev => 
-            prev.includes(apartmentId) 
-                ? prev.filter(id => id !== apartmentId)
-                : [...prev, apartmentId]
-        );
-    };
+const ApartmentRow = ({ apartment, onEdit, onDelete, onToggleStatus, isUpdatingStatus, handleShowDevices }) => {
+    const [expanded, setExpanded] = useState(false);
 
     return (
-        <div className="rounded-md border">
-            <table className="w-full">
-                <thead>
-                    <tr className="border-b bg-muted/50">
-                        <th className="h-12 px-4 text-left align-middle font-medium">Tenants</th>
-                        <th className="h-12 px-4 text-left align-middle font-medium">Aparment</th>
-                        <th className="h-12 px-4 text-left align-middle font-medium">Ubication</th>
-                        <th className="h-12 px-4 text-left align-middle font-medium">State</th>
-                      
-                        <th className="h-12 px-4 text-left align-middle font-medium">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {apartments.map((apartment) => {  
-                    console.log(apartment.tenants)
-                        return(
-                        <>
-                            <tr key={apartment.id} className="border-b">
-                                <td 
-                                    className="p-4 align-middle cursor-pointer hover:bg-muted/50"
-                                    onClick={() => toggleRow(apartment.id)}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <ChevronRight 
-                                            className={`w-4 h-4 transition-transform ${
-                                                expandedRows.includes(apartment.id) ? 'rotate-90' : ''
-                                            }`}
+        <>
+            <tr className="border-b">
+                <td className="p-4 align-middle cursor-pointer hover:bg-muted/50" onClick={() => setExpanded(!expanded)}>
+                    <div className="flex items-center gap-2">
+                        <ChevronRight className={`w-4 h-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+                        <span>{apartment.tenants?.length || 0}</span>
+                    </div>
+                </td>
+                <td className="p-4 align-middle">{apartment.name}</td>
+                <td className="p-4 align-middle">{apartment.ubicacion}</td>
+                <td className="p-4 align-middle">
+                    <Switch
+                        checked={apartment.status}
+                        disabled={isUpdatingStatus}
+                        onCheckedChange={onToggleStatus}
+                    />
+                </td>
+                <td className="p-4 align-middle">
+                    <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(apartment)}>
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete(apartment)}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </td>
+            </tr>
+            {expanded && apartment.tenants?.length > 0 && (
+                <tr className="border-b bg-muted/20">
+                    <td colSpan={5} className="p-4">
+                        <div className="space-y-4">
+                            {apartment.tenants.map((tenant) => (
+                                <div key={tenant.id} className="flex items-center justify-between gap-4 p-4 bg-white rounded-lg shadow-sm">
+                                    <div className="flex items-center gap-4">
+                                        <img
+                                            src={`/storage/${tenant.photo}`}
+                                            alt={tenant.name}
+                                            className="w-10 h-10 rounded-full object-cover"
                                         />
-                                        <span>{apartment.tenants?.length || 0}</span>
-                                    </div>
-                                </td>
-                                <td className="p-4 align-middle">{apartment.name}</td>
-                                <td className="p-4 align-middle">{apartment.ubicacion}</td>
-                                <td className="p-4 align-middle">
-                                    <Switch
-                                        checked={apartment.status}
-                                        disabled={isUpdatingStatus === apartment.id}
-                                        onCheckedChange={() => onToggleStatus(apartment)}
-                                    />
-                                </td>
-                              
-                                <td className="p-4 align-middle">
-                                    <div className="flex gap-2">
-                                      
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => onEdit(apartment)}
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => onDelete(apartment)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {expandedRows.includes(apartment.id) && apartment.tenants?.length > 0 && (
-                                <tr className="border-b bg-muted/20">
-                                    <td colSpan={6} className="p-4">
-                                        <div className="space-y-4">
-                                            {apartment.tenants.map((tenant) => (
-                                                <div key={tenant.id} className="flex items-center justify-between gap-4 p-4 bg-white rounded-lg shadow-sm">
-                                                    <div className="flex items-center gap-4">
-                                                        <img
-                                                            src={`/storage/${tenant.photo}`}
-                                                            alt={tenant.name}
-                                                            className="w-10 h-10 rounded-full object-cover"
-                                                        />
-                                                        <div>
-                                                            <p className="font-medium">{tenant.name}</p>
-                                                            <p className="text-sm text-muted-foreground">{tenant.email}</p>
-                                                            <p className="text-sm text-muted-foreground">{tenant.phone}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className='flex gap-2 items-center'>
-                                                    {Number(Number(tenant.devices?.length) + Number(tenant.shared_devices?.length)) || 0}
-                                                            <Laptop className="w-4 h-4" />
-                                                          
-                                                            
-                                                        </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="flex items-center gap-2"
-                                                            onClick={() => handleShowDevices(apartment,tenant)}
-                                                        >
-                                                            <Laptop className="w-4 h-4" />
-                                                            <span>Dispositivos</span>
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                        <div>
+                                            <p className="font-medium">{tenant.name}</p>
+                                            <p className="text-sm text-muted-foreground">{tenant.email}</p>
+                                            <p className="text-sm text-muted-foreground">{tenant.phone}</p>
                                         </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </>
-                    )})}
-                </tbody>
-            </table>
-        </div>
+                                    </div>
+                                    <div>
+                                    <Laptop className="w-4 h-4" />
+                                            <span>{Number(tenant.devices?.length)+Number(tenant.shared_devices?.length) || 0}</span>
+                                        </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex items-center gap-2"
+                                            onClick={() => handleShowDevices(apartment, tenant)}
+                                        >
+                                            <Laptop className="w-4 h-4" />
+                                            <span>Devices</span>
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </td>
+                </tr>
+            )}
+        </>
     );
 };
-
-const StatusBadge = ({ status }: { status: string }) => (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-        {status === 'active' ? 'Active' : 'Inactive'}
-    </span>
-);
-
-const EmptyState = ({ onAddNew }: { onAddNew: () => void }) => (
-    <div className="bg-background p-8 rounded-xl text-center border-2 border-dashed">
-        <div className="text-primary mb-4 flex justify-center">
-            <LayoutGrid className="w-12 h-12" />
-        </div>
-        <h3 className="text-xl font-semibold text-primary mb-2">No apartments registered</h3>
-        <p className="text-primary mb-4">Start by adding your first apartment</p>
-        <Button
-            onClick={onAddNew}
-            className="inline-flex items-center gap-2"
-        >
-            <Plus className="w-5 h-5" />
-            Create First Apartment
-        </Button>
-    </div>
-);
-
-const Pagination = ({ links, meta }: { links: PaginationLink[], meta: PaginationMeta }) => (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
-        <div className="text-sm text-muted-foreground">
-            Showing {meta.per_page * (meta.current_page - 1) + 1} -{' '}
-            {Math.min(meta.per_page * meta.current_page, meta.total)} of {meta.total}
-        </div>
-        <div className="flex gap-1">
-            {links.map((link, index) => (
-                link.url && (
-                    <Link
-                        key={index}
-                        href={link.url}
-                        className={`px-3 py-1 rounded-lg ${link.active ? 'bg-primary text-primary-foreground' : 'bg-gray-100 hover:bg-gray-200'
-                            }`}
-                        dangerouslySetInnerHTML={{ __html: link.label }}
-                    />
-                )
-            ))}
-        </div>
-    </div>
-);
-
-const TableHeader = ({ children }: { children: React.ReactNode }) => (
-    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">{children}</th>
-);
-
-const TableCell = ({ children }: { children: React.ReactNode }) => (
-    <td className="px-4 py-3 text-sm text-gray-600">{children}</td>
-);
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Apartments', href: '/apartments' }
 ];
+
+async function toggleStatus(apartment: Apartment) {
+    setIsUpdatingStatus(apartment.id);
+    try {
+        await router.put(
+            route('apartments.update-status', apartment.id),
+            { status: !apartment.status },
+            {
+                preserveScroll: true,
+                onSuccess: () => toast.success('Status updated successfully'),
+            }
+        );
+    } catch (error) {
+        toast.error('Connection error');
+    } finally {
+        setIsUpdatingStatus(null);
+    }
+}

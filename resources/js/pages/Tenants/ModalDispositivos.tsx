@@ -231,9 +231,9 @@ const ModalDispositivos = ({
             <DialogContent className="min-w-[800px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl">
-                        Dispositivos de {tenantName} 
+                        Devices of {tenantName} 
                         <span className="text-sm font-normal ml-2">
-                            ({deviceList.length} propios, {deviceShareList.length} compartidos)
+                            ({deviceList.length} own, {deviceShareList.length} shared)
                         </span>
                     </DialogTitle>
                 </DialogHeader>
@@ -241,7 +241,7 @@ const ModalDispositivos = ({
                 <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-4">
                         <Button onClick={handleShowCreate} className="gap-2">
-                            <Plus className="w-4 h-4" /> Nuevo Dispositivo
+                            <Plus className="w-4 h-4" /> New Device
                         </Button>
                     </div>
                 </div>
@@ -251,11 +251,11 @@ const ModalDispositivos = ({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <Laptop2 className='w-4 h-4' /> Dispositivo
+                                    <Laptop2 className='w-4 h-4' /> Device
                                 </Label>
                                 <CreatableSelect
                                     isClearable
-                                    placeholder="Seleccionar o crear"
+                                    placeholder="Select or create"
                                     onChange={(option) => handleSelectChange(option, 'name_device')}
                                     options={name_devices?.map((s) => ({ label: s.name, value: s.id }))}
                                     value={getSelectedValue(data.name_device_id, data.new_name_device, name_devices)}
@@ -266,11 +266,11 @@ const ModalDispositivos = ({
 
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <ShieldPlus className='w-4 h-4' /> Marca
+                                    <ShieldPlus className='w-4 h-4' /> Brand
                                 </Label>
                                 <CreatableSelect
                                     isClearable
-                                    placeholder="Seleccionar o crear"
+                                    placeholder="Select or create"
                                     onChange={(option) => handleSelectChange(option, 'brand')}
                                     options={brands.map((b) => ({ label: b.name, value: b.id }))}
                                     value={getSelectedValue(data.brand_id, data.new_brand, brands)}
@@ -281,11 +281,11 @@ const ModalDispositivos = ({
 
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <ScanQrCodeIcon className='w-4 h-4' /> Modelo
+                                    <ScanQrCodeIcon className='w-4 h-4' /> Model
                                 </Label>
                                 <CreatableSelect
                                     isClearable
-                                    placeholder="Seleccionar o crear"
+                                    placeholder="Select or create"
                                     onChange={(option) => handleSelectChange(option, 'model')}
                                     options={models.map((m) => ({ label: m.name, value: m.id }))}
                                     value={getSelectedValue(data.model_id, data.new_model, models)}
@@ -296,11 +296,11 @@ const ModalDispositivos = ({
 
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <Keyboard className='w-4 h-4' /> Sistema
+                                    <Keyboard className='w-4 h-4' /> System
                                 </Label>
                                 <CreatableSelect
                                     isClearable
-                                    placeholder="Seleccionar o crear"
+                                    placeholder="Select or create"
                                     onChange={(option) => handleSelectChange(option, 'system')}
                                     options={systems.map((s) => ({ label: s.name, value: s.id }))}
                                     value={getSelectedValue(data.system_id, data.new_system, systems)}
@@ -311,7 +311,7 @@ const ModalDispositivos = ({
                         </div>
 
                         <div className='space-y-2'>
-                            <Label>Asignar a inquilinos</Label>
+                            <Label>Assign to tenants</Label>
                             <Select
                                 isClearable
                                 isMulti
@@ -341,7 +341,7 @@ const ModalDispositivos = ({
                                 type="submit" 
                                 className="px-6"
                             >
-                                {editMode ? 'Actualizar' : 'Guardar'}
+                                {editMode ? 'Update' : 'Save'}
                             </Button>
                         </div>
                     </form>
@@ -351,12 +351,12 @@ const ModalDispositivos = ({
                     <table className="w-full">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-4 py-3 text-left font-medium">Nombre</th>
-                                <th className="px-4 py-3 text-left font-medium">Marca</th>
-                                <th className="px-4 py-3 text-left font-medium">Modelo</th>
-                                <th className="px-4 py-3 text-left font-medium">Sistema</th>
-                                <th className="px-4 py-3 text-left font-medium">Compartido con</th>
-                                <th className="px-4 py-3 text-left font-medium">Acciones</th>
+                                <th className="px-4 py-3 text-left font-medium">Name</th>
+                                <th className="px-4 py-3 text-left font-medium">Brand</th>
+                                <th className="px-4 py-3 text-left font-medium">Model</th>
+                                <th className="px-4 py-3 text-left font-medium">System</th>
+                                <th className="px-4 py-3 text-left font-medium">Shared with</th>
+                                <th className="px-4 py-3 text-left font-medium">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -419,13 +419,13 @@ const ModalDispositivos = ({
                                         <div className="flex flex-wrap gap-1">
                                             {device.owner?.map(tenant => (
                                                 <span key={tenant.id} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                                    Dueño: {tenant.name}
+                                                    Own: {tenant.name}
                                                 </span>
                                             ))}
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-500">
-                                        Compartido
+                                        Shared
                                     </td>
                                 </tr>
                             ))}
@@ -466,7 +466,7 @@ const DeviceShareModal = ({
         <Dialog open={true} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Compartir {device.name_device?.name || 'dispositivo'}</DialogTitle>
+                    <DialogTitle>Shared {device.name_device?.name || 'device'}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                     {tenants.length > 0 ? (
@@ -498,16 +498,16 @@ const DeviceShareModal = ({
                             </div>
                         ))
                     ) : (
-                        <p className="text-gray-500 text-center py-4">No hay inquilinos disponibles para compartir</p>
+                        <p className="text-gray-500 text-center py-4">There are no tenants available to share.</p>
                     )}
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>Cancelar</Button>
+                    <Button variant="outline" onClick={onClose}>Cancel</Button>
                     <Button 
                         onClick={() => onShare(selectedTenants)}
                         disabled={selectedTenants.length === 0}
                     >
-                        Compartir
+                        Shared
                     </Button>
                 </DialogFooter>
             </DialogContent>
