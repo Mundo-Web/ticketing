@@ -645,7 +645,7 @@ const ApartmentRow = ({ apartment, onEdit, onDelete, onToggleStatus, isUpdatingS
                                             <p className="text-sm text-muted-foreground">{tenant.phone}</p>
                                         </div>
                                     </div>
-                                    <div>
+                                    <div className='flex gap-2 items-center'>
                                     <Laptop className="w-4 h-4" />
                                             <span>{Number(tenant.devices?.length)+Number(tenant.shared_devices?.length) || 0}</span>
                                         </div>
