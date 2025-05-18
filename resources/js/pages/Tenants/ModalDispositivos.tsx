@@ -417,11 +417,11 @@ const ModalDispositivos = ({
                                     <td className="px-4 py-3">{device.system?.name || '-'}</td>
                                     <td className="px-4 py-3">
                                         <div className="flex flex-wrap gap-1">
-                                            {device.owner?.map(tenant => (
-                                                <span key={tenant.id} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                                    Own: {tenant.name}
+                                            {device.owner && (
+                                                <span key={device.owner.id} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                                    Own: {device.owner[0].name}
                                                 </span>
-                                            ))}
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-500">

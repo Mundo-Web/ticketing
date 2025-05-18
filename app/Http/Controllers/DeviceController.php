@@ -53,10 +53,10 @@ class DeviceController extends Controller
                 'model',
                 'system',
                 'name_device',
-                'sharedWith' => function($query) {
+                'sharedWith' => function ($query) {
                     $query->select('tenants.id', 'tenants.name', 'tenants.email');
                 },
-                'tenants' => function($query) {
+                'tenants' => function ($query) {
                     $query->select('tenants.id', 'tenants.name', 'tenants.email');
                 }
             ]);
@@ -69,7 +69,6 @@ class DeviceController extends Controller
                 'device' => $device,
                 'sharedDevices' => $device->sharedWith
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -122,19 +121,29 @@ class DeviceController extends Controller
                 'name_device_id' => $name_device_id
             ]);
 
-            // Asignar inquilinos
+            // Attach main tenant
             $device->tenants()->attach($request->tenant_id);
-          /*  if (!empty($request->tenants)) {
-                $device->tenants()->attach($request->tenants);
-            }*/
-            if ($request->has('tenants')) {
-                $shareData = collect($request->tenants)->mapWithKeys(function($tenantId) use ($request) {
-                    return [$tenantId => [
-                        'owner_tenant_id' => $request->tenant_id
-                    ]];
-                });
-                $device->sharedWith()->syncWithoutDetaching($shareData);
-           
+
+            // Handle shared tenants
+            if ($request->has('tenants') && !empty($request->tenants)) {
+                $validTenants = collect($request->tenants)
+                    ->unique()
+                    ->reject(function ($id) use ($request) {
+                        return $id == $request->tenant_id;
+                    })
+                    ->values()
+                    ->toArray();
+
+                if (!empty($validTenants)) {
+                    // Create sharing data for all valid tenants
+                    $shareData = [];
+                    foreach ($validTenants as $tenantId) {
+                        $shareData[$tenantId] = ['owner_tenant_id' => $request->tenant_id];
+                    }
+
+                    // Attach all shared tenants at once
+                    $device->sharedWith()->attach($shareData);
+                }
             }
 
             // Cargar relaciones para la respuesta
@@ -147,7 +156,6 @@ class DeviceController extends Controller
                 'message' => 'Dispositivo creado exitosamente',
                 'device' => $device
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -157,7 +165,6 @@ class DeviceController extends Controller
             ], 500);
         }
     }
-
     public function update(Request $request, Device $device)
     {
         $request->validate([
@@ -205,7 +212,6 @@ class DeviceController extends Controller
                 'message' => 'Dispositivo actualizado exitosamente',
                 'device' => $device
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -235,7 +241,6 @@ class DeviceController extends Controller
                 'success' => true,
                 'message' => 'Dispositivo eliminado correctamente'
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
