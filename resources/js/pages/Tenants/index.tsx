@@ -171,11 +171,12 @@ export default function Index({ apartments, brands, models, systems, name_device
             ubicacion: apartment.ubicacion,
           
             tenants: apartment.tenants?.map(t => ({
+                id: t.id, // Asegúrate de incluir el ID si existe
                 name: t.name || '',
                 email: t.email || '',
                 phone: t.phone || '',
-                photo:t.photo || null // Mantener null pero usar t.photo para preview
-                
+                photo: null, // Inicializar como null, no como string
+                photoPreview: t.photo || '' // Inicializar como cadena vacía si es null
             })) || []
         });
         setCurrentApartment(apartment);
@@ -192,6 +193,10 @@ export default function Index({ apartments, brands, models, systems, name_device
         formData.append('ubicacion', data.ubicacion);
 
         data.tenants.forEach((tenant, index) => {
+            // Incluir el ID del inquilino si existe
+            if (tenant.id) {
+                formData.append(`tenants[${index}][id]`, tenant.id.toString());
+            }
             formData.append(`tenants[${index}][name]`, tenant.name);
             formData.append(`tenants[${index}][email]`, tenant.email);
             formData.append(`tenants[${index}][phone]`, tenant.phone);
@@ -421,6 +426,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                     <DialogTitle></DialogTitle>
                     <DialogContent className="min-w-3xl">
                         <ModalDispositivos
+                        onClose={() => setShowDevicesModal(false)}
+                        visible={showDevicesModal}
                             tenantName={selectedTenant?.name || ''}
                             devices={selectedDevices}
                             shareDevice={selectedShareDevices}

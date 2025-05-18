@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\DB;
 
 class DeviceController extends Controller
 {
-
     public function share(Request $request, Device $device)
     {
         $request->validate([
@@ -24,23 +23,61 @@ class DeviceController extends Controller
             'apartment_id' => 'required|exists:apartments,id',
         ]);
 
-        $apartment = Apartment::findOrFail($request->apartment_id);
+        DB::beginTransaction();
 
-        // Verificar que los tenants pertenecen al apartment
-        $validTenantIds = $apartment->tenants()
-            ->whereIn('id', $request->tenant_ids)
-            ->pluck('id');
+        try {
+            // Verificar que los inquilinos pertenecen al apartamento
+            $validTenantIds = Tenant::whereIn('id', $request->tenant_ids)
+                ->where('apartment_id', $request->apartment_id)
+                ->pluck('id')
+                ->toArray();
 
-        // Registrar compartidos con el dueño original
-        $device->sharedWith()->attach($validTenantIds, [
-            'owner_tenant_id' => $request->tenant_id 
-        ]);
+            if (empty($validTenantIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontraron inquilinos válidos para compartir'
+                ], 400);
+            }
 
-        return response()->json([
-            'success' => true, // Agrega 'success' => true para indicar éxito en la respuesta
-            'message' => 'Dispositivo compartido exitosamente',
-            'device' => Device::with(['brand', 'model', 'system', 'name_device'])->find($device->id)
-        ]);
+            // Sincronizar los inquilinos con los que se comparte
+            $syncData = [];
+            foreach ($validTenantIds as $tenantId) {
+                $syncData[$tenantId] = ['owner_tenant_id' => $request->tenant_id];
+            }
+
+            $device->sharedWith()->syncWithoutDetaching($syncData);
+
+            // Cargar todas las relaciones necesarias
+            $device->load([
+                'brand',
+                'model',
+                'system',
+                'name_device',
+                'sharedWith' => function($query) {
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email');
+                },
+                'tenants' => function($query) {
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email');
+                }
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dispositivo compartido exitosamente',
+                'device' => $device,
+                'sharedDevices' => $device->sharedWith
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al compartir el dispositivo',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function store(Request $request)
@@ -56,14 +93,14 @@ class DeviceController extends Controller
             'new_model' => 'nullable|string|max:255',
             'new_system' => 'nullable|string|max:255',
             'new_name_device' => 'nullable|string|max:255',
-
-            'tenant_id' => 'nullable|exists:tenants,id',
-
-            'tenants' => 'nullable|array', // Obligar asignación mínima a 1 inquilino
+            'tenant_id' => 'required|exists:tenants,id',
+            'tenants' => 'required|array',
             'tenants.*' => 'exists:tenants,id',
         ]);
 
-        return DB::transaction(function () use ($request) {
+        DB::beginTransaction();
+
+        try {
             // Procesar NameDevice
             $name_device_id = $this->processNameDevice($request);
 
@@ -76,6 +113,7 @@ class DeviceController extends Controller
             // Procesar System
             $system_id = $this->processSystem($request);
 
+            // Crear el dispositivo
             $device = Device::create([
                 'name' => $request->name,
                 'brand_id' => $brand_id,
@@ -84,19 +122,37 @@ class DeviceController extends Controller
                 'name_device_id' => $name_device_id
             ]);
 
-
+            // Asignar inquilinos
             $device->tenants()->attach($request->tenant_id);
+            if (!empty($request->tenants)) {
+                $device->tenants()->attach($request->tenants);
+            }
+
+            // Cargar relaciones para la respuesta
+            $device->load(['brand', 'model', 'system', 'name_device', 'tenants']);
+
+            DB::commit();
 
             return response()->json([
-                'device' => Device::with(['brand', 'model', 'system', 'name_device'])->find($device->id)
+                'success' => true,
+                'message' => 'Dispositivo creado exitosamente',
+                'device' => $device
             ]);
-        });
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear el dispositivo',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function update(Request $request, Device $device)
     {
         $request->validate([
-            'name' => 'nullable|required|string|max:255',
+            'name' => 'nullable|string|max:255',
             'brand_id' => 'nullable|exists:brands,id',
             'model_id' => 'nullable|exists:models,id',
             'system_id' => 'nullable|exists:systems,id',
@@ -104,10 +160,14 @@ class DeviceController extends Controller
             'new_brand' => 'nullable|string|max:255',
             'new_model' => 'nullable|string|max:255',
             'new_system' => 'nullable|string|max:255',
-            'new_name_device' => 'nullable|string|max:255'
+            'new_name_device' => 'nullable|string|max:255',
+            'tenants' => 'nullable|array',
+            'tenants.*' => 'exists:tenants,id',
         ]);
 
-        return DB::transaction(function () use ($request, $device) {
+        DB::beginTransaction();
+
+        try {
             $name_device_id = $this->processNameDevice($request);
             $brand_id = $this->processBrand($request);
             $model_id = $this->processModel($request);
@@ -121,27 +181,67 @@ class DeviceController extends Controller
                 'name_device_id' => $name_device_id
             ]);
 
+            // Sincronizar inquilinos si se proporcionan
+            if ($request->has('tenants')) {
+                $device->tenants()->sync($request->tenants);
+            }
+
+            // Cargar relaciones para la respuesta
+            $device->load(['brand', 'model', 'system', 'name_device', 'tenants']);
+
+            DB::commit();
+
             return response()->json([
-                'device' => Device::with(['brand', 'model', 'system', 'name_device'])->find($device->id)
+                'success' => true,
+                'message' => 'Dispositivo actualizado exitosamente',
+                'device' => $device
             ]);
-        });
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar el dispositivo',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function destroy(Device $device)
     {
-        DB::transaction(function () use ($device) {
+        DB::beginTransaction();
+
+        try {
+            // Eliminar relaciones primero
             $device->apartments()->detach();
             $device->tenants()->detach();
-            $device->delete();
-        });
+            $device->sharedWith()->detach();
 
-        return response()->json(['message' => 'Dispositivo eliminado correctamente.']);
+            // Eliminar el dispositivo
+            $device->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dispositivo eliminado correctamente'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar el dispositivo',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     private function processNameDevice(Request $request)
     {
         if ($request->filled('new_name_device')) {
-            return NameDevice::firstOrCreate(['name' => $request->new_name_device])->id;
+            $nameDevice = NameDevice::firstOrCreate(['name' => $request->new_name_device]);
+            return $nameDevice->id;
         }
         return $request->name_device_id;
     }
@@ -149,7 +249,8 @@ class DeviceController extends Controller
     private function processBrand(Request $request)
     {
         if ($request->filled('new_brand')) {
-            return Brand::firstOrCreate(['name' => $request->new_brand])->id;
+            $brand = Brand::firstOrCreate(['name' => $request->new_brand]);
+            return $brand->id;
         }
         return $request->brand_id;
     }
@@ -157,10 +258,11 @@ class DeviceController extends Controller
     private function processModel(Request $request)
     {
         if ($request->filled('new_model')) {
-            return DeviceModel::firstOrCreate([
+            $model = DeviceModel::firstOrCreate([
                 'name' => $request->new_model,
                 'brand_id' => $this->processBrand($request)
-            ])->id;
+            ]);
+            return $model->id;
         }
         return $request->model_id;
     }
@@ -168,10 +270,11 @@ class DeviceController extends Controller
     private function processSystem(Request $request)
     {
         if ($request->filled('new_system')) {
-            return System::firstOrCreate([
+            $system = System::firstOrCreate([
                 'name' => $request->new_system,
                 'model_id' => $this->processModel($request)
-            ])->id;
+            ]);
+            return $system->id;
         }
         return $request->system_id;
     }

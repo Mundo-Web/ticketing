@@ -4,4 +4,5 @@ export interface Tenant {
     email: string;
     phone: string;
     photo: File|string|null;
+    photoPreview: string;
 };

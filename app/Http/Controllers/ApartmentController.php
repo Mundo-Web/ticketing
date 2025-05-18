@@ -4,169 +4,182 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Apartment;
-use App\Models\Brand;
 use App\Models\Building;
-use App\Models\Device;
-use App\Models\DeviceModel;
-use App\Models\System;
-
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class ApartmentController extends Controller
 {
-
-
-
-
-
-
-
     public function storeApartment(Request $request, Building $building)
     {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'ubicacion' => 'nullable|string|max:255',
+            'tenants' => 'required|array',
+            'tenants.*.name' => 'required|string|max:255',
+            'tenants.*.email' => 'required|email|max:255',
+            'tenants.*.phone' => 'required|string|max:20',
+            'tenants.*.photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        DB::beginTransaction();
 
         try {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'ubicacion' => 'nullable|string|max:255',
-            
-                'tenants' => 'array',
-
-                'tenants.*.name' => 'nullable|string|max:255',
-                'tenants.*.email' => 'nullable|email|max:255',
-                'tenants.*.phone' => 'nullable|string|max:20',
-                'tenants.*.photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            ]);
-
-
-
             $apartment = $building->apartments()->create([
                 'name' => $request->name,
                 'ubicacion' => $request->ubicacion,
-           
                 'status' => true
             ]);
 
+            $this->saveTenants($request, $apartment);
 
-            $this->saveTenant($request, $apartment);
+            DB::commit();
 
-            return redirect()->back()->with('success', 'Apartment created successfully');
+            return redirect()->back()->with('success', 'Apartamento creado exitosamente');
+
         } catch (\Exception $e) {
-            \Log::error('Error creating apartment: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Error creating apartment']);
+            DB::rollBack();
+            return redirect()->back()
+                ->withErrors(['error' => 'Error al crear el apartamento: ' . $e->getMessage()])
+                ->withInput();
         }
     }
 
-    public function updateApartment(Apartment $apartment, Request $request)
+    public function updateApartment(Request $request, Apartment $apartment)
     {
-        try {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'ubicacion' => 'nullable|string|max:255',
-           
-                'tenant.name' => 'nullable|string|max:255',
-                'tenant.email' => 'nullable|email|max:255',
-                'tenant.phone' => 'nullable|string|max:20',
-                'tenant.photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            ]);
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'ubicacion' => 'nullable|string|max:255',
+            'tenants' => 'required|array',
+            'tenants.*.name' => 'required|string|max:255',
+            'tenants.*.email' => 'required|email|max:255',
+            'tenants.*.phone' => 'required|string|max:20',
+            'tenants.*.photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'tenants.*.id' => 'nullable|exists:tenants,id',
+        ]);
 
+        DB::beginTransaction();
+
+        try {
             $apartment->update([
                 'name' => $request->name,
                 'ubicacion' => $request->ubicacion,
-               
             ]);
 
-            $this->saveTenant($request, $apartment);
+            $this->saveTenants($request, $apartment);
 
-            return redirect()->back()->with('success', 'Apartment updated successfully');
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Apartamento actualizado exitosamente');
+
         } catch (\Exception $e) {
-            \Log::error('Error updating apartment: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Error updating apartment']);
+            DB::rollBack();
+            return redirect()->back()
+                ->withErrors(['error' => 'Error al actualizar el apartamento: ' . $e->getMessage()])
+                ->withInput();
         }
     }
 
-    private function saveTenant(Request $request, Apartment $apartment)
+    private function saveTenants(Request $request, Apartment $apartment)
     {
-        if (!$request->has('tenants')) {
-            return;
-        }
-    
-        // First delete removed tenants
         $currentTenantIds = $apartment->tenants()->pluck('id')->toArray();
-        $newTenantIds = collect($request->tenants)->pluck('id')->filter()->toArray();
-        $idsToDelete = array_diff($currentTenantIds, $newTenantIds);
-    
-        if (!empty($idsToDelete)) {
-            $tenantsToDelete = $apartment->tenants()->whereIn('id', $idsToDelete)->get();
-            foreach ($tenantsToDelete as $tenant) {
-                if ($tenant->photo) {
-                    Storage::disk('public')->delete($tenant->photo);
-                }
-            }
-            $apartment->tenants()->whereIn('id', $idsToDelete)->delete();
-        }
-    
-        // Update or create tenants
+        $newTenantIds = [];
+        $photosToDelete = [];
+
         foreach ($request->tenants as $tenantData) {
             $data = [
                 'name' => $tenantData['name'],
                 'email' => $tenantData['email'],
                 'phone' => $tenantData['phone'],
+                'apartment_id' => $apartment->id
             ];
-    
-            if (isset($tenantData['photo']) && $tenantData['photo'] instanceof \Illuminate\Http\UploadedFile) {
+
+            // Manejar la foto
+            if (isset($tenantData['photo'])) {
                 $path = $tenantData['photo']->store('tenants', 'public');
                 $data['photo'] = $path;
-    
-                // Delete old photo if exists
-                if (isset($tenantData['id'])) {
+
+                // Si es una actualización, marcar la foto anterior para eliminación
+                if (isset($tenantData['id']) && in_array($tenantData['id'], $currentTenantIds)) {
                     $existingTenant = $apartment->tenants()->find($tenantData['id']);
                     if ($existingTenant && $existingTenant->photo) {
-                        Storage::disk('public')->delete($existingTenant->photo);
+                        $photosToDelete[] = $existingTenant->photo;
                     }
                 }
             }
-    
-            if (isset($tenantData['id'])) {
+
+            if (isset($tenantData['id']) && in_array($tenantData['id'], $currentTenantIds)) {
+                // Actualizar inquilino existente
                 $apartment->tenants()->where('id', $tenantData['id'])->update($data);
+                $newTenantIds[] = $tenantData['id'];
             } else {
-                $apartment->tenants()->create($data);
+                // Crear nuevo inquilino
+                $tenant = $apartment->tenants()->create($data);
+                $newTenantIds[] = $tenant->id;
             }
+        }
+
+        // Eliminar inquilinos que ya no están en la lista
+        $idsToDelete = array_diff($currentTenantIds, $newTenantIds);
+        if (!empty($idsToDelete)) {
+            $tenantsToDelete = $apartment->tenants()->whereIn('id', $idsToDelete)->get();
+            foreach ($tenantsToDelete as $tenant) {
+                if ($tenant->photo) {
+                    $photosToDelete[] = $tenant->photo;
+                }
+            }
+            $apartment->tenants()->whereIn('id', $idsToDelete)->delete();
+        }
+
+        // Eliminar fotos marcadas
+        foreach (array_unique($photosToDelete) as $photo) {
+            Storage::disk('public')->delete($photo);
         }
     }
 
-    public function destroy(Customer $customer, Apartment $apartment)
+    public function destroy(Apartment $apartment)
     {
-        try {
-            if ($apartment->tenant) {
-                if ($apartment->tenant->photo) {
-                    Storage::disk('public')->delete($apartment->tenant->photo);
-                }
-                $apartment->tenant()->delete();
-            }
+        DB::beginTransaction();
 
+        try {
+            // Eliminar fotos de inquilinos
+            $photosToDelete = $apartment->tenants()->pluck('photo')->filter()->toArray();
+            
+            // Eliminar inquilinos
+            $apartment->tenants()->delete();
+            
+            // Eliminar apartamento
             $apartment->delete();
 
-            return redirect()->back()->with('success', 'Apartment deleted successfully');
+            // Eliminar fotos
+            foreach ($photosToDelete as $photo) {
+                Storage::disk('public')->delete($photo);
+            }
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Apartamento eliminado exitosamente');
+
         } catch (\Exception $e) {
-            \Log::error('Error deleting apartment: ' . $e->getMessage());
-            return redirect()->back()->withErrors(['error' => 'Error deleting apartment']);
+            DB::rollBack();
+            return redirect()->back()
+                ->withErrors(['error' => 'Error al eliminar el apartamento: ' . $e->getMessage()]);
         }
     }
 
     public function updateStatus(Request $request, Apartment $apartment)
     {
-        \Log::info('Payload recibido:', $request->all());
-        \Log::info('Estado antes:', ['status' => $apartment->status]);
-
-        $validated = $request->validate([
+        $request->validate([
             'status' => 'required|boolean'
         ]);
 
-        $apartment->update($validated);
+        $apartment->update(['status' => $request->status]);
 
-        \Log::info('Estado después:', ['status' => $apartment->fresh()->status]);
-
-        return back()->with('success', 'Estado actualizado');
+        return response()->json([
+            'success' => true,
+            'message' => 'Estado actualizado',
+            'status' => $apartment->status
+        ]);
     }
 }
