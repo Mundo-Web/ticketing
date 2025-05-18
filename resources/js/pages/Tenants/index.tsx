@@ -420,7 +420,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                     <DialogTitle></DialogTitle>
                     <DialogContent className="min-w-3xl">
                         <ModalDispositivos
-                            apartmentName={selectedApartment?.name || ''}
+                            tenantName={selectedTenant?.name || ''}
                             devices={selectedDevices}
                             shareDevice={selectedShareDevices}
                             brands={brands}
@@ -638,12 +638,12 @@ const TableView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingSta
             <table className="w-full">
                 <thead>
                     <tr className="border-b bg-muted/50">
-                        <th className="h-12 px-4 text-left align-middle font-medium">Inquilinos</th>
-                        <th className="h-12 px-4 text-left align-middle font-medium">Nombre</th>
-                        <th className="h-12 px-4 text-left align-middle font-medium">Ubicación</th>
-                        <th className="h-12 px-4 text-left align-middle font-medium">Estado</th>
-                        <th className="h-12 px-4 text-left align-middle font-medium">Compartido</th>
-                        <th className="h-12 px-4 text-left align-middle font-medium">Acciones</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Tenants</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Aparment</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Ubication</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">State</th>
+                      
+                        <th className="h-12 px-4 text-left align-middle font-medium">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -675,13 +675,7 @@ const TableView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingSta
                               
                                 <td className="p-4 align-middle">
                                     <div className="flex gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                          //  onClick={() => handleShowDevices(apartment,)}
-                                        >
-                                            <Laptop className="h-4 w-4" />
-                                        </Button>
+                                      
                                         <Button
                                             variant="ghost"
                                             size="icon"

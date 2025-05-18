@@ -20,7 +20,7 @@ import { Select } from '@/components/ui/select';
 interface ModalDispositivosProps {
     visible: boolean;
     onClose: () => void;
-    departmentName: string;
+    tenantName: string;
     devices: Device[];
     shareDevice: Device[];
     brands: any[];
@@ -34,7 +34,8 @@ interface ModalDispositivosProps {
 
 const ModalDispositivos = ({
     visible,
-    departmentName,
+    tenantName,
+    
     devices,
     brands,
     models,
@@ -225,11 +226,11 @@ const ModalDispositivos = ({
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Dispositivos de {departmentName}</h2>
+                <h2 className="text-xl font-bold">Device of {tenantName}</h2>
             </div>
 
             <Button onClick={handleShowCreate} className="mb-4">
-                <Plus className="w-4 h-4 mr-2" /> Nuevo Dispositivo
+                <Plus className="w-4 h-4 mr-2" /> New Device
             </Button>
 
             {showForm && (
@@ -238,10 +239,10 @@ const ModalDispositivos = ({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className='space-y-2'>
-                            <Label className='flex gap-2 items-center'><span><Laptop2 className='' /></span>Nombre Dispositivo</Label>
+                            <Label className='flex gap-2 items-center'><span><Laptop2 className='' /></span>Device</Label>
                             <CreatableSelect
                                 isClearable
-                                placeholder="Seleccionar o crear nombre"
+                                placeholder="Select or create"
                                 onChange={(option) => handleSelectChange(option, 'name_device')}
                                 options={name_devices?.map((s) => ({ label: s.name, value: s.id }))}
                                 value={getSelectedValue(data.name_device_id, data.new_name_device, name_devices)}
@@ -249,10 +250,10 @@ const ModalDispositivos = ({
                             {errors.name_device_id && <p className="text-red-500 text-sm">{errors.name_device_id}</p>}
                         </div>
                         <div className='space-y-2'>
-                            <Label className='flex gap-2 items-center'><span><ShieldPlus className='' /></span>Marca</Label>
+                            <Label className='flex gap-2 items-center'><span><ShieldPlus className='' /></span>Brand</Label>
                             <CreatableSelect
                                 isClearable
-                                placeholder="Seleccionar o crear marca"
+                                 placeholder="Select or create"
                                 onChange={(option) => handleSelectChange(option, 'brand')}
                                 options={brands.map((b) => ({ label: b.name, value: b.id }))}
                                 value={getSelectedValue(data.brand_id, data.new_brand, brands)}
@@ -261,10 +262,10 @@ const ModalDispositivos = ({
                         </div>
 
                         <div className='space-y-2'>
-                            <Label className='flex gap-2 items-center'><span><ScanQrCodeIcon className='' /></span>Modelo</Label>
+                            <Label className='flex gap-2 items-center'><span><ScanQrCodeIcon className='' /></span>Model</Label>
                             <CreatableSelect
                                 isClearable
-                                placeholder="Seleccionar o crear modelo"
+                                placeholder="Select or create"
                                 onChange={(option) => handleSelectChange(option, 'model')}
                                 options={models.map((m) => ({ label: m.name, value: m.id }))}
                                 value={getSelectedValue(data.model_id, data.new_model, models)}
@@ -273,10 +274,10 @@ const ModalDispositivos = ({
                         </div>
 
                         <div className='space-y-2'>
-                            <Label className='flex gap-2 items-center'><span><Keyboard className='' /></span>Sistema</Label>
+                            <Label className='flex gap-2 items-center'><span><Keyboard className='' /></span>System</Label>
                             <CreatableSelect
                                 isClearable
-                                placeholder="Seleccionar o crear sistema"
+                                  placeholder="Select or create"
                                 onChange={(option) => handleSelectChange(option, 'system')}
                                 options={systems.map((s) => ({ label: s.name, value: s.id }))}
                                 value={getSelectedValue(data.system_id, data.new_system, systems)}
@@ -315,12 +316,12 @@ const ModalDispositivos = ({
                 <table className="w-full">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-4 py-2 text-left">Nombre</th>
-                            <th className="px-4 py-2 text-left">Marca</th>
-                            <th className="px-4 py-2 text-left">Modelo</th>
-                            <th className="px-4 py-2 text-left">Sistema</th>
-                            <th className="px-4 py-2 text-left">Compartido con</th>
-                            <th className="px-4 py-2 text-left">Acciones</th>
+                            <th className="px-4 py-2 text-left">Name</th>
+                            <th className="px-4 py-2 text-left">Brand</th>
+                            <th className="px-4 py-2 text-left">Model</th>
+                            <th className="px-4 py-2 text-left">System</th>
+                            <th className="px-4 py-2 text-left">Share with</th>
+                            <th className="px-4 py-2 text-left">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
