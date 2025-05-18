@@ -7,33 +7,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Trash2, Edit, Plus, Laptop2, ShieldCheck, ShieldPlus, ScanQrCodeIcon, Keyboard } from 'lucide-react';
+import { Trash2, Edit, Plus, Laptop2, ShieldCheck, ShieldPlus, ScanQrCodeIcon, Keyboard, ShareIcon } from 'lucide-react';
 import CreatableSelect from 'react-select/creatable';
 import axios from 'axios';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Device } from '@/types/models/Device';
+import { Tenant } from '@/types/models/Tenant';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select } from '@/components/ui/select';
 
-interface Device {
-    id: number;
-    name: string;
-    brand_id: number;
-    model_id: number;
-    system_id: number;
-    name_device_id: number;
-    brand?: { id: number; name: string };
-    model?: { id: number; name: string };
-    system?: { id: number; name: string };
-    name_device?: { id: number; name: string };
-}
 
 interface ModalDispositivosProps {
     visible: boolean;
     onClose: () => void;
     departmentName: string;
     devices: Device[];
+    shareDevice: Device[];
     brands: any[];
     models: any[];
     systems: any[];
     name_devices: any[];
     apartmentId: number;
+    tenantId: number;
+    tenants: Tenant[];
 }
 
 const ModalDispositivos = ({
@@ -43,10 +39,51 @@ const ModalDispositivos = ({
     brands,
     models,
     systems,
+    shareDevice,
     name_devices,
-    apartmentId
+    apartmentId,
+    tenantId,
+    tenants
 }: ModalDispositivosProps) => {
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+
+    const handleShareDevice = async (deviceId: number, tenantIds: number[]) => {
+        try {
+            const response = await axios.post(route('devices.share', deviceId), {
+                tenant_id: tenantId, // ID del inquilino actual que está compartiendo el dispositiv
+                tenant_ids: tenantIds,
+                apartment_id: apartmentId
+
+            });
+
+            if (response.data.success) {
+                setDeviceList(prevDevices =>
+                    prevDevices.map(device => {
+                        if (device.id === deviceId) {
+                            return {
+                                ...device,
+                                tenants: [
+                                    ...(device.tenants || []),
+                                    ...tenants.filter(t => tenantIds.includes(t.id))
+                                ]
+                            };
+                        }
+                        return device;
+                    })
+                );
+
+                toast.success('Dispositivo compartido exitosamente');
+                setShowShareModal(false);
+            }
+        } catch (error) {
+            console.error('Error al compartir dispositivo:', error);
+            toast.error('Error al compartir el dispositivo');
+        }
+    };
+
     const [deviceList, setDeviceList] = useState<Device[]>(devices);
+    const [deviceShareList, setDeviceShareList] = useState<Device[]>(shareDevice);
     const [showForm, setShowForm] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
@@ -60,7 +97,8 @@ const ModalDispositivos = ({
         new_system: '',
         name_device_id: '',
         new_name_device: '',
-        apartment_id: apartmentId
+        apartment_id: apartmentId,
+        tenant_id: tenantId,
     });
 
     const handleShowCreate = () => {
@@ -81,7 +119,9 @@ const ModalDispositivos = ({
             new_model: '',
             new_system: '',
             new_name_device: '',
-            apartment_id: apartmentId
+            apartment_id: apartmentId,
+
+
         });
         setShowForm(true);
         setEditMode(true);
@@ -96,25 +136,24 @@ const ModalDispositivos = ({
             ...(data.new_model && { model: data.new_model }),
             ...(data.new_system && { system: data.new_system }),
             ...(data.new_name_device && { name_device: data.new_name_device }),
+            tenants: data.tenants || [] // Añadir los inquilinos seleccionados
         };
 
         if (editMode) {
-
             try {
                 const response = await axios.put(route('devices.update', data.id), payload);
-
                 const updatedDevice = response.data.device;
 
                 if (updatedDevice) {
                     setDeviceList(prev =>
                         prev.map(device => device.id === updatedDevice.id ? updatedDevice : device)
                     );
-                    toast.success('Dispositivo creado exitosamente');
+                    toast.success('Dispositivo actualizado exitosamente');
                     reset();
                     setShowForm(false);
                 }
             } catch (error) {
-                toast.error('Error al crear el dispositivo');
+                toast.error('Error al actualizar el dispositivo');
                 console.error(error);
             }
         } else {
@@ -245,6 +284,21 @@ const ModalDispositivos = ({
                             {errors.system_id && <p className="text-red-500 text-sm">{errors.system_id}</p>}
                         </div>
                     </div>
+                    <div className='space-y-2'>
+                        <Label>Asignar a inquilinos</Label>
+                        <Select
+                            isClearable
+                            isMulti
+                            options={tenants.map(t => ({ label: t.name, value: t.id }))}
+                            onChange={(selected) =>
+                                setData('tenants', selected?.map(s => s.value) || [])
+                            }
+                            value={data.tenants?.map(id => ({
+                                label: tenants.find(t => t.id === id)?.name || '',
+                                value: id
+                            }))}
+                        />
+                    </div>
 
                     <div className="flex gap-2 justify-end">
                         <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
@@ -265,39 +319,153 @@ const ModalDispositivos = ({
                             <th className="px-4 py-2 text-left">Marca</th>
                             <th className="px-4 py-2 text-left">Modelo</th>
                             <th className="px-4 py-2 text-left">Sistema</th>
+                            <th className="px-4 py-2 text-left">Compartido con</th>
                             <th className="px-4 py-2 text-left">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {deviceList.map((device) => (
-                            <tr key={device.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-2">{device.name_device?.name}</td>
-                                <td className="px-4 py-2">{device.brand?.name}</td>
-                                <td className="px-4 py-2">{device.model?.name}</td>
-                                <td className="px-4 py-2">{device.system?.name}</td>
-                                <td className="px-4 py-2">
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => handleEdit(device)}
-                                            className="text-blue-600 hover:text-blue-800"
-                                        >
-                                            <Edit className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(device.id)}
-                                            className="text-red-600 hover:text-red-800"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                        {deviceList.map((device) => {
+console.log(device)
+                            // Verificar si el dispositivo está compartid
+                            return (
+                                <tr key={device.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2">{device.name_device?.name}</td>
+                                    <td className="px-4 py-2">{device.brand?.name}</td>
+                                    <td className="px-4 py-2">{device.model?.name}</td>
+                                    <td className="px-4 py-2">{device.system?.name}</td>
+                                    <td>
+                                        {device.shared_with?.map(tenant => (
+                                            <span key={tenant.id} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                                {tenant.name}
+                                            </span>
+                                        ))}
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setSelectedDevice(device);
+                                                    setShowShareModal(true);
+                                                }}
+                                                className="text-green-600 hover:text-green-800"
+                                            >
+                                                <ShareIcon className="w-4 h-4" />
+                                            </Button>
+
+                                            <button
+                                                onClick={() => handleEdit(device)}
+                                                className="text-blue-600 hover:text-blue-800"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(device.id)}
+                                                className="text-red-600 hover:text-red-800"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )
+                        })}
+
+                        {deviceShareList.map((device) => {
+console.log(device)
+                            return (
+                                <tr key={device.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2">{device.name_device?.name}</td>
+                                    <td className="px-4 py-2">{device.brand?.name}</td>
+                                    <td className="px-4 py-2">{device.model?.name}</td>
+                                    <td className="px-4 py-2">{device.system?.name}</td>
+                                    <td>
+                                        {device.owner?.map(tenant => (
+                                            <span key={tenant.id} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                                {tenant.name}
+                                            </span>
+                                        ))}
+                                    </td>
+                                    <td className="px-4 py-2">
+
+                                    </td>
+                                </tr>
+                            )
+                        })}
                     </tbody>
                 </table>
             </div>
+
+            {showShareModal && selectedDevice && (
+                <DeviceShareModal
+                    device={selectedDevice}
+                    tenants={tenants.filter(t =>
+                        !selectedDevice.tenants?.some(dt => dt.id === t.id)
+                    )}
+                    onClose={() => setShowShareModal(false)}
+                    onShare={(tenantIds) => handleShareDevice(selectedDevice.id, tenantIds)}
+                />
+            )}
         </div>
     );
 };
 
 export default ModalDispositivos;
+
+
+interface DeviceShareProps {
+    device: Device;
+    tenants: Tenant[];
+    onShare: (deviceId: number, tenantIds: number[]) => void;
+}
+const DeviceShareModal = ({
+    device,
+    tenants,
+    onClose,
+    onShare
+}: {
+    device: Device;
+    tenants: Tenant[];
+    onClose: () => void;
+    onShare: (tenantIds: number[]) => void;
+}) => {
+    const [selectedTenants, setSelectedTenants] = useState<number[]>([]);
+    const ownerId = device.owner?.[0]?.id;
+    console.log(device)
+    const availableTenants = tenants.filter(t =>
+        t.id !== device.tenant_id &&
+        !device.shared_with?.some(shared => shared.id === t.id)
+    );
+    return (
+        <Dialog open={true} onOpenChange={onClose}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Compartir {device.name_device?.name}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                    {availableTenants.map(tenant => (
+                        <div key={tenant.id} className="flex items-center gap-2">
+                            <Checkbox
+                                checked={selectedTenants.includes(tenant.id)}
+                                onCheckedChange={(checked) => {
+                                    const newSelection = checked
+                                        ? [...selectedTenants, tenant.id]
+                                        : selectedTenants.filter(id => id !== tenant.id);
+                                    setSelectedTenants(newSelection);
+                                }}
+                            />
+                            <Label>{tenant.name} ({tenant.email})</Label>
+                        </div>
+                    ))}
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={onClose}>Cancelar</Button>
+                    <Button onClick={() => onShare(selectedTenants)}>
+                        Compartir
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};

@@ -12,5 +12,11 @@ class System extends Model
     protected $fillable = [
         'name',
         'status',
+        'model_id'
     ];
+
+    public function model()
+    {
+        return $this->belongsTo(DeviceModel::class);
+    }
 }

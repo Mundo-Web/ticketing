@@ -16,101 +16,12 @@ use Illuminate\Support\Facades\Storage;
 class ApartmentController extends Controller
 {
 
-    public function store(Request $request)
-    {
-        try {
-            \Log::info('Request Data:', $request->all());
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'ubicacion' => 'nullable|string|max:255',
-                //  'devices' => 'array',
-                // 'devices.*.name' => 'required|string|max:255',
-                //  'devices.*.brand' => 'required|string|max:255',
-                //  'devices.*.model' => 'required|string|max:255',
-                //  'devices.*.system' => 'required|string|max:255',
-            ]);
-
-            // ✅ Crear el departamento
-            $apartment = Apartment::create([
-                'name' => $request->name,
-                'ubicacion' => $request->ubicacion,
-                'customers_id' => $request->customer_id ?? 1, // Cambia según cómo pases el cliente
-            ]);
-
-            // ✅ Procesar cada dispositivo
-            /*  foreach ($request->devices as $deviceData) {
-                $brand = Brand::firstOrCreate(['name' => $deviceData['brand']], ['status' => true]);
-                $model = DeviceModel::firstOrCreate(['name' => $deviceData['model']], ['status' => true]);
-                $system = System::firstOrCreate(['name' => $deviceData['system']], ['status' => true]);
-
-                $device = Device::create([
-                    'name' => $deviceData['name'],
-                    'brand_id' => $brand->id,
-                    'model_id' => $model->id,
-                    'system_id' => $system->id,
-                    'status' => true,
-                ]);
-
-                $apartment->devices()->attach($device->id);
-            }*/
-
-            return response()->json([
-                'success' => true,
-                //'apartment' => $apartment->load('devices.brand', 'devices.model', 'devices.system'),
-                'apartment' => $apartment,
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error al guardar apartamento: ' . $e->getMessage());
-            return response()->json(['error' => 'Hubo un problema al guardar el departamento.'], 500);
-        }
-    }
 
 
-    public function update(Customer $customer, Apartment $apartment, Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'ubicacion' => 'sometimes|string|max:255',
-            'status' => 'sometimes|boolean'
-        ]);
-
-        $apartment->update($validated);
-
-        return redirect()->back()->with('success', 'Departamento actualizado');
-    }
-
-    /*  public function destroy(Customer $customer, Apartment $apartment)
-    {
-        $apartment->delete();
-        return redirect()->back()->with('success', 'Departamento eliminado');
-    }
 
 
-   public function storeApartment(Request $request, Customer $building)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'ubicacion' => 'nullable|string|max:255',
-            // Validación adicional si necesitas
-        ]);
 
-        $apartment = $building->apartments()->create($validated);
 
-        return redirect()->back()->with('success', 'Departamento creado correctamente.');
-    }
-
-    public function updateApartment(Apartment $apartment, Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'string|max:255',
-            'ubicacion' => 'string|max:255',
-
-        ]);
-
-        $apartment->update($validated);
-
-        return redirect()->back()->with('success', 'Departamento creado correctamente.');
-    }*/
     public function storeApartment(Request $request, Building $building)
     {
 
@@ -118,23 +29,26 @@ class ApartmentController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'ubicacion' => 'nullable|string|max:255',
-                'share' => 'boolean',
-                'tenant.name' => 'nullable|string|max:255',
-                'tenant.email' => 'nullable|email|max:255',
-                'tenant.phone' => 'nullable|string|max:20',
-                'tenant.photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            
+                'tenants' => 'array',
+
+                'tenants.*.name' => 'nullable|string|max:255',
+                'tenants.*.email' => 'nullable|email|max:255',
+                'tenants.*.phone' => 'nullable|string|max:20',
+                'tenants.*.photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             ]);
+
+
 
             $apartment = $building->apartments()->create([
                 'name' => $request->name,
                 'ubicacion' => $request->ubicacion,
-                'share' => $request->share ?? false,
+           
                 'status' => true
             ]);
 
-            if (!empty($request->tenant['name'])) {
-                $this->saveTenant($request, $apartment);
-            }
+
+            $this->saveTenant($request, $apartment);
 
             return redirect()->back()->with('success', 'Apartment created successfully');
         } catch (\Exception $e) {
@@ -149,7 +63,7 @@ class ApartmentController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'ubicacion' => 'nullable|string|max:255',
-                'share' => 'sometimes|boolean',
+           
                 'tenant.name' => 'nullable|string|max:255',
                 'tenant.email' => 'nullable|email|max:255',
                 'tenant.phone' => 'nullable|string|max:20',
@@ -159,7 +73,7 @@ class ApartmentController extends Controller
             $apartment->update([
                 'name' => $request->name,
                 'ubicacion' => $request->ubicacion,
-                'share' => $request->share ?? false
+               
             ]);
 
             $this->saveTenant($request, $apartment);
@@ -173,26 +87,51 @@ class ApartmentController extends Controller
 
     private function saveTenant(Request $request, Apartment $apartment)
     {
-        $tenantData = [
-            'name' => $request->input('tenant.name'),
-            'email' => $request->input('tenant.email'),
-            'phone' => $request->input('tenant.phone'),
-        ];
-
-        if ($request->hasFile('tenant.photo')) {
-            $path = $request->file('tenant.photo')->store('tenants', 'public');
-            $tenantData['photo'] = $path;
-
-            // Delete old photo if exists
-            if ($apartment->tenant && $apartment->tenant->photo) {
-                Storage::disk('public')->delete($apartment->tenant->photo);
-            }
+        if (!$request->has('tenants')) {
+            return;
         }
-
-        if ($apartment->tenant) {
-            $apartment->tenant()->update($tenantData);
-        } else {
-            $apartment->tenant()->create($tenantData);
+    
+        // First delete removed tenants
+        $currentTenantIds = $apartment->tenants()->pluck('id')->toArray();
+        $newTenantIds = collect($request->tenants)->pluck('id')->filter()->toArray();
+        $idsToDelete = array_diff($currentTenantIds, $newTenantIds);
+    
+        if (!empty($idsToDelete)) {
+            $tenantsToDelete = $apartment->tenants()->whereIn('id', $idsToDelete)->get();
+            foreach ($tenantsToDelete as $tenant) {
+                if ($tenant->photo) {
+                    Storage::disk('public')->delete($tenant->photo);
+                }
+            }
+            $apartment->tenants()->whereIn('id', $idsToDelete)->delete();
+        }
+    
+        // Update or create tenants
+        foreach ($request->tenants as $tenantData) {
+            $data = [
+                'name' => $tenantData['name'],
+                'email' => $tenantData['email'],
+                'phone' => $tenantData['phone'],
+            ];
+    
+            if (isset($tenantData['photo']) && $tenantData['photo'] instanceof \Illuminate\Http\UploadedFile) {
+                $path = $tenantData['photo']->store('tenants', 'public');
+                $data['photo'] = $path;
+    
+                // Delete old photo if exists
+                if (isset($tenantData['id'])) {
+                    $existingTenant = $apartment->tenants()->find($tenantData['id']);
+                    if ($existingTenant && $existingTenant->photo) {
+                        Storage::disk('public')->delete($existingTenant->photo);
+                    }
+                }
+            }
+    
+            if (isset($tenantData['id'])) {
+                $apartment->tenants()->where('id', $tenantData['id'])->update($data);
+            } else {
+                $apartment->tenants()->create($data);
+            }
         }
     }
 

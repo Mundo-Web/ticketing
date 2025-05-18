@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Device extends Model
 {
-    /** @use HasFactory<\Database\Factories\DeviceFactory> */
+  
     use HasFactory;
     protected $fillable = [
         'name',
@@ -19,11 +20,7 @@ class Device extends Model
     ];
 
 
-    public function apartments()
-    {
-        return $this->belongsToMany(Apartment::class, 'apartment_device');
-    }
-
+    
 
 
     public function brand()
@@ -44,4 +41,34 @@ class Device extends Model
     {
         return $this->belongsTo(NameDevice::class);
     }
+
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(Tenant::class);
+    }
+
+
+    // Relación con el tenant principal (dueño)
+    public function owner()
+    {
+        return $this->belongsToMany(Tenant::class, 'share_device_tenant', 'device_id', 'owner_tenant_id')
+            ->distinct()
+            ->withPivot('shared_with_tenant_id');
+    }
+
+    // Relación con tenants compartidos
+    public function sharedWith()
+    {
+        return $this->belongsToMany(Tenant::class, 'share_device_tenant', 'device_id', 'shared_with_tenant_id')
+            ->withPivot('owner_tenant_id');
+    }
+    
+    // Relación completa con tenants (dueño + compartidos)
+    public function allTenants()
+    {
+        return $this->owner->merge($this->sharedWith);
+    }
+    
+
+
 }

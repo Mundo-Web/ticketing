@@ -9,11 +9,17 @@ class DeviceModel extends Model
 {
     use HasFactory;
 
-    // Especificamos la tabla explícitamente
+
     protected $table = 'models';
 
     protected $fillable = [
         'name',
         'status',
+        'brand_id',
     ];
+
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
+    }
 }

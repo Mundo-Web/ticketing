@@ -50,6 +50,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('technicals', TechnicalController::class);
     Route::put('technicals/{technical}/update-status', [TechnicalController::class, 'updateStatus'])
         ->name('technicals.update-status');
+
+
+    
+    Route::post('/devices/{device}/share', [DeviceController::class, 'share'])
+    ->name('devices.share');
+
 });
 
 require __DIR__ . '/settings.php';

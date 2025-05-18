@@ -243,8 +243,16 @@ class BuildingController extends Controller
 
     public function apartments(Building $building)
     {
-        $apartments = Apartment::with(['tenant', 'devices.brand', 'devices.system', 'devices.model', 'devices.name_device'])
-            ->where('buildings_id', $building->id)
+        $apartments = Apartment::with([
+            'tenants.devices' => function ($query) {
+                $query->with(['tenants', 'brand', 'system', 'model', 'name_device', 'sharedWith']);
+            },
+
+            'tenants.sharedDevices' => function ($q) { // Dispositivos compartidos
+                $q->with(['brand', 'system', 'model', 'name_device', 'owner']);
+            }
+
+        ])->where('buildings_id', $building->id)
             ->latest()
             ->paginate(6);
 

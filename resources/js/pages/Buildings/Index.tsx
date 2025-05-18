@@ -1,4 +1,4 @@
-// resources/js/Pages/Buildings/Index.tsx
+
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, router } from '@inertiajs/react';
@@ -6,7 +6,7 @@ import { useState } from 'react';
 import {
     LayoutGrid, Table as TableIcon, Plus, Edit, Trash2, Upload, UploadCloud,
     Star, ChevronLeft, ChevronRight, Archive, MapPin, ArchiveRestore,
-    ChevronDown, MoreHorizontal, Download, Sliders, Building, X, CheckCircle,
+    ChevronDown, MoreHorizontal, Download, Sliders, Building as IconBuilding, X, CheckCircle,
     User
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -52,35 +52,9 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Building } from '@/types/models/Building';
 
-interface Owner {
-    name: string;
-    email: string;
-    photo: string | null;
-    phone: string;
-}
 
-interface Doorman {
-    id?: number;
-    name: string;
-    photo: string | null;
-    email: string;
-    phone: string;
-    shift: 'morning' | 'afternoon' | 'night';
-}
-
-interface Building {
-    id: number;
-    name: string;
-    image: string;
-    description: string;
-    location_link: string;
-    owner: Owner;
-    doormen: Doorman[];
-    status: boolean;
-    created_at: string;
-    apartments?: any[];
-}
 
 interface PaginationLink {
     url: string | null;
@@ -162,7 +136,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                     />
                 ) : (
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <Building className="w-5 h-5 text-gray-400" />
+                        <IconBuilding className="w-5 h-5 text-gray-400" />
                     </div>
                 );
             },
@@ -684,7 +658,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
     const EmptyState = ({ onAddNew }: { onAddNew: () => void }) => (
         <div className="bg-sidebar p-8 rounded-xl text-center border-2 border-dashed">
             <div className="text-primary mb-4 flex justify-center">
-                <Building className="w-12 h-12" />
+                <IconBuilding className="w-12 h-12" />
             </div>
             <h3 className="text-xl font-semibold text-primary mb-2">No buildings registered</h3>
             <p className="text-primary mb-4">Start by adding your first building</p>

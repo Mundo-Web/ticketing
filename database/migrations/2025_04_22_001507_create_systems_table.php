@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('name', 255);
             $table->string('status', 255)->nullable();
+            $table->unsignedBigInteger('model_id');
+            $table->foreign('model_id')->references('id')->on('models')->onDelete('cascade');
             $table->timestamps();
         });
     }

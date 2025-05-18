@@ -16,26 +16,24 @@ class Apartment extends Model
         'ubicacion',
         'buildings_id',
         'status',
-        'share',
+       
 
     ];
     protected $casts = [
         'status' => 'boolean',
-        'share' => 'boolean'
-    ];
 
-    public function devices()
-    {
-        return $this->belongsToMany(Device::class, 'apartment_device');
-    }
+    ];
 
     public function building(): BelongsTo
     {
         return $this->belongsTo(Building::class, 'buildings_id');
     }
 
-    public function tenant(): HasOne
+    public function tenants()
     {
-        return $this->hasOne(Tenant::class);
-    }
+        return $this->hasMany(Tenant::class);
+    }  
+    
+  
+
 }

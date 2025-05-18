@@ -23,27 +23,12 @@ import ModalDispositivos from './ModalDispositivos';
 
 import Select, { components } from 'react-select';
 import { BuildingCombobox } from './ComboBox';
-
-type Apartment = {
-    id: number;
-    name: string;
-    ubicacion: string;
-    share: boolean;
-    status: boolean;
-    created_at: string;
-    tenant?: Tenant;
-    devices?: Device[];
-};
+import { Tenant } from '@/types/models/Tenant';
+import { TenantForm } from './TenantForm';
+import { Apartment } from '@/types/models/Apartment';
 
 
 
-type Tenant = {
-    id?: number;
-    name?: string;
-    email?: string;
-    phone?: string;
-    photo?: string;
-};
 
 type Device = {
     id: number;
@@ -76,17 +61,19 @@ interface Props {
     brands: { id: number; name: string }[];
     models: { id: number; name: string }[];
     systems: { id: number; name: string }[];
-    deviceNames: { id: number; name: string }[];
+    name_devices: { id: number; name: string }[];
 }
 
-export default function Index({ apartments, brands, models, systems, deviceNames }: Props) {
+export default function Index({ apartments, brands, models, systems, name_devices }: Props) {
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [currentApartment, setCurrentApartment] = useState<Apartment | null>(null);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<number | null>(null);
     const [selectedApartment, setSelectedApartment] = useState<Apartment | null>(null);
+    const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
     const [selectedDevices, setSelectedDevices] = useState<Device[]>([]);
+    const [selectedShareDevices, setSelectedShareDevices] = useState<Device[]>([]);
     const [showDevicesModal, setShowDevicesModal] = useState(false);
 
     const { building, all_buildings, googleMapsApiKey } = usePage().props as {
@@ -118,15 +105,16 @@ export default function Index({ apartments, brands, models, systems, deviceNames
         id: null as number | null,
         name: '',
         ubicacion: '',
-        share: false,
-        tenant: {
+      
+        tenants: [] as Array<{
             name: '',
             email: '',
             phone: '',
-            photo: null as File | null,
-        }
+            photo: File | null;
+        }>,
     });
 
+    console.log(apartments);
     const toggleStatus = async (apartment: Apartment) => {
         setIsUpdatingStatus(apartment.id);
         try {
@@ -151,15 +139,15 @@ export default function Index({ apartments, brands, models, systems, deviceNames
 
         formData.append('name', data.name);
         formData.append('ubicacion', data.ubicacion);
-        formData.append('share', data.share.toString());
-        if (data.tenant.name) {
-            formData.append('tenant[name]', data.tenant.name);
-            formData.append('tenant[email]', data.tenant.email);
-            formData.append('tenant[phone]', data.tenant.phone);
-            if (data.tenant.photo) {
-                formData.append('tenant[photo]', data.tenant.photo);
+     
+        data.tenants.forEach((tenant, index) => {
+            formData.append(`tenants[${index}][name]`, tenant.name);
+            formData.append(`tenants[${index}][email]`, tenant.email);
+            formData.append(`tenants[${index}][phone]`, tenant.phone);
+            if (tenant.photo) {
+                formData.append(`tenants[${index}][photo]`, tenant.photo);
             }
-        }
+        });
 
         post(route('buildings.apartments.store', building), {
             data: formData,
@@ -181,13 +169,13 @@ export default function Index({ apartments, brands, models, systems, deviceNames
             id: apartment.id,
             name: apartment.name,
             ubicacion: apartment.ubicacion,
-            share: apartment.share,
-            tenant: {
-                name: apartment.tenant?.name || '',
-                email: apartment.tenant?.email || '',
-                phone: apartment.tenant?.phone || '',
-                photo: null, // Mantenemos null pero usamos apartment.tenant?.photo para la preview
-            }
+          
+            tenants: apartment.tenants?.map(t => ({
+                name: t.name || '',
+                email: t.email || '',
+                phone: t.phone || '',
+                photo: null // Mantener null pero usar t.photo para preview
+            })) || []
         });
         setCurrentApartment(apartment);
         setShowCreateModal(true);
@@ -202,14 +190,14 @@ export default function Index({ apartments, brands, models, systems, deviceNames
         formData.append('name', data.name);
         formData.append('ubicacion', data.ubicacion);
 
-        if (data.tenant.name) {
-            formData.append('tenant[name]', data.tenant.name);
-            formData.append('tenant[email]', data.tenant.email);
-            formData.append('tenant[phone]', data.tenant.phone);
-            if (data.tenant.photo) {
-                formData.append('tenant[photo]', data.tenant.photo);
+        data.tenants.forEach((tenant, index) => {
+            formData.append(`tenants[${index}][name]`, tenant.name);
+            formData.append(`tenants[${index}][email]`, tenant.email);
+            formData.append(`tenants[${index}][phone]`, tenant.phone);
+            if (tenant.photo) {
+                formData.append(`tenants[${index}][photo]`, tenant.photo);
             }
-        }
+        });
 
         router.post(route('apartments.update', data.id), formData, {
             forceFormData: true,
@@ -247,9 +235,11 @@ export default function Index({ apartments, brands, models, systems, deviceNames
         });
     };
 
-    const handleShowDevices = (apartment: Apartment) => {
+    const handleShowDevices = (apartment: Apartment, tenant:Tenant) => {
         setSelectedApartment(apartment);
-        setSelectedDevices(apartment.devices || []);
+        setSelectedTenant(tenant);
+        setSelectedDevices(tenant.devices || []);
+        setSelectedShareDevices(tenant.shared_devices || []); // Set the selected devices to the tenant's devices by default
         setShowDevicesModal(true);
     };
 
@@ -280,20 +270,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Apartments" />
             <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-                {/* Header Section 
-                <Card className='w-full border-none py-0 shadow-none'>
-                    <CardContent className="p-0">
-                        <div className='flex gap-4 items-center'>
-                            <img
-                                src={`/storage/${building.image}`}
-                                alt={building.name}
-                                className="object-cover rounded-full w-15 h-15 border-2 border-primary p-1"
-                            />
-                            <h2 className='text-xl font-medium'>{building.name}</h2>
-                        </div>
-                    </CardContent>
-                </Card>*/}
-
+             
 
 
 
@@ -310,21 +287,7 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                 </Card>
 
                 <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
-                    {/*
-                    <div className="bg-gray-100 p-1 rounded flex">
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white shadow' : ''}`}
-                        >
-                            <LayoutGrid className={`w-5 h-5 ${viewMode === 'grid' ? 'text-primary' : 'text-gray-600'}`} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('table')}
-                            className={`p-2 rounded ${viewMode === 'table' ? 'bg-white shadow' : ''}`}
-                        >
-                            <Table className={`w-5 h-5 ${viewMode === 'table' ? 'text-primary' : 'text-gray-600'}`} />
-                        </button>
-                    </div> */}
+
 
                     <div className="flex gap-2 w-full sm:w-auto">
                         <Button
@@ -387,123 +350,15 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                                                 className='mt-2'
                                             />
                                         </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center space-x-2">
-                                                <Switch
-                                                    id="share"
-                                                    checked={data.share}
-                                                    onCheckedChange={(checked) => setData('share', checked)}
-                                                />
-                                                <Label htmlFor="share">Share</Label>
-                                            </div>
-                                        </div>
+                                      
                                     </TabsContent>
 
                                     <TabsContent value="tenant" className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                                            {/* Columna izquierda - Foto */}
-                                            <div className="md:col-span-2 space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="tenant-photo">Photo</Label>
-                                                    <div className={`mt-2 group relative w-full aspect-square rounded-lg overflow-hidden transition-all duration-300 
-          ${errors['tenant.photo'] ? 'ring-2 ring-destructive' : 'hover:ring-2 hover:ring-ring'} 
-          bg-muted/50`}>
-                                                        <input
-                                                            id="tenant-photo-upload"
-                                                            type="file"
-                                                            accept="image/png, image/jpeg, image/jpg"
-                                                            onChange={(e) => setData('tenant', {
-                                                                ...data.tenant,
-                                                                photo: e.target.files?.[0] || null
-                                                            })}
-                                                            className="hidden"
-                                                        />
-                                                        <label
-                                                            htmlFor="tenant-photo-upload"
-                                                            className="flex flex-col items-center justify-center w-full h-full cursor-pointer"
-                                                        >
-                                                            {data.tenant.photo || currentApartment?.tenant?.photo ? (
-                                                                <div className="relative w-full h-full group">
-                                                                    <img
-                                                                        src={data.tenant.photo
-                                                                            ? URL.createObjectURL(data.tenant.photo)
-                                                                            : `/storage/${currentApartment?.tenant?.photo}`}
-                                                                        alt="Tenant preview"
-                                                                        className="w-full h-full object-cover"
-                                                                    />
-                                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2">
-                                                                        <UploadCloud className="w-8 h-8 text-white" />
-                                                                        <p className="text-sm text-white font-medium">Click to change photo</p>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex flex-col items-center justify-center p-4 text-center h-full">
-                                                                    <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center mb-3">
-                                                                        <User className="w-6 h-6 text-muted-foreground" />
-                                                                    </div>
-                                                                    <p className="text-sm font-medium text-muted-foreground mb-1">
-                                                                        Drag & drop or click to upload
-                                                                    </p>
-                                                                    <p className="text-xs text-muted-foreground">
-                                                                        PNG, JPG or JPEG (max. 2MB)
-                                                                    </p>
-                                                                </div>
-                                                            )}
-                                                        </label>
-                                                    </div>
-                                                    {errors['tenant.photo'] && (
-                                                        <p className="text-sm text-destructive">{errors['tenant.photo']}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Columna derecha - Campos del formulario */}
-                                            <div className="md:col-span-3 space-y-4">
-                                                <div className="space-y-4">
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="tenant-name">Tenant Name</Label>
-                                                        <Input
-                                                            id="tenant-name"
-                                                            value={data.tenant.name}
-                                                            onChange={(e) => setData('tenant', {
-                                                                ...data.tenant,
-                                                                name: e.target.value
-                                                            })}
-                                                            className="w-full h-11 mt-2"
-                                                        />
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 gap-4">
-                                                        <div className="space-y-2">
-                                                            <Label htmlFor="tenant-email">Email</Label>
-                                                            <Input
-                                                                id="tenant-email"
-                                                                type="email"
-                                                                value={data.tenant.email}
-                                                                onChange={(e) => setData('tenant', {
-                                                                    ...data.tenant,
-                                                                    email: e.target.value
-                                                                })}
-                                                                className="w-full h-11 mt-2"
-                                                            />
-                                                        </div>
-
-                                                        <div className="space-y-2">
-                                                            <Label htmlFor="tenant-phone">Phone</Label>
-                                                            <Input
-                                                                id="tenant-phone"
-                                                                value={data.tenant.phone}
-                                                                onChange={(e) => setData('tenant', {
-                                                                    ...data.tenant,
-                                                                    phone: e.target.value
-                                                                })}
-                                                                className="w-full h-11 mt-2"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <TenantForm
+                                            tenants={data.tenants}
+                                            onTenantsChange={(tenants) => setData('tenants', tenants)}
+                                            errors={errors}
+                                        />
                                     </TabsContent>
 
                                     <div className="flex justify-end gap-4 pt-8 pb-4">
@@ -567,11 +422,14 @@ export default function Index({ apartments, brands, models, systems, deviceNames
                         <ModalDispositivos
                             apartmentName={selectedApartment?.name || ''}
                             devices={selectedDevices}
+                            shareDevice={selectedShareDevices}
                             brands={brands}
                             models={models}
                             systems={systems}
-                            deviceNames={deviceNames}
+                            name_devices={name_devices}
                             apartmentId={selectedApartment?.id || 0}
+                            tenantId={selectedTenant?.id || 0}
+                            tenants={selectedApartment?.tenants || []}
                         />
                     </DialogContent>
                 </Dialog>
@@ -764,104 +622,125 @@ const GridView = ({
     </div>
 );
 
-const TableView = ({
+const TableView = ({ apartments, onEdit, onDelete, onToggleStatus, isUpdatingStatus, handleShowDevices }) => {
+    const [expandedRows, setExpandedRows] = useState<number[]>([]);
 
-    apartments,
-    onEdit,
-    onDelete,
-    onToggleStatus,
-    isUpdatingStatus,
-    handleShowDevices
-}: {
+    const toggleRow = (apartmentId: number) => {
+        setExpandedRows(prev => 
+            prev.includes(apartmentId) 
+                ? prev.filter(id => id !== apartmentId)
+                : [...prev, apartmentId]
+        );
+    };
 
-    apartments: Apartment[];
-    onEdit: (apartment: Apartment) => void;
-    onDelete: (apartment: Apartment) => void;
-    onToggleStatus: (apartment: Apartment) => void;
-    isUpdatingStatus: number | null;
-    handleShowDevices: (apartment: Apartment) => void;
-}) => (
-    <div className="rounded-xl border shadow-sm overflow-hidden">
-        <table className="w-full">
-            <thead className="bg-gray-50">
-                <tr>
-                    <TableHeader>Apartment</TableHeader>
-                    <TableHeader>Location</TableHeader>
-                    <TableHeader>Tenant</TableHeader>
-                    <TableHeader>Devices</TableHeader>
-                    <TableHeader>Status</TableHeader>
-                    <TableHeader>Actions</TableHeader>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-                {apartments.map((apartment) => (
-                    <tr key={apartment.id} className="hover:bg-gray-50">
-                        <TableCell className="font-medium">{apartment.name}</TableCell>
-
-                        <TableCell>
-                            <p className="truncate max-w-[200px]">{apartment.ubicacion || '-'}</p>
-                        </TableCell>
-
-                        <TableCell>
-                            <div className='max-w-40 overflow-hidden'>
-                                {apartment.tenant ? (
-                                    <div className='flex gap-2 items-center'> <img src={`/storage/${apartment.tenant.photo}`} className='h-12 w-12 object-cover rounded-full border-2 border-white' /> <div className="text-sm">
-                                        <p className="truncate line-clamp-1">{apartment.tenant.name}</p>
-                                        <p className="text-xs line-clamp-1 text-gray-500 truncate">{apartment.tenant.email}</p>
-                                    </div></div>
-
-                                ) : '-'}
-                            </div>
-                        </TableCell>
-
-                        <TableCell>
-                            <Button
-                                onClick={() => handleShowDevices(apartment)}
-                                variant="outline"
-                                className="gap-2"
-                            >
-                                <Laptop className="w-4 h-4" />
-                                {apartment.devices?.length || 0}
-                            </Button>
-                        </TableCell>
-
-                        <TableCell>
-                            <div className="flex items-center gap-2">
-                                <Switch
-                                    checked={apartment.status}
-                                    onCheckedChange={() => onToggleStatus(apartment)}
-                                    className="data-[state=checked]:bg-green-500"
-                                    disabled={isUpdatingStatus === apartment.id}
-                                />
-                                <StatusBadge status={apartment.status ? "active" : "inactive"} />
-                            </div>
-                        </TableCell>
-
-                        <TableCell>
-                            <div className="flex gap-2">
-                                <Button
-                                    onClick={() => onEdit(apartment)}
-                                    variant="ghost"
-                                    size="icon"
-                                >
-                                    <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                    onClick={() => onDelete(apartment)}
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-600 hover:text-red-700"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </Button>
-                            </div>
-                        </TableCell>
+    return (
+        <div className="rounded-md border">
+            <table className="w-full">
+                <thead>
+                    <tr className="border-b bg-muted/50">
+                        <th className="h-12 px-4 text-left align-middle font-medium">Inquilinos</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Nombre</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Ubicación</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Estado</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Compartido</th>
+                        <th className="h-12 px-4 text-left align-middle font-medium">Acciones</th>
                     </tr>
-                ))}
-            </tbody>
-        </table>
-    </div>
-);
+                </thead>
+                <tbody>
+                    {apartments.map((apartment) => (
+                        <>
+                            <tr key={apartment.id} className="border-b">
+                                <td 
+                                    className="p-4 align-middle cursor-pointer hover:bg-muted/50"
+                                    onClick={() => toggleRow(apartment.id)}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <ChevronRight 
+                                            className={`w-4 h-4 transition-transform ${
+                                                expandedRows.includes(apartment.id) ? 'rotate-90' : ''
+                                            }`}
+                                        />
+                                        <span>{apartment.tenants?.length || 0}</span>
+                                    </div>
+                                </td>
+                                <td className="p-4 align-middle">{apartment.name}</td>
+                                <td className="p-4 align-middle">{apartment.ubicacion}</td>
+                                <td className="p-4 align-middle">
+                                    <Switch
+                                        checked={apartment.status}
+                                        disabled={isUpdatingStatus === apartment.id}
+                                        onCheckedChange={() => onToggleStatus(apartment)}
+                                    />
+                                </td>
+                              
+                                <td className="p-4 align-middle">
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                          //  onClick={() => handleShowDevices(apartment,)}
+                                        >
+                                            <Laptop className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => onEdit(apartment)}
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => onDelete(apartment)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {expandedRows.includes(apartment.id) && apartment.tenants?.length > 0 && (
+                                <tr className="border-b bg-muted/20">
+                                    <td colSpan={6} className="p-4">
+                                        <div className="space-y-4">
+                                            {apartment.tenants.map((tenant) => (
+                                                <div key={tenant.id} className="flex items-center justify-between gap-4 p-4 bg-white rounded-lg shadow-sm">
+                                                    <div className="flex items-center gap-4">
+                                                        <img
+                                                            src={`/storage/${tenant.photo}`}
+                                                            alt={tenant.name}
+                                                            className="w-10 h-10 rounded-full object-cover"
+                                                        />
+                                                        <div>
+                                                            <p className="font-medium">{tenant.name}</p>
+                                                            <p className="text-sm text-muted-foreground">{tenant.email}</p>
+                                                            <p className="text-sm text-muted-foreground">{tenant.phone}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="flex items-center gap-2"
+                                                            onClick={() => handleShowDevices(apartment,tenant)}
+                                                        >
+                                                            <Laptop className="w-4 h-4" />
+                                                            <span>Dispositivos</span>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+};
 
 const StatusBadge = ({ status }: { status: string }) => (
     <span className={`px-2 py-1 rounded-full text-xs font-medium ${status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
