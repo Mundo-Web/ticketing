@@ -1,8 +1,9 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tenant } from '@/types/models/Tenant';
-import { Trash2, Plus, User } from 'lucide-react';
+import { Trash2, Plus, User, UploadCloud } from 'lucide-react';
 
 export const TenantForm = ({
     tenants,
@@ -26,7 +27,7 @@ export const TenantForm = ({
         newTenants[index] = { ...newTenants[index], [field]: value };
         onTenantsChange(newTenants);
     };
-
+console.log(tenants)
     return (
         <div className="space-y-6">
             {tenants.map((tenant, index) => (
@@ -56,39 +57,59 @@ export const TenantForm = ({
                                 htmlFor={`tenant-photo-${index}`}
                                 className="block aspect-square rounded-lg border-2 border-dashed cursor-pointer hover:border-primary transition-colors"
                             >
-                                {tenant.photo ? (
+                                {tenant?.photo ? (
                                     <img
-                                        src={tenant.photo instanceof File ? URL.createObjectURL(tenant.photo) : `/storage/${tenant.photo}`}
+                                    src={`/storage/${tenant.photo}`}
                                         alt={`Tenant ${index + 1}`}
                                         className="w-full h-full object-cover rounded-lg"
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <User className="w-8 h-8 text-muted-foreground" />
+                                    <div className="flex flex-col items-center justify-center p-4 text-center h-full">
+                                    <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center mb-3">
+                                        <UploadCloud className="w-6 h-6 text-muted-foreground" />
                                     </div>
+                                    <p className="text-sm font-medium text-muted-foreground mb-1">Drag & drop or click to upload</p>
+                                    <p className="text-xs text-muted-foreground">PNG, JPG or JPEG (max. 2MB)</p>
+                                </div>
                                 )}
                             </label>
                         </div>
 
                         <div className="md:col-span-3 space-y-4">
+                        <Label htmlFor="name">
+                                                Tenant Name <span className="text-red-500">*</span>
+                                            </Label>
                             <Input
                                 label="Name"
                                 value={tenant.name || ''}
                                 onChange={(e) => updateTenant(index, 'name', e.target.value)}
                                 error={errors[`tenants.${index}.name`]}
+                                className={`h-11 mt-2 ${errors.name ? 'border-red-500' : ''}`}
+                                required
                             />
+                              <Label htmlFor="name">
+                                                Email <span className="text-red-500">*</span>
+                                            </Label>
                             <Input
                                 label="Email"
                                 type="email"
                                 value={tenant.email || ''}
                                 onChange={(e) => updateTenant(index, 'email', e.target.value)}
                                 error={errors[`tenants.${index}.email`]}
+                                className={`h-11 mt-2 ${errors.name ? 'border-red-500' : ''}`}
+                                required
                             />
+
+<Label htmlFor="name">
+                                                Phone <span className="text-red-500">*</span>
+                                            </Label>
                             <Input
                                 label="Phone"
                                 value={tenant.phone || ''}
                                 onChange={(e) => updateTenant(index, 'phone', e.target.value)}
                                 error={errors[`tenants.${index}.phone`]}
+                                className={`h-11 mt-2 ${errors.name ? 'border-red-500' : ''}`}
+                                required
                             />
                         </div>
                     </div>
