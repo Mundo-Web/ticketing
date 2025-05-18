@@ -174,7 +174,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                 name: t.name || '',
                 email: t.email || '',
                 phone: t.phone || '',
-                photo: null // Mantener null pero usar t.photo para preview
+                photo:t.photo || null // Mantener null pero usar t.photo para preview
             })) || []
         });
         setCurrentApartment(apartment);
