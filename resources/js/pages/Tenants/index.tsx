@@ -60,6 +60,7 @@ interface Props {
     models: { id: number; name: string }[];
     systems: { id: number; name: string }[];
     name_devices: { id: number; name: string }[];
+
 }
 
 export default function Index({ apartments, brands, models, systems, name_devices }: Props) {
@@ -72,6 +73,7 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
     const [selectedDevices, setSelectedDevices] = useState<Device[]>([]);
     const [selectedShareDevices, setSelectedShareDevices] = useState<Device[]>([]);
+
     const [showDevicesModal, setShowDevicesModal] = useState(false);
     const [initialFormData, setInitialFormData] = useState<any>();
     const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -125,7 +127,7 @@ export default function Index({ apartments, brands, models, systems, name_device
 
         formData.append('name', data.name);
         formData.append('ubicacion', data.ubicacion);
-     
+
         data.tenants.forEach((tenant, index) => {
             formData.append(`tenants[${index}][name]`, tenant.name);
             formData.append(`tenants[${index}][email]`, tenant.email);
@@ -168,7 +170,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                 photoPreview: t.photo || ''
             })) || []
         };
-        
+
         setData(initialData);
         setInitialFormData(initialData);
         setCurrentApartment(apartment);
@@ -219,7 +221,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             ubicacion: '',
             tenants: []
         };
-        
+
         reset();
         setInitialFormData(emptyData);
         setCurrentApartment(null);
@@ -300,8 +302,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                     </div>
                 </div>
 
-                <Dialog 
-                    open={showCreateModal} 
+                <Dialog
+                    open={showCreateModal}
                     onOpenChange={(open) => {
                         if (!open && hasUnsavedChanges()) {
                             setShowConfirmClose(true);
@@ -363,25 +365,26 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         />
                                     </TabsContent>
 
-                                    <div className="flex justify-end gap-4 pt-8 pb-4">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="h-12"
-                                            onClick={() => setShowCreateModal(false)}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button
-                                            type="submit"
-                                            disabled={processing}
-                                            className="h-12"
-                                        >
-                                            {processing
-                                                ? (currentApartment ? 'Updating...' : 'Creating...')
-                                                : (currentApartment ? 'Update Apartment' : 'Create Apartment')}
-                                        </Button>
-                                    </div>
+                             
+                                    <div className="absolute bottom-0 left-0 right-0 z-[999] px-6 py-4 bg-card flex justify-end gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12"
+            onClick={() => setShowCreateModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={processing}
+            className="h-12"
+          >
+            {processing
+              ? (currentApartment ? 'Updating...' : 'Creating...')
+              : (currentApartment ? 'Update Apartment' : 'Create Apartment')}
+          </Button>
+        </div>
                                 </form>
                             </Tabs>
                         </div>
@@ -399,8 +402,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 <Button variant="outline" onClick={() => setShowConfirmClose(false)}>
                                     Cancelar
                                 </Button>
-                                <Button 
-                                    variant="destructive" 
+                                <Button
+                                    variant="destructive"
                                     onClick={() => {
                                         setShowCreateModal(false);
                                         setShowConfirmClose(false);
@@ -565,7 +568,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                     </tbody>
                                 </table>
                             </div>
-                            
+
                             {apartments.data.length > 0 && (
                                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
                                     <div className="text-sm text-muted-foreground">
@@ -645,10 +648,7 @@ const ApartmentRow = ({ apartment, onEdit, onDelete, onToggleStatus, isUpdatingS
                                             <p className="text-sm text-muted-foreground">{tenant.phone}</p>
                                         </div>
                                     </div>
-                                    <div className='flex gap-2 items-center'>
-                                    <Laptop className="w-4 h-4" />
-                                            <span>{Number(tenant.devices?.length)+Number(tenant.shared_devices?.length) || 0}</span>
-                                        </div>
+
                                     <div className="flex items-center gap-2">
                                         <Button
                                             variant="outline"
@@ -657,6 +657,7 @@ const ApartmentRow = ({ apartment, onEdit, onDelete, onToggleStatus, isUpdatingS
                                             onClick={() => handleShowDevices(apartment, tenant)}
                                         >
                                             <Laptop className="w-4 h-4" />
+                                            {Number(tenant.devices?.length) + Number(tenant.shared_devices?.length) || 0}
                                             <span>Devices</span>
                                         </Button>
                                     </div>
