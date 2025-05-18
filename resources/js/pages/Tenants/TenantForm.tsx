@@ -27,7 +27,7 @@ export const TenantForm = ({
         newTenants[index] = { ...newTenants[index], [field]: value };
         onTenantsChange(newTenants);
     };
-console.log(tenants)
+
     return (
         <div className="space-y-6">
             {tenants.map((tenant, index) => (
@@ -59,7 +59,7 @@ console.log(tenants)
                             >
                                 {tenant?.photo ? (
                                     <img
-                                    src={`/storage/${tenant.photo}`}
+                                        src={tenant.photo instanceof File ? URL.createObjectURL(tenant.photo) : `/storage/${tenant.photo}`}
                                         alt={`Tenant ${index + 1}`}
                                         className="w-full h-full object-cover rounded-lg"
                                     />
