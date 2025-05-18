@@ -449,7 +449,10 @@ export default function Index({ apartments, brands, models, systems, name_device
                 <Dialog open={showDevicesModal} onOpenChange={setShowDevicesModal}>
                     <DialogContent className="min-w-3xl">
                         <ModalDispositivos
-                            onClose={() => setShowDevicesModal(false)}
+                            onClose={() => {
+                                setShowDevicesModal(false);
+                                router.reload();
+                            }}
                             visible={showDevicesModal}
                             tenantName={selectedTenant?.name || ''}
                             devices={selectedDevices}
