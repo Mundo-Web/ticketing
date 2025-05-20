@@ -49,7 +49,7 @@ const ModalDispositivos = ({
     const [deviceShareList, setDeviceShareList] = useState<Device[]>(shareDevice);
     const [showForm, setShowForm] = useState(false);
     const [editMode, setEditMode] = useState(false);
-
+   
     useEffect(() => {
         setDeviceList(devices);
         setDeviceShareList(shareDevice);
@@ -71,14 +71,21 @@ const ModalDispositivos = ({
         tenants: [] as number[],
     });
 
-    const handleShareDevice = async (deviceId: number, tenantIds: number[]) => {
+    const handleShareDevice = async (deviceId: number, tenantIds: number[], unshareIds: number[] = []) => {
         try {
+            // Asegurarse de que unshareIds sea un array válido
+            const unshareIdsToSend = unshareIds;
+            
+            console.log("Compartiendo con:", tenantIds);
+            console.log("Descompartiendo con:", unshareIdsToSend);
+            
             const response = await axios.post(route('devices.share', deviceId), {
                 tenant_id: tenantId,
                 tenant_ids: tenantIds,
-                apartment_id: apartmentId
+                apartment_id: apartmentId,
+                unshare_tenant_ids: unshareIdsToSend  // Asegúrate de que este campo coincida con lo que espera tu backend
             });
-
+    
             if (response.data.success) {
                 const updatedDevice = response.data.device;
                 
@@ -89,20 +96,26 @@ const ModalDispositivos = ({
                     )
                 );
                 
+                // Verificar si el dispositivo actualizado está compartido con el inquilino actual
+                const isSharedWithCurrentTenant = updatedDevice.shared_with?.some(sw => sw.id === tenantId);
+                
                 // Actualizar lista de dispositivos compartidos
                 setDeviceShareList(prev => {
-                    const filtered = prev.filter(d => 
-                        d.id !== updatedDevice.id || 
-                        updatedDevice.shared_with?.some(sw => sw.id === tenantId)
-                    );
-                    
-                    if (updatedDevice.shared_with?.some(sw => tenantIds.includes(sw.id))) {
-                        return [...filtered, updatedDevice];
+                    // Si el dispositivo ya no está compartido con este inquilino, eliminarlo de la lista
+                    if (!isSharedWithCurrentTenant) {
+                        return prev.filter(d => d.id !== updatedDevice.id);
                     }
-                    return filtered;
+                    
+                    // Si el dispositivo está compartido con este inquilino, actualizarlo o agregarlo
+                    const deviceExists = prev.some(d => d.id === updatedDevice.id);
+                    if (deviceExists) {
+                        return prev.map(d => d.id === updatedDevice.id ? updatedDevice : d);
+                    } else {
+                        return [...prev, updatedDevice];
+                    }
                 });
-
-                toast.success('Dispositivo compartido exitosamente');
+    
+                toast.success(unshareIdsToSend.length > 0 ? 'Dispositivo actualizado exitosamente' : 'Dispositivo compartido exitosamente');
                 setShowShareModal(false);
             }
         } catch (error) {
@@ -137,9 +150,29 @@ const ModalDispositivos = ({
         setEditMode(true);
     };
 
+    const validateForm = () => {
+        const errors: string[] = [];
+        
+        if (!data.name_device_id && !data.new_name_device) {
+            errors.push('El nombre del dispositivo es requerido');
+        }
+        
+        if (!data.brand_id && !data.new_brand) {
+            errors.push('La marca es requerida');
+        }
+        
+        return errors;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
+        
+        const validationErrors = validateForm();
+        if (validationErrors.length > 0) {
+            validationErrors.forEach(error => toast.error(error));
+            return;
+        }
+        
         const payload = {
             ...data,
             ...(data.new_brand && { brand: data.new_brand }),
@@ -148,7 +181,7 @@ const ModalDispositivos = ({
             ...(data.new_name_device && { name_device: data.new_name_device }),
             tenants: data.tenants || []
         };
-
+    
         try {
             let response;
             if (editMode) {
@@ -156,7 +189,7 @@ const ModalDispositivos = ({
             } else {
                 response = await axios.post(route('devices.store'), payload);
             }
-
+    
             const updatedDevice = response.data.device;
             if (updatedDevice) {
                 if (editMode) {
@@ -173,8 +206,9 @@ const ModalDispositivos = ({
                 reset();
                 setShowForm(false);
             }
-        } catch (error) {
-            toast.error(editMode ? 'Error al actualizar' : 'Error al crear');
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.message || (editMode ? 'Error al actualizar' : 'Error al crear');
+            toast.error(errorMessage);
             console.error(error);
         }
     };
@@ -226,6 +260,7 @@ const ModalDispositivos = ({
 
     if (!visible) return null;
 
+   console.log(tenants)
     return (
         <Dialog open={visible} onOpenChange={onClose}>
             <DialogContent className="min-w-[800px] max-h-[90vh] overflow-y-auto">
@@ -419,7 +454,7 @@ const ModalDispositivos = ({
                                         <div className="flex flex-wrap gap-1">
                                             {device.owner && (
                                                 <span key={device.owner.id} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                                    Own: {device.owner[0].name}
+                                                    Own: {device.owner.name || (Array.isArray(device.owner) && device.owner[0]?.name) || 'Unknown'}
                                                 </span>
                                             )}
                                         </div>
@@ -436,12 +471,10 @@ const ModalDispositivos = ({
                 {showShareModal && selectedDevice && (
                     <DeviceShareModal
                         device={selectedDevice}
-                        tenants={tenants.filter(t =>
-                            t.id !== tenantId &&
-                            !selectedDevice.shared_with?.some(sw => sw.id === t.id)
-                        )}
+                        tenants={tenants.filter(t => t.id !== tenantId)}
+                        sharedWithIds={selectedDevice.shared_with?.map(t => t.id) || []}
                         onClose={() => setShowShareModal(false)}
-                        onShare={(tenantIds) => handleShareDevice(selectedDevice.id, tenantIds)}
+                        onShare={(selectedIds, unshareIds) => handleShareDevice(selectedDevice.id, selectedIds, unshareIds)}
                     />
                 )}
             </DialogContent>
@@ -449,67 +482,89 @@ const ModalDispositivos = ({
     );
 };
 
-const DeviceShareModal = ({
-    device,
-    tenants,
-    onClose,
-    onShare
-}: {
+interface DeviceShareModalProps {
     device: Device;
     tenants: Tenant[];
+    sharedWithIds: number[];
     onClose: () => void;
-    onShare: (tenantIds: number[]) => void;
-}) => {
-    const [selectedTenants, setSelectedTenants] = useState<number[]>([]);
+    onShare: (selectedIds: number[], unshareIds: number[]) => void;
+}
+
+const DeviceShareModal = ({ device, tenants, sharedWithIds, onClose, onShare }: DeviceShareModalProps) => {
+    // Inicializar con los IDs de inquilinos con los que ya está compartido
+    const [selectedTenants, setSelectedTenants] = useState<number[]>(sharedWithIds || []);
+    const [unsharedTenants, setUnsharedTenants] = useState<number[]>([]);
+    
+    // Agregar un console.log para depuración
+    useEffect(() => {
+        console.log("Inquilinos seleccionados:", selectedTenants);
+        console.log("Inquilinos descompartidos:", unsharedTenants);
+    }, [selectedTenants, unsharedTenants]);
+    
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        console.log("Enviando descompartidos:", unsharedTenants);
+        // Pasar los IDs seleccionados y los IDs para descompartir a la función onShare
+        onShare(selectedTenants, unsharedTenants);
+    };
 
     return (
         <Dialog open={true} onOpenChange={onClose}>
-            <DialogContent>
+            <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Shared {device.name_device?.name || 'device'}</DialogTitle>
+                    <DialogTitle>Compartir dispositivo</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                    {tenants.length > 0 ? (
-                        tenants.map(tenant => (
-                            <div key={tenant.id} className="flex items-center gap-3">
-                                <Checkbox
-                                    id={`share-tenant-${tenant.id}`}
-                                    checked={selectedTenants.includes(tenant.id)}
-                                    onCheckedChange={(checked) => {
-                                        setSelectedTenants(prev =>
-                                            checked
-                                                ? [...prev, tenant.id]
-                                                : prev.filter(id => id !== tenant.id)
-                         ) }}
-                                />
-                                <Label htmlFor={`share-tenant-${tenant.id}`} className="flex items-center gap-2">
-                                    {tenant.photo && (
-                                        <img 
-                                            src={`/storage/${tenant.photo}`} 
-                                            alt={tenant.name}
-                                            className="w-8 h-8 rounded-full object-cover"
-                                        />
-                                    )}
-                                    <div>
-                                        <p className="font-medium">{tenant.name}</p>
-                                        <p className="text-sm text-gray-500">{tenant.email}</p>
-                                    </div>
-                                </Label>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-4">
+                        <Label>Selecciona inquilinos para compartir</Label>
+                        {tenants.length === 0 ? (
+                            <p className="text-sm text-gray-500">No hay inquilinos disponibles para compartir</p>
+                        ) : (
+                            <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-3">
+                                {tenants.map((tenant) => {
+                                    const wasShared = sharedWithIds.includes(tenant.id);
+                                    const isSelected = selectedTenants.includes(tenant.id);
+                                    
+                                    return (
+                                        <div key={tenant.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`tenant-${tenant.id}`}
+                                                checked={isSelected}
+                                                onCheckedChange={(checked) => {
+                                                    if (checked) {
+                                                        // Agregar a seleccionados
+                                                        setSelectedTenants(prev => [...prev, tenant.id]);
+                                                        // Si estaba en la lista de descompartidos, quitarlo
+                                                        setUnsharedTenants(prev => prev.filter(id => id !== tenant.id));
+                                                    } else {
+                                                        // Quitar de seleccionados
+                                                        setSelectedTenants(prev => prev.filter(id => id !== tenant.id));
+                                                        // Si estaba compartido anteriormente, agregarlo a descompartidos
+                                                        if (wasShared) {
+                                                            setUnsharedTenants(prev => [...prev, tenant.id]);
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                            <img src={`/storage/${tenant.photo}`} className='h-8 w-8 rounded-full object-cover'/>
+                                            <Label htmlFor={`tenant-${tenant.id}`} className="cursor-pointer">
+                                                {tenant.name}
+                                            </Label>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        ))
-                    ) : (
-                        <p className="text-gray-500 text-center py-4">There are no tenants available to share.</p>
-                    )}
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>Cancel</Button>
-                    <Button 
-                        onClick={() => onShare(selectedTenants)}
-                        disabled={selectedTenants.length === 0}
-                    >
-                        Shared
-                    </Button>
-                </DialogFooter>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={onClose}>
+                            Cancelar
+                        </Button>
+                        <Button type="submit">
+                            Guardar
+                        </Button>
+                    </DialogFooter>
+                </form>
             </DialogContent>
         </Dialog>
     );
