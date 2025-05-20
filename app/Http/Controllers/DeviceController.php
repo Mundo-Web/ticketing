@@ -285,7 +285,7 @@ class DeviceController extends Controller
     private function processBrand(Request $request)
     {
         if ($request->filled('new_brand')) {
-            $brand = Brand::firstOrCreate(['name' => $request->new_brand]);
+            $brand = Brand::firstOrCreate(['name' => $request->new_brand,  'name_device_id' => $this->processNameDevice($request)]);
             return $brand->id;
         }
         return $request->brand_id;

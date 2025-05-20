@@ -285,177 +285,200 @@ const ModalDispositivos = ({
         }
     };
 
-/**EDITAR */
+    /**EDITAR */
+    // Estados nuevos para edición
+    const [editItem, setEditItem] = useState<{
+        type: 'brand' | 'model' | 'system' | 'name_device';
+        id: number;
+        name: string;
+    } | null>(null);
 
-// Estados nuevos para edición
-const [editItem, setEditItem] = useState<{
-    type: 'brand' | 'model' | 'system' | 'name_device';
-    id: number;
-    name: string;
-  } | null>(null);
-  
-  // Modal de edición
-  const EditModal = () => (
-    <Dialog open={!!editItem} onOpenChange={() => setEditItem(null)}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Editar {editItem?.type}</DialogTitle>
-        </DialogHeader>
-        <div className="py-4">
-          <Input
-            value={editItem?.name || ''}
-            onChange={(e) => editItem && setEditItem({...editItem, name: e.target.value})}
-          />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setEditItem(null)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleEditItem}>
-            Guardar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-  
-  // Handler para guardar cambios
-  const handleEditItem = async () => {
-    if (!editItem) return;
-  
-    try {
-      const endpoint = {
-        brand: 'brands.update',
-        model: 'models.update',
-        system: 'systems.update',
-        name_device: 'name_devices.update'
-      }[editItem.type];
-  
-      const response = await axios.put(route(endpoint, editItem.id), {
-        name: editItem.name
-      });
-  
-      // Actualizar estado local
-      switch(editItem.type) {
-        case 'brand':
-          setLocalBrands(prev => 
-            prev.map(b => b.id === editItem.id ? {...b, name: editItem.name} : b)
-          );
-          break;
-        case 'model':
-          setLocalModels(prev => 
-            prev.map(m => m.id === editItem.id ? {...m, name: editItem.name} : m)
-          );
-          break;
-        case 'system':
-          setLocalSystems(prev => 
-            prev.map(s => s.id === editItem.id ? {...s, name: editItem.name} : s)
-          );
-          break;
-        case 'name_device':
-          setLocalNameDevices(prev => 
-            prev.map(n => n.id === editItem.id ? {...n, name: editItem.name} : n)
-          );
-          break;
-      }
-  
-      toast.success('Actualizado correctamente');
-      setEditItem(null);
-    } catch (error) {
-      toast.error('Error al actualizar');
-    }
-  };
+    const EditModal = () => {
+        const [editName, setEditName] = useState(editItem?.name || '');
 
+        useEffect(() => {
+            setEditName(editItem?.name || '');
+        }, [editItem]);
 
-  const CustomOption = ({ children, ...props }: any) => (
-    <components.Option {...props}>
-      <div className="flex items-center justify-between w-full">
-        <div>{children}</div>
-        {!props.data.__isNew__ && props.data.value && (
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditItem({
-                  type: props.data.type,
-                  id: parseInt(props.data.value),
-                  name: props.data.label
+        const handleSave = async () => {
+            if (!editItem) return;
+            
+            try {
+                const endpoint = {
+                    brand: 'brands.update',
+                    model: 'models.update', 
+                    system: 'systems.update',
+                    name_device: 'name_devices.update'
+                }[editItem.type];
+
+                const response = await axios.put(route(endpoint, editItem.id), {
+                    name: editName // Send editName instead of editItem.name
                 });
-              }}
-            >
-              <Edit className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteItem(
-                  parseInt(props.data.value),
-                  props.data.type
-                );
-              }}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
-      </div>
-    </components.Option>
-  );
+
+                // Update local state with new name
+                switch (editItem.type) {
+                    case 'brand':
+                        setLocalBrands(prev =>
+                            prev.map(b => b.id === editItem.id ? { ...b, name: editName } : b)
+                        );
+                        break;
+                    case 'model':
+                        setLocalModels(prev =>
+                            prev.map(m => m.id === editItem.id ? { ...m, name: editName } : m)
+                        );
+                        break;
+                    case 'system':
+                        setLocalSystems(prev =>
+                            prev.map(s => s.id === editItem.id ? { ...s, name: editName } : s)
+                        );
+                        break;
+                    case 'name_device':
+                        setLocalNameDevices(prev =>
+                            prev.map(n => n.id === editItem.id ? { ...n, name: editName } : n)
+                        );
+                        break;
+                }
+
+                toast.success('Actualizado correctamente');
+                setEditItem(null);
+            } catch (error) {
+                toast.error('Error al actualizar');
+            }
+        };
+
+        return (
+            <Dialog open={!!editItem} onOpenChange={() => setEditItem(null)}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Editar {editItem?.type}</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditItem(null)}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleSave}>
+                            Guardar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        );
+    };
+
+    // Handler para guardar cambios - Removed as it's now integrated into EditModal
+
+    const CustomOption = ({ children, ...props }: any) => (
+        <components.Option {...props}>
+            <div className="flex items-center justify-between w-full">
+                <div>{children}</div>
+                {!props.data.__isNew__ && props.data.value && (
+                    <div className="flex gap-1">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setEditItem({
+                                    type: props.data.type,
+                                    id: parseInt(props.data.value),
+                                    name: props.data.label
+                                });
+                            }}
+                        >
+                            <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteItem(
+                                    parseInt(props.data.value),
+                                    props.data.type
+                                );
+                            }}
+                        >
+                            <Trash2 className="h-3 w-3" />
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </components.Option>
+    );
 
     // Estados para filtros relacionados
+    const [filteredBrands, setFilteredBrands] = useState(brands);
     const [filteredModels, setFilteredModels] = useState(models);
     const [filteredSystems, setFilteredSystems] = useState(systems);
     const [filteredNameDevices, setFilteredNameDevices] = useState(name_devices);
-    
+
     // Función para filtrar modelos basados en la marca seleccionada
+
+    const filterBrandsByName = (NameDeviceId: string) => {
+        if (!NameDeviceId) {
+            setFilteredBrands(models);
+            return;
+        }
+
+        const filtered = brands.filter(brand => brand.name_device_id?.toString() === NameDeviceId);
+        setFilteredBrands(filtered.length > 0 ? filtered : brands);
+    };
+
     const filterModelsByBrand = (brandId: string) => {
         if (!brandId) {
             setFilteredModels(models);
             return;
         }
-        
+
         const filtered = models.filter(model => model.brand_id?.toString() === brandId);
         setFilteredModels(filtered.length > 0 ? filtered : models);
     };
-    
+
     // Función para filtrar sistemas basados en el modelo seleccionado
     const filterSystemsByModel = (modelId: string) => {
         if (!modelId) {
             setFilteredSystems(systems);
             return;
         }
-        
+
         const filtered = systems.filter(system => system.model_id?.toString() === modelId);
         setFilteredSystems(filtered.length > 0 ? filtered : systems);
     };
-    
+
     // Función para filtrar nombres de dispositivos basados en el sistema seleccionado
     const filterNameDevicesBySystem = (systemId: string) => {
         if (!systemId) {
             setFilteredNameDevices(name_devices);
             return;
         }
-        
+
         const filtered = name_devices.filter(nameDevice => nameDevice.system_id?.toString() === systemId);
         setFilteredNameDevices(filtered.length > 0 ? filtered : name_devices);
     };
-    
+
     // Actualizar filtros cuando cambia la selección
     useEffect(() => {
+
+        if (data.name_device_id) {
+            filterBrandsByName(data.name_device_id);
+        }
+
         if (data.brand_id) {
             filterModelsByBrand(data.brand_id);
         }
-        
+
         if (data.model_id) {
             filterSystemsByModel(data.model_id);
         }
-        
+
         if (data.system_id) {
             filterNameDevicesBySystem(data.system_id);
         }
@@ -471,9 +494,23 @@ const [editItem, setEditItem] = useState<{
             [key_id]: isNew ? '' : selected?.value || '',
             [key_new]: isNew ? selected?.label : ''
         });
-        
+
         // Aplicar filtros cuando cambia la selección
-        if (type === 'brand' && !isNew) {
+        if (type === 'name_device' && !isNew) {
+            filterBrandsByName(selected?.value || '');
+            setData(prev => ({
+                ...prev,
+                brand_id: '',
+                new_brand: '',
+                model_id: '',
+                new_model: '',
+                system_id: '',
+                new_system: '',
+
+            }));
+
+        }
+        else if (type === 'brand' && !isNew) {
             filterModelsByBrand(selected?.value || '');
             // Resetear selecciones dependientes
             setData(prev => ({
@@ -482,7 +519,7 @@ const [editItem, setEditItem] = useState<{
                 new_model: '',
                 system_id: '',
                 new_system: '',
-            
+
             }));
         } else if (type === 'model' && !isNew) {
             filterSystemsByModel(selected?.value || '');
@@ -491,14 +528,14 @@ const [editItem, setEditItem] = useState<{
                 ...prev,
                 system_id: '',
                 new_system: '',
-             
+
             }));
         } else if (type === 'system' && !isNew) {
             filterNameDevicesBySystem(selected?.value || '');
             // Resetear selecciones dependientes
             setData(prev => ({
                 ...prev,
-               
+
             }));
         }
     };
@@ -577,8 +614,8 @@ const [editItem, setEditItem] = useState<{
                                     isClearable
                                     placeholder="Seleccionar o crear"
                                     onChange={(option) => handleSelectChange(option, 'brand')}
-                                    options={prepareOptions(localBrands, 'brand')}
-                                    value={getSelectedValue(data.brand_id, data.new_brand, localBrands)}
+                                    options={prepareOptions(filteredBrands, 'brand')}
+                                    value={getSelectedValue(data.brand_id, data.new_brand, filteredBrands)}
                                     className="react-select-container"
                                     classNamePrefix="react-select"
                                 />
@@ -737,12 +774,12 @@ const [editItem, setEditItem] = useState<{
 
                                                     <TooltipProvider>
                                                         <Tooltip>
-                                                            <TooltipTrigger>   
+                                                            <TooltipTrigger>
                                                                 <img
-                                                                src={`/storage/${device?.owner[0].photo}`}
-                                                                alt={device.owner[0].name}
-                                                                className="w-6 h-6 object-cover rounded-full"
-                                                            /></TooltipTrigger>
+                                                                    src={`/storage/${device?.owner[0].photo}`}
+                                                                    alt={device.owner[0].name}
+                                                                    className="w-6 h-6 object-cover rounded-full"
+                                                                /></TooltipTrigger>
                                                             <TooltipContent>
                                                                 <p>  Own: {device.owner[0].name || (Array.isArray(device.owner) && device.owner[0]?.name) || 'Unknown'}</p>
                                                             </TooltipContent>
@@ -771,7 +808,7 @@ const [editItem, setEditItem] = useState<{
                         onShare={(selectedIds, unshareIds) => handleShareDevice(selectedDevice.id, selectedIds, unshareIds)}
                     />
                 )}
-                 <EditModal />
+                <EditModal />
                 <ConfirmDeleteModal />
             </DialogContent>
         </Dialog>

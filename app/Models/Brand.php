@@ -14,5 +14,11 @@ class Brand extends Model
     protected $fillable = [
         'name',
         'status',
+        'name_device_id'
     ];
+
+    public function nameDevice()
+    {
+        return $this->belongsTo(NameDevice::class);
+    }
 }
