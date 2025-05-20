@@ -561,18 +561,18 @@ const ModalDispositivos = ({
         <Dialog open={visible} onOpenChange={onClose}>
             <DialogContent className="min-w-[800px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="text-2xl flex justify-between">
+                    <DialogTitle className="text-2xl flex justify-between relative">
                         <div>
                             Devices of {tenantName?.name}
                             <span className="text-sm font-normal ml-2">
                                 ({deviceList.length} own, {deviceShareList.length} shared)
                             </span>
                         </div>
-                        <div className='px-8'>
+                        <div className='relative mx-4'>
                             <img
                                 src={`/storage/${tenantName?.photo}`}
                                 alt={tenantName?.name}
-                                className="w-10 h-10 object-cover rounded-full ml-2"
+                                className="w-20 h-20 object-cover rounded-full border-4 border-secondary fixed right-16"
                             />
                         </div>
                     </DialogTitle>
@@ -714,7 +714,7 @@ const ModalDispositivos = ({
                                                             <TooltipTrigger>   <img
                                                                 src={`/storage/${tenant.photo}`}
                                                                 alt={tenant.name}
-                                                                className="w-6 h-6 object-cover rounded-full"
+                                                                className="w-8 h-8 object-cover rounded-full border-2 border-blue-400"
                                                             /></TooltipTrigger>
                                                             <TooltipContent>
                                                                 <p>{tenant.name}</p>
@@ -778,7 +778,7 @@ const ModalDispositivos = ({
                                                                 <img
                                                                     src={`/storage/${device?.owner[0].photo}`}
                                                                     alt={device.owner[0].name}
-                                                                    className="w-6 h-6 object-cover rounded-full"
+                                                                    className="w-8 h-8 object-cover rounded-full border-2 border-green-500"
                                                                 /></TooltipTrigger>
                                                             <TooltipContent>
                                                                 <p>  Own: {device.owner[0].name || (Array.isArray(device.owner) && device.owner[0]?.name) || 'Unknown'}</p>
