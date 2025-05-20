@@ -13,11 +13,12 @@ import { Device } from '@/types/models/Device';
 import { Tenant } from '@/types/models/Tenant';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Select, { components } from 'react-select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ModalDispositivosProps {
     visible: boolean;
     onClose: () => void;
-    tenantName: string;
+    tenantName: Tenant;
     devices: Device[];
     shareDevice: Device[];
     brands: any[];
@@ -47,6 +48,8 @@ const ModalDispositivos = ({
     const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
     const [deviceList, setDeviceList] = useState<Device[]>(devices);
     const [deviceShareList, setDeviceShareList] = useState<Device[]>(shareDevice);
+
+    console.log(deviceShareList)
     const [showForm, setShowForm] = useState(false);
     const [editMode, setEditMode] = useState(false);
 
@@ -277,30 +280,128 @@ const ModalDispositivos = ({
         }
     };
 
-    const CustomOption = ({ children, ...props }: any) => (
-        <components.Option {...props}>
-            <div className="flex items-center justify-between w-full">
-                <div>{children}</div>
-                {!props.data.__isNew__ && props.data.value && (
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteItem(
-                                parseInt(props.data.value),
-                                props.data.type
-                            );
-                        }}
-                    >
-                        <Trash2 className="h-3 w-3" />
-                    </Button>
-                )}
-            </div>
-        </components.Option>
-    );
+/**EDITAR */
+
+// Estados nuevos para edición
+const [editItem, setEditItem] = useState<{
+    type: 'brand' | 'model' | 'system' | 'name_device';
+    id: number;
+    name: string;
+  } | null>(null);
+  
+  // Modal de edición
+  const EditModal = () => (
+    <Dialog open={!!editItem} onOpenChange={() => setEditItem(null)}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Editar {editItem?.type}</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <Input
+            value={editItem?.name || ''}
+            onChange={(e) => editItem && setEditItem({...editItem, name: e.target.value})}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setEditItem(null)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleEditItem}>
+            Guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+  
+  // Handler para guardar cambios
+  const handleEditItem = async () => {
+    if (!editItem) return;
+  
+    try {
+      const endpoint = {
+        brand: 'brands.update',
+        model: 'models.update',
+        system: 'systems.update',
+        name_device: 'name_devices.update'
+      }[editItem.type];
+  
+      const response = await axios.put(route(endpoint, editItem.id), {
+        name: editItem.name
+      });
+  
+      // Actualizar estado local
+      switch(editItem.type) {
+        case 'brand':
+          setLocalBrands(prev => 
+            prev.map(b => b.id === editItem.id ? {...b, name: editItem.name} : b)
+          );
+          break;
+        case 'model':
+          setLocalModels(prev => 
+            prev.map(m => m.id === editItem.id ? {...m, name: editItem.name} : m)
+          );
+          break;
+        case 'system':
+          setLocalSystems(prev => 
+            prev.map(s => s.id === editItem.id ? {...s, name: editItem.name} : s)
+          );
+          break;
+        case 'name_device':
+          setLocalNameDevices(prev => 
+            prev.map(n => n.id === editItem.id ? {...n, name: editItem.name} : n)
+          );
+          break;
+      }
+  
+      toast.success('Actualizado correctamente');
+      setEditItem(null);
+    } catch (error) {
+      toast.error('Error al actualizar');
+    }
+  };
+
+
+  const CustomOption = ({ children, ...props }: any) => (
+    <components.Option {...props}>
+      <div className="flex items-center justify-between w-full">
+        <div>{children}</div>
+        {!props.data.__isNew__ && props.data.value && (
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditItem({
+                  type: props.data.type,
+                  id: parseInt(props.data.value),
+                  name: props.data.label
+                });
+              }}
+            >
+              <Edit className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteItem(
+                  parseInt(props.data.value),
+                  props.data.type
+                );
+              }}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+      </div>
+    </components.Option>
+  );
 
     const handleSelectChange = (selected: any, type: 'brand' | 'model' | 'system' | 'name_device') => {
         const isNew = selected?.__isNew__ ?? false;
@@ -335,11 +436,20 @@ const ModalDispositivos = ({
         <Dialog open={visible} onOpenChange={onClose}>
             <DialogContent className="min-w-[800px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="text-2xl">
-                        Dispositivos de {tenantName}
-                        <span className="text-sm font-normal ml-2">
-                            ({deviceList.length} propios, {deviceShareList.length} compartidos)
-                        </span>
+                    <DialogTitle className="text-2xl flex justify-between">
+                        <div>
+                            Devices of {tenantName?.name}
+                            <span className="text-sm font-normal ml-2">
+                                ({deviceList.length} own, {deviceShareList.length} shared)
+                            </span>
+                        </div>
+                        <div className='px-8'>
+                            <img
+                                src={`/storage/${tenantName?.photo}`}
+                                alt={tenantName?.name}
+                                className="w-10 h-10 object-cover rounded-full ml-2"
+                            />
+                        </div>
                     </DialogTitle>
                 </DialogHeader>
 
@@ -473,9 +583,22 @@ const ModalDispositivos = ({
                                         <td className="px-4 py-3">
                                             <div className="flex flex-wrap gap-1">
                                                 {device.shared_with?.map(tenant => (
-                                                    <span key={tenant.id} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                                        {tenant.name}
-                                                    </span>
+
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger>   <img
+                                                                src={`/storage/${tenant.photo}`}
+                                                                alt={tenant.name}
+                                                                className="w-6 h-6 object-cover rounded-full"
+                                                            /></TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>{tenant.name}</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+
+
+
                                                 ))}
                                             </div>
                                         </td>
@@ -522,9 +645,22 @@ const ModalDispositivos = ({
                                         <td className="px-4 py-3">
                                             <div className="flex flex-wrap gap-1">
                                                 {device.owner && (
-                                                    <span key={device.owner.id} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                                        Own: {device.owner.name || (Array.isArray(device.owner) && device.owner[0]?.name) || 'Unknown'}
-                                                    </span>
+
+
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger>   
+                                                                <img
+                                                                src={`/storage/${device?.owner[0].photo}`}
+                                                                alt={device.owner[0].name}
+                                                                className="w-6 h-6 object-cover rounded-full"
+                                                            /></TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>  Own: {device.owner[0].name || (Array.isArray(device.owner) && device.owner[0]?.name) || 'Unknown'}</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+
                                                 )}
                                             </div>
                                         </td>
@@ -547,7 +683,8 @@ const ModalDispositivos = ({
                         onShare={(selectedIds, unshareIds) => handleShareDevice(selectedDevice.id, selectedIds, unshareIds)}
                     />
                 )}
-                  <ConfirmDeleteModal />
+                 <EditModal />
+                <ConfirmDeleteModal />
             </DialogContent>
         </Dialog>
     );

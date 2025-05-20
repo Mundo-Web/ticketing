@@ -57,14 +57,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('devices.share');
     Route::delete('/delete/brand/{id}', [DeviceController::class, 'destroyBrand'])
         ->name('brands.destroy');
-    
-        Route::delete('/delete/model/{id}', [DeviceController::class, 'destroyModel'])
+
+    Route::delete('/delete/model/{id}', [DeviceController::class, 'destroyModel'])
         ->name('models.destroy');
 
-        Route::delete('/delete/system/{id}', [DeviceController::class, 'destroySystem'])
+    Route::delete('/delete/system/{id}', [DeviceController::class, 'destroySystem'])
         ->name('systems.destroy');
-        Route::delete('/delete/name_device/{id}', [DeviceController::class, 'destroyNameDevice'])
+    Route::delete('/delete/name_device/{id}', [DeviceController::class, 'destroyNameDevice'])
         ->name('name_devices.destroy');
+
+    Route::put('/brands/{brand}', [DeviceController::class, 'updateBrand'])->name('brands.update');
+    Route::put('/models/{model}', [DeviceController::class, 'updateModel'])->name('models.update');
+    Route::put('/systems/{system}', [DeviceController::class, 'updateSystem'])->name('systems.update');
+    Route::put('/name_devices/{name_device}', [DeviceController::class, 'updateNameDevice'])->name('name_devices.update');
 });
 
 require __DIR__ . '/settings.php';

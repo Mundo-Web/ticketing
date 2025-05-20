@@ -456,7 +456,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 router.reload();
                             }}
                             visible={showDevicesModal}
-                            tenantName={selectedTenant?.name || ''}
+                            tenantName={selectedTenant}
                             devices={selectedDevices}
                             shareDevice={selectedShareDevices}
                             brands={brands}
@@ -551,7 +551,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b bg-muted/50">
-                                            <th className="h-12 px-4 text-left align-middle font-medium">Tenants</th>
+                                            <th className="h-12 px-4 text-left align-middle font-medium">Members</th>
                                             <th className="h-12 px-4 text-left align-middle font-medium">Apartment</th>
                                             <th className="h-12 px-4 text-left align-middle font-medium">Ubication</th>
                                             <th className="h-12 px-4 text-left align-middle font-medium">State</th>

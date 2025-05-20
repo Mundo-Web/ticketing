@@ -331,7 +331,7 @@ class DeviceController extends Controller
     }
 
     // ModelController.php
-    public function destroyModel(DeviceModel $model,$id)
+    public function destroyModel(DeviceModel $model, $id)
     {
         try {
             $model = DeviceModel::findOrFail($id);
@@ -343,7 +343,7 @@ class DeviceController extends Controller
     }
 
     // SystemController.php
-    public function destroySystem(System $system,$id)
+    public function destroySystem(System $system, $id)
     {
         try {
             $system = System::findOrFail($id);
@@ -355,7 +355,7 @@ class DeviceController extends Controller
     }
 
     // NameDeviceController.php
-    public function destroyNameDevice(NameDevice $nameDevice,$id)
+    public function destroyNameDevice(NameDevice $nameDevice, $id)
     {
         try {
             $nameDevice = NameDevice::findOrFail($id);
@@ -363,6 +363,56 @@ class DeviceController extends Controller
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+
+    // Métodos de actualización
+    public function updateBrand(Request $request, Brand $brand)
+    {
+        $request->validate(['name' => 'required|string|max:255']);
+
+        try {
+            $brand->update($request->all());
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false], 500);
+        }
+    }
+
+    public function updateModel(Request $request, DeviceModel $model)
+    {
+        $request->validate(['name' => 'required|string|max:255']);
+
+        try {
+            $model->update($request->all());
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false], 500);
+        }
+    }
+
+    public function updateSystem(Request $request, System $system)
+    {
+        $request->validate(['name' => 'required|string|max:255']);
+
+        try {
+            $system->update($request->all());
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false], 500);
+        }
+    }
+
+    public function updateNameDevice(Request $request, NameDevice $nameDevice)
+    {
+        $request->validate(['name' => 'required|string|max:255']);
+
+        try {
+            $nameDevice->update($request->all());
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false], 500);
         }
     }
 }
