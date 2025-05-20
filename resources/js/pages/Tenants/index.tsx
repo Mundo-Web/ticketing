@@ -358,15 +358,17 @@ export default function Index({ apartments, brands, models, systems, name_device
                                     </TabsContent>
 
                                     <TabsContent value="tenant" className="space-y-6">
-                                        <TenantForm
+                                       <div className='h-[400px] max-h-[400px] overflow-y-auto'>
+                                       <TenantForm
                                             tenants={data.tenants}
                                             onTenantsChange={(tenants) => setData('tenants', tenants)}
                                             errors={errors}
                                         />
+                                       </div>
                                     </TabsContent>
 
                              
-                                    <div className="absolute bottom-0 left-0 right-0 z-[999] px-6 py-4 bg-card flex justify-end gap-4">
+                                    <div className=" px-6 py-4 bg-card flex justify-end gap-4">
           <Button
             type="button"
             variant="outline"
