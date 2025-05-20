@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Device } from '@/types/models/Device';
 import { Tenant } from '@/types/models/Tenant';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import Select from 'react-select';
+import Select, { components } from 'react-select';
 
 interface ModalDispositivosProps {
     visible: boolean;
@@ -49,11 +49,22 @@ const ModalDispositivos = ({
     const [deviceShareList, setDeviceShareList] = useState<Device[]>(shareDevice);
     const [showForm, setShowForm] = useState(false);
     const [editMode, setEditMode] = useState(false);
-   
+
+    // Estados locales para las opciones
+    const [localBrands, setLocalBrands] = useState(brands);
+    const [localModels, setLocalModels] = useState(models);
+    const [localSystems, setLocalSystems] = useState(systems);
+    const [localNameDevices, setLocalNameDevices] = useState(name_devices);
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{ type: string; id: number | null }>({ type: '', id: null });
     useEffect(() => {
         setDeviceList(devices);
         setDeviceShareList(shareDevice);
-    }, [devices, shareDevice]);
+        // Sincronizar estados locales cuando cambian las props
+        setLocalBrands(brands);
+        setLocalModels(models);
+        setLocalSystems(systems);
+        setLocalNameDevices(name_devices);
+    }, [devices, shareDevice, brands, models, systems, name_devices]);
 
     const { data, setData, reset } = useForm({
         id: null as number | null,
@@ -73,49 +84,34 @@ const ModalDispositivos = ({
 
     const handleShareDevice = async (deviceId: number, tenantIds: number[], unshareIds: number[] = []) => {
         try {
-            // Asegurarse de que unshareIds sea un array válido
-            const unshareIdsToSend = unshareIds;
-            
-            console.log("Compartiendo con:", tenantIds);
-            console.log("Descompartiendo con:", unshareIdsToSend);
-            
             const response = await axios.post(route('devices.share', deviceId), {
                 tenant_id: tenantId,
                 tenant_ids: tenantIds,
                 apartment_id: apartmentId,
-                unshare_tenant_ids: unshareIdsToSend  // Asegúrate de que este campo coincida con lo que espera tu backend
+                unshare_tenant_ids: unshareIds
             });
-    
+
             if (response.data.success) {
                 const updatedDevice = response.data.device;
-                
-                // Actualizar lista de dispositivos propios
-                setDeviceList(prev => 
-                    prev.map(device => 
+
+                setDeviceList(prev =>
+                    prev.map(device =>
                         device.id === updatedDevice.id ? updatedDevice : device
                     )
                 );
-                
-                // Verificar si el dispositivo actualizado está compartido con el inquilino actual
+
                 const isSharedWithCurrentTenant = updatedDevice.shared_with?.some(sw => sw.id === tenantId);
-                
-                // Actualizar lista de dispositivos compartidos
+
                 setDeviceShareList(prev => {
-                    // Si el dispositivo ya no está compartido con este inquilino, eliminarlo de la lista
                     if (!isSharedWithCurrentTenant) {
                         return prev.filter(d => d.id !== updatedDevice.id);
                     }
-                    
-                    // Si el dispositivo está compartido con este inquilino, actualizarlo o agregarlo
+
                     const deviceExists = prev.some(d => d.id === updatedDevice.id);
-                    if (deviceExists) {
-                        return prev.map(d => d.id === updatedDevice.id ? updatedDevice : d);
-                    } else {
-                        return [...prev, updatedDevice];
-                    }
+                    return deviceExists ? prev.map(d => d.id === updatedDevice.id ? updatedDevice : d) : [...prev, updatedDevice];
                 });
-    
-                toast.success(unshareIdsToSend.length > 0 ? 'Dispositivo actualizado exitosamente' : 'Dispositivo compartido exitosamente');
+
+                toast.success(unshareIds.length > 0 ? 'Dispositivo actualizado' : 'Dispositivo compartido');
                 setShowShareModal(false);
             }
         } catch (error) {
@@ -152,27 +148,16 @@ const ModalDispositivos = ({
 
     const validateForm = () => {
         const errors: string[] = [];
-        
-        if (!data.name_device_id && !data.new_name_device) {
-            errors.push('El nombre del dispositivo es requerido');
-        }
-        
-        if (!data.brand_id && !data.new_brand) {
-            errors.push('La marca es requerida');
-        }
-        
+        if (!data.name_device_id && !data.new_name_device) errors.push('Nombre del dispositivo requerido');
+        if (!data.brand_id && !data.new_brand) errors.push('Marca requerida');
         return errors;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
         const validationErrors = validateForm();
-        if (validationErrors.length > 0) {
-            validationErrors.forEach(error => toast.error(error));
-            return;
-        }
-        
+        if (validationErrors.length > 0) return validationErrors.forEach(toast.error);
+
         const payload = {
             ...data,
             ...(data.new_brand && { brand: data.new_brand }),
@@ -181,164 +166,255 @@ const ModalDispositivos = ({
             ...(data.new_name_device && { name_device: data.new_name_device }),
             tenants: data.tenants || []
         };
-    
+
         try {
-            let response;
-            if (editMode) {
-                response = await axios.put(route('devices.update', data.id), payload);
-            } else {
-                response = await axios.post(route('devices.store'), payload);
-            }
-    
+            const response = editMode
+                ? await axios.put(route('devices.update', data.id), payload)
+                : await axios.post(route('devices.store'), payload);
+
             const updatedDevice = response.data.device;
             if (updatedDevice) {
-                if (editMode) {
-                    setDeviceList(prev =>
-                        prev.map(device => 
-                            device.id === updatedDevice.id ? updatedDevice : device
-                        )
-                    );
-                } else {
-                    setDeviceList(prev => [...prev, updatedDevice]);
-                }
-                
+                setDeviceList(prev => editMode
+                    ? prev.map(d => d.id === updatedDevice.id ? updatedDevice : d)
+                    : [...prev, updatedDevice]
+                );
                 toast.success(editMode ? 'Dispositivo actualizado' : 'Dispositivo creado');
                 reset();
                 setShowForm(false);
             }
         } catch (error: any) {
-            const errorMessage = error.response?.data?.message || (editMode ? 'Error al actualizar' : 'Error al crear');
-            toast.error(errorMessage);
-            console.error(error);
+            toast.error(error.response?.data?.message || (editMode ? 'Error al actualizar' : 'Error al crear'));
         }
     };
 
     const handleDelete = async (id: number) => {
         try {
             await axios.delete(route('devices.destroy', id));
-            setDeviceList(prev => prev.filter(device => device.id !== id));
-            setDeviceShareList(prev => prev.filter(device => device.id !== id));
+            setDeviceList(prev => prev.filter(d => d.id !== id));
+            setDeviceShareList(prev => prev.filter(d => d.id !== id));
             toast.success('Dispositivo eliminado');
         } catch (error) {
             toast.error('Error al eliminar');
-            console.error(error);
         }
     };
 
-    const handleSelectChange = (
-        selected: any,
-        type: 'brand' | 'model' | 'system' | 'name_device'
-    ) => {
+    // Modal de confirmación de eliminación
+    const ConfirmDeleteModal = () => (
+        <Dialog open={!!deleteConfirmation.id} onOpenChange={() => setDeleteConfirmation({ type: '', id: null })}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Confirmar Eliminación</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                    <p>¿Estás seguro de eliminar este elemento permanentemente?</p>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setDeleteConfirmation({ type: '', id: null })}>
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        onClick={() => {
+                            if (deleteConfirmation.id) {
+                                confirmDelete(deleteConfirmation.id, deleteConfirmation.type as any);
+                            }
+                        }}
+                    >
+                        Eliminar
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+
+    const handleDeleteItem = (id: number, type: 'brand' | 'model' | 'system' | 'name_device') => {
+        setDeleteConfirmation({ type, id });
+    };
+
+    const confirmDelete = async (id: number, type: 'brand' | 'model' | 'system' | 'name_device') => {
+        try {
+            const endpoint = {
+                brand: 'brands.destroy',
+                model: 'models.destroy',
+                system: 'systems.destroy',
+                name_device: 'name_devices.destroy'
+            }[type];
+
+            await axios.delete(route(endpoint, id));
+            toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} eliminado`);
+
+            // Actualizar estado local
+            switch (type) {
+                case 'brand':
+                    setLocalBrands(prev => prev.filter(b => b.id !== id));
+                    if (data.brand_id === id.toString()) {
+                        setData({ ...data, brand_id: '', new_brand: '' });
+                    }
+                    break;
+                case 'model':
+                    setLocalModels(prev => prev.filter(m => m.id !== id));
+                    if (data.model_id === id.toString()) {
+                        setData({ ...data, model_id: '', new_model: '' });
+                    }
+                    break;
+                case 'system':
+                    setLocalSystems(prev => prev.filter(s => s.id !== id));
+                    if (data.system_id === id.toString()) {
+                        setData({ ...data, system_id: '', new_system: '' });
+                    }
+                    break;
+                case 'name_device':
+                    setLocalNameDevices(prev => prev.filter(nd => nd.id !== id));
+                    if (data.name_device_id === id.toString()) {
+                        setData({ ...data, name_device_id: '', new_name_device: '' });
+                    }
+                    break;
+            }
+        } catch (error) {
+            toast.error(`Error al eliminar ${type}`);
+        } finally {
+            setDeleteConfirmation({ type: '', id: null });
+        }
+    };
+
+    const CustomOption = ({ children, ...props }: any) => (
+        <components.Option {...props}>
+            <div className="flex items-center justify-between w-full">
+                <div>{children}</div>
+                {!props.data.__isNew__ && props.data.value && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteItem(
+                                parseInt(props.data.value),
+                                props.data.type
+                            );
+                        }}
+                    >
+                        <Trash2 className="h-3 w-3" />
+                    </Button>
+                )}
+            </div>
+        </components.Option>
+    );
+
+    const handleSelectChange = (selected: any, type: 'brand' | 'model' | 'system' | 'name_device') => {
         const isNew = selected?.__isNew__ ?? false;
-        const key_id = `${type}_id` as keyof typeof data;
-        const key_new = `new_${type}` as keyof typeof data;
+        const key_id = `${type}_id`;
+        const key_new = `new_${type}`;
 
-        if (isNew) {
-            setData({
-                ...data,
-                [key_id]: '',
-                [key_new]: selected.label
-            });
-        } else {
-            setData({
-                ...data,
-                [key_id]: selected.value,
-                [key_new]: ''
-            });
-        }
+        setData({
+            ...data,
+            [key_id]: isNew ? '' : selected?.value || '',
+            [key_new]: isNew ? selected?.label : ''
+        });
     };
 
-    const getSelectedValue = (
-        id: string | number,
-        newValue: string,
-        list: any[]
-    ) => {
+    const getSelectedValue = (id: string | number, newValue: string, list: any[]) => {
         if (newValue) return { label: newValue, value: '' };
-        const item = list?.find((el) => el.id.toString() === id?.toString());
+        const item = list?.find(el => el.id.toString() === id?.toString());
         return item ? { label: item.name, value: item.id } : null;
+    };
+
+    const prepareOptions = (items: any[], type: 'brand' | 'model' | 'system' | 'name_device') => {
+        return items?.map(item => ({
+            label: item.name,
+            value: item.id.toString(),
+            type: type,
+            __isNew__: false
+        }));
     };
 
     if (!visible) return null;
 
-   console.log(tenants)
     return (
         <Dialog open={visible} onOpenChange={onClose}>
             <DialogContent className="min-w-[800px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl">
-                        Devices of {tenantName} 
+                        Dispositivos de {tenantName}
                         <span className="text-sm font-normal ml-2">
-                            ({deviceList.length} own, {deviceShareList.length} shared)
+                            ({deviceList.length} propios, {deviceShareList.length} compartidos)
                         </span>
                     </DialogTitle>
                 </DialogHeader>
 
                 <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-4">
-                        <Button onClick={handleShowCreate} className="gap-2">
-                            <Plus className="w-4 h-4" /> New Device
-                        </Button>
-                    </div>
+                    <Button onClick={handleShowCreate} className="gap-2">
+                        <Plus className="w-4 h-4" /> Nuevo Dispositivo
+                    </Button>
                 </div>
 
                 {showForm && (
                     <form onSubmit={handleSubmit} className="mb-6 space-y-4 p-4 border rounded-lg">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Campo Name Device */}
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <Laptop2 className='w-4 h-4' /> Device
+                                    <Laptop2 className='w-4 h-4' /> Dispositivo
                                 </Label>
                                 <CreatableSelect
+                                    components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Select or create"
+                                    placeholder="Seleccionar o crear"
                                     onChange={(option) => handleSelectChange(option, 'name_device')}
-                                    options={name_devices?.map((s) => ({ label: s.name, value: s.id }))}
-                                    value={getSelectedValue(data.name_device_id, data.new_name_device, name_devices)}
+                                    options={prepareOptions(localNameDevices, 'name_device')}
+                                    value={getSelectedValue(data.name_device_id, data.new_name_device, localNameDevices)}
                                     className="react-select-container"
                                     classNamePrefix="react-select"
                                 />
                             </div>
 
+                            {/* Campo Brand */}
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <ShieldPlus className='w-4 h-4' /> Brand
+                                    <ShieldPlus className='w-4 h-4' /> Marca
                                 </Label>
                                 <CreatableSelect
+                                    components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Select or create"
+                                    placeholder="Seleccionar o crear"
                                     onChange={(option) => handleSelectChange(option, 'brand')}
-                                    options={brands.map((b) => ({ label: b.name, value: b.id }))}
-                                    value={getSelectedValue(data.brand_id, data.new_brand, brands)}
+                                    options={prepareOptions(localBrands, 'brand')}
+                                    value={getSelectedValue(data.brand_id, data.new_brand, localBrands)}
                                     className="react-select-container"
                                     classNamePrefix="react-select"
                                 />
                             </div>
 
+                            {/* Campo Model */}
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <ScanQrCodeIcon className='w-4 h-4' /> Model
+                                    <ScanQrCodeIcon className='w-4 h-4' /> Modelo
                                 </Label>
                                 <CreatableSelect
+                                    components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Select or create"
+                                    placeholder="Seleccionar o crear"
                                     onChange={(option) => handleSelectChange(option, 'model')}
-                                    options={models.map((m) => ({ label: m.name, value: m.id }))}
-                                    value={getSelectedValue(data.model_id, data.new_model, models)}
+                                    options={prepareOptions(localModels, 'model')}
+                                    value={getSelectedValue(data.model_id, data.new_model, localModels)}
                                     className="react-select-container"
                                     classNamePrefix="react-select"
                                 />
                             </div>
 
+                            {/* Campo System */}
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <Keyboard className='w-4 h-4' /> System
+                                    <Keyboard className='w-4 h-4' /> Sistema
                                 </Label>
                                 <CreatableSelect
+                                    components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Select or create"
+                                    placeholder="Seleccionar o crear"
                                     onChange={(option) => handleSelectChange(option, 'system')}
-                                    options={systems.map((s) => ({ label: s.name, value: s.id }))}
-                                    value={getSelectedValue(data.system_id, data.new_system, systems)}
+                                    options={prepareOptions(localSystems, 'system')}
+                                    value={getSelectedValue(data.system_id, data.new_system, localSystems)}
                                     className="react-select-container"
                                     classNamePrefix="react-select"
                                 />
@@ -346,9 +422,8 @@ const ModalDispositivos = ({
                         </div>
 
                         <div className='space-y-2'>
-                            <Label>Assign to tenants</Label>
+                            <Label>Compartir con inquilinos</Label>
                             <Select
-                                isClearable
                                 isMulti
                                 options={tenants.map(t => ({ label: t.name, value: t.id }))}
                                 onChange={(selected) =>
@@ -364,107 +439,102 @@ const ModalDispositivos = ({
                         </div>
 
                         <div className="flex gap-2 justify-end pt-4">
-                            <Button 
-                                type="button" 
-                                variant="outline" 
-                                onClick={() => setShowForm(false)}
-                                className="px-6"
-                            >
+                            <Button variant="outline" onClick={() => setShowForm(false)}>
                                 Cancelar
                             </Button>
-                            <Button 
-                                type="submit" 
-                                className="px-6"
-                            >
-                                {editMode ? 'Update' : 'Save'}
+                            <Button type="submit">
+                                {editMode ? 'Actualizar' : 'Guardar'}
                             </Button>
                         </div>
                     </form>
                 )}
 
+                {/* Tabla de dispositivos */}
                 <div className="border rounded-lg overflow-hidden">
                     <table className="w-full">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-4 py-3 text-left font-medium">Name</th>
-                                <th className="px-4 py-3 text-left font-medium">Brand</th>
-                                <th className="px-4 py-3 text-left font-medium">Model</th>
-                                <th className="px-4 py-3 text-left font-medium">System</th>
-                                <th className="px-4 py-3 text-left font-medium">Shared with</th>
-                                <th className="px-4 py-3 text-left font-medium">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {deviceList.map((device) => (
-                                <tr key={device.id} className="hover:bg-gray-50 border-b">
-                                    <td className="px-4 py-3">{device.name_device?.name || '-'}</td>
-                                    <td className="px-4 py-3">{device.brand?.name || '-'}</td>
-                                    <td className="px-4 py-3">{device.model?.name || '-'}</td>
-                                    <td className="px-4 py-3">{device.system?.name || '-'}</td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex flex-wrap gap-1">
-                                            {device.shared_with?.map(tenant => (
-                                                <span key={tenant.id} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                                    {tenant.name}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => {
-                                                    setSelectedDevice(device);
-                                                    setShowShareModal(true);
-                                                }}
-                                                className="text-green-600 hover:text-green-800"
-                                            >
-                                                <ShareIcon className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleEdit(device)}
-                                                className="text-blue-600 hover:text-blue-800"
-                                            >
-                                                <Edit className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleDelete(device.id)}
-                                                className="text-red-600 hover:text-red-800"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </td>
+                        <table className="w-full">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-3 text-left font-medium">Name</th>
+                                    <th className="px-4 py-3 text-left font-medium">Brand</th>
+                                    <th className="px-4 py-3 text-left font-medium">Model</th>
+                                    <th className="px-4 py-3 text-left font-medium">System</th>
+                                    <th className="px-4 py-3 text-left font-medium">Shared with</th>
+                                    <th className="px-4 py-3 text-left font-medium">Actions</th>
                                 </tr>
-                            ))}
+                            </thead>
+                            <tbody>
+                                {deviceList.map((device) => (
+                                    <tr key={device.id} className="hover:bg-gray-50 border-b">
+                                        <td className="px-4 py-3">{device.name_device?.name || '-'}</td>
+                                        <td className="px-4 py-3">{device.brand?.name || '-'}</td>
+                                        <td className="px-4 py-3">{device.model?.name || '-'}</td>
+                                        <td className="px-4 py-3">{device.system?.name || '-'}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex flex-wrap gap-1">
+                                                {device.shared_with?.map(tenant => (
+                                                    <span key={tenant.id} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                                        {tenant.name}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setSelectedDevice(device);
+                                                        setShowShareModal(true);
+                                                    }}
+                                                    className="text-green-600 hover:text-green-800"
+                                                >
+                                                    <ShareIcon className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleEdit(device)}
+                                                    className="text-blue-600 hover:text-blue-800"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleDelete(device.id)}
+                                                    className="text-red-600 hover:text-red-800"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
 
-                            {deviceShareList.map((device) => (
-                                <tr key={`shared-${device.id}`} className="hover:bg-gray-50 border-b bg-blue-50">
-                                    <td className="px-4 py-3">{device.name_device?.name || '-'}</td>
-                                    <td className="px-4 py-3">{device.brand?.name || '-'}</td>
-                                    <td className="px-4 py-3">{device.model?.name || '-'}</td>
-                                    <td className="px-4 py-3">{device.system?.name || '-'}</td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex flex-wrap gap-1">
-                                            {device.owner && (
-                                                <span key={device.owner.id} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                                    Own: {device.owner.name || (Array.isArray(device.owner) && device.owner[0]?.name) || 'Unknown'}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-gray-500">
-                                        Shared
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
+                                {deviceShareList.map((device) => (
+                                    <tr key={`shared-${device.id}`} className="hover:bg-gray-50 border-b bg-blue-50">
+                                        <td className="px-4 py-3">{device.name_device?.name || '-'}</td>
+                                        <td className="px-4 py-3">{device.brand?.name || '-'}</td>
+                                        <td className="px-4 py-3">{device.model?.name || '-'}</td>
+                                        <td className="px-4 py-3">{device.system?.name || '-'}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex flex-wrap gap-1">
+                                                {device.owner && (
+                                                    <span key={device.owner.id} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                                        Own: {device.owner.name || (Array.isArray(device.owner) && device.owner[0]?.name) || 'Unknown'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-500">
+                                            Shared
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </table>
                 </div>
 
@@ -477,10 +547,12 @@ const ModalDispositivos = ({
                         onShare={(selectedIds, unshareIds) => handleShareDevice(selectedDevice.id, selectedIds, unshareIds)}
                     />
                 )}
+                  <ConfirmDeleteModal />
             </DialogContent>
         </Dialog>
     );
 };
+
 
 interface DeviceShareModalProps {
     device: Device;
@@ -494,13 +566,13 @@ const DeviceShareModal = ({ device, tenants, sharedWithIds, onClose, onShare }: 
     // Inicializar con los IDs de inquilinos con los que ya está compartido
     const [selectedTenants, setSelectedTenants] = useState<number[]>(sharedWithIds || []);
     const [unsharedTenants, setUnsharedTenants] = useState<number[]>([]);
-    
+
     // Agregar un console.log para depuración
     useEffect(() => {
         console.log("Inquilinos seleccionados:", selectedTenants);
         console.log("Inquilinos descompartidos:", unsharedTenants);
     }, [selectedTenants, unsharedTenants]);
-    
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         console.log("Enviando descompartidos:", unsharedTenants);
@@ -524,7 +596,7 @@ const DeviceShareModal = ({ device, tenants, sharedWithIds, onClose, onShare }: 
                                 {tenants.map((tenant) => {
                                     const wasShared = sharedWithIds.includes(tenant.id);
                                     const isSelected = selectedTenants.includes(tenant.id);
-                                    
+
                                     return (
                                         <div key={tenant.id} className="flex items-center space-x-2">
                                             <Checkbox
@@ -546,7 +618,7 @@ const DeviceShareModal = ({ device, tenants, sharedWithIds, onClose, onShare }: 
                                                     }
                                                 }}
                                             />
-                                            <img src={`/storage/${tenant.photo}`} className='h-8 w-8 rounded-full object-cover'/>
+                                            <img src={`/storage/${tenant.photo}`} className='h-8 w-8 rounded-full object-cover' />
                                             <Label htmlFor={`tenant-${tenant.id}`} className="cursor-pointer">
                                                 {tenant.name}
                                             </Label>

@@ -52,10 +52,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('technicals.update-status');
 
 
-    
-    Route::post('/devices/{device}/share', [DeviceController::class, 'share'])
-    ->name('devices.share');
 
+    Route::post('/devices/{device}/share', [DeviceController::class, 'share'])
+        ->name('devices.share');
+    Route::delete('/delete/brand/{id}', [DeviceController::class, 'destroyBrand'])
+        ->name('brands.destroy');
+    
+        Route::delete('/delete/model/{id}', [DeviceController::class, 'destroyModel'])
+        ->name('models.destroy');
+
+        Route::delete('/delete/system/{id}', [DeviceController::class, 'destroySystem'])
+        ->name('systems.destroy');
+        Route::delete('/delete/name_device/{id}', [DeviceController::class, 'destroyNameDevice'])
+        ->name('name_devices.destroy');
 });
 
 require __DIR__ . '/settings.php';

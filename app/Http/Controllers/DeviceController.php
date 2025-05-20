@@ -14,89 +14,89 @@ use Illuminate\Support\Facades\DB;
 
 class DeviceController extends Controller
 {
-    public function share(Request $request, Device $device) 
-    { 
-        $request->validate([ 
-            'tenant_ids' => 'array', 
-            'tenant_ids.*' => 'exists:tenants,id', 
-            'tenant_id' => 'required|exists:tenants,id', 
-            'apartment_id' => 'required|exists:apartments,id', 
-            'unshare_tenant_ids' => 'array', 
-            'unshare_tenant_ids.*' => 'exists:tenants,id', 
-        ]); 
-    
-        DB::beginTransaction(); 
-    
-        try { 
+    public function share(Request $request, Device $device)
+    {
+        $request->validate([
+            'tenant_ids' => 'array',
+            'tenant_ids.*' => 'exists:tenants,id',
+            'tenant_id' => 'required|exists:tenants,id',
+            'apartment_id' => 'required|exists:apartments,id',
+            'unshare_tenant_ids' => 'array',
+            'unshare_tenant_ids.*' => 'exists:tenants,id',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
             // Compartir con nuevos inquilinos
-            if ($request->has('tenant_ids') && !empty($request->tenant_ids)) { 
+            if ($request->has('tenant_ids') && !empty($request->tenant_ids)) {
                 // Verificar que los inquilinos pertenecen al apartamento 
-                $validTenantIds = Tenant::whereIn('id', $request->tenant_ids) 
-                    ->where('apartment_id', $request->apartment_id) 
-                    ->pluck('id') 
-                    ->toArray(); 
-    
-                if (empty($validTenantIds)) { 
-                    return response()->json([ 
-                        'success' => false, 
-                        'message' => 'No se encontraron inquilinos válidos para compartir' 
-                    ], 400); 
-                } 
-    
+                $validTenantIds = Tenant::whereIn('id', $request->tenant_ids)
+                    ->where('apartment_id', $request->apartment_id)
+                    ->pluck('id')
+                    ->toArray();
+
+                if (empty($validTenantIds)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No se encontraron inquilinos válidos para compartir'
+                    ], 400);
+                }
+
                 // Sincronizar los inquilinos con los que se comparte 
-                $syncData = []; 
-                foreach ($validTenantIds as $tenantId) { 
-                    $syncData[$tenantId] = ['owner_tenant_id' => $request->tenant_id]; 
-                } 
-    
-                $device->sharedWith()->syncWithoutDetaching($syncData); 
-            } 
-    
+                $syncData = [];
+                foreach ($validTenantIds as $tenantId) {
+                    $syncData[$tenantId] = ['owner_tenant_id' => $request->tenant_id];
+                }
+
+                $device->sharedWith()->syncWithoutDetaching($syncData);
+            }
+
             // Descompartir con inquilinos
-            if ($request->has('unshare_tenant_ids') && !empty($request->unshare_tenant_ids)) { 
+            if ($request->has('unshare_tenant_ids') && !empty($request->unshare_tenant_ids)) {
                 // Verificar que los inquilinos pertenecen al apartamento 
-                $validUnshareIds = Tenant::whereIn('id', $request->unshare_tenant_ids) 
-                    ->where('apartment_id', $request->apartment_id) 
-                    ->pluck('id') 
-                    ->toArray(); 
-                
-                if (!empty($validUnshareIds)) { 
-                    foreach ($validUnshareIds as $tenantId) { 
-                        $device->sharedWith()->detach($tenantId); 
-                    } 
-                } 
-            } 
-    
+                $validUnshareIds = Tenant::whereIn('id', $request->unshare_tenant_ids)
+                    ->where('apartment_id', $request->apartment_id)
+                    ->pluck('id')
+                    ->toArray();
+
+                if (!empty($validUnshareIds)) {
+                    foreach ($validUnshareIds as $tenantId) {
+                        $device->sharedWith()->detach($tenantId);
+                    }
+                }
+            }
+
             // Cargar todas las relaciones necesarias 
-            $device->load([ 
-                'brand', 
-                'model', 
-                'system', 
-                'name_device', 
-                'sharedWith' => function ($query) { 
-                    $query->select('tenants.id', 'tenants.name', 'tenants.email'); 
-                }, 
-                'tenants' => function ($query) { 
-                    $query->select('tenants.id', 'tenants.name', 'tenants.email'); 
-                } 
-            ]); 
-    
-            DB::commit(); 
-    
-            return response()->json([ 
-                'success' => true, 
-                'message' => 'Dispositivo actualizado exitosamente', 
-                'device' => $device, 
-                'sharedDevices' => $device->sharedWith 
-            ]); 
-        } catch (\Exception $e) { 
-            DB::rollBack(); 
-            return response()->json([ 
-                'success' => false, 
-                'message' => 'Error al compartir el dispositivo', 
-                'error' => $e->getMessage() 
-            ], 500); 
-        } 
+            $device->load([
+                'brand',
+                'model',
+                'system',
+                'name_device',
+                'sharedWith' => function ($query) {
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email');
+                },
+                'tenants' => function ($query) {
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email');
+                }
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dispositivo actualizado exitosamente',
+                'device' => $device,
+                'sharedDevices' => $device->sharedWith
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al compartir el dispositivo',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
 
@@ -313,5 +313,56 @@ class DeviceController extends Controller
             return $system->id;
         }
         return $request->system_id;
+    }
+
+
+
+
+    // BrandController.php
+    public function destroyBrand(Brand $brand, $id)
+    {
+        try {
+            $brand = Brand::findOrFail($id);
+            $brand->delete();
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    // ModelController.php
+    public function destroyModel(DeviceModel $model,$id)
+    {
+        try {
+            $model = DeviceModel::findOrFail($id);
+            $model->delete();
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    // SystemController.php
+    public function destroySystem(System $system,$id)
+    {
+        try {
+            $system = System::findOrFail($id);
+            $system->delete();
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    // NameDeviceController.php
+    public function destroyNameDevice(NameDevice $nameDevice,$id)
+    {
+        try {
+            $nameDevice = NameDevice::findOrFail($id);
+            $nameDevice->delete();
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 }
