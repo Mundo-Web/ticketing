@@ -161,11 +161,16 @@ const ModalDispositivos = ({
         const validationErrors = validateForm();
         if (validationErrors.length > 0) return validationErrors.forEach(toast.error);
 
+        // Asegurarse de que los campos dependientes solo se envíen si el padre está seleccionado
         const payload = {
             ...data,
             ...(data.new_brand && { brand: data.new_brand }),
-            ...(data.new_model && { model: data.new_model }),
-            ...(data.new_system && { system: data.new_system }),
+            // Solo enviar model_id o new_model si brand_id está seleccionado
+            ...(data.brand_id && data.model_id && { model_id: data.model_id }),
+            ...(data.brand_id && data.new_model && { model: data.new_model }),
+            // Solo enviar system_id o new_system si model_id está seleccionado
+            ...(data.model_id && data.system_id && { system_id: data.system_id }),
+            ...(data.model_id && data.new_system && { system: data.new_system }),
             ...(data.new_name_device && { name_device: data.new_name_device }),
             tenants: data.tenants || []
         };
@@ -403,6 +408,59 @@ const [editItem, setEditItem] = useState<{
     </components.Option>
   );
 
+    // Estados para filtros relacionados
+    const [filteredModels, setFilteredModels] = useState(models);
+    const [filteredSystems, setFilteredSystems] = useState(systems);
+    const [filteredNameDevices, setFilteredNameDevices] = useState(name_devices);
+    
+    // Función para filtrar modelos basados en la marca seleccionada
+    const filterModelsByBrand = (brandId: string) => {
+        if (!brandId) {
+            setFilteredModels(models);
+            return;
+        }
+        
+        const filtered = models.filter(model => model.brand_id?.toString() === brandId);
+        setFilteredModels(filtered.length > 0 ? filtered : models);
+    };
+    
+    // Función para filtrar sistemas basados en el modelo seleccionado
+    const filterSystemsByModel = (modelId: string) => {
+        if (!modelId) {
+            setFilteredSystems(systems);
+            return;
+        }
+        
+        const filtered = systems.filter(system => system.model_id?.toString() === modelId);
+        setFilteredSystems(filtered.length > 0 ? filtered : systems);
+    };
+    
+    // Función para filtrar nombres de dispositivos basados en el sistema seleccionado
+    const filterNameDevicesBySystem = (systemId: string) => {
+        if (!systemId) {
+            setFilteredNameDevices(name_devices);
+            return;
+        }
+        
+        const filtered = name_devices.filter(nameDevice => nameDevice.system_id?.toString() === systemId);
+        setFilteredNameDevices(filtered.length > 0 ? filtered : name_devices);
+    };
+    
+    // Actualizar filtros cuando cambia la selección
+    useEffect(() => {
+        if (data.brand_id) {
+            filterModelsByBrand(data.brand_id);
+        }
+        
+        if (data.model_id) {
+            filterSystemsByModel(data.model_id);
+        }
+        
+        if (data.system_id) {
+            filterNameDevicesBySystem(data.system_id);
+        }
+    }, [data.brand_id, data.model_id, data.system_id]);
+
     const handleSelectChange = (selected: any, type: 'brand' | 'model' | 'system' | 'name_device') => {
         const isNew = selected?.__isNew__ ?? false;
         const key_id = `${type}_id`;
@@ -413,6 +471,36 @@ const [editItem, setEditItem] = useState<{
             [key_id]: isNew ? '' : selected?.value || '',
             [key_new]: isNew ? selected?.label : ''
         });
+        
+        // Aplicar filtros cuando cambia la selección
+        if (type === 'brand' && !isNew) {
+            filterModelsByBrand(selected?.value || '');
+            // Resetear selecciones dependientes
+            setData(prev => ({
+                ...prev,
+                model_id: '',
+                new_model: '',
+                system_id: '',
+                new_system: '',
+            
+            }));
+        } else if (type === 'model' && !isNew) {
+            filterSystemsByModel(selected?.value || '');
+            // Resetear selecciones dependientes
+            setData(prev => ({
+                ...prev,
+                system_id: '',
+                new_system: '',
+             
+            }));
+        } else if (type === 'system' && !isNew) {
+            filterNameDevicesBySystem(selected?.value || '');
+            // Resetear selecciones dependientes
+            setData(prev => ({
+                ...prev,
+               
+            }));
+        }
     };
 
     const getSelectedValue = (id: string | number, newValue: string, list: any[]) => {
@@ -472,8 +560,8 @@ const [editItem, setEditItem] = useState<{
                                     isClearable
                                     placeholder="Seleccionar o crear"
                                     onChange={(option) => handleSelectChange(option, 'name_device')}
-                                    options={prepareOptions(localNameDevices, 'name_device')}
-                                    value={getSelectedValue(data.name_device_id, data.new_name_device, localNameDevices)}
+                                    options={prepareOptions(filteredNameDevices, 'name_device')}
+                                    value={getSelectedValue(data.name_device_id, data.new_name_device, filteredNameDevices)}
                                     className="react-select-container"
                                     classNamePrefix="react-select"
                                 />
@@ -506,8 +594,8 @@ const [editItem, setEditItem] = useState<{
                                     isClearable
                                     placeholder="Seleccionar o crear"
                                     onChange={(option) => handleSelectChange(option, 'model')}
-                                    options={prepareOptions(localModels, 'model')}
-                                    value={getSelectedValue(data.model_id, data.new_model, localModels)}
+                                    options={prepareOptions(filteredModels, 'model')}
+                                    value={getSelectedValue(data.model_id, data.new_model, filteredModels)}
                                     className="react-select-container"
                                     classNamePrefix="react-select"
                                 />
@@ -523,8 +611,8 @@ const [editItem, setEditItem] = useState<{
                                     isClearable
                                     placeholder="Seleccionar o crear"
                                     onChange={(option) => handleSelectChange(option, 'system')}
-                                    options={prepareOptions(localSystems, 'system')}
-                                    value={getSelectedValue(data.system_id, data.new_system, localSystems)}
+                                    options={prepareOptions(filteredSystems, 'system')}
+                                    value={getSelectedValue(data.system_id, data.new_system, filteredSystems)}
                                     className="react-select-container"
                                     classNamePrefix="react-select"
                                 />
