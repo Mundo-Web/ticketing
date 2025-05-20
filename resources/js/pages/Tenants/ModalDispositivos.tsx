@@ -302,11 +302,11 @@ const ModalDispositivos = ({
 
         const handleSave = async () => {
             if (!editItem) return;
-            
+
             try {
                 const endpoint = {
                     brand: 'brands.update',
-                    model: 'models.update', 
+                    model: 'models.update',
                     system: 'systems.update',
                     name_device: 'name_devices.update'
                 }[editItem.type];
@@ -424,7 +424,7 @@ const ModalDispositivos = ({
 
     const filterBrandsByName = (NameDeviceId: string) => {
         if (!NameDeviceId) {
-            setFilteredBrands(models);
+            setFilteredBrands(brands);
             return;
         }
 
@@ -471,18 +471,35 @@ const ModalDispositivos = ({
             filterBrandsByName(data.name_device_id);
         }
 
+        if (data.new_name_device) {
+            setFilteredBrands([]);
+            setFilteredModels([]);
+            setFilteredSystems([]);
+        }
+
+
+
         if (data.brand_id) {
             filterModelsByBrand(data.brand_id);
+        }
+
+        if (data.new_brand) {
+            setFilteredModels([]);
+            setFilteredSystems([]);
         }
 
         if (data.model_id) {
             filterSystemsByModel(data.model_id);
         }
 
+        if (data.new_model) {
+            setFilteredSystems([]);
+        }
+
         if (data.system_id) {
             filterNameDevicesBySystem(data.system_id);
         }
-    }, [data.brand_id, data.model_id, data.system_id]);
+    }, [data.brand_id,data.name_device_id, data.model_id, data.system_id,data.new_name_device, data.new_brand, data.new_model, data.new_system]);
 
     const handleSelectChange = (selected: any, type: 'brand' | 'model' | 'system' | 'name_device') => {
         const isNew = selected?.__isNew__ ?? false;
@@ -610,6 +627,7 @@ const ModalDispositivos = ({
                                     <ShieldPlus className='w-4 h-4' /> Marca
                                 </Label>
                                 <CreatableSelect
+                                    isDisabled={!data.name_device_id && !data.new_name_device}
                                     components={{ Option: CustomOption }}
                                     isClearable
                                     placeholder="Seleccionar o crear"
@@ -627,6 +645,7 @@ const ModalDispositivos = ({
                                     <ScanQrCodeIcon className='w-4 h-4' /> Modelo
                                 </Label>
                                 <CreatableSelect
+                                    isDisabled={(!data.brand_id && !data.new_brand)}
                                     components={{ Option: CustomOption }}
                                     isClearable
                                     placeholder="Seleccionar o crear"
@@ -644,6 +663,7 @@ const ModalDispositivos = ({
                                     <Keyboard className='w-4 h-4' /> Sistema
                                 </Label>
                                 <CreatableSelect
+                                    isDisabled={(!data.model_id && !data.new_model)}
                                     components={{ Option: CustomOption }}
                                     isClearable
                                     placeholder="Seleccionar o crear"
