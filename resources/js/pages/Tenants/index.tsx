@@ -330,7 +330,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                             <Tabs defaultValue="apartment" className="w-full">
                                 <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger value="apartment">Apartment</TabsTrigger>
-                                    <TabsTrigger value="tenant">Tenant</TabsTrigger>
+                                    <TabsTrigger value="tenant">Members</TabsTrigger>
                                 </TabsList>
 
                                 <form onSubmit={currentApartment ? handleUpdateSubmit : handleCreateSubmit}>
@@ -399,14 +399,14 @@ export default function Index({ apartments, brands, models, systems, name_device
                     <Dialog open={showConfirmClose} onOpenChange={setShowConfirmClose}>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>¿Tienes cambios sin guardar?</DialogTitle>
+                                <DialogTitle>Do you have unsaved changes?</DialogTitle>
                                 <DialogDescription>
-                                    Tienes modificaciones pendientes en el formulario. ¿Seguro que quieres salir sin guardar?
+                                You have pending changes to the form. Are you sure you want to exit without saving?
                                 </DialogDescription>
                             </DialogHeader>
                             <DialogFooter>
                                 <Button variant="outline" onClick={() => setShowConfirmClose(false)}>
-                                    Cancelar
+                                    Cancel
                                 </Button>
                                 <Button
                                     variant="destructive"
@@ -417,7 +417,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         setInitialFormData(undefined);
                                     }}
                                 >
-                                    Descartar cambios
+                                    Discard changes
                                 </Button>
                             </DialogFooter>
                         </DialogContent>

@@ -120,7 +120,7 @@ export const TenantForm = ({
                     className="w-max h-12 rounded-xl shadow-sm hover:shadow-md transition-all"
                 >
                     <Plus className="w-5 h-5 mr-2" />
-                    Agregar Inquilino
+                    Add Member
                 </Button>
             </div>
 
@@ -157,7 +157,7 @@ export const TenantForm = ({
                                         src={tenant.photo
                                             ? URL.createObjectURL(tenant.photo)
                                             : `/storage/${tenant?.photoPreview}`}
-                                            alt={`Tenant ${index + 1}`}
+                                            alt={`Member ${index + 1}`}
                                             className="w-full h-full object-cover hover:scale-105 transition-transform"
                                             onLoad={() => {
                                                 if (filePreviews[index]) {
