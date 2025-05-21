@@ -69,6 +69,8 @@ const ModalDispositivos = ({
         setLocalNameDevices(name_devices);
     }, [devices, shareDevice, brands, models, systems, name_devices]);
 
+   
+
     const { data, setData, reset } = useForm({
         id: null as number | null,
         name: '',
@@ -181,11 +183,32 @@ const ModalDispositivos = ({
                 : await axios.post(route('devices.store'), payload);
 
             const updatedDevice = response.data.device;
+            console.log(updatedDevice)
+        
             if (updatedDevice) {
                 setDeviceList(prev => editMode
                     ? prev.map(d => d.id === updatedDevice.id ? updatedDevice : d)
                     : [...prev, updatedDevice]
                 );
+
+                if (data.new_name_device && updatedDevice.name_device) {
+                    const newList = [...localNameDevices, updatedDevice.name_device];
+                    setLocalNameDevices(newList);
+                }
+    
+                if (data.new_brand && updatedDevice.brand) {
+                    const newList = [...localBrands, updatedDevice.brand];
+                    setLocalBrands(newList);
+                }
+               
+                if (data.new_model && updatedDevice.model) {
+                    const newList = [...localModels, updatedDevice.model];
+                    setLocalModels(newList);
+                }
+                if (data.new_system && updatedDevice.system) {
+                    const newList = [...localSystems, updatedDevice.system];
+                    setLocalSystems(newList);
+                }
                 toast.success(editMode ? 'Dispositivo actualizado' : 'Dispositivo creado');
                 reset();
                 setShowForm(false);
@@ -194,6 +217,8 @@ const ModalDispositivos = ({
             toast.error(error.response?.data?.message || (editMode ? 'Error al actualizar' : 'Error al crear'));
         }
     };
+
+   
 
     const handleDelete = async (id: number) => {
         try {
@@ -415,21 +440,21 @@ const ModalDispositivos = ({
     );
 
     // Estados para filtros relacionados
-    const [filteredBrands, setFilteredBrands] = useState(brands);
-    const [filteredModels, setFilteredModels] = useState(models);
-    const [filteredSystems, setFilteredSystems] = useState(systems);
-    const [filteredNameDevices, setFilteredNameDevices] = useState(name_devices);
+    const [filteredBrands, setFilteredBrands] = useState(localBrands);
+    const [filteredModels, setFilteredModels] = useState(localModels);
+    const [filteredSystems, setFilteredSystems] = useState(localSystems);
+    const [filteredNameDevices, setFilteredNameDevices] = useState(localNameDevices);
 
     // Función para filtrar modelos basados en la marca seleccionada
 
     const filterBrandsByName = (NameDeviceId: string) => {
         if (!NameDeviceId) {
-            setFilteredBrands(brands);
+            setFilteredBrands(localBrands);
             return;
         }
 
-        const filtered = brands.filter(brand => brand.name_device_id?.toString() === NameDeviceId);
-        setFilteredBrands(filtered.length > 0 ? filtered : brands);
+        const filtered = localBrands.filter(brand => brand.name_device_id?.toString() === NameDeviceId);
+        setFilteredBrands(filtered.length > 0 ? filtered : localBrands);
     };
 
     const filterModelsByBrand = (brandId: string) => {
@@ -500,6 +525,17 @@ const ModalDispositivos = ({
             filterNameDevicesBySystem(data.system_id);
         }
     }, [data.brand_id,data.name_device_id, data.model_id, data.system_id,data.new_name_device, data.new_brand, data.new_model, data.new_system]);
+
+
+    useEffect(() => {
+  
+        setFilteredNameDevices(localNameDevices);
+        setFilteredBrands(localBrands);
+        setFilteredModels(localModels);
+        setFilteredSystems(localSystems);
+      
+    }, [localNameDevices,localBrands,localModels,localSystems]);
+
 
     const handleSelectChange = (selected: any, type: 'brand' | 'model' | 'system' | 'name_device') => {
         const isNew = selected?.__isNew__ ?? false;
