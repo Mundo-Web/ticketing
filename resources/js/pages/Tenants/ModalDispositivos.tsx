@@ -69,7 +69,7 @@ const ModalDispositivos = ({
         setLocalNameDevices(name_devices);
     }, [devices, shareDevice, brands, models, systems, name_devices]);
 
-   
+
 
     const { data, setData, reset } = useForm({
         id: null as number | null,
@@ -128,7 +128,7 @@ const ModalDispositivos = ({
 
 
 
-   
+
 
     const handleShowCreate = () => {
         reset();
@@ -189,7 +189,7 @@ const ModalDispositivos = ({
 
             const updatedDevice = response.data.device;
             console.log(updatedDevice)
-        
+
             if (updatedDevice) {
                 setDeviceList(prev => editMode
                     ? prev.map(d => d.id === updatedDevice.id ? updatedDevice : d)
@@ -200,12 +200,12 @@ const ModalDispositivos = ({
                     const newList = [...localNameDevices, updatedDevice.name_device];
                     setLocalNameDevices(newList);
                 }
-    
+
                 if (data.new_brand && updatedDevice.brand) {
                     const newList = [...localBrands, updatedDevice.brand];
                     setLocalBrands(newList);
                 }
-               
+
                 if (data.new_model && updatedDevice.model) {
                     const newList = [...localModels, updatedDevice.model];
                     setLocalModels(newList);
@@ -223,7 +223,7 @@ const ModalDispositivos = ({
         }
     };
 
-   
+
 
     const handleDelete = async (id: number) => {
         try {
@@ -241,14 +241,14 @@ const ModalDispositivos = ({
         <Dialog open={!!deleteConfirmation.id} onOpenChange={() => setDeleteConfirmation({ type: '', id: null })}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Confirmar Eliminación</DialogTitle>
+                    <DialogTitle>Confirm Deletion</DialogTitle>
                 </DialogHeader>
                 <div className="py-4">
-                    <p>¿Estás seguro de eliminar este elemento permanentemente?</p>
+                    <p>Are you sure you want to permanently delete this item?</p>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setDeleteConfirmation({ type: '', id: null })}>
-                        Cancelar
+                        Cancel
                     </Button>
                     <Button
                         variant="destructive"
@@ -258,7 +258,7 @@ const ModalDispositivos = ({
                             }
                         }}
                     >
-                        Eliminar
+                        Delete
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -529,17 +529,17 @@ const ModalDispositivos = ({
         if (data.system_id) {
             filterNameDevicesBySystem(data.system_id);
         }
-    }, [data.brand_id,data.name_device_id, data.model_id, data.system_id,data.new_name_device, data.new_brand, data.new_model, data.new_system]);
+    }, [data.brand_id, data.name_device_id, data.model_id, data.system_id, data.new_name_device, data.new_brand, data.new_model, data.new_system]);
 
 
     useEffect(() => {
-  
+
         setFilteredNameDevices(localNameDevices);
         setFilteredBrands(localBrands);
         setFilteredModels(localModels);
         setFilteredSystems(localSystems);
-      
-    }, [localNameDevices,localBrands,localModels,localSystems]);
+
+    }, [localNameDevices, localBrands, localModels, localSystems]);
 
 
     const handleSelectChange = (selected: any, type: 'brand' | 'model' | 'system' | 'name_device') => {
@@ -623,7 +623,7 @@ const ModalDispositivos = ({
                         <div>
                             Devices of {tenantName?.name}
                             <span className="text-sm font-normal ml-2">
-                                ({deviceList.length} own, {deviceShareList.length} shared)
+                                ({deviceList.length} owned, {deviceShareList.length} shared with me)
                             </span>
                         </div>
                         <div className='relative mx-4'>
@@ -648,12 +648,12 @@ const ModalDispositivos = ({
                             {/* Campo Name Device */}
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <Laptop2 className='w-4 h-4' /> Dispositivo
+                                    <Laptop2 className='w-4 h-4' /> Device
                                 </Label>
                                 <CreatableSelect
                                     components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Seleccionar o crear"
+                                    placeholder="Select or create"
                                     onChange={(option) => handleSelectChange(option, 'name_device')}
                                     options={prepareOptions(filteredNameDevices, 'name_device')}
                                     value={getSelectedValue(data.name_device_id, data.new_name_device, filteredNameDevices)}
@@ -665,13 +665,13 @@ const ModalDispositivos = ({
                             {/* Campo Brand */}
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <ShieldPlus className='w-4 h-4' /> Marca
+                                    <ShieldPlus className='w-4 h-4' /> Brand
                                 </Label>
                                 <CreatableSelect
                                     isDisabled={!data.name_device_id && !data.new_name_device}
                                     components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Seleccionar o crear"
+                                    placeholder="Select or create"
                                     onChange={(option) => handleSelectChange(option, 'brand')}
                                     options={prepareOptions(filteredBrands, 'brand')}
                                     value={getSelectedValue(data.brand_id, data.new_brand, filteredBrands)}
@@ -683,13 +683,13 @@ const ModalDispositivos = ({
                             {/* Campo Model */}
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <ScanQrCodeIcon className='w-4 h-4' /> Modelo
+                                    <ScanQrCodeIcon className='w-4 h-4' /> Model
                                 </Label>
                                 <CreatableSelect
                                     isDisabled={(!data.brand_id && !data.new_brand)}
                                     components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Seleccionar o crear"
+                                    placeholder="Select or create"
                                     onChange={(option) => handleSelectChange(option, 'model')}
                                     options={prepareOptions(filteredModels, 'model')}
                                     value={getSelectedValue(data.model_id, data.new_model, filteredModels)}
@@ -701,13 +701,13 @@ const ModalDispositivos = ({
                             {/* Campo System */}
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
-                                    <Keyboard className='w-4 h-4' /> Sistema
+                                    <Keyboard className='w-4 h-4' /> System
                                 </Label>
                                 <CreatableSelect
                                     isDisabled={(!data.model_id && !data.new_model)}
                                     components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Seleccionar o crear"
+                                    placeholder="Select or create"
                                     onChange={(option) => handleSelectChange(option, 'system')}
                                     options={prepareOptions(filteredSystems, 'system')}
                                     value={getSelectedValue(data.system_id, data.new_system, filteredSystems)}
@@ -718,7 +718,7 @@ const ModalDispositivos = ({
                         </div>
 
                         <div className='space-y-2'>
-                            <Label>Compartir con inquilinos</Label>
+                            <Label>Sharing with members</Label>
                             <Select
                                 isMulti
                                 options={tenants.map(t => ({ label: t.name, value: t.id }))}
@@ -736,10 +736,10 @@ const ModalDispositivos = ({
 
                         <div className="flex gap-2 justify-end pt-4">
                             <Button variant="outline" onClick={() => setShowForm(false)}>
-                                Cancelar
+                                Cancel
                             </Button>
                             <Button type="submit">
-                                {editMode ? 'Actualizar' : 'Guardar'}
+                                {editMode ? 'Update' : 'Save'}
                             </Button>
                         </div>
                     </form>
@@ -770,24 +770,24 @@ const ModalDispositivos = ({
                                             <div className="flex flex-wrap gap-1">
                                                 {device.shared_with?.map(tenant => {
                                                     console.log(tenant);
-                                                    return(
-                                                            <TooltipProvider>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger>   <img
+                                                    return (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger>   <img
                                                                     key={tenant.photo}
                                                                     src={tenant.photo ? `/storage/${tenant.photo}?v=${Date.now()}` : '/images/default-avatar.png'}
-                                                                        alt={tenant.name}
-                                                                        className="w-8 h-8 object-cover rounded-full border-2 border-blue-400"
-                                                                    /></TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{tenant.name}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-        
-        
-        
-                                                        
+                                                                    alt={tenant.name}
+                                                                    className="w-8 h-8 object-cover rounded-full border-2 border-blue-400"
+                                                                /></TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>{tenant.name}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+
+
+
+
                                                     )
                                                 })}
                                             </div>
@@ -841,8 +841,8 @@ const ModalDispositivos = ({
                                                         <Tooltip>
                                                             <TooltipTrigger>
                                                                 <img
-                                                                  key={device.owner} 
-                                                                  src={device.owner ? `/storage/${device?.owner[0].photo}` : '/images/default-avatar.png'}
+                                                                    key={device.owner}
+                                                                    src={device.owner ? `/storage/${device?.owner[0].photo}` : '/images/default-avatar.png'}
                                                                     alt={device.owner[0].name}
                                                                     className="w-8 h-8 object-cover rounded-full border-2 border-green-500"
                                                                 /></TooltipTrigger>
@@ -958,10 +958,9 @@ const DeviceShareModal = ({ device, tenants, sharedWithIds, onClose, onShare }: 
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={onClose}>
-                            Cancelar
-                        </Button>
+                            Cancel                        </Button>
                         <Button type="submit">
-                            Guardar
+                            Save
                         </Button>
                     </DialogFooter>
                 </form>
