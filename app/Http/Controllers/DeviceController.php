@@ -74,10 +74,10 @@ class DeviceController extends Controller
                 'system',
                 'name_device',
                 'sharedWith' => function ($query) {
-                    $query->select('tenants.id', 'tenants.name', 'tenants.email');
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email','tenants.photo');
                 },
                 'tenants' => function ($query) {
-                    $query->select('tenants.id', 'tenants.name', 'tenants.email');
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email','tenants.photo');
                 }
             ]);
 

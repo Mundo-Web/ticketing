@@ -99,6 +99,7 @@ const ModalDispositivos = ({
             if (response.data.success) {
                 const updatedDevice = response.data.device;
 
+                console.log(updatedDevice)
                 setDeviceList(prev =>
                     prev.map(device =>
                         device.id === updatedDevice.id ? updatedDevice : device
@@ -124,6 +125,10 @@ const ModalDispositivos = ({
             toast.error('Error al compartir el dispositivo');
         }
     };
+
+
+
+   
 
     const handleShowCreate = () => {
         reset();
@@ -763,24 +768,28 @@ const ModalDispositivos = ({
                                         <td className="px-4 py-3">{device.system?.name || '-'}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex flex-wrap gap-1">
-                                                {device.shared_with?.map(tenant => (
-
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger>   <img
-                                                                src={`/storage/${tenant.photo}`}
-                                                                alt={tenant.name}
-                                                                className="w-8 h-8 object-cover rounded-full border-2 border-blue-400"
-                                                            /></TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>{tenant.name}</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-
-
-
-                                                ))}
+                                                {device.shared_with?.map(tenant => {
+                                                    console.log(tenant);
+                                                    return(
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger>   <img
+                                                                    key={tenant.photo}
+                                                                    src={tenant.photo ? `/storage/${tenant.photo}?v=${Date.now()}` : '/images/default-avatar.png'}
+                                                                        alt={tenant.name}
+                                                                        className="w-8 h-8 object-cover rounded-full border-2 border-blue-400"
+                                                                    /></TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{tenant.name}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+        
+        
+        
+                                                        
+                                                    )
+                                                })}
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
@@ -832,7 +841,8 @@ const ModalDispositivos = ({
                                                         <Tooltip>
                                                             <TooltipTrigger>
                                                                 <img
-                                                                    src={`/storage/${device?.owner[0].photo}`}
+                                                                  key={device.owner} 
+                                                                  src={device.owner ? `/storage/${device?.owner[0].photo}` : '/images/default-avatar.png'}
                                                                     alt={device.owner[0].name}
                                                                     className="w-8 h-8 object-cover rounded-full border-2 border-green-500"
                                                                 /></TooltipTrigger>
