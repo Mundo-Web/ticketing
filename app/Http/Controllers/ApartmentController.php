@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Apartment;
 use App\Models\Building;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
 class ApartmentController extends Controller
@@ -37,7 +39,6 @@ class ApartmentController extends Controller
             DB::commit();
 
             return redirect()->back()->with('success', 'Apartamento creado exitosamente');
-
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()
@@ -72,7 +73,6 @@ class ApartmentController extends Controller
             DB::commit();
 
             return redirect()->back()->with('success', 'Apartamento actualizado exitosamente');
-
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()
@@ -96,11 +96,11 @@ class ApartmentController extends Controller
             ];
 
             // Manejar la foto
-            if (isset($tenantData['photo'])) {
+            if (isset($tenantData['photo']) && $tenantData['photo'] instanceof \Illuminate\Http\UploadedFile) {
                 $path = $tenantData['photo']->store('tenants', 'public');
                 $data['photo'] = $path;
 
-                // Si es una actualización, marcar la foto anterior para eliminación
+                // Si es actualización, marcar la foto anterior para eliminación
                 if (isset($tenantData['id']) && in_array($tenantData['id'], $currentTenantIds)) {
                     $existingTenant = $apartment->tenants()->find($tenantData['id']);
                     if ($existingTenant && $existingTenant->photo) {
@@ -112,11 +112,26 @@ class ApartmentController extends Controller
             if (isset($tenantData['id']) && in_array($tenantData['id'], $currentTenantIds)) {
                 // Actualizar inquilino existente
                 $apartment->tenants()->where('id', $tenantData['id'])->update($data);
+                $tenant = $apartment->tenants()->find($tenantData['id']);
                 $newTenantIds[] = $tenantData['id'];
             } else {
                 // Crear nuevo inquilino
                 $tenant = $apartment->tenants()->create($data);
                 $newTenantIds[] = $tenant->id;
+            }
+
+            // Crear o actualizar usuario asociado al tenant
+            $user = User::updateOrCreate(
+                ['email' => $tenant->email],
+                [
+                    'name' => $tenant->name,
+                    'password' => Hash::make($tenant->email), // contraseña igual al email, puedes cambiar
+                ]
+            );
+
+            // Asignar rol member si no lo tiene
+            if (!$user->hasRole('member')) {
+                $user->assignRole('member');
             }
         }
 
@@ -127,6 +142,11 @@ class ApartmentController extends Controller
             foreach ($tenantsToDelete as $tenant) {
                 if ($tenant->photo) {
                     $photosToDelete[] = $tenant->photo;
+                }
+                // Opcional: eliminar usuario también
+                $user = User::where('email', $tenant->email)->first();
+                if ($user) {
+                    $user->delete();
                 }
             }
             $apartment->tenants()->whereIn('id', $idsToDelete)->delete();
@@ -145,10 +165,10 @@ class ApartmentController extends Controller
         try {
             // Eliminar fotos de inquilinos
             $photosToDelete = $apartment->tenants()->pluck('photo')->filter()->toArray();
-            
+
             // Eliminar inquilinos
             $apartment->tenants()->delete();
-            
+
             // Eliminar apartamento
             $apartment->delete();
 
@@ -160,7 +180,6 @@ class ApartmentController extends Controller
             DB::commit();
 
             return redirect()->back()->with('success', 'Apartamento eliminado exitosamente');
-
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()

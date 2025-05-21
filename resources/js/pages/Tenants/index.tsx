@@ -1,6 +1,6 @@
 // pages/Apartments/Index.tsx
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { SharedData, type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { LayoutGrid, Table, Plus, Edit, Trash2, ChevronRight, Laptop, User, UploadCloud, ChevronsUpDown } from 'lucide-react';
@@ -64,6 +64,9 @@ interface Props {
 }
 
 export default function Index({ apartments, brands, models, systems, name_devices }: Props) {
+    const { auth } = usePage<SharedData>().props;
+  
+  
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -286,6 +289,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                             buildings={all_buildings}
                             selectedId={building.id}
                             onChange={(id) => router.visit(route('buildings.apartments', id))}
+                           
                         />
                     </CardContent>
                 </Card>

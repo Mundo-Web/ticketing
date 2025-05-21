@@ -10,7 +10,9 @@ use App\Models\Owner;
 use App\Models\Doorman;
 use App\Models\NameDevice;
 use App\Models\System;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use SoDe\Extend\Crypto;
@@ -145,7 +147,7 @@ class BuildingController extends Controller
         $ownerData = [
             'name' => $request->owner['name'],
             'email' => $request->owner['email'],
-            'phone' => $request->owner['phone']
+            'phone' => $request->owner['phone'],
         ];
 
         if ($request->hasFile('owner.photo')) {
@@ -160,14 +162,36 @@ class BuildingController extends Controller
 
         if ($building->owner) {
             $building->owner()->update($ownerData);
+            $owner = $building->owner;
         } else {
-            $building->owner()->create($ownerData);
+            $owner = $building->owner()->create($ownerData);
         }
-    }
 
+        // Crear o actualizar el usuario asociado al owner
+        // Suponemos que la relación se hace por email (puedes ajustarlo si usas user_id)
+
+        $user = User::updateOrCreate(
+            ['email' => $owner->email], // condición para buscar
+            [
+                'name' => $owner->name,
+                'password' => Hash::make($owner->email), // contraseña igual al email, cambia si quieres
+            ]
+        );
+
+        // Asignar rol de owner (evita duplicados)
+        if (!$user->hasRole('owner')) {
+            $user->assignRole('owner');
+        }
+
+        // Opcional: si quieres enlazar el owner con el user en la DB con user_id
+        // $owner->user_id = $user->id;
+        // $owner->save();
+
+        return $owner;
+    }
     private function saveDoormen(Request $request, Building $building)
     {
-        // First delete removed doormen
+        // Eliminar doormen que se removieron
         $currentDoormanIds = $building->doormen->pluck('id')->toArray();
         $newDoormanIds = collect($request->doormen)->pluck('id')->filter()->toArray();
         $idsToDelete = array_diff($currentDoormanIds, $newDoormanIds);
@@ -178,11 +202,16 @@ class BuildingController extends Controller
                 if ($doorman->photo) {
                     Storage::disk('public')->delete($doorman->photo);
                 }
+                // Opcional: también borrar el usuario asociado si quieres
+                $user = User::where('email', $doorman->email)->first();
+                if ($user) {
+                    $user->delete();
+                }
             }
             $building->doormen()->whereIn('id', $idsToDelete)->delete();
         }
 
-        // Update or create doormen
+        // Crear o actualizar doormen y usuarios asociados
         foreach ($request->doormen as $doormanData) {
             $data = [
                 'name' => $doormanData['name'],
@@ -195,7 +224,7 @@ class BuildingController extends Controller
                 $path = $this->storeImage($doormanData['photo'], 'doormen');
                 $data['photo'] = $path;
 
-                // Delete old photo if exists
+                // Borrar foto vieja si existe
                 if (isset($doormanData['id'])) {
                     $existingDoorman = Doorman::find($doormanData['id']);
                     if ($existingDoorman && $existingDoorman->photo) {
@@ -205,9 +234,25 @@ class BuildingController extends Controller
             }
 
             if (isset($doormanData['id'])) {
+                // Actualizar doorman
                 $building->doormen()->where('id', $doormanData['id'])->update($data);
+                $doorman = Doorman::find($doormanData['id']);
             } else {
-                $building->doormen()->create($data);
+                // Crear nuevo doorman
+                $doorman = $building->doormen()->create($data);
+            }
+
+            // Crear o actualizar usuario asociado al doorman
+            $user = User::updateOrCreate(
+                ['email' => $doorman->email],
+                [
+                    'name' => $doorman->name,
+                    'password' => Hash::make($doorman->email), // contraseña igual al email (puedes cambiar)
+                ]
+            );
+
+            if (!$user->hasRole('doorman')) {
+                $user->assignRole('doorman');
             }
         }
     }

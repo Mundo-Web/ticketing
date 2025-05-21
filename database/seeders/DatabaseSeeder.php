@@ -15,9 +15,11 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
 
-        \App\Models\Customer::factory(10)->create();
+      
         \App\Models\Support::factory(5)->create();
         \App\Models\Ticket::factory(15)->create();
+        RolesAndPermissionsSeeder::class;
+        UsersFromEntitiesSeeder::class;
         // User::factory(10)->create();
 
         /*

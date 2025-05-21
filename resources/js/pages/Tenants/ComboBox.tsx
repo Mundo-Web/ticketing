@@ -16,6 +16,8 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { SharedData } from '@/types';
+import { usePage } from '@inertiajs/react';
 
 type Building = {
     id: number;
@@ -32,11 +34,12 @@ export function BuildingCombobox({
     selectedId: number;
     onChange: (id: number) => void;
 }) {
+    const { auth } = usePage<SharedData>().props;
     const [open, setOpen] = React.useState(false);
     const selected = buildings.find(b => b.id === selectedId);
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={auth.user?.roles.includes('super-admin') ? open:false} onOpenChange={setOpen} >
             <PopoverTrigger asChild>
                 <button
                     className="w-max flex items-center justify-between bg-background px-4 py-2 text-left text-lg "

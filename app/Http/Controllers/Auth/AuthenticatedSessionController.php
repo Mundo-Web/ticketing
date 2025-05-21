@@ -33,6 +33,38 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = $request->user();
+
+        // Supongo que tienes roles con spatie y relaciones definidas
+    /*    if ($user->hasRole('member')) {
+            // Obtener el building relacionado al tenant
+            $tenant = $user->tenant; // Asumiendo relación User->tenant
+    
+            if ($tenant && $tenant->building) {
+                $buildingId = $tenant->building->id;
+                return redirect("/buildings/{$buildingId}/apartments");
+            }
+        }*/
+    
+        if ($user->hasRole('owner')) {
+            $owner = $user->owner; // relación User->owner
+    
+            if ($owner && $owner->building) {
+                $buildingId = $owner->building->id;
+                return redirect("/buildings/{$buildingId}/apartments");
+            }
+        }
+    
+        if ($user->hasRole('doorman')) {
+            $doorman = $user->doorman; // relación User->doorman
+    
+            if ($doorman && $doorman->building) {
+                $buildingId = $doorman->building->id;
+                return redirect("/buildings/{$buildingId}/apartments");
+            }
+        }
+    
+        // Para super-admin u otros roles, o si no tiene building asignado, redirige a dashboard por defecto
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
