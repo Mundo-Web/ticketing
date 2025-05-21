@@ -114,11 +114,11 @@ export default function DeviceDashboard({
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className=" w-full">
                   
 
                     <div className="flex items-center gap-2 self-end">
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                             <TabsList className="grid w-full grid-cols-3">
                                 <TabsTrigger value="all">All</TabsTrigger>
                                 <TabsTrigger value="owned">Owned</TabsTrigger>
@@ -249,7 +249,7 @@ const DeviceGrid = ({ title, devices, variant, count }: {
                 )}
             </div>
         ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
                 {devices.map(device => (
                     <DeviceCard key={device.id} device={device} variant={variant} />
                 ))}
