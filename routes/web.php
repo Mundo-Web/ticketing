@@ -40,6 +40,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('tickets', TicketController::class);
 
 
+    Route::get('/apartment/member/{id}/devices', [ApartmentController::class, 'apartmentMemberDevice'])
+    ->name('apartment.member.devices');
+
 
 
     Route::resource('buildings', BuildingController::class);

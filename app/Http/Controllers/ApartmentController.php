@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Apartment;
 use App\Models\Building;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class ApartmentController extends Controller
 {
@@ -199,6 +201,49 @@ class ApartmentController extends Controller
             'success' => true,
             'message' => 'Estado actualizado',
             'status' => $apartment->status
+        ]);
+    }
+
+
+    public function apartmentMemberDevice(Building $building, $id)
+    {
+        $member = Tenant::findOrFail($id);
+        $apartment = $member->apartment;
+        $building = $apartment->building;
+
+        $devicesOwn = $member->devices;
+        $devicesShared = $member->sharedDevices;
+        $devicesOwn->load([
+            'brand',
+            'model',
+            'system',
+            'name_device',
+            'sharedWith' => function ($query) {
+                $query->select('tenants.id', 'tenants.name', 'tenants.email','tenants.photo');
+            },
+            'tenants' => function ($query) {
+                $query->select('tenants.id', 'tenants.name', 'tenants.email','tenants.photo');
+            }
+        ]);
+        $devicesShared->load([
+            'brand',
+            'model',
+            'system',
+            'name_device',
+            'owner' => function ($query) {
+                $query->select('tenants.id', 'tenants.name', 'tenants.email','tenants.photo');
+            }
+           
+        ]);
+
+        return Inertia::render('Devices/Index', [
+            'googleMapsApiKey' => env('GMAPS_API_KEY'),
+            'building' => $building,
+            'all_buildings' => Building::all(),
+            'apartment' => $apartment,
+            'devicesOwn' => $devicesOwn,
+            'devicesShared' => $devicesShared,
+            'member' => $member,
         ]);
     }
 }

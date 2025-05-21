@@ -36,15 +36,15 @@ class AuthenticatedSessionController extends Controller
         $user = $request->user();
 
         // Supongo que tienes roles con spatie y relaciones definidas
-    /*    if ($user->hasRole('member')) {
+       if ($user->hasRole('member')) {
             // Obtener el building relacionado al tenant
             $tenant = $user->tenant; // Asumiendo relación User->tenant
     
-            if ($tenant && $tenant->building) {
-                $buildingId = $tenant->building->id;
-                return redirect("/buildings/{$buildingId}/apartments");
+            if ($tenant && $tenant->apartment) {
+                
+                return redirect("/apartment/member/{$tenant->id}/devices");
             }
-        }*/
+        }
     
         if ($user->hasRole('owner')) {
             $owner = $user->owner; // relación User->owner
