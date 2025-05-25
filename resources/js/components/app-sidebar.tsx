@@ -26,7 +26,9 @@ import AppLogo from './app-logo';
 export function AppSidebar() {
   const { url, component } = usePage()
   const { auth } = usePage<SharedData>().props;
+  // Menú principal para super-admin
   const mainNavItems: NavItem[] = [
+
     {
       title: 'Dashboard',
       href: '/dashboard',
@@ -60,6 +62,12 @@ export function AppSidebar() {
       href: '/technicals',
       icon: Laptop,
       isActive: route().current('technicals.*'),
+    },
+    {
+      title: 'Tickets',
+      href: '/tickets',
+      icon: FileText,
+      isActive: route().current('tickets.*'),
     },
     /*
        title: 'Support',
@@ -100,22 +108,39 @@ export function AppSidebar() {
        ]
      }*/
   ];
+  console.log('auth', auth.user)
+  // Menú para members (usuarios normales)
+  const memberNavItems: NavItem[] = [
+    {
+      title: 'Devices',
+      href: `/apartment/member/${auth?.user?.member?.id}/devices`,
+      icon: Laptop,
+      isActive: route().current('apartment.*'),
+    },
+    {
+      title: 'Tickets',
+      href: '/tickets',
+      icon: FileText,
+      isActive: route().current('tickets.*'),
+    },
+  ];
 
   return (
     <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader>
-
         <SidebarContent className='px-6'>
           <Link href="/dashboard" prefetch>
             <AppLogo />
           </Link>
         </SidebarContent>
-
       </SidebarHeader>
 
       <SidebarContent className='px-4'>
-        {auth.user?.roles.includes('super-admin') &&  <NavMain items={mainNavItems} />}
-
+        {auth.user?.roles.includes('super-admin') ? (
+          <NavMain items={mainNavItems} />
+        ) : (
+          <NavMain items={memberNavItems} />
+        )}
       </SidebarContent>
 
       <SidebarFooter>

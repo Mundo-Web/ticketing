@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Customer;
-use App\Models\Support;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,8 +13,17 @@ class TicketController extends Controller
      */
     public function index()
     {
-        //$tickets = Ticket::paginate(10);
-        $tickets = Ticket::with(['customer', 'support'])->latest()->paginate(10);
+        // Listar tickets del usuario autenticado (o todos si es super-admin)
+        $user = auth()->user();
+        $ticketsQuery = Ticket::with(['user', 'device','device.name_device']);
+
+        // Asegúrate de que el campo correcto identifica al super-admin
+        if (!$user->hasRole('super-admin')) {
+            $ticketsQuery->where('user_id', $user->id);
+        }
+
+        $tickets = $ticketsQuery->latest()->paginate(10);
+
         return Inertia::render('Tickets/index', [
             'tickets' => $tickets
         ]);
@@ -27,14 +34,8 @@ class TicketController extends Controller
      */
     public function create()
     {
-        //
-        $customers = Customer::select('id', 'name')->get();
-        $supports = Support::select('id', 'name')->get();
-
-        return Inertia::render('Tickets.create', [
-            'customers' => $customers,
-            'supports' => $supports,
-        ]);
+        // No se usa, el formulario es modal en Devices
+        abort(404);
     }
 
     /**
@@ -42,19 +43,18 @@ class TicketController extends Controller
      */
     public function store(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'customer_id' => 'require|exists:customers,id',
-                'technical_support_id' => 'nullable|exists:support,id',
-                'description' => 'required|string',
-                'status' => 'require|in:open, in Progress, clodsed'
-            ]);
-            Ticket::create($validated);
-            return redirect()->route('tickets.index')->with('success', 'Registro grabado');
-
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error'. 'hay unerror' . $e->getMessage());
-        }
+        $validated = $request->validate([
+            'device_id' => 'required|exists:devices,id',
+            'category' => 'required|string|max:100',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+        ]);
+        $ticket = Ticket::create([
+            ...$validated,
+            'user_id' => auth()->id(),
+            'status' => Ticket::STATUS_OPEN,
+        ]);
+        return redirect()->back()->with('success', 'Ticket creado correctamente');
     }
 
     /**
@@ -71,15 +71,8 @@ class TicketController extends Controller
      */
     public function edit(Ticket $ticket)
     {
-        //
-        $customers = Customer::select('id', 'name')->get();
-        $supports = Support::select('id', 'name')->get();
-
-        return Inertia::render('Tickets.edit', [
-            'ticket' => $ticket->load(['customer', 'support']),
-            'customers' => $customers,
-            'supports' => $supports,
-        ]);
+        // No se usa, edición desde panel admin
+        abort(404);
     }
 
     /**
@@ -87,19 +80,18 @@ class TicketController extends Controller
      */
     public function update(Request $request, Ticket $ticket)
     {
-        try {
-            $validated = $request->validate([
-                'customer_id' => 'require|exists:customers,id',
-                'technical_support_id' => 'nullable|exists:support,id',
-                'description' => 'required|string',
-                'status' => 'require|in:open, in Progress, clodsed'
-            ]);
-            Ticket::update($validated);
-            return redirect()->route('tickets.index')->with('success', 'Registro actualizad');
-
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error'. 'hay unerror' . $e->getMessage());
+        $validated = $request->validate([
+            'status' => 'required|in:open,in_progress,resolved,closed,cancelled',
+        ]);
+        $ticket->status = $validated['status'];
+        if ($ticket->status === Ticket::STATUS_RESOLVED) {
+            $ticket->resolved_at = now();
         }
+        if ($ticket->status === Ticket::STATUS_CLOSED) {
+            $ticket->closed_at = now();
+        }
+        $ticket->save();
+        return redirect()->back()->with('success', 'Estado del ticket actualizado');
     }
 
     /**

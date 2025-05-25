@@ -37,7 +37,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
     Route::resource('supports', SupportController::class);
-    Route::resource('tickets', TicketController::class);
+    // Tickets: solo index, store, update, destroy (no create/edit/show)
+    Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
+    Route::post('tickets', [TicketController::class, 'store'])->name('tickets.store');
+    Route::put('tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');
+    Route::delete('tickets/{ticket}', [TicketController::class, 'destroy'])->name('tickets.destroy');
 
 
     Route::get('/apartment/member/{id}/devices', [ApartmentController::class, 'apartmentMemberDevice'])

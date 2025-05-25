@@ -10,18 +10,40 @@ class Ticket extends Model
     //
     use HasFactory;
 
+
     protected $fillable = [
-        'customer_id',
-        'support_id',
-        'dewcription',
-        'status'
+        'user_id',
+        'device_id',
+        'category',
+        'title',
+        'description',
+        'status',
+        'resolved_at',
+        'closed_at',
     ];
 
-    public function customer(){
-        return $this->belongsTo(Customer::class);
+    // Estados posibles del ticket
+    public const STATUS_OPEN = 'open';
+    public const STATUS_IN_PROGRESS = 'in_progress';
+    public const STATUS_RESOLVED = 'resolved';
+    public const STATUS_CLOSED = 'closed';
+    public const STATUS_CANCELLED = 'cancelled';
+
+    // Relaciones
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
-    public function support(){
-        return $this->belongsTo(Support::class);
+    public function device()
+    {
+        return $this->belongsTo(Device::class);
     }
+
+    // Métodos de ayuda para estados
+    public function isOpen() { return $this->status === self::STATUS_OPEN; }
+    public function isInProgress() { return $this->status === self::STATUS_IN_PROGRESS; }
+    public function isResolved() { return $this->status === self::STATUS_RESOLVED; }
+    public function isClosed() { return $this->status === self::STATUS_CLOSED; }
+    public function isCancelled() { return $this->status === self::STATUS_CANCELLED; }
 }

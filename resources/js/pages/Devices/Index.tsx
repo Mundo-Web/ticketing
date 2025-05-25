@@ -10,6 +10,19 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useForm, router } from '@inertiajs/react';
+// Opciones de categorías para el ticket
+const TICKET_CATEGORIES = [
+    'Hardware',
+    'Software',
+    'Conectividad',
+    'Otro',
+];
+
 
 interface Device {
     id: number;
@@ -31,14 +44,15 @@ interface Tenant {
 
 interface Apartment {
     name: string;
-    photo: string;
-    floor: string;
+    photo?: string;
+    floor?: string;
+    ubicacion?: string;
 }
 
 interface Building {
     id: number;
     name: string;
-    photo: string;
+    photo?: string;
     address: string;
 }
 
@@ -55,6 +69,39 @@ export default function DeviceDashboard({
     building: Building;
     apartment: Apartment;
 }) {
+
+    // Estado para el modal de ticket
+    const [openTicketModal, setOpenTicketModal] = useState(false);
+
+
+    // Unir dispositivos propios y compartidos para el formulario
+    const allDevices = [...devicesOwn, ...devicesShared].map(device => ({
+        ...device,
+        // Si el nombre es null, usar device.name_device?.name
+        name: device.name || (device.name_device ? device.name_device.name : ''),
+    }));
+    // Debug: mostrar en consola los dispositivos
+    console.log('allDevices', allDevices);
+
+    // Formulario para crear ticket
+    const { data, setData, post, processing, errors, reset } = useForm({
+        device_id: '',
+        category: '',
+        title: '',
+        description: '',
+    });
+
+    // Manejar envío del formulario
+    const handleSubmitTicket = (e: React.FormEvent) => {
+        e.preventDefault();
+        post('/tickets', {
+            preserveScroll: true,
+            onSuccess: () => {
+                setOpenTicketModal(false);
+                reset();
+            },
+        });
+    };
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('all');
 
@@ -76,7 +123,86 @@ export default function DeviceDashboard({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gestión de Dispositivos" />
+
             <div className="flex flex-col gap-6 p-6">
+                {/* Botón de acción para crear ticket */}
+                <div className="flex justify-end mb-2">
+                    <Dialog open={openTicketModal} onOpenChange={setOpenTicketModal}>
+                        <DialogTrigger asChild>
+                            <Button onClick={() => setOpenTicketModal(true)} className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                                <Plus className="w-4 h-4 mr-2" /> Reportar un problema
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Reportar un problema</DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={handleSubmitTicket} className="space-y-4">
+                                <div>
+                                    <Label>Dispositivo</Label>
+                                    <Select
+                                        value={data.device_id}
+                                        onValueChange={value => setData('device_id', value)}
+                                        required
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecciona un dispositivo" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {allDevices.map(device => (
+                                                <SelectItem key={device.id} value={String(device.id)}>{device.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.device_id && <div className="text-red-500 text-sm">{errors.device_id}</div>}
+                                </div>
+                                <div>
+                                    <Label>Categoría</Label>
+                                    <Select
+                                        value={data.category}
+                                        onValueChange={value => setData('category', value)}
+                                        required
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecciona una categoría" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {TICKET_CATEGORIES.map(cat => (
+                                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.category && <div className="text-red-500 text-sm">{errors.category}</div>}
+                                </div>
+                                <div>
+                                    <Label>Título</Label>
+                                    <Input
+                                        type="text"
+                                        value={data.title}
+                                        onChange={e => setData('title', e.target.value)}
+                                        required
+                                    />
+                                    {errors.title && <div className="text-red-500 text-sm">{errors.title}</div>}
+                                </div>
+                                <div>
+                                    <Label>Descripción</Label>
+                                    <Textarea
+                                        value={data.description}
+                                        onChange={e => setData('description', e.target.value)}
+                                        required
+                                    />
+                                    {errors.description && <div className="text-red-500 text-sm">{errors.description}</div>}
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button type="button" variant="outline">Cancelar</Button>
+                                    </DialogClose>
+                                    <Button type="submit" className="bg-blue-600 text-white" disabled={processing}>Enviar Ticket</Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                </div>
 
                 {/* Header Section con animación mejorada */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

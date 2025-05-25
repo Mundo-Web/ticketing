@@ -1,36 +1,268 @@
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
+
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { type BreadcrumbItem, User } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useState } from 'react';
+import { Edit, Trash2, MoreHorizontal, CheckCircle, XCircle, Loader2, Eye } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    DialogClose,
+} from '@/components/ui/dialog';
+import { Select } from '@/components/ui/select';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Tickets',
-        href: '/tickets',
-    },
+    { title: 'Tickets', href: '/tickets' },
 ];
 
-export default function Dashboard() {
+// Status badge for ticket states
+const statusMap: Record<string, { label: string; color: string }> = {
+    open: { label: 'Abierto', color: 'bg-blue-100 text-blue-800' },
+    in_progress: { label: 'En progreso', color: 'bg-yellow-100 text-yellow-800' },
+    resolved: { label: 'Resuelto', color: 'bg-green-100 text-green-800' },
+    closed: { label: 'Cerrado', color: 'bg-gray-200 text-gray-700' },
+    cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
+};
+
+function StatusBadge({ status }: { status: string }) {
+    const s = statusMap[status] || { label: status, color: 'bg-gray-100 text-gray-700' };
+    return (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${s.color}`}>{s.label}</span>
+    );
+}
+
+function Pagination({ links, meta }: { links: any[]; meta: any }) {
+    if (!links) return null;
+    return (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+            <div className="text-sm text-gray-500">
+                Mostrando {meta?.per_page * (meta?.current_page - 1) + 1} -{' '}
+                {Math.min(meta?.per_page * meta?.current_page, meta?.total)} de {meta?.total}
+            </div>
+            <div className="flex gap-1">
+                {links.map((link, index) => (
+                    link.url && (
+                        <Link
+                            key={index}
+                            href={link.url}
+                            className={`px-3 py-1 rounded-lg ${link.active
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                }`}
+                            dangerouslySetInnerHTML={{ __html: link.label }}
+                        />
+                    )
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// Main Ticket List Page
+
+interface Ticket {
+    id: number;
+    device?: {
+        name?: string;
+        name_device?: {
+            name: string;
+        };
+    };
+    category: string;
+    title: string;
+    description: string;
+    status: string;
+    created_at?: string;
+    updated_at?: string;
+    // Add other fields as needed
+}
+
+interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+interface PaginationMeta {
+    current_page: number;
+    from: number;
+    last_page: number;
+    path: string;
+    per_page: number;
+    to: number;
+    total: number;
+    links: PaginationLink[];
+}
+
+interface TicketsProps {
+    tickets: {
+        data: Ticket[];
+        links: PaginationLink[];
+        meta: PaginationMeta;
+    };
+}
+
+export default function TicketsIndex({ tickets }: TicketsProps) {
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [viewTicket, setViewTicket] = useState<any | null>(null);
+    const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
+    const { auth } = usePage().props as any;
+
+    const handleDelete = (ticket: any) => {
+        if (!window.confirm('¿Eliminar este ticket?')) return;
+        setDeletingId(ticket.id);
+        router.delete(`/tickets/${ticket.id}`, {
+            preserveScroll: true,
+            onFinish: () => setDeletingId(null),
+        });
+    };
+
+    const handleStatusChange = (ticket: any, newStatus: string) => {
+        setStatusLoadingId(ticket.id);
+        router.put(`/tickets/${ticket.id}`, { status: newStatus }, {
+            preserveScroll: true,
+            onFinish: () => setStatusLoadingId(null),
+        });
+    };
+
+    // Define allowed status transitions
+    const getNextStatuses = (status: string) => {
+        switch (status) {
+            case 'open':
+                return ['in_progress', 'cancelled'];
+            case 'in_progress':
+                return ['resolved', 'cancelled'];
+            case 'resolved':
+                return ['closed'];
+            default:
+                return [];
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-                <h1>Tickets</h1>
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="border-sidebar-border/70 dark:border-sidebar-border relative aspect-video overflow-hidden rounded-xl border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="border-sidebar-border/70 dark:border-sidebar-border relative aspect-video overflow-hidden rounded-xl border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="border-sidebar-border/70 dark:border-sidebar-border relative aspect-video overflow-hidden rounded-xl border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
+            <Head title="Tickets" />
+            <div className="flex flex-1 flex-col gap-4 rounded-xl p-4">
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-2xl font-bold">Tickets</h1>
+                    {/* Add button for modal ticket creation if needed */}
                 </div>
-                <div className="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border md:min-h-min">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+                <div className="rounded-xl border shadow-sm overflow-hidden bg-white">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Dispositivo</TableHead>
+                                <TableHead>Categoría</TableHead>
+                                <TableHead>Título</TableHead>
+                                <TableHead>Descripción</TableHead>
+                                <TableHead>Estado</TableHead>
+                                <TableHead>Creado</TableHead>
+                                <TableHead>Acciones</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {tickets.data.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">No hay tickets.</TableCell>
+                                </TableRow>
+                            ) : (
+                                tickets.data.map((ticket: any) => (
+                                    <TableRow key={ticket.id}>
+                                        <TableCell>
+                                            {ticket.device?.name_device?.name || ticket.device?.name || '-'}
+                                        </TableCell>
+                                        <TableCell>{ticket.category}</TableCell>
+                                        <TableCell className="font-medium">{ticket.title}</TableCell>
+                                        <TableCell className="max-w-[200px] truncate">{ticket.description}</TableCell>
+                                        <TableCell>
+                                            <StatusBadge status={ticket.status} />
+                                        </TableCell>
+                                        <TableCell>
+                                            {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : '-'}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-2 items-center">
+                                                {/* View details */}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    title="Ver detalles"
+                                                    onClick={() => setViewTicket(ticket)}
+                                                >
+                                                    <Eye className="w-4 h-4 text-blue-600" />
+                                                </Button>
+                                                {/* Status change dropdown */}
+                                                {getNextStatuses(ticket.status).length > 0 && (
+                                                    <select
+                                                        className="border rounded px-2 py-1 text-xs"
+                                                        value=""
+                                                        disabled={statusLoadingId === ticket.id}
+                                                        onChange={e => handleStatusChange(ticket, e.target.value)}
+                                                    >
+                                                        <option value="" disabled>Cambiar estado</option>
+                                                        {getNextStatuses(ticket.status).map(status => (
+                                                            <option key={status} value={status}>{statusMap[status]?.label || status}</option>
+                                                        ))}
+                                                    </select>
+                                                )}
+                                                {/* Delete action: only allow if open or cancelled */}
+                                                {(ticket.status === 'open' || ticket.status === 'cancelled') && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        title="Eliminar"
+                                                        disabled={deletingId === ticket.id}
+                                                        onClick={() => handleDelete(ticket)}
+                                                    >
+                                                        {deletingId === ticket.id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="w-4 h-4 text-red-600" />
+                                                        )}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
+                <Pagination links={tickets.links} meta={tickets.meta} />
             </div>
+            {/* View Ticket Modal */}
+            <Dialog open={!!viewTicket} onOpenChange={open => !open && setViewTicket(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Detalles del Ticket</DialogTitle>
+                    </DialogHeader>
+                    {viewTicket && (
+                        <div className="flex flex-col gap-2">
+                            <div><b>ID:</b> {viewTicket.id}</div>
+                            <div><b>Dispositivo:</b> {viewTicket.device?.name_device?.name || viewTicket.device?.name || '-'}</div>
+                            <div><b>Categoría:</b> {viewTicket.category}</div>
+                            <div><b>Título:</b> {viewTicket.title}</div>
+                            <div><b>Descripción:</b> {viewTicket.description}</div>
+                            <div><b>Estado:</b> <StatusBadge status={viewTicket.status} /></div>
+                            <div><b>Creado:</b> {viewTicket.created_at ? new Date(viewTicket.created_at).toLocaleString() : '-'}</div>
+                            <div><b>Actualizado:</b> {viewTicket.updated_at ? new Date(viewTicket.updated_at).toLocaleString() : '-'}</div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="secondary">Cerrar</Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }
