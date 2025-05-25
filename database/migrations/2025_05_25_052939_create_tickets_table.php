@@ -11,7 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::dropIfExists('tickets');
         Schema::create('tickets', function (Blueprint $table) {
+         
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // Quien reporta
             $table->foreignId('device_id')->constrained('devices')->onDelete('cascade');
