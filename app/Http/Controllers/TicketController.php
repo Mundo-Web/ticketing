@@ -123,6 +123,18 @@ class TicketController extends Controller
             $ticket->closed_at = now();
         }
         $ticket->save();
+ // Obtener el usuario autenticado
+        $user = auth()->user();
+        // Buscar el técnico correspondiente al usuario autenticado por email
+        $technical = Technical::where('email', $user->email)->first();
+        $technicalId = $technical ? $technical->id : null;
+        // Agregar al historial
+        $ticket->addHistory(
+            'status_updated',
+            'Estado del ticket actualizado a ' . $ticket->status,
+            null,
+            $technicalId
+        );
         return redirect()->back()->with('success', 'Estado del ticket actualizado');
     }
 
@@ -161,9 +173,9 @@ class TicketController extends Controller
                 'from' => $oldTechnical,
                 'to' => $validated['technical_id']
             ],
-            auth()->id()
+            $validated['technical_id']
         );
-        return response()->json(['success' => true, 'ticket' => $ticket->load(['technical', 'histories.user'])]);
+        return response()->json(['success' => true, 'ticket' => $ticket->load(['technical', 'histories.technical'])]);
     }
 
     /**
@@ -176,11 +188,18 @@ class TicketController extends Controller
             'description' => 'nullable|string|max:1000',
             'meta' => 'nullable|array',
         ]);
+
+        // Obtener el usuario autenticado
+        $user = auth()->user();
+        // Buscar el técnico correspondiente al usuario autenticado por email
+        $technical = Technical::where('email', $user->email)->first();
+        $technicalId = $technical ? $technical->id : null;
+
         $history = $ticket->addHistory(
             $validated['action'],
             $validated['description'] ?? null,
             $validated['meta'] ?? null,
-            auth()->id()
+            $technicalId
         );
         return response()->json(['success' => true, 'history' => $history]);
     }

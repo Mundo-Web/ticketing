@@ -4,7 +4,8 @@ import { type BreadcrumbItem, User } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { useState } from 'react';
-import { Edit, Trash2, MoreHorizontal, CheckCircle, XCircle, Loader2, Eye } from 'lucide-react';
+
+import { Edit, Trash2, MoreHorizontal, CheckCircle, XCircle, Loader2, Eye, Plus, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -111,6 +112,15 @@ interface TicketsProps {
 }
 
 export default function TicketsIndex({ tickets }: TicketsProps) {
+    // State for modals and forms
+    const [showHistoryModal, setShowHistoryModal] = useState<{ open: boolean, ticketId?: number }>({ open: false });
+    const [showAssignModal, setShowAssignModal] = useState<{ open: boolean, ticketId?: number }>({ open: false });
+    const [historyText, setHistoryText] = useState('');
+    const [historyAction, setHistoryAction] = useState('comment');
+    const [assignTechnicalId, setAssignTechnicalId] = useState<number | null>(null);
+    const [assigning, setAssigning] = useState(false);
+    const [addingHistory, setAddingHistory] = useState(false);
+    const [technicals, setTechnicals] = useState<any[]>([]);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [viewTicket, setViewTicket] = useState<any | null>(null);
     const [viewLoading, setViewLoading] = useState(false);
@@ -162,6 +172,18 @@ export default function TicketsIndex({ tickets }: TicketsProps) {
             setViewTicket(null);
         } finally {
             setViewLoading(false);
+        }
+    };
+
+    // Load technicals for assignment
+    const loadTechnicals = async () => {
+        try {
+            const response = await fetch('/technicals-list', { headers: { 'Accept': 'application/json' } });
+            if (!response.ok) throw new Error('Error al cargar técnicos');
+            const data = await response.json();
+            setTechnicals(data.technicals || []);
+        } catch (e) {
+            setTechnicals([]);
         }
     };
 
@@ -221,6 +243,26 @@ export default function TicketsIndex({ tickets }: TicketsProps) {
                                                 >
                                                     <Eye className="w-4 h-4 text-blue-600" />
                                                 </Button>
+{auth.user?.roles.includes('technical') && (<>
+
+                                                {/* Add history action */}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    title="Agregar acción/historial"
+                                                    onClick={() => setShowHistoryModal({ open: true, ticketId: ticket.id })}
+                                                >
+                                                    <Plus className="w-4 h-4 text-green-600" />
+                                                </Button>
+                                                {/* Assign/derive technical */}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    title="Derivar/Asignar técnico"
+                                                    onClick={async () => { await loadTechnicals(); setShowAssignModal({ open: true, ticketId: ticket.id }); }}
+                                                >
+                                                    <Share2 className="w-4 h-4 text-purple-600" />
+                                                </Button>
                                                 {/* Status change dropdown */}
                                                 {getNextStatuses(ticket.status).length > 0 && (
                                                     <select
@@ -251,8 +293,116 @@ export default function TicketsIndex({ tickets }: TicketsProps) {
                                                         )}
                                                     </Button>
                                                 )}
+</>)}
                                             </div>
                                         </TableCell>
+                                        <Dialog open={showHistoryModal.open} onOpenChange={open => setShowHistoryModal({ open, ticketId: showHistoryModal.ticketId })}>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Agregar acción/historial al ticket</DialogTitle>
+                                                </DialogHeader>
+                                                <form
+                                                    onSubmit={async e => {
+                                                        e.preventDefault();
+                                                        setAddingHistory(true);
+                                                        try {
+                                                            const meta = document.querySelector('meta[name="csrf-token"]');
+                                                            const csrf = (meta && meta.getAttribute('content')) || '';
+                                                            const res = await fetch(`/tickets/${showHistoryModal.ticketId}/add-history`, {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+                                                                body: JSON.stringify({ action: historyAction, description: historyText })
+                                                            });
+                                                            if (!res.ok) throw new Error('Error al agregar historial');
+                                                            setShowHistoryModal({ open: false });
+                                                            setHistoryText('');
+                                                            setHistoryAction('comment');
+                                                            router.reload({ only: ['tickets'] });
+                                                        } catch (e) {
+                                                            alert('Error al agregar historial');
+                                                        } finally {
+                                                            setAddingHistory(false);
+                                                        }
+                                                    }}
+                                                    className="space-y-4"
+                                                >
+                                                    <label htmlFor="Action" className="block text-sm font-medium text-gray-700">Acción</label>
+                                                    <input
+                                                        className="w-full border rounded p-2"
+                                                        value={historyAction}
+                                                        onChange={e => setHistoryAction(e.target.value)}
+                                                        placeholder="Ej: comment, resolucion, consult, etc."
+                                                        required
+                                                    />
+                                                    <label htmlFor="Description" className="block text-sm font-medium text-gray-700">Descripción</label>
+                                                    <textarea
+                                                        className="w-full border rounded p-2 min-h-[80px]"
+                                                        value={historyText}
+                                                        onChange={e => setHistoryText(e.target.value)}
+                                                        placeholder="Describe la acción realizada o comentario"
+                                                        required
+                                                    />
+                                                    <DialogFooter>
+                                                        <DialogClose asChild>
+                                                            <Button type="button" variant="outline">Cancelar</Button>
+                                                        </DialogClose>
+                                                        <Button type="submit" disabled={addingHistory}>{addingHistory ? 'Guardando...' : 'Guardar'}</Button>
+                                                    </DialogFooter>
+                                                </form>
+                                            </DialogContent>
+                                        </Dialog>
+
+                                        {/* Modal: Assign/Derive Technical */}
+                                        <Dialog open={showAssignModal.open} onOpenChange={open => setShowAssignModal({ open, ticketId: showAssignModal.ticketId })}>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Derivar/Asignar técnico al ticket</DialogTitle>
+                                                </DialogHeader>
+                                                <form
+                                                    onSubmit={async e => {
+                                                        e.preventDefault();
+                                                        if (!assignTechnicalId) return;
+                                                        setAssigning(true);
+                                                        try {
+                                                            const meta = document.querySelector('meta[name="csrf-token"]');
+                                                            const csrf = (meta && meta.getAttribute('content')) || '';
+                                                            const res = await fetch(`/tickets/${showAssignModal.ticketId}/assign-technical`, {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+                                                                body: JSON.stringify({ technical_id: assignTechnicalId })
+                                                            });
+                                                            if (!res.ok) throw new Error('Error al asignar técnico');
+                                                            setShowAssignModal({ open: false });
+                                                            setAssignTechnicalId(null);
+                                                            router.reload({ only: ['tickets'] });
+                                                        } catch (e) {
+                                                            alert('Error al asignar técnico');
+                                                        } finally {
+                                                            setAssigning(false);
+                                                        }
+                                                    }}
+                                                    className="space-y-4"
+                                                >
+                                                    <select
+                                                        className="w-full border rounded p-2"
+                                                        value={assignTechnicalId || ''}
+                                                        onChange={e => setAssignTechnicalId(Number(e.target.value))}
+                                                        required
+                                                    >
+                                                        <option value="" disabled>Selecciona un técnico</option>
+                                                        {technicals.map(t => (
+                                                            <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
+                                                        ))}
+                                                    </select>
+                                                    <DialogFooter>
+                                                        <DialogClose asChild>
+                                                            <Button type="button" variant="outline">Cancelar</Button>
+                                                        </DialogClose>
+                                                        <Button type="submit" disabled={assigning}>{assigning ? 'Asignando...' : 'Asignar'}</Button>
+                                                    </DialogFooter>
+                                                </form>
+                                            </DialogContent>
+                                        </Dialog>
                                     </TableRow>
                                 ))
                             )}
@@ -271,21 +421,41 @@ export default function TicketsIndex({ tickets }: TicketsProps) {
                         <div className="flex items-center justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>
                     )}
                     {viewTicket && !viewLoading && (
-                        <div className="flex flex-col gap-4">
-                            <div className="grid grid-cols-2 gap-2">
-                                <div><b>ID:</b> {viewTicket.id}</div>
-                                <div><b>Código:</b> {viewTicket.code}</div>
-                                <div><b>Dispositivo:</b> {viewTicket.device?.name_device?.name || viewTicket.device?.name || '-'}</div>
-                                <div><b>Categoría:</b> {viewTicket.category}</div>
-                                <div><b>Título:</b> {viewTicket.title}</div>
-                                <div><b>Descripción:</b> {viewTicket.description}</div>
-                                <div><b>Estado:</b> <StatusBadge status={viewTicket.status} /></div>
-                                <div><b>Creado:</b> {viewTicket.created_at ? new Date(viewTicket.created_at).toLocaleString() : '-'}</div>
-                                <div><b>Actualizado:</b> {viewTicket.updated_at ? new Date(viewTicket.updated_at).toLocaleString() : '-'}</div>
+                        <>
+                            <div className="flex flex-col gap-4">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div><b>ID:</b> {viewTicket.id}</div>
+                                    <div><b>Código:</b> {viewTicket.code}</div>
+                                    <div><b>Dispositivo:</b> {viewTicket.device?.name_device?.name || viewTicket.device?.name || '-'}</div>
+                                    <div><b>Categoría:</b> {viewTicket.category}</div>
+                                    <div><b>Título:</b> {viewTicket.title}</div>
+                                    <div><b>Descripción:</b> {viewTicket.description}</div>
+                                    <div><b>Estado:</b> <StatusBadge status={viewTicket.status} /></div>
+                                    <div><b>Creado:</b> {viewTicket.created_at ? new Date(viewTicket.created_at).toLocaleString() : '-'}</div>
+                                    <div><b>Actualizado:</b> {viewTicket.updated_at ? new Date(viewTicket.updated_at).toLocaleString() : '-'}</div>
+                                </div>
+                                <div className="flex gap-2 mt-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setShowHistoryModal({ open: true, ticketId: viewTicket.id })}
+                                        title="Agregar acción/historial"
+                                    >
+                                        <Plus className="w-4 h-4 text-green-600 mr-1" /> Agregar acción
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async () => { await loadTechnicals(); setShowAssignModal({ open: true, ticketId: viewTicket.id }); }}
+                                        title="Derivar/Asignar técnico"
+                                    >
+                                        <Share2 className="w-4 h-4 text-purple-600 mr-1" /> Derivar técnico
+                                    </Button>
+                                </div>
                             </div>
                             <div>
                                 <h3 className="text-lg font-semibold mt-4 mb-2">Historial</h3>
-                                <div className="bg-white rounded-lg shadow border divide-y">
+                                <div className="bg-white rounded-lg shadow border divide-y max-h-60 overflow-y-auto">
                                     {(!viewTicket.histories || viewTicket.histories.length === 0) && (
                                         <div className="p-4 text-gray-500 text-center">No hay historial para este ticket.</div>
                                     )}
@@ -306,7 +476,7 @@ export default function TicketsIndex({ tickets }: TicketsProps) {
                                     ))}
                                 </div>
                             </div>
-                        </div>
+                        </>
                     )}
                     <DialogFooter>
                         <DialogClose asChild>
