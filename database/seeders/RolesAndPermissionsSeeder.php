@@ -17,5 +17,6 @@ class RolesAndPermissionsSeeder extends Seeder
         Role::firstOrCreate(['name' => 'member']);
         Role::firstOrCreate(['name' => 'owner']);
         Role::firstOrCreate(['name' => 'doorman']);
+        Role::firstOrCreate(['name' => 'technical']);
     }
 }

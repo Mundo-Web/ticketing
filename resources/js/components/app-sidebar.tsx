@@ -125,6 +125,16 @@ export function AppSidebar() {
     },
   ];
 
+    const technicalNavItems: NavItem[] = [
+
+    {
+      title: 'Tickets',
+      href: '/tickets',
+      icon: FileText,
+      isActive: route().current('tickets.*'),
+    },
+  ];
+
   return (
     <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader>
@@ -138,7 +148,9 @@ export function AppSidebar() {
       <SidebarContent className='px-4'>
         {auth.user?.roles.includes('super-admin') ? (
           <NavMain items={mainNavItems} />
-        ) : (
+        ) :  auth.user?.roles.includes('technical') ? (
+          <NavMain items={technicalNavItems} />
+        ):(
           <NavMain items={memberNavItems} />
         )}
       </SidebarContent>

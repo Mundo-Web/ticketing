@@ -10,13 +10,13 @@ class Technical extends Model
     use HasFactory;
 
     protected $fillable = [
-
         'name',
         'email',
         'photo',
         'phone',
         'shift',
         'status',
-        'visible'
+        'visible',
+        'is_default',
     ];
 }

@@ -20,7 +20,34 @@ class Ticket extends Model
         'status',
         'resolved_at',
         'closed_at',
+        'code',
+        'technical_id',
     ];
+    // Boot: generar código único al crear
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($ticket) {
+            $lastId = self::max('id') + 1;
+            $ticket->code = 'TCK-' . str_pad($lastId, 5, '0', STR_PAD_LEFT);
+        });
+    }
+
+    public function histories()
+    {
+        return $this->hasMany(TicketHistory::class);
+    }
+
+    // Helper para registrar eventos en el historial
+    public function addHistory($action, $description = null, $meta = null, $technical_id = null)
+    {
+        return $this->histories()->create([
+            'action' => $action,
+            'description' => $description,
+            'meta' => $meta ? json_encode($meta) : null,
+            'technical_id' => $technical_id,
+        ]);
+    }
 
     // Estados posibles del ticket
     public const STATUS_OPEN = 'open';
@@ -38,6 +65,11 @@ class Ticket extends Model
     public function device()
     {
         return $this->belongsTo(Device::class);
+    }
+
+    public function technical()
+    {
+        return $this->belongsTo(Technical::class);
     }
 
     // Métodos de ayuda para estados

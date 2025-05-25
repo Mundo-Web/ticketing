@@ -40,8 +40,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Tickets: solo index, store, update, destroy (no create/edit/show)
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::post('tickets', [TicketController::class, 'store'])->name('tickets.store');
+    Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
     Route::put('tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');
     Route::delete('tickets/{ticket}', [TicketController::class, 'destroy'])->name('tickets.destroy');
+    // Nuevas rutas para historial y asignación de técnico
+    Route::post('tickets/{ticket}/assign-technical', [TicketController::class, 'assignTechnical'])->name('tickets.assignTechnical');
+    Route::post('tickets/{ticket}/add-history', [TicketController::class, 'addHistory'])->name('tickets.addHistory');
 
 
     Route::get('/apartment/member/{id}/devices', [ApartmentController::class, 'apartmentMemberDevice'])
@@ -78,6 +82,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/models/{model}', [DeviceController::class, 'updateModel'])->name('models.update');
     Route::put('/systems/{system}', [DeviceController::class, 'updateSystem'])->name('systems.update');
     Route::put('/name_devices/{name_device}', [DeviceController::class, 'updateNameDevice'])->name('name_devices.update');
+
+    Route::get('technicals-list', [TicketController::class, 'technicalsList'])->name('tickets.technicalsList');
+
+
 });
 
 require __DIR__ . '/settings.php';

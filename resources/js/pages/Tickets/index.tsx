@@ -2,6 +2,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, User } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useEffect } from 'react';
 import { useState } from 'react';
 import { Edit, Trash2, MoreHorizontal, CheckCircle, XCircle, Loader2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -112,6 +113,7 @@ interface TicketsProps {
 export default function TicketsIndex({ tickets }: TicketsProps) {
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [viewTicket, setViewTicket] = useState<any | null>(null);
+    const [viewLoading, setViewLoading] = useState(false);
     const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
     const { auth } = usePage().props as any;
 
@@ -144,6 +146,27 @@ export default function TicketsIndex({ tickets }: TicketsProps) {
             default:
                 return [];
         }
+    };
+
+    // Cargar ticket + historial al abrir modal
+    const handleOpenDetails = async (ticketId: number) => {
+        setViewLoading(true);
+        try {
+            const response = await fetch(`/tickets/${ticketId}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!response.ok) throw new Error('Error al cargar ticket');
+            const data = await response.json();
+            setViewTicket(data.ticket);
+        } catch (e) {
+            setViewTicket(null);
+        } finally {
+            setViewLoading(false);
+        }
+    };
+
+    const handleCloseDetails = () => {
+        setViewTicket(null);
     };
 
     return (
@@ -194,7 +217,7 @@ export default function TicketsIndex({ tickets }: TicketsProps) {
                                                     variant="ghost"
                                                     size="icon"
                                                     title="Ver detalles"
-                                                    onClick={() => setViewTicket(ticket)}
+                                                    onClick={() => handleOpenDetails(ticket.id)}
                                                 >
                                                     <Eye className="w-4 h-4 text-blue-600" />
                                                 </Button>
@@ -239,21 +262,50 @@ export default function TicketsIndex({ tickets }: TicketsProps) {
                 <Pagination links={tickets.links} meta={tickets.meta} />
             </div>
             {/* View Ticket Modal */}
-            <Dialog open={!!viewTicket} onOpenChange={open => !open && setViewTicket(null)}>
+            <Dialog open={!!viewTicket || viewLoading} onOpenChange={open => { if (!open) handleCloseDetails(); }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Detalles del Ticket</DialogTitle>
                     </DialogHeader>
-                    {viewTicket && (
-                        <div className="flex flex-col gap-2">
-                            <div><b>ID:</b> {viewTicket.id}</div>
-                            <div><b>Dispositivo:</b> {viewTicket.device?.name_device?.name || viewTicket.device?.name || '-'}</div>
-                            <div><b>Categoría:</b> {viewTicket.category}</div>
-                            <div><b>Título:</b> {viewTicket.title}</div>
-                            <div><b>Descripción:</b> {viewTicket.description}</div>
-                            <div><b>Estado:</b> <StatusBadge status={viewTicket.status} /></div>
-                            <div><b>Creado:</b> {viewTicket.created_at ? new Date(viewTicket.created_at).toLocaleString() : '-'}</div>
-                            <div><b>Actualizado:</b> {viewTicket.updated_at ? new Date(viewTicket.updated_at).toLocaleString() : '-'}</div>
+                    {viewLoading && (
+                        <div className="flex items-center justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>
+                    )}
+                    {viewTicket && !viewLoading && (
+                        <div className="flex flex-col gap-4">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div><b>ID:</b> {viewTicket.id}</div>
+                                <div><b>Código:</b> {viewTicket.code}</div>
+                                <div><b>Dispositivo:</b> {viewTicket.device?.name_device?.name || viewTicket.device?.name || '-'}</div>
+                                <div><b>Categoría:</b> {viewTicket.category}</div>
+                                <div><b>Título:</b> {viewTicket.title}</div>
+                                <div><b>Descripción:</b> {viewTicket.description}</div>
+                                <div><b>Estado:</b> <StatusBadge status={viewTicket.status} /></div>
+                                <div><b>Creado:</b> {viewTicket.created_at ? new Date(viewTicket.created_at).toLocaleString() : '-'}</div>
+                                <div><b>Actualizado:</b> {viewTicket.updated_at ? new Date(viewTicket.updated_at).toLocaleString() : '-'}</div>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold mt-4 mb-2">Historial</h3>
+                                <div className="bg-white rounded-lg shadow border divide-y">
+                                    {(!viewTicket.histories || viewTicket.histories.length === 0) && (
+                                        <div className="p-4 text-gray-500 text-center">No hay historial para este ticket.</div>
+                                    )}
+                                    {viewTicket.histories && viewTicket.histories.map((h: any) => (
+                                        <div key={h.id} className="flex flex-col md:flex-row md:items-center gap-2 p-4">
+                                            <div className="flex-1">
+                                                <div className="font-medium text-sm text-blue-700">{h.action.replace('_', ' ').toUpperCase()}</div>
+                                                <div className="text-gray-700 text-sm">{h.description}</div>
+                                                {h.meta && (
+                                                    <div className="text-xs text-gray-400 mt-1">{typeof h.meta === 'string' ? h.meta : JSON.stringify(h.meta)}</div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col items-end min-w-[120px]">
+                                                <div className="text-xs text-gray-500">{h.user ? h.user.name : 'Sistema'}</div>
+                                                <div className="text-xs text-gray-400">{new Date(h.created_at).toLocaleString()}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )}
                     <DialogFooter>

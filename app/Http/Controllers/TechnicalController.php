@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Technical;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -44,7 +46,22 @@ class TechnicalController extends Controller
             $validated['photo'] = $request->file('photo')->store('images/technicals', 'public');
         }
 
-        Technical::create($validated);
+        // Verifica si es el primero en la tabla
+        $validated['is_default'] = Technical::count() === 0 ? true : false;
+
+        $technical = Technical::create($validated);
+
+        $user = User::updateOrCreate(
+            ['email' => $technical->email],
+            [
+                'name' => $technical->name,
+                'password' => Hash::make($technical->email),
+            ]
+        );
+
+        if (!$user->hasRole('technical')) {
+            $user->assignRole('technical');
+        }
 
         return redirect()->route('technicals.index')->with('success', 'Technical created successfully');
     }
