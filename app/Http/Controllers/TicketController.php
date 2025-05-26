@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Technical;
+use App\Models\Tenant;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,6 +18,9 @@ class TicketController extends Controller
         // Listar tickets del usuario autenticado (o todos si es super-admin, o asignados si es technical)
         $user = auth()->user();
         $ticketsQuery = Ticket::with(['technical', 'device', 'device.name_device', 'histories.technical']);
+        $allTicketsQuery = Ticket::query();
+        $devicesOwn = collect();
+        $devicesShared = collect();
 
         if ($user->hasRole('super-admin')) {
             // Ver todos los tickets
@@ -25,21 +29,57 @@ class TicketController extends Controller
             // Buscar el técnico correspondiente al usuario autenticado por email
             $technical = Technical::where('email', $user->email)->first();
             if ($technical) {
-            // Ver tickets asignados a ese técnico
-            $ticketsQuery->where('technical_id', $technical->id);
+                // Ver tickets asignados a ese técnico
+                $ticketsQuery->where('technical_id', $technical->id);
+                $allTicketsQuery->where('technical_id', $technical->id);
             } else {
-            // Si no hay técnico asociado, no mostrar tickets
-            $ticketsQuery->whereRaw('1 = 0');
+                // Si no hay técnico asociado, no mostrar tickets
+                $ticketsQuery->whereRaw('1 = 0');
+                $allTicketsQuery->whereRaw('1 = 0');
             }
-        } else {
+        } elseif ($user->hasRole('member')) {
+            $member = Tenant::where('email', $user->email)->first();
+
+            $devicesOwn = $member->devices;
+            $devicesShared = $member->sharedDevices;
+            $devicesOwn->load([
+                'brand',
+                'model',
+                'system',
+                'name_device',
+                'sharedWith' => function ($query) {
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email', 'tenants.photo');
+                },
+                'tenants' => function ($query) {
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email', 'tenants.photo');
+                }
+            ]);
+            $devicesShared->load([
+                'brand',
+                'model',
+                'system',
+                'name_device',
+                'owner' => function ($query) {
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email', 'tenants.photo');
+                }
+
+            ]);
             // Ver solo tickets creados por el usuario
             $ticketsQuery->where('user_id', $user->id);
+            $allTicketsQuery->where('user_id', $user->id);
+        } else {
+            // Otros roles, ver todos los tickets
+            // No filter
         }
 
         $tickets = $ticketsQuery->latest()->paginate(10);
+        $allTickets = $allTicketsQuery->get();
 
         return Inertia::render('Tickets/index', [
-            'tickets' => $tickets
+            'tickets' => $tickets,
+            'allTickets' => $allTickets,
+            'devicesOwn' => $devicesOwn,
+            'devicesShared' => $devicesShared,
         ]);
     }
 
@@ -64,7 +104,7 @@ class TicketController extends Controller
             'description' => 'required|string',
         ]);
         // Buscar técnico por defecto (ejemplo: primero con shift 'morning' y visible)
-        $defaultTechnical = Technical::where('is_default',true)->orderBy('id')->first();
+        $defaultTechnical = Technical::where('is_default', true)->orderBy('id')->first();
         $ticket = Ticket::create([
             ...$validated,
             'user_id' => auth()->id(),
@@ -123,7 +163,7 @@ class TicketController extends Controller
             $ticket->closed_at = now();
         }
         $ticket->save();
- // Obtener el usuario autenticado
+        // Obtener el usuario autenticado
         $user = auth()->user();
         // Buscar el técnico correspondiente al usuario autenticado por email
         $technical = Technical::where('email', $user->email)->first();
@@ -146,7 +186,7 @@ class TicketController extends Controller
         //
     }
 
-        /**
+    /**
      * Listar técnicos para asignación/derivación (AJAX)
      */
     public function technicalsList()
