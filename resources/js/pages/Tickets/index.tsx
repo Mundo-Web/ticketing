@@ -418,7 +418,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                 {isMember && (
                     <div className="border-b bg-background border-slate-200 sticky top-0 z-20">
                         <div className="px-6 py-6">
-                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                                 <div>
                                     <h1 className="text-3xl font-extrabold text-accent flex items-center gap-2">
                                         <CheckCircle className="w-7 h-7 text-accent" />
@@ -439,9 +439,14 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                         />
                                     </div> */}
                                     {/* Lista de dispositivos como botones/cards */}
-                                    <div className="flex flex-wrap gap-3 justify-end">
+                                    <div className="flex flex-col gap-3 justify-end">
+                                         <h1 className="text-3xl font-extrabold text-accent flex items-center gap-2">
+                                 
+                                        My Devices
+                                    </h1>
+                                     <div className="flex flex-wrap gap-3 justify-end">
                                         {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
-                                            console.log("Device:", device);
+                                         
                                             return (
                                                 <button
                                                     key={device.id}
@@ -501,6 +506,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                         }) : (
                                             <span className="text-slate-500 text-sm">You have no registered devices.</span>
                                         )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
