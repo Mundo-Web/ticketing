@@ -355,6 +355,18 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
         canActOnTickets = true;
     }
 
+
+
+    // Member tabs for filtering tickets (declaración única y arriba)
+    const memberTabs = [
+        { value: "all", label: "Todos", icon: Eye },
+        { value: "open", label: "Abiertos", icon: AlertCircle },
+        { value: "in_progress", label: "En progreso", icon: PlayCircle },
+        { value: "resolved", label: "Resueltos", icon: CheckCircle2 },
+        { value: "closed", label: "Cerrados", icon: StopCircle },
+    ];
+    const [memberTab, setMemberTab] = useState<string>("all");
+
     // Filter tickets for members by tab (status) and then by search
     const memberTickets = tickets.data.filter((ticket: any) => ticket.user_id === userId);
     const memberTabFilteredTickets = memberTab === "all"
@@ -395,15 +407,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
         }
     }, [tickets.data, selectedTicket])
 
-    // Member tabs for filtering tickets
-    const memberTabs = [
-        { value: "all", label: "Todos", icon: Eye },
-        { value: "open", label: "Abiertos", icon: AlertCircle },
-        { value: "in_progress", label: "En progreso", icon: PlayCircle },
-        { value: "resolved", label: "Resueltos", icon: CheckCircle2 },
-        { value: "closed", label: "Cerrados", icon: StopCircle },
-    ];
-    const [memberTab, setMemberTab] = useState<string>("all");
+    // (Eliminado: declaración duplicada de memberTabs y memberTab)
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -586,7 +590,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                             ) : (
                                 <Card className="shadow-none border-0 bg-transparent mb-10">
                                     <CardContent className="p-0">
-                                        <Tabs value={tab} onValueChange={setTab} className="w-full">
+                                        <Tabs value={tab} onValueChange={v => setTab(v as "all" | "assigned" | "approved")} className="w-full">
                                             <TabsList className="grid w-full grid-cols-3 bg-transparent rounded-full p-1">
                                                 <TabsTrigger
                                                     value="all"
@@ -695,7 +699,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                     <TooltipContent>Ver detalles</TooltipContent>
                                                                 </Tooltip>
                                                                 {/* Solo acciones para NO miembros */}
-                                                                {!isMember && canActOnTickets && auth.user?.roles.includes("technical") && (
+                                                                {!isMember && canActOnTickets && Array.isArray(auth.user?.roles) && (auth.user?.roles as string[]).includes("technical") && (
                                                                     <>
                                                                         <Tooltip>
                                                                             <TooltipTrigger asChild>
