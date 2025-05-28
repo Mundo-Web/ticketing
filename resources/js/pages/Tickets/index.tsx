@@ -417,7 +417,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                 {/* Header Section */}
                 {isMember && (
                     <div className=" border-b bg-background border-slate-200 sticky top-0 z-20">
-                        <div className=" mx-auto px-6 py-6">
+                        <div className=" px-6 py-6">
                             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div>
                                     <h1 className="text-3xl font-extrabold text-accent flex items-center gap-2">
@@ -633,10 +633,10 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                             )}
 
                             {/* Tickets Grid */}
-                            <div className={`grid grid-cols-1 md:grid-cols-3 gap-4`}>
+                            <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 `}>
                                 {viewLoading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
                                 {!viewLoading && filteredTickets.length === 0 ? (
-                                    <div className="col-span-full">
+                                    <div className="col-span-1 md:col-span-3 w-full">
                                         <Card className="border-0 shadow-none bg-transparent">
                                             <CardContent className="p-12 text-center">
                                                 <XCircle className="w-12 h-12 mx-auto mb-4 text-slate-400" />
