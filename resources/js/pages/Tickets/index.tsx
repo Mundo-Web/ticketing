@@ -929,14 +929,14 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                     <div className="space-y-4">
                                                         <h4 className="font-medium text-slate-900 flex items-center gap-2">
                                                             <Clock className="w-4 h-4 text-blue-500" />
-                                                            Historial
+                                                            History
                                                         </h4>
 
                                                         <div className="space-y-3">
                                                             {!selectedTicket.histories || selectedTicket.histories.length === 0 ? (
                                                                 <div className="text-center py-6 text-slate-500">
                                                                     <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                                                    <p className="text-sm">Sin historial disponible</p>
+                                                                    <p className="text-sm">No history available</p>
                                                                 </div>
                                                             ) : (
                                                                 [...selectedTicket.histories]
