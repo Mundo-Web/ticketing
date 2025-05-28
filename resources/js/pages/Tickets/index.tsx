@@ -410,7 +410,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gestión de Tickets" />
 
-            <div className="min-h-screen ">
+            <div className="flex flex-col gap-6 p-6">
                 {/* Header Section */}
                 {isMember && (
                     <div className=" border-b bg-background border-slate-200 sticky top-0 z-20">
