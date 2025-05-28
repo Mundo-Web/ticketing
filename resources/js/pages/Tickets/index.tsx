@@ -440,7 +440,9 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                     </div> */}
                                     {/* Lista de dispositivos como botones/cards */}
                                     <div className="flex flex-wrap gap-3 justify-end">
-                                        {deviceOptions.length > 0 ? deviceOptions.map((device: any) => (
+                                        {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
+                                            console.log("Device:", device);
+                                            return(
                                             <button
                                                 key={device.id}
                                                 type="button"
@@ -475,7 +477,8 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                     ))}
                                                 </div>
                                             </button>
-                                        )) : (
+                                        )
+                                        }) : (
                                             <span className="text-slate-500 text-sm">You have no registered devices.</span>
                                         )}
                                     </div>
