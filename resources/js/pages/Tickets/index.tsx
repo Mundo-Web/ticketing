@@ -422,7 +422,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                 <div>
                                     <h1 className="text-3xl font-extrabold text-accent flex items-center gap-2">
                                         <CheckCircle className="w-7 h-7 text-accent" />
-                                     Ticket Management
+                                        Ticket Management
                                     </h1>
                                     <p className="text-slate-600 mt-1">
                                         Select a device to report a problem or search for tickets.
@@ -442,42 +442,62 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                     <div className="flex flex-wrap gap-3 justify-end">
                                         {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
                                             console.log("Device:", device);
-                                            return(
-                                            <button
-                                                key={device.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    setData('device_id', device.id.toString());
-                                                    setShowCreateModal(true);
-                                                }}
-                                                className="flex flex-col items-center bg-white border border-slate-200 rounded-lg shadow hover:shadow-lg px-4 py-3 min-w-[140px] transition group"
-                                            >
-                                                <Monitor className="w-7 h-7 text-sky-500 mb-1" />
-                                                <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]">{device.name_device?.name || device.name || `Dispositivo #${device.id}`}</span>
-                                                {/* Mostrar con quién se comparte o el dueño */}
-                                                <div className="flex items-center gap-1 mt-2">
-                                                    {/* Dueño */}
-                                                    {device.owner && (
-                                                        <img
-                                                            src={`/storage/${device.owner.photo}`}
-                                                            alt={device.owner.name}
-                                                            title={`Dueño: ${device.owner.name}`}
-                                                            className="w-6 h-6 rounded-full border-2 border-yellow-400"
-                                                        />
-                                                    )}
-                                                    {/* Compartido con */}
-                                                    {Array.isArray(device.sharedWith) && device.sharedWith.length > 0 && device.sharedWith.map((tenant: any) => (
-                                                        <img
-                                                            key={tenant.id}
-                                                            src={`/storage/${tenant.photo}`}
-                                                            alt={tenant.name}
-                                                            title={`Compartido con: ${tenant.name}`}
-                                                            className="w-6 h-6 rounded-full border-2 border-blue-400 -ml-2"
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </button>
-                                        )
+                                            return (
+                                                <button
+                                                    key={device.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setData('device_id', device.id.toString());
+                                                        setShowCreateModal(true);
+                                                    }}
+                                                    className="flex flex-col items-center bg-white border border-slate-200 rounded-lg shadow hover:shadow-lg px-4 py-3 min-w-[140px] transition group"
+                                                >
+                                                    <Monitor className="w-7 h-7 text-sky-500 mb-1" />
+                                                    <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]">{device.name_device?.name || device.name || `Dispositivo #${device.id}`}</span>
+                                                    {/* Mostrar con quién se comparte o el dueño */}
+                                                    <div className="flex items-center gap-1 mt-2">
+                                                        {/* Dueño */}
+                                                        {device.owner && (
+                                                            <TooltipProvider key={device.owner[0].id}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger>
+                                                                        <img
+                                                                            src={`/storage/${device.owner[0].photo}`}
+                                                                            alt={device.owner[0].name}
+                                                                            title={`Dueño: ${device.owner[0].name}`}
+                                                                            className="w-6 h-6 rounded-full border-2 border-yellow-400"
+                                                                        />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{device.owner[0].name}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        )}
+                                                        {/* Compartido con */}
+                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.map((tenant: any) => (
+
+                                                            <TooltipProvider key={tenant.id}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger>
+                                                                        <img
+                                                                            key={tenant.id}
+                                                                            src={`/storage/${tenant.photo}`}
+                                                                            alt={tenant.name}
+                                                                            title={`Compartido con: ${tenant.name}`}
+                                                                            className="w-6 h-6 rounded-full border-2 border-blue-400 -ml-2"
+                                                                        />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{tenant.name}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+
+                                                        ))}
+                                                    </div>
+                                                </button>
+                                            )
                                         }) : (
                                             <span className="text-slate-500 text-sm">You have no registered devices.</span>
                                         )}
@@ -1153,7 +1173,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                     Cancel
                                 </Button>
                             </DialogClose>
-                            <Button type="submit"  disabled={processing}>
+                            <Button type="submit" disabled={processing}>
                                 {processing ? "Creating..." : "Create Ticket"}
                             </Button>
                         </DialogFooter>
