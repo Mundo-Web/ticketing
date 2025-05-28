@@ -231,7 +231,8 @@ class TicketController extends Controller
             ],
             $validated['technical_id']
         );
-        return response()->json(['success' => true, 'ticket' => $ticket->load(['technical', 'histories.technical'])]);
+        // SIEMPRE redirige (no devuelvas JSON)
+        return redirect()->back()->with('success', 'Technician assigned');
     }
 
     /**
@@ -251,12 +252,13 @@ class TicketController extends Controller
         $technical = Technical::where('email', $user->email)->first();
         $technicalId = $technical ? $technical->id : null;
 
-        $history = $ticket->addHistory(
+        $ticket->addHistory(
             $validated['action'],
             $validated['description'] ?? null,
             $validated['meta'] ?? null,
             $technicalId
         );
-        return response()->json(['success' => true, 'history' => $history]);
+        // SIEMPRE redirige (no devuelvas JSON)
+        return redirect()->back()->with('success', 'History added');
     }
 }

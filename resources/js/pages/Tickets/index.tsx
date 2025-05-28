@@ -234,6 +234,21 @@ function SkeletonCard() {
 }
 
 export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesShared, memberData, apartmentData, buildingData }: TicketsProps) {
+    // Refresca el ticket seleccionado desde el backend
+    const refreshSelectedTicket = async (ticketId?: number) => {
+        if (!ticketId) return;
+        setSelectedTicketLoading(true);
+        try {
+            const response = await fetch(`/tickets/${ticketId}`, { headers: { Accept: "application/json" } });
+            if (!response.ok) throw new Error("Error al cargar ticket");
+            const data = await response.json();
+            setSelectedTicket(data.ticket);
+        } catch (e) {
+            // No hacer nada
+        } finally {
+            setSelectedTicketLoading(false);
+        }
+    };
     // State management
     const [showHistoryModal, setShowHistoryModal] = useState<{ open: boolean; ticketId?: number }>({ open: false })
     const [showAssignModal, setShowAssignModal] = useState<{ open: boolean; ticketId?: number }>({ open: false })
@@ -309,6 +324,9 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
             { status: newStatus },
             {
                 preserveScroll: true,
+                onSuccess: () => {
+                    refreshSelectedTicket(ticket.id);
+                },
                 onFinish: () => setStatusLoadingId(null),
             },
         )
@@ -895,7 +913,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                 <span className="ml-2 font-medium">#{selectedTicket.id}</span>
                                                             </div>
                                                             <div>
-                                                                <span className="text-slate-500">Código:</span>
+                                                                <span className="text-slate-500">Code:</span>
                                                                 <span className="ml-2 font-medium">{selectedTicket.code}</span>
                                                             </div>
                                                         </div>
@@ -908,19 +926,93 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                         <div className="text-xs text-slate-500 space-y-1">
                                                             <div className="flex items-center gap-1">
                                                                 <Calendar className="w-3 h-3" />
-                                                                Creado:{" "}
+                                                                Created:{" "}
                                                                 {selectedTicket.created_at
-                                                                    ? new Date(selectedTicket.created_at).toLocaleString("es-ES")
+                                                                    ? new Date(selectedTicket.created_at).toLocaleString("en-US")
                                                                     : "-"}
                                                             </div>
                                                             <div className="flex items-center gap-1">
                                                                 <Clock className="w-3 h-3" />
-                                                                Actualizado:{" "}
+                                                                Updated:{" "}
                                                                 {selectedTicket.updated_at
-                                                                    ? new Date(selectedTicket.updated_at).toLocaleString("es-ES")
+                                                                    ? new Date(selectedTicket.updated_at).toLocaleString("en-US")
                                                                     : "-"}
                                                             </div>
                                                         </div>
+                                                        
+                                                        {/* Action buttons for ticket management - only show when in the "Assigned" tab */}
+                                                        {(canActOnTickets || isSuperAdmin) && (
+                                                            <div className="flex flex-wrap gap-2 mt-4">
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="bg-sidebar-accent hover:bg-sidebar-accent text-white"
+                                                                    onClick={() => {
+                                                                        setShowHistoryModal({ open: true, ticketId: selectedTicket.id });
+                                                                    }}
+                                                                >
+                                                                    <MessageSquare className="w-4 h-4 mr-2" />
+                                                                    Add Comment
+                                                                </Button>
+                                                                
+                                                                {/* Only show assign button for technicians or admins */}
+                                                                {Array.isArray(auth.user?.roles) && 
+                                                                    ((auth.user?.roles).includes("technical") || 
+                                                                    (auth.user?.roles).includes("super-admin")) && (
+                                                                    <Button
+                                                                        variant={"ghost"}
+                                                                        size="sm"
+                                                                        className=" "
+                                                                        onClick={() => {
+                                                                            loadTechnicals();
+                                                                            setShowAssignModal({ open: true, ticketId: selectedTicket.id });
+                                                                        }}
+                                                                    >
+                                                                        <Share2 className="w-4 h-4 mr-2" />
+                                                                        Assign Technician
+                                                                    </Button>
+                                                                )}
+                                                                    
+                                                                
+                                                                {/* Status update buttons */}
+                                                                {getNextStatuses(selectedTicket.status).length > 0 && (
+                                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                                        <p className="w-full text-sm text-slate-500 mb-1">Update Status:</p>
+                                                                        {getNextStatuses(selectedTicket.status).map((status) => {
+                                                                            const statusInfo = statusConfig[status];
+                                                                            let buttonStyle = "";
+                                                                            switch(status) {
+                                                                                case "in_progress":
+                                                                                    buttonStyle = "bg-amber-600 hover:bg-amber-700";
+                                                                                    break;
+                                                                                case "resolved":
+                                                                                    buttonStyle = "bg-emerald-600 hover:bg-emerald-700";
+                                                                                    break;
+                                                                                case "closed":
+                                                                                    buttonStyle = "bg-slate-600 hover:bg-slate-700";
+                                                                                    break;
+                                                                                case "cancelled":
+                                                                                    buttonStyle = "bg-red-600 hover:bg-red-700";
+                                                                                    break;
+                                                                                default:
+                                                                                    buttonStyle = "bg-blue-600 hover:bg-blue-700";
+                                                                            }
+                                                                            return (
+                                                                                <Button
+                                                                                    key={status}
+                                                                                    size="sm"
+                                                                                    className={`${buttonStyle} text-white`}
+                                                                                    onClick={() => handleStatusChange(selectedTicket, status)}
+                                                                                    disabled={statusLoadingId === selectedTicket.id}
+                                                                                >
+                                                                                    <statusInfo.icon className="w-4 h-4 mr-1" />
+                                                                                    {statusInfo.label}
+                                                                                </Button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
 
                                                     <Separator />
@@ -955,9 +1047,9 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                                         {h.action.replace("_", " ")}
                                                                                     </span>
                                                                                     {idx === 0 && (
-                                                                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                                                                                            Reciente
-                                                                                        </span>
+                                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                                                        Recent
+                                                                    </span>
                                                                                     )}
                                                                                 </div>
                                                                                 <p className="text-sm text-slate-700 mb-2">{h.description}</p>
@@ -994,52 +1086,57 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <MessageSquare className="w-5 h-5 text-blue-600" />
-                            Agregar Comentario
+                                <MessageSquare className="w-5 h-5 text-blue-600" />
+                            Add Comment
                         </DialogTitle>
-                        <DialogDescription>Agrega un comentario o acción al historial del ticket.</DialogDescription>
+                        <DialogDescription>Add a comment or action to the ticket history.</DialogDescription>
                     </DialogHeader>
                     <form
                         onSubmit={async (e) => {
                             e.preventDefault()
                             setAddingHistory(true)
-                            try {
-                                const meta = document.querySelector('meta[name="csrf-token"]')
-                                const csrf = (meta && meta.getAttribute("content")) || ""
-                                const res = await fetch(`/tickets/${showHistoryModal.ticketId}/add-history`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-TOKEN": csrf },
-                                    body: JSON.stringify({ action: historyAction, description: historyText }),
-                                })
-                                if (!res.ok) throw new Error("Error al agregar historial")
-                                setShowHistoryModal({ open: false })
-                                setHistoryText("")
-                                setHistoryAction("comment")
-                                router.reload({ only: ["tickets"] })
-                            } catch (e) {
-                                alert("Error al agregar historial")
-                            } finally {
-                                setAddingHistory(false)
-                            }
+                            // Use Inertia.js to handle CSRF token automatically
+                            router.post(`/tickets/${showHistoryModal.ticketId}/add-history`, 
+                                { 
+                                    action: historyAction, 
+                                    description: historyText 
+                                }, 
+                                {
+                                    preserveScroll: true,
+                                    onSuccess: () => {
+                                        setShowHistoryModal({ open: false });
+                                        setHistoryText("");
+                                        setHistoryAction("comment");
+                                        // Refresca el ticket seleccionado para ver el nuevo historial
+                                        refreshSelectedTicket(showHistoryModal.ticketId);
+                                    },
+                                    onError: () => {
+                                        alert("Error adding history entry");
+                                    },
+                                    onFinish: () => {
+                                        setAddingHistory(false);
+                                    }
+                                }
+                            );
                         }}
                         className="space-y-4"
                     >
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Tipo de acción</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Action Type</label>
                             <Input
                                 value={historyAction}
                                 onChange={(e) => setHistoryAction(e.target.value)}
-                                placeholder="Ej: comment, resolution, consultation"
+                                placeholder="Ex: comment, resolution, consultation"
                                 required
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Descripción</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
                             <textarea
                                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 value={historyText}
                                 onChange={(e) => setHistoryText(e.target.value)}
-                                placeholder="Describe la acción realizada o comentario..."
+                                placeholder="Describe the action or comment..."
                                 required
                             />
                         </div>
@@ -1073,37 +1170,41 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Share2 className="w-5 h-5 text-purple-600" />
-                            Asignar Técnico
+                            Assign Technician
                         </DialogTitle>
-                        <DialogDescription>Selecciona un técnico para asignar este ticket.</DialogDescription>
+                        <DialogDescription>Select a technician to assign this ticket.</DialogDescription>
                     </DialogHeader>
                     <form
                         onSubmit={async (e) => {
                             e.preventDefault()
-                            if (!assignTechnicalId) return
-                            setAssigning(true)
-                            try {
-                                const meta = document.querySelector('meta[name="csrf-token"]')
-                                const csrf = (meta && meta.getAttribute("content")) || ""
-                                const res = await fetch(`/tickets/${showAssignModal.ticketId}/assign-technical`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-TOKEN": csrf },
-                                    body: JSON.stringify({ technical_id: assignTechnicalId }),
-                                })
-                                if (!res.ok) throw new Error("Error al asignar técnico")
-                                setShowAssignModal({ open: false })
-                                setAssignTechnicalId(null)
-                                router.reload({ only: ["tickets"] })
-                            } catch (e) {
-                                alert("Error al asignar técnico")
-                            } finally {
-                                setAssigning(false)
-                            }
+                            if (!assignTechnicalId) return;
+                            setAssigning(true);
+                            // Use Inertia.js to handle CSRF token automatically
+                            router.post(`/tickets/${showAssignModal.ticketId}/assign-technical`, 
+                                { 
+                                    technical_id: assignTechnicalId 
+                                }, 
+                                {
+                                    preserveScroll: true,
+                                    onSuccess: () => {
+                                        setShowAssignModal({ open: false });
+                                        setAssignTechnicalId(null);
+                                        // Refresca el ticket seleccionado para ver el nuevo técnico
+                                        refreshSelectedTicket(showAssignModal.ticketId);
+                                    },
+                                    onError: () => {
+                                        alert("Error assigning technician");
+                                    },
+                                    onFinish: () => {
+                                        setAssigning(false);
+                                    }
+                                }
+                            );
                         }}
                         className="space-y-4"
                     >
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Técnico</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Technician</label>
                             <select
                                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                 value={assignTechnicalId || ""}
@@ -1111,7 +1212,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                 required
                             >
                                 <option value="" disabled>
-                                    Selecciona un técnico
+                                    Select a technician
                                 </option>
                                 {technicals.map((t) => (
                                     <option key={t.id} value={t.id}>
