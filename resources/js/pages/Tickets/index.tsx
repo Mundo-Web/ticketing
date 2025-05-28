@@ -256,14 +256,14 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
     const isMember = auth.user?.roles.includes("member");
     const isSuperAdmin = auth.user?.roles.includes("super-admin");
 
-    // Estado para tab de super-admin (todos los estados)
+    // Tab labels in English
     const allStatuses = [
-        { value: "all", label: "Todos", icon: Eye },
-        { value: "open", label: "Abiertos", icon: AlertCircle },
-        { value: "in_progress", label: "En progreso", icon: PlayCircle },
-        { value: "resolved", label: "Resueltos", icon: CheckCircle2 },
-        { value: "closed", label: "Cerrados", icon: StopCircle },
-        { value: "cancelled", label: "Cancelados", icon: XCircle },
+        { value: "all", label: "All", icon: Eye },
+        { value: "open", label: "Open", icon: AlertCircle },
+        { value: "in_progress", label: "In Progress", icon: PlayCircle },
+        { value: "resolved", label: "Resolved", icon: CheckCircle2 },
+        { value: "closed", label: "Closed", icon: StopCircle },
+        { value: "cancelled", label: "Cancelled", icon: XCircle },
     ];
     const [superTab, setSuperTab] = useState<string>("all");
 
@@ -377,11 +377,11 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
 
     // Member tabs for filtering tickets (declaración única y arriba)
     const memberTabs = [
-        { value: "all", label: "Todos", icon: Eye },
-        { value: "open", label: "Abiertos", icon: AlertCircle },
-        { value: "in_progress", label: "En progreso", icon: PlayCircle },
-        { value: "resolved", label: "Resueltos", icon: CheckCircle2 },
-        { value: "closed", label: "Cerrados", icon: StopCircle },
+        { value: "all", label: "All", icon: Eye },
+        { value: "open", label: "Open", icon: AlertCircle },
+        { value: "in_progress", label: "In Progress", icon: PlayCircle },
+        { value: "resolved", label: "Resolved", icon: CheckCircle2 },
+        { value: "closed", label: "Closed", icon: StopCircle },
     ];
     const [memberTab, setMemberTab] = useState<string>("all");
 
@@ -429,7 +429,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Gestión de Tickets" />
+            <Head title="Ticket Management" />
 
             <div className="flex flex-col gap-6 p-6">
                 {/* Header Section */}
@@ -443,7 +443,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                         Ticket Management
                                     </h1>
                                     <p className="text-slate-600 mt-1 mb-4">
-                                        Select a device to report a problem or search for tickets.
+                                        Select a device to report an issue or search tickets.
                                     </p>
                                    <div className="flex flex-wrap gap-4">
                                      {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
@@ -459,7 +459,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                 className="flex flex-col items-center bg-white border border-slate-200 rounded-lg shadow hover:shadow-lg px-4 py-3 min-w-[140px] transition group"
                                             >
                                                 <Monitor className="w-4 h-4 text-sky-500 mb-1" />
-                                                <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]">{device.name_device?.name || device.name || `Dispositivo #${device.id}`}</span>
+                                                <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]">{device.name_device?.name || device.name || `Device #${device.id}`}</span>
                                                 {/* Mostrar con quién se comparte o el dueño */}
                                                 <div className="flex items-center gap-1 mt-2">
                                                     {/* Dueño */}
@@ -505,7 +505,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                             </button>
                                         )
                                     }) : (
-                                        <span className="text-slate-500 text-sm">You have no registered devices.</span>
+                                            <span className="text-slate-500 text-sm">You have no registered devices.</span>
                                     )}
                                    </div>
 
@@ -514,7 +514,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                     {/* <div className="relative mb-2">
                                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                                         <Input
-                                            placeholder="Buscar tickets..."
+                                            placeholder="Search tickets..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             className="pl-10 w-64 rounded-lg border-sidebar-border focus:ring-2 focus:ring-blue-400 transition"
@@ -857,7 +857,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                 <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
                                     <CardHeader className=" text-black rounded-t-lg shadow pb-4">
                                         <div className="flex items-center gap-2">
-                                            <h2 className="text-lg font-semibold">Detalle del Ticket</h2>
+                                    <h2 className="text-lg font-semibold">Ticket Details</h2>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-0">
@@ -871,9 +871,9 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                             {!selectedTicket && !selectedTicketLoading && (
                                                 <div className="flex flex-col items-center justify-center h-64 text-slate-400 p-6">
                                                     <Eye className="w-12 h-12 mb-3" />
-                                                    <h3 className="font-medium text-slate-600 mb-1">Selecciona un ticket</h3>
+                                                    <h3 className="font-medium text-slate-600 mb-1">Select a ticket</h3>
                                                     <p className="text-sm text-center">
-                                                        Haz clic en cualquier ticket para ver sus detalles completos
+                                                        Click any ticket to view its full details
                                                     </p>
                                                 </div>
                                             )}
@@ -1148,9 +1148,9 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                         <DialogTitle>Create new ticket</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmitTicket} className="space-y-4">
-                        {/* Dispositivo */}
+                        {/* Device */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Dispositivo</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Device</label>
                             <select
                                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 value={data.device_id}
@@ -1170,9 +1170,9 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                             </select>
                             {errors.device_id && <div className="text-red-500 text-xs mt-1">{errors.device_id}</div>}
                         </div>
-                        {/* Categoría */}
+                        {/* Category */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Categoría</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
                             <select
                                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 value={data.category}
@@ -1186,18 +1186,18 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                             </select>
                             {errors.category && <div className="text-red-500 text-xs mt-1">{errors.category}</div>}
                         </div>
-                        {/* Título */}
+                        {/* Title */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Subject</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
                             <Input
                                 value={data.title}
                                 onChange={e => setData('title', e.target.value)}
                                 required
-                                placeholder="Ticket subject"
+                                placeholder="Ticket title"
                             />
                             {errors.title && <div className="text-red-500 text-xs mt-1">{errors.title}</div>}
                         </div>
-                        {/* Descripción */}
+                        {/* Description */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
                             <textarea
@@ -1205,7 +1205,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                 value={data.description}
                                 onChange={e => setData('description', e.target.value)}
                                 required
-                                placeholder="Describe the problem or request..."
+                                placeholder="Describe the issue or request..."
                             />
                             {errors.description && <div className="text-red-500 text-xs mt-1">{errors.description}</div>}
                         </div>

@@ -111,12 +111,12 @@ export function AppSidebar() {
   console.log('auth', auth.user)
   // Menú para members (usuarios normales)
   const memberNavItems: NavItem[] = [
-    {
+   /* {
       title: 'Devices',
       href: `/apartment/member/${auth?.user?.member?.id}/devices`,
       icon: Laptop,
       isActive: route().current('apartment.*'),
-    },
+    }, */
     {
       title: 'Tickets',
       href: '/tickets',

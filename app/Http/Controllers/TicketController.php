@@ -79,9 +79,13 @@ class TicketController extends Controller
         $memberData = Tenant::where('email', $user->email)->first();
         $apartmentData = null;
         $buildingData = null;
+        if ($memberData) {
+            // Si no hay member, retornar error o redirigir
+            $apartmentData = $memberData->apartment;
+            $buildingData = $apartmentData->building;
+        }
 
-        $apartmentData = $memberData->apartment;
-        $buildingData = $apartmentData->building;
+
 
 
         return Inertia::render('Tickets/index', [
