@@ -451,7 +451,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                     </div>
                 )}
 
-                <div className=" mx-auto px-6 py-8">
+                <div className="px-6 py-8">
                     <div className={`grid grid-cols-1 xl:grid-cols-5 gap-8`}>
                         {/* Main Content */}
                         <div className={`xl:col-span-3 flex flex-col gap-8`}>
