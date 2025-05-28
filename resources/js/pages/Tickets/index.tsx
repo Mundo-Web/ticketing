@@ -452,7 +452,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                     }}
                                                     className="flex flex-col items-center bg-white border border-slate-200 rounded-lg shadow hover:shadow-lg px-4 py-3 min-w-[140px] transition group"
                                                 >
-                                                    <Monitor className="w-7 h-7 text-sky-500 mb-1" />
+                                                    <Monitor className="w-4 h-4 text-sky-500 mb-1" />
                                                     <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]">{device.name_device?.name || device.name || `Dispositivo #${device.id}`}</span>
                                                     {/* Mostrar con quién se comparte o el dueño */}
                                                     <div className="flex items-center gap-1 mt-2">
@@ -465,7 +465,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                             src={`/storage/${device.owner[0].photo}`}
                                                                             alt={device.owner[0].name}
                                                                             title={`Dueño: ${device.owner[0].name}`}
-                                                                            className="w-6 h-6 rounded-full border-2 border-yellow-400"
+                                                                            className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-yellow-400"
                                                                         />
                                                                     </TooltipTrigger>
                                                                     <TooltipContent>
@@ -485,7 +485,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                             src={`/storage/${tenant.photo}`}
                                                                             alt={tenant.name}
                                                                             title={`Compartido con: ${tenant.name}`}
-                                                                            className="w-6 h-6 rounded-full border-2 border-blue-400 -ml-2"
+                                                                            className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-blue-400 -ml-2"
                                                                         />
                                                                     </TooltipTrigger>
                                                                     <TooltipContent>
