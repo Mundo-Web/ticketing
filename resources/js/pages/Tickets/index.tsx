@@ -409,480 +409,480 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gestión de Tickets" />
-            <TooltipProvider>
-                <div className="min-h-screen ">
-                    {/* Header Section */}
-                    {isMember && (
-                        <div className=" border-b bg-background border-slate-200 sticky top-0 z-20">
-                            <div className="max-w-7xl mx-auto px-6 py-6">
-                                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                                    <div>
-                                        <h1 className="text-3xl font-extrabold text-accent flex items-center gap-2">
-                                            <CheckCircle className="w-7 h-7 text-accent" />
-                                            Gestión de Tickets
-                                        </h1>
-                                        <p className="text-slate-600 mt-1">
-                                            {isMember
-                                                ? "Visualiza y da seguimiento a tus tickets"
-                                                : "Administra y da seguimiento a todos los tickets del sistema"}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="relative">
-                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                                            <Input
-                                                placeholder="Buscar tickets..."
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="pl-10 w-64 rounded-lg border-sidebar-border focus:ring-2 focus:ring-blue-400 transition"
-                                            />
-                                        </div>
-                                        <Button onClick={() => setShowCreateModal(true)} className="bg-yellow-500 hover:bg-yellow-600 text-white">
-                                            <Plus className="w-4 h-4 mr-2" /> Reportar un problema
-                                        </Button>
 
-
-                                    </div>
+            <div className="min-h-screen ">
+                {/* Header Section */}
+                {isMember && (
+                    <div className=" border-b bg-background border-slate-200 sticky top-0 z-20">
+                        <div className="max-w-7xl mx-auto px-6 py-6">
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                <div>
+                                    <h1 className="text-3xl font-extrabold text-accent flex items-center gap-2">
+                                        <CheckCircle className="w-7 h-7 text-accent" />
+                                        Gestión de Tickets
+                                    </h1>
+                                    <p className="text-slate-600 mt-1">
+                                        {isMember
+                                            ? "Visualiza y da seguimiento a tus tickets"
+                                            : "Administra y da seguimiento a todos los tickets del sistema"}
+                                    </p>
                                 </div>
-                            </div>
-                        </div>
-                    )}
+                                <div className="flex items-center gap-3">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                                        <Input
+                                            placeholder="Buscar tickets..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="pl-10 w-64 rounded-lg border-sidebar-border focus:ring-2 focus:ring-blue-400 transition"
+                                        />
+                                    </div>
+                                    <Button onClick={() => setShowCreateModal(true)} className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                                        <Plus className="w-4 h-4 mr-2" /> Reportar un problema
+                                    </Button>
 
-                    <div className="max-w-7xl mx-auto px-6 py-8">
-                        <div className={`grid grid-cols-1 xl:grid-cols-5 gap-8`}>
-                            {/* Main Content */}
-                            <div className={`xl:col-span-3 flex flex-col gap-8`}>
-                                {/* Tabs */}
-                                {isSuperAdmin ? (
-                                    <Card className="shadow-none border-0 bg-transparent mb-10">
-                                        <CardContent className="p-0">
-                                            <Tabs value={superTab} onValueChange={setSuperTab} className="w-full">
-                                                <TabsList className="grid w-full grid-cols-6 bg-transparent rounded-full p-1">
-                                                    {allStatuses.map((tabItem) => {
-                                                        // Color classes for each status
-                                                        let colorClass = "";
-                                                        let countColor = "";
-                                                        let iconColor = "";
-                                                        switch (tabItem.value) {
-                                                            case "all":
-                                                                colorClass = "data-[state=active]:text-blue-700";
-                                                                countColor = "text-blue-700";
-                                                                iconColor = "text-blue-700";
-                                                                break;
-                                                            case "open":
-                                                                colorClass = "data-[state=active]:text-yellow-600";
-                                                                countColor = "text-yellow-600";
-                                                                iconColor = "text-yellow-600";
-                                                                break;
-                                                            case "in_progress":
-                                                                colorClass = "data-[state=active]:text-amber-700";
-                                                                countColor = "text-amber-700";
-                                                                iconColor = "text-amber-700";
-                                                                break;
-                                                            case "resolved":
-                                                                colorClass = "data-[state=active]:text-emerald-700";
-                                                                countColor = "text-emerald-700";
-                                                                iconColor = "text-emerald-700";
-                                                                break;
-                                                            case "closed":
-                                                                colorClass = "data-[state=active]:text-slate-700";
-                                                                countColor = "text-slate-700";
-                                                                iconColor = "text-slate-700";
-                                                                break;
-                                                            case "cancelled":
-                                                                colorClass = "data-[state=active]:text-red-700";
-                                                                countColor = "text-red-700";
-                                                                iconColor = "text-red-700";
-                                                                break;
-                                                            default:
-                                                                colorClass = "";
-                                                                countColor = "text-blue-700";
-                                                                iconColor = "text-blue-700";
-                                                        }
-                                                        return (
-                                                            <TabsTrigger
-                                                                key={tabItem.value}
-                                                                value={tabItem.value}
-                                                                className={`flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all rounded-xl ${colorClass}`}
-                                                            >
-                                                                <span className={`font-bold text-3xl ${countColor}`}>
-                                                                    {tabItem.value === "all"
-                                                                        ? allTickets.length
-                                                                        : allTickets.filter((t: any) => t.status === tabItem.value).length}
-                                                                </span>
-                                                                <div className="flex gap-2 items-center">
-                                                                    <tabItem.icon className={`w-5 h-5 ${iconColor}`} />
-                                                                    <span className="text-sm">{tabItem.label}</span>
-                                                                </div>
-                                                            </TabsTrigger>
-                                                        );
-                                                    })}
-                                                </TabsList>
-                                            </Tabs>
-                                        </CardContent>
-                                    </Card>
-                                ) : isMember ? (
-                                    <Card className="shadow-none border-0 bg-transparent mb-10">
-                                        <CardContent className="p-0">
-                                            <Tabs value={memberTab} onValueChange={setMemberTab} className="w-full">
-                                                <TabsList className="grid w-full grid-cols-5 bg-transparent rounded-full p-1">
-                                                    {memberTabs.map((tabItem) => {
-                                                        // Define color classes for each tab
-                                                        let colorClass = "";
-                                                        let countColor = "";
-                                                        let iconColor = "";
-                                                        switch (tabItem.value) {
-                                                            case "all":
-                                                                colorClass = "data-[state=active]:text-blue-700";
-                                                                countColor = "text-blue-700";
-                                                                iconColor = "text-blue-700";
-                                                                break;
-                                                            case "open":
-                                                                colorClass = "data-[state=active]:text-yellow-600";
-                                                                countColor = "text-yellow-600";
-                                                                iconColor = "text-yellow-600";
-                                                                break;
-                                                            case "in_progress":
-                                                                colorClass = "data-[state=active]:text-amber-700";
-                                                                countColor = "text-amber-700";
-                                                                iconColor = "text-amber-700";
-                                                                break;
-                                                            case "resolved":
-                                                                colorClass = "data-[state=active]:text-emerald-700";
-                                                                countColor = "text-emerald-700";
-                                                                iconColor = "text-emerald-700";
-                                                                break;
-                                                            case "closed":
-                                                                colorClass = "data-[state=active]:text-slate-700";
-                                                                countColor = "text-slate-700";
-                                                                iconColor = "text-slate-700";
-                                                                break;
-                                                            default:
-                                                                colorClass = "";
-                                                                countColor = "text-blue-700";
-                                                                iconColor = "text-blue-700";
-                                                        }
-                                                        return (
-                                                            <TabsTrigger
-                                                                key={tabItem.value}
-                                                                value={tabItem.value}
-                                                                className={`flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all rounded-xl ${colorClass}`}
-                                                            >
-                                                                <span className={`font-bold text-3xl ${countColor}`}>
-                                                                    {tabItem.value === "all"
-                                                                        ? memberTickets.length
-                                                                        : memberTickets.filter((t: any) => t.status === tabItem.value).length}
-                                                                </span>
-                                                                <div className="flex gap-2 items-center">
-                                                                    <tabItem.icon className={`w-5 h-5 ${iconColor}`} />
-                                                                    <span className="text-sm">{tabItem.label}</span>
-                                                                </div>
-                                                            </TabsTrigger>
-                                                        );
-                                                    })}
-                                                </TabsList>
-                                            </Tabs>
-                                        </CardContent>
-                                    </Card>
-                                ) : (
-                                    <Card className="shadow-none border-0 bg-transparent mb-10">
-                                        <CardContent className="p-0">
-                                            <Tabs value={tab} onValueChange={setTab} className="w-full">
-                                                <TabsList className="grid w-full grid-cols-3 bg-transparent rounded-full p-1">
-                                                    <TabsTrigger
-                                                        value="all"
-                                                        className="flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-blue-700  transition-all rounded-xl"
-                                                    >
-                                                        <span className="ml-1  py-2 text-blue-700 px-2 rounded-full text-3xl">{allTickets.length}</span>
-                                                        <div className="flex gap-2 items-center">
-                                                            <Eye className="w-4 h-4" /> Todos{" "}
 
-                                                        </div>
-                                                    </TabsTrigger>
-                                                    <TabsTrigger
-                                                        value="assigned"
-                                                        className="flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-purple-700  transition-all rounded-xl"
-                                                    >
-                                                        <span className="ml-1  text-purple-700 px-2 rounded-full text-3xl">{assignedTickets.length}</span>
-                                                        <div className="flex gap-2 items-center">
-                                                            <UserIcon className="w-4 h-4" />
-                                                            Asignados{" "}
-                                                        </div>
-
-                                                    </TabsTrigger>
-                                                    <TabsTrigger
-                                                        value="approved"
-                                                        className="flex flex-col items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-emerald-700  transition-all rounded-xl"
-                                                    >
-
-                                                        <span className="ml-1 text-emerald-700 px-2 rounded-full text-3xl">
-                                                            {approvedTickets.length}
-                                                        </span>
-                                                        <div className="flex gap-2 items-center">
-                                                            <CheckCircle className="w-4 h-4" />
-                                                            Resueltos{" "}
-                                                        </div>
-                                                    </TabsTrigger>
-                                                </TabsList>
-                                            </Tabs>
-                                        </CardContent>
-                                    </Card>
-                                )}
-
-                                {/* Tickets Grid */}
-                                <div className={`grid grid-cols-1 md:grid-cols-3 gap-4`}>
-                                    {viewLoading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
-                                    {!viewLoading && filteredTickets.length === 0 ? (
-                                        <div className="col-span-full">
-                                            <Card className="border-0 shadow-none bg-transparent">
-                                                <CardContent className="p-12 text-center">
-                                                    <XCircle className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-                                                    <h3 className="text-lg font-medium text-slate-900 mb-2">No hay tickets</h3>
-                                                    <p className="text-slate-600">No se encontraron tickets en esta sección.</p>
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                    ) : (
-                                        filteredTickets.map((ticket: any) => {
-                                            const statusStyle = statusConfig[ticket.status] || statusConfig.open
-                                            const isSelected = selectedTicket?.id === ticket.id;
-                                            return (
-                                                <Card
-                                                    key={ticket.id}
-                                                    className={`relative bg-gray-50 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group border-0 ${isSelected
-                                                        ? "shadow-2xl border-sidebar-ring bg-sidebar border-1"
-                                                        : "hover:shadow-lg"
-                                                        }`}
-                                                    onClick={() => handleSelectTicket(ticket)}
-                                                >
-                                                    <CardContent className="px-7">
-                                                        <div className="">
-                                                            {/* Header */}
-                                                            <StatusBadge status={ticket.status} />
-                                                            <div className="flex justify-between items-start">
-                                                                <div className="flex-1 min-w-0">
-                                                                    <h3 className="font-bold text-slate-900 text-lg truncate group-hover:text-blue-600 transition-colors">
-                                                                        {ticket.title}
-                                                                    </h3>
-                                                                    <p className="text-slate-600 text-sm mt-1 line-clamp-2">{ticket.description}</p>
-                                                                </div>
-                                                            </div>
-                                                            {/* Badges */}
-                                                            <div className="flex flex-wrap gap-2 mt-4">
-                                                                <DeviceBadge device={ticket.device} />
-                                                                <CategoryBadge category={ticket.category} />
-                                                            </div>
-                                                            {/* Footer */}
-                                                            <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                                                                <div className="flex items-center gap-1 text-xs text-slate-500">
-                                                                    <Calendar className="w-3 h-3" />
-                                                                    {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString("es-ES") : "-"}
-                                                                </div>
-                                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    handleSelectTicket(ticket);
-                                                                                }}
-                                                                                className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-600 rounded-full"
-                                                                            >
-                                                                                <Eye className="w-4 h-4" />
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>Ver detalles</TooltipContent>
-                                                                    </Tooltip>
-                                                                    {/* Solo acciones para NO miembros */}
-                                                                    {!isMember && canActOnTickets && auth.user?.roles.includes("technical") && (
-                                                                        <>
-                                                                            <Tooltip>
-                                                                                <TooltipTrigger asChild>
-                                                                                    <Button
-                                                                                        variant="ghost"
-                                                                                        size="sm"
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            setShowHistoryModal({ open: true, ticketId: ticket.id });
-                                                                                        }}
-                                                                                        className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600 rounded-full"
-                                                                                    >
-                                                                                        <MessageSquare className="w-4 h-4" />
-                                                                                    </Button>
-                                                                                </TooltipTrigger>
-                                                                                <TooltipContent>Agregar comentario</TooltipContent>
-                                                                            </Tooltip>
-                                                                            <Tooltip>
-                                                                                <TooltipTrigger asChild>
-                                                                                    <Button
-                                                                                        variant="ghost"
-                                                                                        size="sm"
-                                                                                        onClick={async (e) => {
-                                                                                            e.stopPropagation();
-                                                                                            await loadTechnicals();
-                                                                                            setShowAssignModal({ open: true, ticketId: ticket.id });
-                                                                                        }}
-                                                                                        className="h-8 w-8 p-0 hover:bg-purple-100 hover:text-purple-600 rounded-full"
-                                                                                    >
-                                                                                        <Share2 className="w-4 h-4" />
-                                                                                    </Button>
-                                                                                </TooltipTrigger>
-                                                                                <TooltipContent>Asignar técnico</TooltipContent>
-                                                                            </Tooltip>
-                                                                        </>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                            {/* Selection indicator */}
-                                                            {isSelected && (
-                                                                <div className="absolute top-3 right-3">
-                                                                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            )
-                                        })
-                                    )}
-                                </div>
-                            </div>
-                            {/* Sidebar - Ticket Details */}
-                            <div className={`${isMember ? "xl:col-span-2" : "xl:col-span-2"}`}>
-                                <div className="sticky top-8">
-                                    <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
-                                        <CardHeader className=" text-black rounded-t-lg shadow pb-4">
-                                            <div className="flex items-center gap-2">
-                                                <h2 className="text-lg font-semibold">Detalle del Ticket</h2>
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent className="p-0">
-                                            <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
-                                                {(selectedTicketLoading || viewLoading) && (
-                                                    <div className="flex items-center justify-center h-64">
-                                                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                                                    </div>
-                                                )}
-
-                                                {!selectedTicket && !selectedTicketLoading && (
-                                                    <div className="flex flex-col items-center justify-center h-64 text-slate-400 p-6">
-                                                        <Eye className="w-12 h-12 mb-3" />
-                                                        <h3 className="font-medium text-slate-600 mb-1">Selecciona un ticket</h3>
-                                                        <p className="text-sm text-center">
-                                                            Haz clic en cualquier ticket para ver sus detalles completos
-                                                        </p>
-                                                    </div>
-                                                )}
-
-                                                {selectedTicket && !selectedTicketLoading && (
-                                                    <div className="p-6 space-y-6">
-                                                        {/* Ticket Info */}
-                                                        <div className="space-y-4">
-                                                            <div className="flex items-center justify-between">
-                                                                <h3 className="font-semibold text-slate-900">{selectedTicket.title}</h3>
-                                                                <StatusBadge status={selectedTicket.status} />
-                                                            </div>
-
-                                                            <p className="text-slate-600 text-sm leading-relaxed">{selectedTicket.description}</p>
-
-                                                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                                                <div>
-                                                                    <span className="text-slate-500">ID:</span>
-                                                                    <span className="ml-2 font-medium">#{selectedTicket.id}</span>
-                                                                </div>
-                                                                <div>
-                                                                    <span className="text-slate-500">Código:</span>
-                                                                    <span className="ml-2 font-medium">{selectedTicket.code}</span>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="space-y-2">
-                                                                <DeviceBadge device={selectedTicket.device} />
-                                                                <CategoryBadge category={selectedTicket.category} />
-                                                            </div>
-
-                                                            <div className="text-xs text-slate-500 space-y-1">
-                                                                <div className="flex items-center gap-1">
-                                                                    <Calendar className="w-3 h-3" />
-                                                                    Creado:{" "}
-                                                                    {selectedTicket.created_at
-                                                                        ? new Date(selectedTicket.created_at).toLocaleString("es-ES")
-                                                                        : "-"}
-                                                                </div>
-                                                                <div className="flex items-center gap-1">
-                                                                    <Clock className="w-3 h-3" />
-                                                                    Actualizado:{" "}
-                                                                    {selectedTicket.updated_at
-                                                                        ? new Date(selectedTicket.updated_at).toLocaleString("es-ES")
-                                                                        : "-"}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <Separator />
-
-                                                        {/* History */}
-                                                        <div className="space-y-4">
-                                                            <h4 className="font-medium text-slate-900 flex items-center gap-2">
-                                                                <Clock className="w-4 h-4 text-blue-500" />
-                                                                Historial
-                                                            </h4>
-
-                                                            <div className="space-y-3">
-                                                                {!selectedTicket.histories || selectedTicket.histories.length === 0 ? (
-                                                                    <div className="text-center py-6 text-slate-500">
-                                                                        <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                                                        <p className="text-sm">Sin historial disponible</p>
-                                                                    </div>
-                                                                ) : (
-                                                                    [...selectedTicket.histories]
-                                                                        .slice()
-                                                                        .reverse()
-                                                                        .map((h: any, idx: number, arr: any[]) => (
-                                                                            <div key={h.id} className="relative pl-6 pb-4 last:pb-0">
-                                                                                <div className="absolute left-0 top-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow"></div>
-                                                                                {idx !== arr.length - 1 && (
-                                                                                    <div className="absolute left-1.5 top-4 w-0.5 h-full bg-slate-200"></div>
-                                                                                )}
-
-                                                                                <div className="bg-slate-50 rounded-lg p-3 ml-4 shadow-sm">
-                                                                                    <div className="flex items-center justify-between mb-1">
-                                                                                        <span className="text-xs font-medium text-blue-600 uppercase tracking-wide">
-                                                                                            {h.action.replace("_", " ")}
-                                                                                        </span>
-                                                                                        {idx === 0 && (
-                                                                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                                                                                                Reciente
-                                                                                            </span>
-                                                                                        )}
-                                                                                    </div>
-                                                                                    <p className="text-sm text-slate-700 mb-2">{h.description}</p>
-                                                                                    <div className="flex items-center justify-between text-xs text-slate-500">
-                                                                                        <span className="flex items-center gap-1">
-                                                                                            <UserIcon className="w-3 h-3" />
-                                                                                            {h.user ? h.user.name : "Sistema"}
-                                                                                        </span>
-                                                                                        <span>{new Date(h.created_at).toLocaleString("es-ES")}</span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        ))
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
                                 </div>
                             </div>
                         </div>
                     </div>
+                )}
+
+                <div className="max-w-7xl mx-auto px-6 py-8">
+                    <div className={`grid grid-cols-1 xl:grid-cols-5 gap-8`}>
+                        {/* Main Content */}
+                        <div className={`xl:col-span-3 flex flex-col gap-8`}>
+                            {/* Tabs */}
+                            {isSuperAdmin ? (
+                                <Card className="shadow-none border-0 bg-transparent mb-10">
+                                    <CardContent className="p-0">
+                                        <Tabs value={superTab} onValueChange={setSuperTab} className="w-full">
+                                            <TabsList className="grid w-full grid-cols-6 bg-transparent rounded-full p-1">
+                                                {allStatuses.map((tabItem) => {
+                                                    // Color classes for each status
+                                                    let colorClass = "";
+                                                    let countColor = "";
+                                                    let iconColor = "";
+                                                    switch (tabItem.value) {
+                                                        case "all":
+                                                            colorClass = "data-[state=active]:text-blue-700";
+                                                            countColor = "text-blue-700";
+                                                            iconColor = "text-blue-700";
+                                                            break;
+                                                        case "open":
+                                                            colorClass = "data-[state=active]:text-yellow-600";
+                                                            countColor = "text-yellow-600";
+                                                            iconColor = "text-yellow-600";
+                                                            break;
+                                                        case "in_progress":
+                                                            colorClass = "data-[state=active]:text-amber-700";
+                                                            countColor = "text-amber-700";
+                                                            iconColor = "text-amber-700";
+                                                            break;
+                                                        case "resolved":
+                                                            colorClass = "data-[state=active]:text-emerald-700";
+                                                            countColor = "text-emerald-700";
+                                                            iconColor = "text-emerald-700";
+                                                            break;
+                                                        case "closed":
+                                                            colorClass = "data-[state=active]:text-slate-700";
+                                                            countColor = "text-slate-700";
+                                                            iconColor = "text-slate-700";
+                                                            break;
+                                                        case "cancelled":
+                                                            colorClass = "data-[state=active]:text-red-700";
+                                                            countColor = "text-red-700";
+                                                            iconColor = "text-red-700";
+                                                            break;
+                                                        default:
+                                                            colorClass = "";
+                                                            countColor = "text-blue-700";
+                                                            iconColor = "text-blue-700";
+                                                    }
+                                                    return (
+                                                        <TabsTrigger
+                                                            key={tabItem.value}
+                                                            value={tabItem.value}
+                                                            className={`flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all rounded-xl ${colorClass}`}
+                                                        >
+                                                            <span className={`font-bold text-3xl ${countColor}`}>
+                                                                {tabItem.value === "all"
+                                                                    ? allTickets.length
+                                                                    : allTickets.filter((t: any) => t.status === tabItem.value).length}
+                                                            </span>
+                                                            <div className="flex gap-2 items-center">
+                                                                <tabItem.icon className={`w-5 h-5 ${iconColor}`} />
+                                                                <span className="text-sm">{tabItem.label}</span>
+                                                            </div>
+                                                        </TabsTrigger>
+                                                    );
+                                                })}
+                                            </TabsList>
+                                        </Tabs>
+                                    </CardContent>
+                                </Card>
+                            ) : isMember ? (
+                                <Card className="shadow-none border-0 bg-transparent mb-10">
+                                    <CardContent className="p-0">
+                                        <Tabs value={memberTab} onValueChange={setMemberTab} className="w-full">
+                                            <TabsList className="grid w-full grid-cols-5 bg-transparent rounded-full p-1">
+                                                {memberTabs.map((tabItem) => {
+                                                    // Define color classes for each tab
+                                                    let colorClass = "";
+                                                    let countColor = "";
+                                                    let iconColor = "";
+                                                    switch (tabItem.value) {
+                                                        case "all":
+                                                            colorClass = "data-[state=active]:text-blue-700";
+                                                            countColor = "text-blue-700";
+                                                            iconColor = "text-blue-700";
+                                                            break;
+                                                        case "open":
+                                                            colorClass = "data-[state=active]:text-yellow-600";
+                                                            countColor = "text-yellow-600";
+                                                            iconColor = "text-yellow-600";
+                                                            break;
+                                                        case "in_progress":
+                                                            colorClass = "data-[state=active]:text-amber-700";
+                                                            countColor = "text-amber-700";
+                                                            iconColor = "text-amber-700";
+                                                            break;
+                                                        case "resolved":
+                                                            colorClass = "data-[state=active]:text-emerald-700";
+                                                            countColor = "text-emerald-700";
+                                                            iconColor = "text-emerald-700";
+                                                            break;
+                                                        case "closed":
+                                                            colorClass = "data-[state=active]:text-slate-700";
+                                                            countColor = "text-slate-700";
+                                                            iconColor = "text-slate-700";
+                                                            break;
+                                                        default:
+                                                            colorClass = "";
+                                                            countColor = "text-blue-700";
+                                                            iconColor = "text-blue-700";
+                                                    }
+                                                    return (
+                                                        <TabsTrigger
+                                                            key={tabItem.value}
+                                                            value={tabItem.value}
+                                                            className={`flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all rounded-xl ${colorClass}`}
+                                                        >
+                                                            <span className={`font-bold text-3xl ${countColor}`}>
+                                                                {tabItem.value === "all"
+                                                                    ? memberTickets.length
+                                                                    : memberTickets.filter((t: any) => t.status === tabItem.value).length}
+                                                            </span>
+                                                            <div className="flex gap-2 items-center">
+                                                                <tabItem.icon className={`w-5 h-5 ${iconColor}`} />
+                                                                <span className="text-sm">{tabItem.label}</span>
+                                                            </div>
+                                                        </TabsTrigger>
+                                                    );
+                                                })}
+                                            </TabsList>
+                                        </Tabs>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <Card className="shadow-none border-0 bg-transparent mb-10">
+                                    <CardContent className="p-0">
+                                        <Tabs value={tab} onValueChange={setTab} className="w-full">
+                                            <TabsList className="grid w-full grid-cols-3 bg-transparent rounded-full p-1">
+                                                <TabsTrigger
+                                                    value="all"
+                                                    className="flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-blue-700  transition-all rounded-xl"
+                                                >
+                                                    <span className="ml-1  py-2 text-blue-700 px-2 rounded-full text-3xl">{allTickets.length}</span>
+                                                    <div className="flex gap-2 items-center">
+                                                        <Eye className="w-4 h-4" /> Todos{" "}
+
+                                                    </div>
+                                                </TabsTrigger>
+                                                <TabsTrigger
+                                                    value="assigned"
+                                                    className="flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-purple-700  transition-all rounded-xl"
+                                                >
+                                                    <span className="ml-1  text-purple-700 px-2 rounded-full text-3xl">{assignedTickets.length}</span>
+                                                    <div className="flex gap-2 items-center">
+                                                        <UserIcon className="w-4 h-4" />
+                                                        Asignados{" "}
+                                                    </div>
+
+                                                </TabsTrigger>
+                                                <TabsTrigger
+                                                    value="approved"
+                                                    className="flex flex-col items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-emerald-700  transition-all rounded-xl"
+                                                >
+
+                                                    <span className="ml-1 text-emerald-700 px-2 rounded-full text-3xl">
+                                                        {approvedTickets.length}
+                                                    </span>
+                                                    <div className="flex gap-2 items-center">
+                                                        <CheckCircle className="w-4 h-4" />
+                                                        Resueltos{" "}
+                                                    </div>
+                                                </TabsTrigger>
+                                            </TabsList>
+                                        </Tabs>
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            {/* Tickets Grid */}
+                            <div className={`grid grid-cols-1 md:grid-cols-3 gap-4`}>
+                                {viewLoading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+                                {!viewLoading && filteredTickets.length === 0 ? (
+                                    <div className="col-span-full">
+                                        <Card className="border-0 shadow-none bg-transparent">
+                                            <CardContent className="p-12 text-center">
+                                                <XCircle className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                                                <h3 className="text-lg font-medium text-slate-900 mb-2">No hay tickets</h3>
+                                                <p className="text-slate-600">No se encontraron tickets en esta sección.</p>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                ) : (
+                                    filteredTickets.map((ticket: any) => {
+                                        const statusStyle = statusConfig[ticket.status] || statusConfig.open
+                                        const isSelected = selectedTicket?.id === ticket.id;
+                                        return (
+                                            <Card
+                                                key={ticket.id}
+                                                className={`relative bg-gray-50 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group border-0 ${isSelected
+                                                    ? "shadow-2xl border-sidebar-ring bg-sidebar border-1"
+                                                    : "hover:shadow-lg"
+                                                    }`}
+                                                onClick={() => handleSelectTicket(ticket)}
+                                            >
+                                                <CardContent className="px-7">
+                                                    <div className="">
+                                                        {/* Header */}
+                                                        <StatusBadge status={ticket.status} />
+                                                        <div className="flex justify-between items-start">
+                                                            <div className="flex-1 min-w-0">
+                                                                <h3 className="font-bold text-slate-900 text-lg truncate group-hover:text-blue-600 transition-colors">
+                                                                    {ticket.title}
+                                                                </h3>
+                                                                <p className="text-slate-600 text-sm mt-1 line-clamp-2">{ticket.description}</p>
+                                                            </div>
+                                                        </div>
+                                                        {/* Badges */}
+                                                        <div className="flex flex-wrap gap-2 mt-4">
+                                                            <DeviceBadge device={ticket.device} />
+                                                            <CategoryBadge category={ticket.category} />
+                                                        </div>
+                                                        {/* Footer */}
+                                                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                                                            <div className="flex items-center gap-1 text-xs text-slate-500">
+                                                                <Calendar className="w-3 h-3" />
+                                                                {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString("es-ES") : "-"}
+                                                            </div>
+                                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleSelectTicket(ticket);
+                                                                            }}
+                                                                            className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-600 rounded-full"
+                                                                        >
+                                                                            <Eye className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>Ver detalles</TooltipContent>
+                                                                </Tooltip>
+                                                                {/* Solo acciones para NO miembros */}
+                                                                {!isMember && canActOnTickets && auth.user?.roles.includes("technical") && (
+                                                                    <>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        setShowHistoryModal({ open: true, ticketId: ticket.id });
+                                                                                    }}
+                                                                                    className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600 rounded-full"
+                                                                                >
+                                                                                    <MessageSquare className="w-4 h-4" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>Agregar comentario</TooltipContent>
+                                                                        </Tooltip>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={async (e) => {
+                                                                                        e.stopPropagation();
+                                                                                        await loadTechnicals();
+                                                                                        setShowAssignModal({ open: true, ticketId: ticket.id });
+                                                                                    }}
+                                                                                    className="h-8 w-8 p-0 hover:bg-purple-100 hover:text-purple-600 rounded-full"
+                                                                                >
+                                                                                    <Share2 className="w-4 h-4" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>Asignar técnico</TooltipContent>
+                                                                        </Tooltip>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        {/* Selection indicator */}
+                                                        {isSelected && (
+                                                            <div className="absolute top-3 right-3">
+                                                                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        )
+                                    })
+                                )}
+                            </div>
+                        </div>
+                        {/* Sidebar - Ticket Details */}
+                        <div className={`${isMember ? "xl:col-span-2" : "xl:col-span-2"}`}>
+                            <div className="sticky top-8">
+                                <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
+                                    <CardHeader className=" text-black rounded-t-lg shadow pb-4">
+                                        <div className="flex items-center gap-2">
+                                            <h2 className="text-lg font-semibold">Detalle del Ticket</h2>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-0">
+                                        <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                                            {(selectedTicketLoading || viewLoading) && (
+                                                <div className="flex items-center justify-center h-64">
+                                                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                                                </div>
+                                            )}
+
+                                            {!selectedTicket && !selectedTicketLoading && (
+                                                <div className="flex flex-col items-center justify-center h-64 text-slate-400 p-6">
+                                                    <Eye className="w-12 h-12 mb-3" />
+                                                    <h3 className="font-medium text-slate-600 mb-1">Selecciona un ticket</h3>
+                                                    <p className="text-sm text-center">
+                                                        Haz clic en cualquier ticket para ver sus detalles completos
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {selectedTicket && !selectedTicketLoading && (
+                                                <div className="p-6 space-y-6">
+                                                    {/* Ticket Info */}
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <h3 className="font-semibold text-slate-900">{selectedTicket.title}</h3>
+                                                            <StatusBadge status={selectedTicket.status} />
+                                                        </div>
+
+                                                        <p className="text-slate-600 text-sm leading-relaxed">{selectedTicket.description}</p>
+
+                                                        <div className="grid grid-cols-2 gap-3 text-sm">
+                                                            <div>
+                                                                <span className="text-slate-500">ID:</span>
+                                                                <span className="ml-2 font-medium">#{selectedTicket.id}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-slate-500">Código:</span>
+                                                                <span className="ml-2 font-medium">{selectedTicket.code}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <DeviceBadge device={selectedTicket.device} />
+                                                            <CategoryBadge category={selectedTicket.category} />
+                                                        </div>
+
+                                                        <div className="text-xs text-slate-500 space-y-1">
+                                                            <div className="flex items-center gap-1">
+                                                                <Calendar className="w-3 h-3" />
+                                                                Creado:{" "}
+                                                                {selectedTicket.created_at
+                                                                    ? new Date(selectedTicket.created_at).toLocaleString("es-ES")
+                                                                    : "-"}
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <Clock className="w-3 h-3" />
+                                                                Actualizado:{" "}
+                                                                {selectedTicket.updated_at
+                                                                    ? new Date(selectedTicket.updated_at).toLocaleString("es-ES")
+                                                                    : "-"}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <Separator />
+
+                                                    {/* History */}
+                                                    <div className="space-y-4">
+                                                        <h4 className="font-medium text-slate-900 flex items-center gap-2">
+                                                            <Clock className="w-4 h-4 text-blue-500" />
+                                                            Historial
+                                                        </h4>
+
+                                                        <div className="space-y-3">
+                                                            {!selectedTicket.histories || selectedTicket.histories.length === 0 ? (
+                                                                <div className="text-center py-6 text-slate-500">
+                                                                    <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                                                    <p className="text-sm">Sin historial disponible</p>
+                                                                </div>
+                                                            ) : (
+                                                                [...selectedTicket.histories]
+                                                                    .slice()
+                                                                    .reverse()
+                                                                    .map((h: any, idx: number, arr: any[]) => (
+                                                                        <div key={h.id} className="relative pl-6 pb-4 last:pb-0">
+                                                                            <div className="absolute left-0 top-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow"></div>
+                                                                            {idx !== arr.length - 1 && (
+                                                                                <div className="absolute left-1.5 top-4 w-0.5 h-full bg-slate-200"></div>
+                                                                            )}
+
+                                                                            <div className="bg-slate-50 rounded-lg p-3 ml-4 shadow-sm">
+                                                                                <div className="flex items-center justify-between mb-1">
+                                                                                    <span className="text-xs font-medium text-blue-600 uppercase tracking-wide">
+                                                                                        {h.action.replace("_", " ")}
+                                                                                    </span>
+                                                                                    {idx === 0 && (
+                                                                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                                                                            Reciente
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <p className="text-sm text-slate-700 mb-2">{h.description}</p>
+                                                                                <div className="flex items-center justify-between text-xs text-slate-500">
+                                                                                    <span className="flex items-center gap-1">
+                                                                                        <UserIcon className="w-3 h-3" />
+                                                                                        {h.user ? h.user.name : "Sistema"}
+                                                                                    </span>
+                                                                                    <span>{new Date(h.created_at).toLocaleString("es-ES")}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </TooltipProvider>
+            </div>
+
 
             {/* History Modal */}
             <Dialog
