@@ -416,22 +416,20 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
             <div className="flex flex-col gap-6 p-6">
                 {/* Header Section */}
                 {isMember && (
-                    <div className=" border-b bg-background border-slate-200 sticky top-0 z-20">
-                        <div className=" px-6 py-6">
+                    <div className="border-b bg-background border-slate-200 sticky top-0 z-20">
+                        <div className="px-6 py-6">
                             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div>
                                     <h1 className="text-3xl font-extrabold text-accent flex items-center gap-2">
                                         <CheckCircle className="w-7 h-7 text-accent" />
-                                        Gestión de Tickets
+                                     Ticket Management
                                     </h1>
                                     <p className="text-slate-600 mt-1">
-                                        {isMember
-                                            ? "Visualiza y da seguimiento a tus tickets"
-                                            : "Administra y da seguimiento a todos los tickets del sistema"}
+                                        Select a device to report a problem or search for tickets.
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="relative">
+                                <div className="flex flex-col gap-2 items-end">
+                                    {/* <div className="relative mb-2">
                                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                                         <Input
                                             placeholder="Buscar tickets..."
@@ -439,12 +437,48 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             className="pl-10 w-64 rounded-lg border-sidebar-border focus:ring-2 focus:ring-blue-400 transition"
                                         />
+                                    </div> */}
+                                    {/* Lista de dispositivos como botones/cards */}
+                                    <div className="flex flex-wrap gap-3 justify-end">
+                                        {deviceOptions.length > 0 ? deviceOptions.map((device: any) => (
+                                            <button
+                                                key={device.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setData('device_id', device.id.toString());
+                                                    setShowCreateModal(true);
+                                                }}
+                                                className="flex flex-col items-center bg-white border border-slate-200 rounded-lg shadow hover:shadow-lg px-4 py-3 min-w-[140px] transition group"
+                                            >
+                                                <Monitor className="w-7 h-7 text-sky-500 mb-1" />
+                                                <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]">{device.name_device?.name || device.name || `Dispositivo #${device.id}`}</span>
+                                                {/* Mostrar con quién se comparte o el dueño */}
+                                                <div className="flex items-center gap-1 mt-2">
+                                                    {/* Dueño */}
+                                                    {device.owner && (
+                                                        <img
+                                                            src={`/storage/${device.owner.photo}`}
+                                                            alt={device.owner.name}
+                                                            title={`Dueño: ${device.owner.name}`}
+                                                            className="w-6 h-6 rounded-full border-2 border-yellow-400"
+                                                        />
+                                                    )}
+                                                    {/* Compartido con */}
+                                                    {Array.isArray(device.sharedWith) && device.sharedWith.length > 0 && device.sharedWith.map((tenant: any) => (
+                                                        <img
+                                                            key={tenant.id}
+                                                            src={`/storage/${tenant.photo}`}
+                                                            alt={tenant.name}
+                                                            title={`Compartido con: ${tenant.name}`}
+                                                            className="w-6 h-6 rounded-full border-2 border-blue-400 -ml-2"
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </button>
+                                        )) : (
+                                            <span className="text-slate-500 text-sm">You have no registered devices.</span>
+                                        )}
                                     </div>
-                                    <Button onClick={() => setShowCreateModal(true)} className="bg-yellow-500 hover:bg-yellow-600 text-white">
-                                        <Plus className="w-4 h-4 mr-2" /> Reportar un problema
-                                    </Button>
-
-
                                 </div>
                             </div>
                         </div>
@@ -1046,7 +1080,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
             <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Crear nuevo ticket</DialogTitle>
+                        <DialogTitle>Create new ticket</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmitTicket} className="space-y-4">
                         {/* Dispositivo */}
@@ -1058,15 +1092,15 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                 onChange={e => setData('device_id', e.target.value)}
                                 required
                             >
-                                <option value="">Selecciona un dispositivo</option>
+                                <option value="">Select a device</option>
                                 {deviceOptions.length > 0 ? (
                                     deviceOptions.map((d: any) => (
                                         <option key={d.id} value={d.id}>
-                                            {d.name_device?.name || d.name || `Dispositivo #${d.id}`}
+                                            {d.name_device?.name || d.name || `Device #${d.id}`}
                                         </option>
                                     ))
                                 ) : (
-                                    <option value="" disabled>No hay dispositivos</option>
+                                    <option value="" disabled>No devices available</option>
                                 )}
                             </select>
                             {errors.device_id && <div className="text-red-500 text-xs mt-1">{errors.device_id}</div>}
@@ -1080,7 +1114,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                 onChange={e => setData('category', e.target.value)}
                                 required
                             >
-                                <option value="">Selecciona una categoría</option>
+                                <option value="">Select a category</option>
                                 {TICKET_CATEGORIES.map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
@@ -1089,35 +1123,35 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                         </div>
                         {/* Título */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Título</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Subject</label>
                             <Input
                                 value={data.title}
                                 onChange={e => setData('title', e.target.value)}
                                 required
-                                placeholder="Título del ticket"
+                                placeholder="Ticket subject"
                             />
                             {errors.title && <div className="text-red-500 text-xs mt-1">{errors.title}</div>}
                         </div>
                         {/* Descripción */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Descripción</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
                             <textarea
                                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm min-h-[80px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 value={data.description}
                                 onChange={e => setData('description', e.target.value)}
                                 required
-                                placeholder="Describe el problema o solicitud..."
+                                placeholder="Describe the problem or request..."
                             />
                             {errors.description && <div className="text-red-500 text-xs mt-1">{errors.description}</div>}
                         </div>
                         <DialogFooter>
                             <DialogClose asChild>
                                 <Button type="button" variant="outline">
-                                    Cancelar
+                                    Cancel
                                 </Button>
                             </DialogClose>
-                            <Button type="submit" className="bg-blue-600 text-white" disabled={processing}>
-                                {processing ? "Creando..." : "Crear Ticket"}
+                            <Button type="submit"  disabled={processing}>
+                                {processing ? "Creating..." : "Create Ticket"}
                             </Button>
                         </DialogFooter>
                     </form>

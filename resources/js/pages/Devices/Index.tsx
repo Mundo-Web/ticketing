@@ -1,4 +1,4 @@
-// pages/Apartments/Index.tsx
+
 import AppLayout from '@/layouts/app-layout';
 import { SharedData, type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
