@@ -414,7 +414,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                 {/* Header Section */}
                 {isMember && (
                     <div className=" border-b bg-background border-slate-200 sticky top-0 z-20">
-                        <div className="max-w-7xl mx-auto px-6 py-6">
+                        <div className=" mx-auto px-6 py-6">
                             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div>
                                     <h1 className="text-3xl font-extrabold text-accent flex items-center gap-2">
@@ -448,7 +448,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                     </div>
                 )}
 
-                <div className="max-w-7xl mx-auto px-6 py-8">
+                <div className=" mx-auto px-6 py-8">
                     <div className={`grid grid-cols-1 xl:grid-cols-5 gap-8`}>
                         {/* Main Content */}
                         <div className={`xl:col-span-3 flex flex-col gap-8`}>
