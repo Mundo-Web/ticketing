@@ -354,9 +354,13 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
         ticketsToShow = approvedTickets;
         canActOnTickets = true;
     }
-    // Filter tickets for members
+
+    // Filter tickets for members by tab (status) and then by search
     const memberTickets = tickets.data.filter((ticket: any) => ticket.user_id === userId);
-    const memberFilteredTickets = memberTickets.filter(
+    const memberTabFilteredTickets = memberTab === "all"
+        ? memberTickets
+        : memberTickets.filter((ticket: any) => ticket.status === memberTab);
+    const memberFilteredTickets = memberTabFilteredTickets.filter(
         (ticket: any) =>
             ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             ticket.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -377,12 +381,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                 ticket.category.toLowerCase().includes(searchQuery.toLowerCase()),
         )
         : isMember
-            ? memberFilteredTickets.filter(
-                (ticket) =>
-                    ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    ticket.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    ticket.category.toLowerCase().includes(searchQuery.toLowerCase()),
-            )
+            ? memberFilteredTickets
             : ticketsToShow.filter(
                 (ticket) =>
                     ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
