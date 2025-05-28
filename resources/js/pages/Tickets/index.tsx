@@ -445,7 +445,8 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                     <p className="text-slate-600 mt-1 mb-4">
                                         Select a device to report a problem or search for tickets.
                                     </p>
-                                    {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
+                                   <div className="flex flex-wrap gap-4">
+                                     {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
 
                                         return (
                                             <button
@@ -506,6 +507,8 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                     }) : (
                                         <span className="text-slate-500 text-sm">You have no registered devices.</span>
                                     )}
+                                   </div>
+
                                 </div>
                                 <div className="flex flex-col gap-2 items-end">
                                     {/* <div className="relative mb-2">
