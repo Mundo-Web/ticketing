@@ -41,6 +41,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Device } from "@/types/models/Device"
+import { Tenant } from "@/types/models/Tenant";
+
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: "Tickets", href: "/tickets" }]
 
@@ -155,6 +157,19 @@ interface PaginationMeta {
     total: number
     links: PaginationLink[]
 }
+interface Apartment {
+    name: string;
+    photo?: string;
+    floor?: string;
+    ubicacion?: string;
+}
+
+interface Building {
+    id: number;
+    name: string;
+    photo?: string;
+    address: string;
+}
 
 interface TicketsProps {
     tickets: {
@@ -165,6 +180,9 @@ interface TicketsProps {
     allTickets: Ticket[],
     devicesOwn: Device[],
     devicesShared: Device[],
+    memberData: Tenant | null;
+    apartmentData: Apartment | null;
+    buildingData: Building | null;
 }
 
 function CategoryBadge({ category }: { category: string }) {
@@ -215,7 +233,7 @@ function SkeletonCard() {
     )
 }
 
-export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesShared }: TicketsProps) {
+export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesShared, memberData, apartmentData, buildingData }: TicketsProps) {
     // State management
     const [showHistoryModal, setShowHistoryModal] = useState<{ open: boolean; ticketId?: number }>({ open: false })
     const [showAssignModal, setShowAssignModal] = useState<{ open: boolean; ticketId?: number }>({ open: false })
@@ -424,9 +442,70 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                         <CheckCircle className="w-7 h-7 text-accent" />
                                         Ticket Management
                                     </h1>
-                                    <p className="text-slate-600 mt-1">
+                                    <p className="text-slate-600 mt-1 mb-4">
                                         Select a device to report a problem or search for tickets.
                                     </p>
+                                    {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
+
+                                        return (
+                                            <button
+                                                key={device.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setData('device_id', device.id.toString());
+                                                    setShowCreateModal(true);
+                                                }}
+                                                className="flex flex-col items-center bg-white border border-slate-200 rounded-lg shadow hover:shadow-lg px-4 py-3 min-w-[140px] transition group"
+                                            >
+                                                <Monitor className="w-4 h-4 text-sky-500 mb-1" />
+                                                <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]">{device.name_device?.name || device.name || `Dispositivo #${device.id}`}</span>
+                                                {/* Mostrar con quién se comparte o el dueño */}
+                                                <div className="flex items-center gap-1 mt-2">
+                                                    {/* Dueño */}
+                                                    {device.owner && (
+                                                        <TooltipProvider key={device.owner[0].id}>
+                                                            <Tooltip>
+                                                                <TooltipTrigger>
+                                                                    <img
+                                                                        src={`/storage/${device.owner[0].photo}`}
+                                                                        alt={device.owner[0].name}
+                                                                        title={`Dueño: ${device.owner[0].name}`}
+                                                                        className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-yellow-400"
+                                                                    />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>{device.owner[0].name}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    )}
+                                                    {/* Compartido con */}
+                                                    {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.map((tenant: any) => (
+
+                                                        <TooltipProvider key={tenant.id}>
+                                                            <Tooltip>
+                                                                <TooltipTrigger>
+                                                                    <img
+                                                                        key={tenant.id}
+                                                                        src={`/storage/${tenant.photo}`}
+                                                                        alt={tenant.name}
+                                                                        title={`Compartido con: ${tenant.name}`}
+                                                                        className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-blue-400 -ml-2"
+                                                                    />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>{tenant.name}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+
+                                                    ))}
+                                                </div>
+                                            </button>
+                                        )
+                                    }) : (
+                                        <span className="text-slate-500 text-sm">You have no registered devices.</span>
+                                    )}
                                 </div>
                                 <div className="flex flex-col gap-2 items-end">
                                     {/* <div className="relative mb-2">
@@ -440,73 +519,27 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                     </div> */}
                                     {/* Lista de dispositivos como botones/cards */}
                                     <div className="flex flex-col gap-3 justify-end">
-                                         <h1 className="text-3xl font-extrabold text-accent flex text-end gap-2">
-                                 
-                                        My Devices
-                                    </h1>
-                                     <div className="flex flex-wrap gap-3 justify-end">
-                                        {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
-                                         
-                                            return (
-                                                <button
-                                                    key={device.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setData('device_id', device.id.toString());
-                                                        setShowCreateModal(true);
-                                                    }}
-                                                    className="flex flex-col items-center bg-white border border-slate-200 rounded-lg shadow hover:shadow-lg px-4 py-3 min-w-[140px] transition group"
-                                                >
-                                                    <Monitor className="w-4 h-4 text-sky-500 mb-1" />
-                                                    <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]">{device.name_device?.name || device.name || `Dispositivo #${device.id}`}</span>
-                                                    {/* Mostrar con quién se comparte o el dueño */}
-                                                    <div className="flex items-center gap-1 mt-2">
-                                                        {/* Dueño */}
-                                                        {device.owner && (
-                                                            <TooltipProvider key={device.owner[0].id}>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger>
-                                                                        <img
-                                                                            src={`/storage/${device.owner[0].photo}`}
-                                                                            alt={device.owner[0].name}
-                                                                            title={`Dueño: ${device.owner[0].name}`}
-                                                                            className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-yellow-400"
-                                                                        />
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{device.owner[0].name}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                        )}
-                                                        {/* Compartido con */}
-                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.map((tenant: any) => (
 
-                                                            <TooltipProvider key={tenant.id}>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger>
-                                                                        <img
-                                                                            key={tenant.id}
-                                                                            src={`/storage/${tenant.photo}`}
-                                                                            alt={tenant.name}
-                                                                            title={`Compartido con: ${tenant.name}`}
-                                                                            className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-blue-400 -ml-2"
-                                                                        />
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{tenant.name}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
 
-                                                        ))}
-                                                    </div>
-                                                </button>
-                                            )
-                                        }) : (
-                                            <span className="text-slate-500 text-sm">You have no registered devices.</span>
-                                        )}
+                                        <div className="flex items-center gap-3 ">
+
+                                            <img
+                                                src={`/storage/${memberData?.photo}`}
+                                                alt={memberData?.name}
+                                                className="w-12 h-12 rounded-full border border-primary object-cover"
+                                            />
+                                            <h1 className="text-3xl font-extrabold text-accent flex justify-end text-end gap-2">
+
+                                                {memberData?.name}
+                                            </h1>
                                         </div>
+                                        <p className="text-slate-600 mt-1 mb-4 flex gap-2">
+                                           <span> {apartmentData?.name} </span> |
+                                           <span> {buildingData?.name} </span>
+                                        </p>
+
+
+
                                     </div>
                                 </div>
                             </div>

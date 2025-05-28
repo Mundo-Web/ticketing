@@ -74,12 +74,24 @@ class TicketController extends Controller
 
         $tickets = $ticketsQuery->latest()->paginate(10);
         $allTickets = $allTicketsQuery->get();
+        $memberData = null;
+        //cargar los datos del member
+        $memberData = Tenant::where('email', $user->email)->first();
+        $apartmentData = null;
+        $buildingData = null;
+
+        $apartmentData = $memberData->apartment;
+        $buildingData = $apartmentData->building;
+
 
         return Inertia::render('Tickets/index', [
             'tickets' => $tickets,
             'allTickets' => $allTickets,
             'devicesOwn' => $devicesOwn,
             'devicesShared' => $devicesShared,
+            'memberData' => $memberData,
+            'apartmentData' =>  $apartmentData,
+            'buildingData' => $buildingData
         ]);
     }
 
