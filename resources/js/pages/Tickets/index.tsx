@@ -440,7 +440,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                     </div> */}
                                     {/* Lista de dispositivos como botones/cards */}
                                     <div className="flex flex-col gap-3 justify-end">
-                                         <h1 className="text-3xl font-extrabold text-accent flex items-center gap-2">
+                                         <h1 className="text-3xl font-extrabold text-accent flex text-end gap-2">
                                  
                                         My Devices
                                     </h1>
