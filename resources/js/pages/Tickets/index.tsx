@@ -1,6 +1,6 @@
 import type React from "react"
 
-import AppLayout from "@/layouts/app-layout"
+import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from "@/types"
 import { Head, Link, router, usePage, useForm } from "@inertiajs/react"
 import { useEffect } from "react"
