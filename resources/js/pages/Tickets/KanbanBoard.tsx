@@ -64,7 +64,7 @@ export default function KanbanBoard(props: any) {
                     t.title.toLowerCase().includes(search) ||
                     t.description?.toLowerCase().includes(search) ||
                     t.category?.toLowerCase().includes(search) ||
-                    `TICK-${t.id}`.includes(search);
+                    `${t.code}`.includes(search);
             }
 
             return true;
@@ -276,7 +276,7 @@ export default function KanbanBoard(props: any) {
                                                                 <div className="flex justify-between items-start mb-2">
                                                                     <div className="flex items-center">
                                                                         <span className="text-sm font-semibold text-blue-600 mr-2">
-                                                                            TICK-{ticket.id}
+                                                                            {ticket.code}
                                                                         </span>
                                                                         {ticket.priority && (
                                                                             <span className={`inline-block w-2 h-2 rounded-full ${ticket.priority === 'high' ? 'bg-red-500' :
@@ -364,7 +364,7 @@ export default function KanbanBoard(props: any) {
                                                     <div className="flex justify-between items-start mb-2">
                                                         <div className="flex items-center">
                                                             <span className="text-sm font-semibold text-blue-600 mr-2">
-                                                                TICK-{ticket.id}
+                                                                {ticket.code}
                                                             </span>
                                                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
                                                                     ticket.status === 'resolved' ? 'bg-green-100 text-green-800' :
