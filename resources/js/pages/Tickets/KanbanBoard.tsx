@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect, Fragment, useCallback, useMemo } from "react";
 import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, XCircle, Filter, Search, MoreVertical } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { router } from "@inertiajs/react";
@@ -47,52 +47,76 @@ export default function KanbanBoard(props: any) {
             })
             .catch(error => {
                 console.error("Error al cargar técnicos en KanbanBoard:", error);
-            });
-    }, []);    const filteredTickets = tickets.filter((t: any) => {
-        // Filtro por técnico (solo se aplica si es jefe técnico y ha seleccionado un técnico)
-        if (isTechnicalDefault && selectedTechnicalId && t.technical_id !== selectedTechnicalId) {
-            return false;
-        }
+            });    }, []);
+    
+    // Memoizamos filteredTickets para evitar recálculos innecesarios
+    const filteredTickets = useMemo(() => {
+        return tickets.filter((t: any) => {
+            // Filtro por técnico (solo se aplica si es jefe técnico y ha seleccionado un técnico)
+            if (isTechnicalDefault && selectedTechnicalId && t.technical_id !== selectedTechnicalId) {
+                return false;
+            }
 
-        // Filtro por búsqueda
-        if (searchQuery) {
-            const search = searchQuery.toLowerCase();
-            return t.id.toString().includes(search) ||
-                t.title.toLowerCase().includes(search) ||
-                t.description?.toLowerCase().includes(search) ||
-                t.category?.toLowerCase().includes(search) ||
-                `TICK-${t.id}`.includes(search);
-        }
+            // Filtro por búsqueda
+            if (searchQuery) {
+                const search = searchQuery.toLowerCase();
+                return t.id.toString().includes(search) ||
+                    t.title.toLowerCase().includes(search) ||
+                    t.description?.toLowerCase().includes(search) ||
+                    t.category?.toLowerCase().includes(search) ||
+                    `TICK-${t.id}`.includes(search);
+            }
 
-        return true;
-    });
+            return true;
+        });
+    }, [tickets, isTechnicalDefault, selectedTechnicalId, searchQuery]);// Memoizamos los estados para evitar recálculos innecesarios
+    const statuses = useMemo(() => {
+        return getStatuses({ isTechnicalDefault, isTechnical, isSuperAdmin, isMember });
+    }, [isTechnicalDefault, isTechnical, isSuperAdmin, isMember]);
 
-    const statuses = getStatuses({ isTechnicalDefault, isTechnical, isSuperAdmin, isMember });
+    // Usamos useCallback para memoizar la función groupTickets
+    const groupTickets = useCallback(() => {
+        return statuses.reduce((acc: any, status) => {
+            if (status.key === "recents") {
+                acc[status.key] = filteredTickets.filter((t: any) => t.status === "open");
+            } else {
+                acc[status.key] = filteredTickets.filter((t: any) => t.status === status.key);
+            }
+            return acc;
+        }, {});
+    }, [statuses, filteredTickets]);    // Memoizamos el resultado actual de groupTickets para no recalcularlo en cada render
+    const currentColumns = useMemo(() => {
+        return groupTickets();
+    }, [groupTickets]);
 
-    const groupTickets = () => statuses.reduce((acc: any, status) => {
-        if (status.key === "recents") {
-            acc[status.key] = filteredTickets.filter((t: any) => t.status === "open");
-        } else {
-            acc[status.key] = filteredTickets.filter((t: any) => t.status === status.key);
-        }
-        return acc;
-    }, {});
+    // Definimos un tipo para las columnas para evitar errores de TypeScript
+    type ColumnsType = {
+        [key: string]: any[];
+    };
 
-    const [columns, setColumns] = useState(groupTickets());
-
+    const [columns, setColumns] = useState<ColumnsType>(currentColumns);    // Actualizamos las columnas solo cuando cambian los datos memoizados de las columnas
     useEffect(() => {
-        setColumns(groupTickets());
-    }, [filteredTickets, showRecents]);
-
-    const canDrag = isTechnical || isTechnicalDefault;
-
-    const onDragEnd = (result: any) => {
+        // Evitamos actualizaciones innecesarias comparando los valores
+        const newColumns = currentColumns;
+        const currentKeys = Object.keys(columns);
+        const newKeys = Object.keys(newColumns);
+        
+        // Solo actualizamos si realmente hay cambios
+        if (currentKeys.length !== newKeys.length || 
+            !currentKeys.every(key => 
+                columns[key]?.length === newColumns[key]?.length &&
+                columns[key]?.every((item, index) => item.id === newColumns[key][index]?.id)
+            )) {
+            setColumns(newColumns);
+        }
+    }, [currentColumns]);    const canDrag = isTechnical || isTechnicalDefault;    // Memoizamos la función onDragEnd para evitar recreaciones innecesarias
+    const onDragEnd = useCallback((result: any) => {
         if (!canDrag) return;
         if (!result.destination) return;
         const { source, destination, draggableId } = result;
         if (source.droppableId === destination.droppableId) return;
 
-        const ticket = columns[source.droppableId].find((t: any) => t.id === Number(draggableId));
+        const ticket = columns[source.droppableId]?.find((t: any) => t.id === Number(draggableId));
         if (!ticket) return;
 
         router.post(
@@ -100,7 +124,7 @@ export default function KanbanBoard(props: any) {
             { status: destination.droppableId },
             { preserveScroll: true }
         );
-    };
+    }, [canDrag, columns]);
 
     return (
         <div className="flex flex-col h-full ">
