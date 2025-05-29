@@ -1,3 +1,6 @@
+
+
+
 <?php
 
 use App\Http\Controllers\ApartmentController;
@@ -43,9 +46,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
     Route::put('tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');
     Route::delete('tickets/{ticket}', [TicketController::class, 'destroy'])->name('tickets.destroy');
-    // Nuevas rutas para historial y asignación de técnico
+    // Nuevas rutas para historial, asignación de técnico y cambio de estado (Kanban)
     Route::post('tickets/{ticket}/assign-technical', [TicketController::class, 'assignTechnical'])->name('tickets.assignTechnical');
     Route::post('tickets/{ticket}/add-history', [TicketController::class, 'addHistory'])->name('tickets.addHistory');
+    Route::post('tickets/{ticket}/update-status', [TicketController::class, 'updateStatus'])->name('tickets.updateStatus');
 
 
     Route::get('/apartment/member/{id}/devices', [ApartmentController::class, 'apartmentMemberDevice'])
@@ -84,8 +88,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/name_devices/{name_device}', [DeviceController::class, 'updateNameDevice'])->name('name_devices.update');
 
     Route::get('technicals-list', [TicketController::class, 'technicalsList'])->name('tickets.technicalsList');
-
-
+    
 });
 
 require __DIR__ . '/settings.php';

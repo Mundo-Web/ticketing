@@ -62,4 +62,10 @@ class User extends Authenticatable
     {
         return $this->hasOne(Doorman::class, 'email', 'email');
     }
+
+    public function technical()
+    {
+        return $this->hasOne(Technical::class, 'email', 'email');
+    }
+
 }

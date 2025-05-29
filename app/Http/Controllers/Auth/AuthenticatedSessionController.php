@@ -42,7 +42,8 @@ class AuthenticatedSessionController extends Controller
     
             if ($tenant && $tenant->apartment) {
                 
-                return redirect("/apartment/member/{$tenant->id}/devices");
+                //return redirect("/apartment/member/{$tenant->id}/devices");
+                return redirect("/tickets");
             }
         }
     
@@ -61,6 +62,18 @@ class AuthenticatedSessionController extends Controller
             if ($doorman && $doorman->building) {
                 $buildingId = $doorman->building->id;
                 return redirect("/buildings/{$buildingId}/apartments");
+            }
+        }
+
+               // Supongo que tienes roles con spatie y relaciones definidas
+       if ($user->hasRole('technical')) {
+            // Obtener el building relacionado al tenant
+            $technical = $user->technical; // Asumiendo relación User->tenant
+
+            if ($technical && $technical->apartment) {
+
+                //return redirect("/apartment/member/{$tenant->id}/devices");
+                return redirect("/tickets");
             }
         }
     

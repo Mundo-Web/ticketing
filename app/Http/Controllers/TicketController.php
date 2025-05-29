@@ -22,6 +22,7 @@ class TicketController extends Controller
         $devicesOwn = collect();
         $devicesShared = collect();
 
+        $isTechnicalDefault = false;
         if ($user->hasRole('super-admin')) {
             // Ver todos los tickets
             // No filter
@@ -29,9 +30,15 @@ class TicketController extends Controller
             // Buscar el técnico correspondiente al usuario autenticado por email
             $technical = Technical::where('email', $user->email)->first();
             if ($technical) {
-                // Ver tickets asignados a ese técnico
-                $ticketsQuery->where('technical_id', $technical->id);
-                $allTicketsQuery->where('technical_id', $technical->id);
+                if ($technical->is_default) {
+                    // Jefe técnico: puede ver todos los tickets
+                    $isTechnicalDefault = true;
+                    // No filter
+                } else {
+                    // Técnico normal: solo tickets asignados a él
+                    $ticketsQuery->where('technical_id', $technical->id);
+                    $allTicketsQuery->where('technical_id', $technical->id);
+                }
             } else {
                 // Si no hay técnico asociado, no mostrar tickets
                 $ticketsQuery->whereRaw('1 = 0');
@@ -95,7 +102,9 @@ class TicketController extends Controller
             'devicesShared' => $devicesShared,
             'memberData' => $memberData,
             'apartmentData' =>  $apartmentData,
-            'buildingData' => $buildingData
+            'buildingData' => $buildingData,
+            'isTechnicalDefault' => $isTechnicalDefault,
+            'isTechnicalDefault' => $isTechnicalDefault,
         ]);
     }
 
@@ -260,5 +269,34 @@ class TicketController extends Controller
         );
         // SIEMPRE redirige (no devuelvas JSON)
         return redirect()->back()->with('success', 'History added');
+    }
+
+        /**
+     * Actualizar solo el estado del ticket (para Kanban drag & drop)
+     */
+    public function updateStatus(Request $request, Ticket $ticket)
+    {
+        $validated = $request->validate([
+            'status' => 'required|string|max:50',
+        ]);
+
+        $ticket->status = $validated['status'];
+        $ticket->save();
+
+        // Opcional: agrega historial de cambio de estado
+        $ticket->addHistory(
+            'status_updated',
+            'Estado del ticket actualizado a ' . $validated['status'],
+            null,
+            auth()->user()->technical->id ?? null
+        );
+
+        // Para peticiones AJAX/JSON
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        // Para Inertia
+        return redirect()->back()->with('success', 'Status updated');
     }
 }

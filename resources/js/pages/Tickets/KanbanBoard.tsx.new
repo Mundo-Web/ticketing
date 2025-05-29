@@ -1,0 +1,469 @@
+import React, { useState, useEffect } from "react";
+import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, XCircle } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { router } from "@inertiajs/react";
+
+// Configuración de columnas según el tipo de usuario
+const getStatuses = (props: any) => {
+    if (props.isTechnicalDefault) {
+        return [
+            { key: "recents", label: "POR HACER", icon: AlertCircle, color: "text-orange-500" },
+            { key: "in_progress", label: "EN CURSO", icon: Clock, color: "text-blue-500" },
+            { key: "resolved", label: "POR REVISAR", icon: CheckCircle, color: "text-green-500" },
+            { key: "closed", label: "CERRADO", icon: XCircle, color: "text-slate-500" },
+            { key: "cancelled", label: "CANCELADO", icon: XCircle, color: "text-red-500" },
+        ];
+    }
+    if (props.isTechnical) {
+        return [
+            { key: "in_progress", label: "EN CURSO", icon: Clock, color: "text-blue-500" },
+            { key: "resolved", label: "POR REVISAR", icon: CheckCircle, color: "text-green-500" },
+            { key: "closed", label: "CERRADO", icon: XCircle, color: "text-slate-500" },
+            { key: "cancelled", label: "CANCELADO", icon: XCircle, color: "text-red-500" },
+        ];
+    }
+    // Para super-admin y member: mostrar todos los estados
+    return [
+        { key: "open", label: "POR HACER", icon: AlertCircle, color: "text-orange-500" },
+        { key: "in_progress", label: "EN CURSO", icon: Clock, color: "text-blue-500" },
+        { key: "resolved", label: "POR REVISAR", icon: CheckCircle, color: "text-green-500" },
+        { key: "closed", label: "CERRADO", icon: XCircle, color: "text-slate-500" },
+        { key: "cancelled", label: "CANCELADO", icon: XCircle, color: "text-red-500" },
+    ];
+};
+
+export default function KanbanBoard(props: any) {
+    // Estado para el menú de 3 puntitos
+    const [menuOpen, setMenuOpen] = useState<number | null>(null);
+    const { tickets, user, onTicketClick, isTechnicalDefault, isTechnical, isSuperAdmin, isMember } = props;
+    const [showRecents, setShowRecents] = useState(isTechnicalDefault);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Para jefe técnico: lista de técnicos y filtro
+    const [technicals, setTechnicals] = useState<any[]>([]);
+    const [selectedTechnicalId, setSelectedTechnicalId] = useState<number | null>(null);
+    const [showFilters, setShowFilters] = useState(false);
+
+    // Cargar técnicos solo si es jefe técnico
+    useEffect(() => {
+        if (isTechnicalDefault) {
+            fetch('/api/technicals')
+                .then(res => res.json())
+                .then(data => setTechnicals(data.technicals || []));
+        }
+    }, [isTechnicalDefault]);
+    
+    // Filtrar tickets por técnico seleccionado y búsqueda
+    const filteredTickets = tickets.filter((t: any) => {
+        // Filtro por técnico
+        if (isTechnicalDefault && selectedTechnicalId && t.technical_id !== selectedTechnicalId) {
+            return false;
+        }
+        
+        // Filtro por búsqueda
+        if (searchQuery) {
+            const search = searchQuery.toLowerCase();
+            return t.id.toString().includes(search) || 
+                   t.title.toLowerCase().includes(search) || 
+                   t.description?.toLowerCase().includes(search) ||
+                   t.category?.toLowerCase().includes(search) ||
+                   `TICK-${t.id}`.includes(search);
+        }
+        
+        return true;
+    });
+
+    const statuses = getStatuses({ isTechnicalDefault, isTechnical, isSuperAdmin, isMember });
+
+    // Agrupa tickets por estado (usando filteredTickets)
+    const groupTickets = () => statuses.reduce((acc: any, status) => {
+        if (status.key === "recents") {
+            acc[status.key] = filteredTickets.filter((t: any) => t.status === "open");
+        } else {
+            acc[status.key] = filteredTickets.filter((t: any) => t.status === status.key);
+        }
+        return acc;
+    }, {});
+
+    const [columns, setColumns] = useState(groupTickets());
+
+    useEffect(() => {
+        setColumns(groupTickets());
+        // eslint-disable-next-line
+    }, [filteredTickets, showRecents]);
+
+    // Solo técnicos pueden mover tickets
+    const canDrag = isTechnical || isTechnicalDefault;
+
+    const onDragEnd = (result: any) => {
+        if (!canDrag) return;
+        if (!result.destination) return;
+        const { source, destination, draggableId } = result;
+        if (source.droppableId === destination.droppableId) return;
+
+        const ticket = columns[source.droppableId].find((t: any) => t.id === Number(draggableId));
+        if (!ticket) return;
+
+        // Actualiza en backend
+        router.post(
+            `/tickets/${ticket.id}/update-status`,
+            { status: destination.droppableId },
+            {
+                preserveScroll: true,
+            }
+        );
+    };
+
+    return (
+        <>
+            {/* Header de tipo Jira con búsqueda y filtros */}
+            <div className="mb-5 bg-white rounded-xl p-4 shadow-md">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <input 
+                                type="text"
+                                placeholder="Buscar tablero"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"
+                            />
+                            <span className="absolute left-3 top-2.5 text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                            </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1">
+                            {technicals.slice(0, 4).map(t => (
+                                <div 
+                                    key={t.id} 
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center cursor-pointer border-2 ${selectedTechnicalId === t.id ? 'border-blue-500' : 'border-transparent'}`}
+                                    onClick={() => setSelectedTechnicalId(selectedTechnicalId === t.id ? null : t.id)}
+                                    title={t.name}
+                                >
+                                    {t.photo ? (
+                                        <img 
+                                            src={t.photo.startsWith('http') ? t.photo : `/storage/${t.photo}`} 
+                                            alt={t.name} 
+                                            className="w-full h-full rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className={`w-full h-full rounded-full bg-${['red', 'blue', 'green', 'purple', 'orange'][t.id % 5]}-500 flex items-center justify-center text-white font-bold`}>
+                                            {t.name.substring(0, 2).toUpperCase()}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            
+                            {technicals.length > 4 && (
+                                <button 
+                                    className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium"
+                                    onClick={() => setShowFilters(!showFilters)}
+                                >
+                                    +{technicals.length - 4}
+                                </button>
+                            )}
+                        </div>
+                        
+                        <button 
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`px-3 py-1.5 rounded text-sm flex items-center gap-1 ${showFilters ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                            Filtros {showFilters && '✓'}
+                        </button>
+                        
+                        {isTechnicalDefault && (
+                            <div className="flex gap-2">
+                                <button
+                                    className={`px-3 py-1.5 rounded text-sm ${showRecents ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}
+                                    onClick={() => setShowRecents(true)}
+                                >
+                                    Recientes
+                                </button>
+                                <button
+                                    className={`px-3 py-1.5 rounded text-sm ${!showRecents ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}
+                                    onClick={() => setShowRecents(false)}
+                                >
+                                    Vista estándar
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <select
+                            className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+                            value={selectedTechnicalId || ''}
+                            onChange={e => setSelectedTechnicalId(e.target.value ? Number(e.target.value) : null)}
+                        >
+                            <option value="">Grupo ▼</option>
+                            {technicals.map(t => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                
+                {/* Panel de filtros expandido */}
+                {showFilters && (
+                    <div className="mt-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                        <div className="flex flex-wrap gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Técnico</label>
+                                <select
+                                    className="border border-gray-300 rounded px-2 py-1 text-sm w-44"
+                                    value={selectedTechnicalId || ''}
+                                    onChange={e => setSelectedTechnicalId(e.target.value ? Number(e.target.value) : null)}
+                                >
+                                    <option value="">Todos los técnicos</option>
+                                    {technicals.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Estado</label>
+                                <div className="flex flex-wrap gap-1">
+                                    {statuses.map(status => (
+                                        <div key={status.key} className={`px-2 py-1 text-xs rounded ${status.color} bg-opacity-10 border border-opacity-20`}>
+                                            {status.label}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+            <DragDropContext onDragEnd={onDragEnd}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 w-full pb-2" style={{ minHeight: 500 }}>
+                    {statuses.map((status, colIdx) => (
+                        <Droppable droppableId={status.key} key={status.key} isDropDisabled={!canDrag}>
+                            {(provided, snapshot) => (
+                                <div
+                                    ref={provided.innerRef}
+                                    {...provided.droppableProps}
+                                    className={`flex flex-col bg-gray-50 rounded-md transition-all duration-200 ${snapshot.isDraggingOver ? "ring-2 ring-blue-200" : ""}`}
+                                    style={{ minWidth: 0 }}
+                                >
+                                    <h3 className="text-sm font-bold mb-2 flex items-center justify-between px-3 py-2 border-b border-gray-200">
+                                        <div className="flex items-center">
+                                            {status.icon && <status.icon className={`w-4 h-4 ${status.color} mr-2`} />}
+                                            <span className="tracking-wide uppercase text-gray-700">{status.label}</span>
+                                        </div>
+                                        <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full text-gray-600 font-semibold">
+                                            {columns[status.key]?.length || 0}
+                                        </span>
+                                    </h3>
+                                    <div className="flex flex-col gap-2 px-2 py-2">
+                                        {columns[status.key]?.map((ticket: any, idx: number) => (
+                                            canDrag ? (
+                                                <Draggable draggableId={ticket.id.toString()} index={idx} key={ticket.id}>
+                                                    {(provided, snapshot) => (
+                                                        <div
+                                                            ref={provided.innerRef}
+                                                            {...provided.draggableProps}
+                                                            {...provided.dragHandleProps}
+                                                            className={`bg-white border border-gray-200 rounded shadow p-3 cursor-pointer transition-all duration-150 hover:shadow-md hover:border-blue-300 ${snapshot.isDragging ? "ring-2 ring-blue-300" : ""}`}
+                                                            style={{ ...provided.draggableProps.style }}
+                                                            onClick={() => onTicketClick(ticket)}
+                                                        >
+                                                            {/* JIRA style card header with ticket ID and action menu */}
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="text-xs font-mono text-blue-600 hover:underline">
+                                                                        TICK-{ticket.id}
+                                                                    </span>
+                                                                    {ticket.priority && (
+                                                                        <span className={`inline-block w-2 h-2 rounded-full ${
+                                                                            ticket.priority === 'high' ? 'bg-red-500' : 
+                                                                            ticket.priority === 'medium' ? 'bg-orange-400' : 'bg-green-500'
+                                                                        }`}></span>
+                                                                    )}
+                                                                </div>
+                                                                
+                                                                {/* Menú de acciones con 3 puntitos */}
+                                                                <div className="relative group">
+                                                                    <button
+                                                                        className="p-1 rounded-full hover:bg-gray-100 focus:outline-none"
+                                                                        onClick={e => { e.stopPropagation(); setMenuOpen(menuOpen === ticket.id ? null : ticket.id); }}
+                                                                    >
+                                                                        <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" fill="#64748b" /><circle cx="12" cy="12" r="2" fill="#64748b" /><circle cx="19" cy="12" r="2" fill="#64748b" /></svg>
+                                                                    </button>
+                                                                    
+                                                                    {/* Menú popover */}
+                                                                    {menuOpen === ticket.id && (
+                                                                        <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded shadow-lg z-50 flex flex-col">
+                                                                            <button
+                                                                                className="flex items-center gap-2 px-3 py-1.5 text-xs text-purple-700 hover:bg-purple-50"
+                                                                                onClick={e => { e.stopPropagation(); setMenuOpen(null); props.onAssign && props.onAssign(ticket); }}
+                                                                            >
+                                                                                <Share2 className="w-3.5 h-3.5" /> Asignar
+                                                                            </button>
+                                                                            <button
+                                                                                className="flex items-center gap-2 px-3 py-1.5 text-xs text-blue-700 hover:bg-blue-50"
+                                                                                onClick={e => { e.stopPropagation(); setMenuOpen(null); props.onComment && props.onComment(ticket); }}
+                                                                            >
+                                                                                <MessageSquare className="w-3.5 h-3.5" /> Comentar
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* Título con estilo Jira */}
+                                                            <h4 className="text-sm font-medium text-gray-800 mb-2 line-clamp-2">{ticket.title}</h4>
+                                                            
+                                                            {/* Category badge con estilo Jira */}
+                                                            <div className="flex flex-wrap gap-1.5 mb-3">
+                                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-800">
+                                                                    {ticket.category}
+                                                                </span>
+                                                                {ticket.device && (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800">
+                                                                        {ticket.device.name || ticket.device.name_device?.name || "Dispositivo"}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            
+                                                            {/* Footer con fecha y técnico asignado */}
+                                                            <div className="flex items-center justify-between mt-2">
+                                                                <div className="text-xs text-gray-500 flex items-center gap-1">
+                                                                    <CalendarIcon className="w-3 h-3" />
+                                                                    <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                                                                </div>
+                                                                
+                                                                {/* Foto del técnico asignado (si existe) */}
+                                                                {ticket.technical && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        {ticket.technical.photo ? (
+                                                                            <img 
+                                                                                src={ticket.technical.photo.startsWith('http') ? ticket.technical.photo : `/storage/${ticket.technical.photo}`} 
+                                                                                alt={ticket.technical.name} 
+                                                                                className="w-6 h-6 rounded-full border border-blue-300 object-cover" 
+                                                                                title={ticket.technical.name}
+                                                                            />
+                                                                        ) : (
+                                                                            <div 
+                                                                                className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs" 
+                                                                                title={ticket.technical.name}
+                                                                            >
+                                                                                {ticket.technical.name.substring(0, 2).toUpperCase()}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </Draggable>
+                                            ) : (
+                                                <div
+                                                    key={ticket.id}
+                                                    className="bg-white border border-gray-200 rounded shadow p-3 cursor-pointer transition-all duration-150 hover:shadow-md hover:border-blue-300"
+                                                    onClick={() => onTicketClick(ticket)}
+                                                >
+                                                    {/* JIRA style card header with ticket ID */}
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-xs font-mono text-blue-600 hover:underline">
+                                                                TICK-{ticket.id}
+                                                            </span>
+                                                            {ticket.priority && (
+                                                                <span className={`inline-block w-2 h-2 rounded-full ${
+                                                                    ticket.priority === 'high' ? 'bg-red-500' : 
+                                                                    ticket.priority === 'medium' ? 'bg-orange-400' : 'bg-green-500'
+                                                                }`}></span>
+                                                            )}
+                                                        </div>
+                                                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                                            ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 
+                                                            ticket.status === 'resolved' ? 'bg-green-100 text-green-700' : 
+                                                            ticket.status === 'closed' ? 'bg-gray-100 text-gray-700' : 
+                                                            ticket.status === 'open' ? 'bg-orange-100 text-orange-700' : 
+                                                            'bg-red-100 text-red-700'
+                                                        }`}>
+                                                            {
+                                                                ticket.status === 'in_progress' ? 'En curso' : 
+                                                                ticket.status === 'resolved' ? 'Por revisar' : 
+                                                                ticket.status === 'closed' ? 'Cerrado' : 
+                                                                ticket.status === 'open' ? 'Por hacer' : 
+                                                                'Cancelado'
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    {/* Título con estilo Jira */}
+                                                    <h4 className="text-sm font-medium text-gray-800 mb-2 line-clamp-2">{ticket.title}</h4>
+                                                    
+                                                    {/* Category badge con estilo Jira */}
+                                                    <div className="flex flex-wrap gap-1.5 mb-3">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-800">
+                                                            {ticket.category}
+                                                        </span>
+                                                        {ticket.device && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800">
+                                                                {ticket.device.name || ticket.device.name_device?.name || "Dispositivo"}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    {/* Acciones y fecha */}
+                                                    <div className="flex items-center justify-between mt-2">
+                                                        <div className="text-xs text-gray-500 flex items-center gap-1">
+                                                            <CalendarIcon className="w-3 h-3" />
+                                                            <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                                                        </div>
+                                                        
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                className="px-2 py-1 rounded bg-purple-100 text-purple-700 text-xs font-medium hover:bg-purple-200 transition"
+                                                                onClick={(e) => { e.stopPropagation(); props.onAssign && props.onAssign(ticket); }}
+                                                            >
+                                                                Asignar
+                                                            </button>
+                                                            <button
+                                                                className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition"
+                                                                onClick={(e) => { e.stopPropagation(); props.onComment && props.onComment(ticket); }}
+                                                            >
+                                                                Comentar
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Foto del técnico asignado (si existe) */}
+                                                    {ticket.technical && (
+                                                        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-gray-100">
+                                                            {ticket.technical.photo ? (
+                                                                <img 
+                                                                    src={ticket.technical.photo.startsWith('http') ? ticket.technical.photo : `/storage/${ticket.technical.photo}`} 
+                                                                    alt={ticket.technical.name} 
+                                                                    className="w-5 h-5 rounded-full border border-blue-300 object-cover" 
+                                                                />
+                                                            ) : (
+                                                                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">
+                                                                    {ticket.technical.name.substring(0, 2).toUpperCase()}
+                                                                </div>
+                                                            )}
+                                                            <span className="text-xs text-gray-600">{ticket.technical.name}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )
+                                        ))}
+                                        {columns[status.key]?.length === 0 && (
+                                            <div className="text-center text-gray-400 py-8 italic text-sm">No tickets</div>
+                                        )}
+                                        {provided.placeholder}
+                                    </div>
+                                </div>
+                            )}
+                        </Droppable>
+                    ))}
+                </div>
+            </DragDropContext>
+        </>
+    );
+}

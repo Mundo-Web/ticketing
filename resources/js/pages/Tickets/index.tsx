@@ -37,6 +37,7 @@ import {
     DialogClose,
 } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import KanbanBoard from "./KanbanBoard";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -267,9 +268,11 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
     const [selectedTicketLoading, setSelectedTicketLoading] = useState(false)
     const [searchQuery, setSearchQuery] = useState("")
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const { auth } = usePage<SharedData>().props;
+    const { auth, isTechnicalDefault } = usePage<SharedData & { isTechnicalDefault?: boolean }>().props;
     const isMember = auth.user?.roles.includes("member");
     const isSuperAdmin = auth.user?.roles.includes("super-admin");
+    const isTechnical = auth.user?.roles.includes("technical");
+    // isTechnicalDefault ahora viene del backend correctamente
 
     // Tab labels in English
     const allStatuses = [
@@ -347,11 +350,13 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
 
     const loadTechnicals = async () => {
         try {
-            const response = await fetch("/technicals-list", { headers: { Accept: "application/json" } })
+            const response = await fetch("/api/technicals", { headers: { Accept: "application/json" } })
             if (!response.ok) throw new Error("Error al cargar técnicos")
             const data = await response.json()
             setTechnicals(data.technicals || [])
+            console.log("Técnicos cargados:", data.technicals)
         } catch (e) {
+            console.error("Error al cargar técnicos:", e)
             setTechnicals([])
         }
     }
@@ -444,6 +449,13 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
     }, [tickets.data, selectedTicket])
 
     // (Eliminado: declaración duplicada de memberTabs y memberTab)
+
+    // Cargar los técnicos cuando se abre el modal de asignación
+    useEffect(() => {
+        if (showAssignModal.open) {
+            loadTechnicals();
+        }
+    }, [showAssignModal.open]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -641,6 +653,20 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                         </Tabs>
                                     </CardContent>
                                 </Card>
+                            ) : isTechnical || isSuperAdmin || isMember ? (
+                                <div className="kanban-container flex w-full min-h-[500px] overflow-x-scroll">
+                                    <KanbanBoard
+                                        tickets={isSuperAdmin ? allTickets : tickets.data}
+                                        user={auth.user}
+                                        onTicketClick={handleSelectTicket}
+                                        isTechnicalDefault={isTechnicalDefault}
+                                        isTechnical={isTechnical}
+                                        isSuperAdmin={isSuperAdmin}
+                                        isMember={isMember}
+                                        onAssign={(ticket) => setShowAssignModal({ open: true, ticketId: ticket.id })}
+                                        onComment={(ticket) => setShowHistoryModal({ open: true, ticketId: ticket.id })}
+                                    />
+                                </div>
                             ) : isMember ? (
                                 <Card className="shadow-none border-0 bg-transparent mb-10">
                                     <CardContent className="p-0">
@@ -749,125 +775,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                 </Card>
                             )}
 
-                            {/* Tickets Grid */}
-                            <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 `}>
-                                {viewLoading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
-                                {!viewLoading && filteredTickets.length === 0 ? (
-                                    <div className="col-span-1 md:col-span-3 w-full">
-                                        <Card className="border-0 shadow-none bg-transparent">
-                                            <CardContent className="p-12 text-center">
-                                                <XCircle className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-                                                <h3 className="text-lg font-medium text-slate-900 mb-2">No hay tickets</h3>
-                                                <p className="text-slate-600">No se encontraron tickets en esta sección.</p>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                ) : (
-                                    filteredTickets.map((ticket: any) => {
-                                        const statusStyle = statusConfig[ticket.status] || statusConfig.open
-                                        const isSelected = selectedTicket?.id === ticket.id;
-                                        return (
-                                            <Card
-                                                key={ticket.id}
-                                                className={`relative bg-gray-50 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group border-0 ${isSelected
-                                                    ? "shadow-2xl border-sidebar-ring bg-sidebar border-1"
-                                                    : "hover:shadow-lg"
-                                                    }`}
-                                                onClick={() => handleSelectTicket(ticket)}
-                                            >
-                                                <CardContent className="px-7">
-                                                    <div className="">
-                                                        {/* Header */}
-                                                        <StatusBadge status={ticket.status} />
-                                                        <div className="flex justify-between items-start">
-                                                            <div className="flex-1 min-w-0">
-                                                                <h3 className="font-bold text-slate-900 text-lg truncate group-hover:text-blue-600 transition-colors">
-                                                                    {ticket.title}
-                                                                </h3>
-                                                                <p className="text-slate-600 text-sm mt-1 line-clamp-2">{ticket.description}</p>
-                                                            </div>
-                                                        </div>
-                                                        {/* Badges */}
-                                                        <div className="flex flex-wrap gap-2 mt-4">
-                                                            <DeviceBadge device={ticket.device} />
-                                                            <CategoryBadge category={ticket.category} />
-                                                        </div>
-                                                        {/* Footer */}
-                                                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                                                            <div className="flex items-center gap-1 text-xs text-slate-500">
-                                                                <Calendar className="w-3 h-3" />
-                                                                {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString("es-ES") : "-"}
-                                                            </div>
-                                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                handleSelectTicket(ticket);
-                                                                            }}
-                                                                            className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-600 rounded-full"
-                                                                        >
-                                                                            <Eye className="w-4 h-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>Ver detalles</TooltipContent>
-                                                                </Tooltip>
-                                                                {/* Solo acciones para NO miembros */}
-                                                                {!isMember && canActOnTickets && Array.isArray(auth.user?.roles) && (auth.user?.roles as string[]).includes("technical") && (
-                                                                    <>
-                                                                        <Tooltip>
-                                                                            <TooltipTrigger asChild>
-                                                                                <Button
-                                                                                    variant="ghost"
-                                                                                    size="sm"
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        setShowHistoryModal({ open: true, ticketId: ticket.id });
-                                                                                    }}
-                                                                                    className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600 rounded-full"
-                                                                                >
-                                                                                    <MessageSquare className="w-4 h-4" />
-                                                                                </Button>
-                                                                            </TooltipTrigger>
-                                                                            <TooltipContent>Agregar comentario</TooltipContent>
-                                                                        </Tooltip>
-                                                                        <Tooltip>
-                                                                            <TooltipTrigger asChild>
-                                                                                <Button
-                                                                                    variant="ghost"
-                                                                                    size="sm"
-                                                                                    onClick={async (e) => {
-                                                                                        e.stopPropagation();
-                                                                                        await loadTechnicals();
-                                                                                        setShowAssignModal({ open: true, ticketId: ticket.id });
-                                                                                    }}
-                                                                                    className="h-8 w-8 p-0 hover:bg-purple-100 hover:text-purple-600 rounded-full"
-                                                                                >
-                                                                                    <Share2 className="w-4 h-4" />
-                                                                                </Button>
-                                                                            </TooltipTrigger>
-                                                                            <TooltipContent>Asignar técnico</TooltipContent>
-                                                                        </Tooltip>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        {/* Selection indicator */}
-                                                        {isSelected && (
-                                                            <div className="absolute top-3 right-3">
-                                                                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        )
-                                    })
-                                )}
-                            </div>
+                           {/**TICKETS GRID AQUI */}
                         </div>
                         {/* Sidebar - Ticket Details */}
                         <div className={`${isMember ? "xl:col-span-2" : "xl:col-span-2"}`}>
@@ -900,6 +808,27 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                 <div className="p-6 space-y-6">
                                                     {/* Ticket Info */}
                                                     <div className="space-y-4">
+                                                        {/* Botones de acción para técnicos/jefe, SIEMPRE antes de history */}
+                                                        {(isTechnical || isTechnicalDefault) && !isSuperAdmin && (
+                                                            <div className="flex flex-wrap gap-2 mb-4">
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                                                                    onClick={() => setShowAssignModal({ open: true, ticketId: selectedTicket.id })}
+                                                                >
+                                                                    <Share2 className="w-4 h-4 mr-2" />
+                                                                    Asignar
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                                                    onClick={() => setShowHistoryModal({ open: true, ticketId: selectedTicket.id })}
+                                                                >
+                                                                    <MessageSquare className="w-4 h-4 mr-2" />
+                                                                    Comentar
+                                                                </Button>
+                                                            </div>
+                                                        )}
                                                         <div className="flex items-center justify-between">
                                                             <h3 className="font-semibold text-slate-900">{selectedTicket.title}</h3>
                                                             <StatusBadge status={selectedTicket.status} />
@@ -951,26 +880,20 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                     }}
                                                                 >
                                                                     <MessageSquare className="w-4 h-4 mr-2" />
-                                                                    Add Comment
+                                                                    Comentar
                                                                 </Button>
-                                                                
-                                                                {/* Only show assign button for technicians or admins */}
-                                                                {Array.isArray(auth.user?.roles) && 
-                                                                    ((auth.user?.roles).includes("technical") || 
-                                                                    (auth.user?.roles).includes("super-admin")) && (
-                                                                    <Button
-                                                                        variant={"ghost"}
-                                                                        size="sm"
-                                                                        className=" "
-                                                                        onClick={() => {
-                                                                            loadTechnicals();
-                                                                            setShowAssignModal({ open: true, ticketId: selectedTicket.id });
-                                                                        }}
-                                                                    >
-                                                                        <Share2 className="w-4 h-4 mr-2" />
-                                                                        Assign Technician
-                                                                    </Button>
-                                                                )}
+                                                                <Button
+                                                                    variant={"ghost"}
+                                                                    size="sm"
+                                                                    className=" "
+                                                                    onClick={() => {
+                                                                        loadTechnicals();
+                                                                        setShowAssignModal({ open: true, ticketId: selectedTicket.id });
+                                                                    }}
+                                                                >
+                                                                    <Share2 className="w-4 h-4 mr-2" />
+                                                                    Asignar
+                                                                </Button>
                                                                     
                                                                 
                                                                 {/* Status update buttons */}
