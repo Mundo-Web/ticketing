@@ -585,78 +585,10 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                         {/* Main Content */}
                         <div className={`xl:col-span-8 flex flex-col gap-8`}>
                             {/* Tabs */}
-                            {isSuperAdmin ? (
-                                <Card className="shadow-none border-0 bg-transparent mb-10">
-                                    <CardContent className="p-0">
-                                        <Tabs value={superTab} onValueChange={setSuperTab} className="w-full">
-                                            <TabsList className="grid w-full grid-cols-6 bg-transparent rounded-full p-1">
-                                                {allStatuses.map((tabItem) => {
-                                                    // Color classes for each status
-                                                    let colorClass = "";
-                                                    let countColor = "";
-                                                    let iconColor = "";
-                                                    switch (tabItem.value) {
-                                                        case "all":
-                                                            colorClass = "data-[state=active]:text-blue-700";
-                                                            countColor = "text-blue-700";
-                                                            iconColor = "text-blue-700";
-                                                            break;
-                                                        case "open":
-                                                            colorClass = "data-[state=active]:text-yellow-600";
-                                                            countColor = "text-yellow-600";
-                                                            iconColor = "text-yellow-600";
-                                                            break;
-                                                        case "in_progress":
-                                                            colorClass = "data-[state=active]:text-amber-700";
-                                                            countColor = "text-amber-700";
-                                                            iconColor = "text-amber-700";
-                                                            break;
-                                                        case "resolved":
-                                                            colorClass = "data-[state=active]:text-emerald-700";
-                                                            countColor = "text-emerald-700";
-                                                            iconColor = "text-emerald-700";
-                                                            break;
-                                                        case "closed":
-                                                            colorClass = "data-[state=active]:text-slate-700";
-                                                            countColor = "text-slate-700";
-                                                            iconColor = "text-slate-700";
-                                                            break;
-                                                        case "cancelled":
-                                                            colorClass = "data-[state=active]:text-red-700";
-                                                            countColor = "text-red-700";
-                                                            iconColor = "text-red-700";
-                                                            break;
-                                                        default:
-                                                            colorClass = "";
-                                                            countColor = "text-blue-700";
-                                                            iconColor = "text-blue-700";
-                                                    }
-                                                    return (
-                                                        <TabsTrigger
-                                                            key={tabItem.value}
-                                                            value={tabItem.value}
-                                                            className={`flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all rounded-xl ${colorClass}`}
-                                                        >
-                                                            <span className={`font-bold text-3xl ${countColor}`}>
-                                                                {tabItem.value === "all"
-                                                                    ? allTickets.length
-                                                                    : allTickets.filter((t: any) => t.status === tabItem.value).length}
-                                                            </span>
-                                                            <div className="flex gap-2 items-center">
-                                                                <tabItem.icon className={`w-5 h-5 ${iconColor}`} />
-                                                                <span className="text-sm">{tabItem.label}</span>
-                                                            </div>
-                                                        </TabsTrigger>
-                                                    );
-                                                })}
-                                            </TabsList>
-                                        </Tabs>
-                                    </CardContent>
-                                </Card>
-                            ) : isTechnical || isSuperAdmin || isMember ? (
+                            {(isTechnicalDefault || isSuperAdmin || isTechnical) ? (
                                 <div className="kanban-container flex w-full min-h-[500px] overflow-x-scroll">
                                     <KanbanBoard
-                                        tickets={isSuperAdmin ? allTickets : tickets.data}
+                                        tickets={allTickets}
                                         user={auth.user}
                                         onTicketClick={handleSelectTicket}
                                         isTechnicalDefault={isTechnicalDefault}

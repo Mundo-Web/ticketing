@@ -16,10 +16,11 @@ const getStatuses = (props: any) => {
     }
     if (props.isTechnical) {
         return [
+                { key: "recents", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
             { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
             { key: "resolved", label: "POR REVISAR", icon: CheckCircle, color: "bg-green-500" },
-            { key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
-            { key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
+            //{ key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
+            //{ key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
         ];
     }
     return [
@@ -27,14 +28,15 @@ const getStatuses = (props: any) => {
         { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
         { key: "resolved", label: "POR REVISAR", icon: CheckCircle, color: "bg-green-500" },
         { key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
-        { key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
+       { key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
     ];
 };
 
 export default function KanbanBoard(props: any) {
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
     const { tickets, user, onTicketClick, isTechnicalDefault, isTechnical, isSuperAdmin, isMember } = props;
-    const [showRecents, setShowRecents] = useState(isTechnicalDefault);
+    const isManager = isTechnicalDefault || isSuperAdmin;
+    const [showRecents, setShowRecents] = useState(isManager);
     const [searchQuery, setSearchQuery] = useState("");
     const [technicals, setTechnicals] = useState<any[]>([]);
     const [selectedTechnicalId, setSelectedTechnicalId] = useState<number | null>(null);
@@ -54,8 +56,8 @@ export default function KanbanBoard(props: any) {
     // Memoizamos filteredTickets para evitar recálculos innecesarios
     const filteredTickets = useMemo(() => {
         return tickets.filter((t: any) => {
-            // Filtro por técnico (solo se aplica si es jefe técnico y ha seleccionado un técnico)
-            if (isTechnicalDefault && selectedTechnicalId && t.technical_id !== selectedTechnicalId) {
+            // Filtro por técnico (solo se aplica si es jefe técnico o super-admin y ha seleccionado un técnico)
+            if (isManager && selectedTechnicalId && t.technical_id !== selectedTechnicalId) {
                 return false;
             }
 
@@ -71,10 +73,10 @@ export default function KanbanBoard(props: any) {
 
             return true;
         });
-    }, [tickets, isTechnicalDefault, selectedTechnicalId, searchQuery]);// Memoizamos los estados para evitar recálculos innecesarios
+    }, [tickets, isManager, selectedTechnicalId, searchQuery]);// Memoizamos los estados para evitar recálculos innecesarios
     const statuses = useMemo(() => {
-        return getStatuses({ isTechnicalDefault, isTechnical, isSuperAdmin, isMember });
-    }, [isTechnicalDefault, isTechnical, isSuperAdmin, isMember]);
+        return getStatuses({ isTechnicalDefault: isManager, isTechnical, isSuperAdmin, isMember });
+    }, [isManager, isTechnical, isSuperAdmin, isMember]);
 
     // Usamos useCallback para memoizar la función groupTickets
     const groupTickets = useCallback(() => {
@@ -111,7 +113,7 @@ export default function KanbanBoard(props: any) {
             )) {
             setColumns(newColumns);
         }
-    }, [currentColumns]); const canDrag = isTechnical || isTechnicalDefault;    // Memoizamos la función onDragEnd para evitar recreaciones innecesarias
+    }, [currentColumns]); const canDrag = isTechnical || isManager;    // Memoizamos la función onDragEnd para evitar recreaciones innecesarias
     const onDragEnd = useCallback((result: any) => {
         if (!canDrag) return;
         if (!result.destination) return;
@@ -123,7 +125,7 @@ export default function KanbanBoard(props: any) {
 
         router.post(
             `/tickets/${ticket.id}/update-status`,
-            { status: destination.droppableId },
+            { status: destination.droppableId === "recents" ? "open" : destination.droppableId },
             { preserveScroll: true }
         );
     }, [canDrag, columns]);
