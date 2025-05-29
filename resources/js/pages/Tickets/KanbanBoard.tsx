@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, XCircle, Filter, Search, MoreVertical } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { router } from "@inertiajs/react";
@@ -48,13 +48,13 @@ export default function KanbanBoard(props: any) {
             .catch(error => {
                 console.error("Error al cargar técnicos en KanbanBoard:", error);
             });
-    }, []);
-
-    const filteredTickets = tickets.filter((t: any) => {
+    }, []);    const filteredTickets = tickets.filter((t: any) => {
+        // Filtro por técnico (solo se aplica si es jefe técnico y ha seleccionado un técnico)
         if (isTechnicalDefault && selectedTechnicalId && t.technical_id !== selectedTechnicalId) {
             return false;
         }
 
+        // Filtro por búsqueda
         if (searchQuery) {
             const search = searchQuery.toLowerCase();
             return t.id.toString().includes(search) ||
@@ -105,10 +105,11 @@ export default function KanbanBoard(props: any) {
     return (
         <div className="flex flex-col h-full ">
             {/* Jira-style header */}
-            <div className="bg-white border-b border-gray-300 py-3 px-4 mb-4 shadow-sm">
-                <div className="flex items-center justify-start">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-xl font-bold text-gray-800">Tablero de Tickets</h1>
+            <div className="bg-white border-b border-gray-300 py-3 px-4 mb-4 shadow-sm">                    <div className="flex items-center justify-start">
+                    <div className="flex items-center gap-3">                        <h1 className="text-xl font-bold text-gray-800">
+                            Tablero de Tickets
+                           
+                        </h1>
                         <div className="relative">
                             <input
                                 type="text"
@@ -156,38 +157,48 @@ export default function KanbanBoard(props: any) {
                                         </div>
                                     ))}
                                 </div>
-                            </div> */}
-
-                                <div>
-                                    {/*<label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
-                                    Técnicos
-                                </label> */}
-                                    <div className="flex flex-wrap gap-2">
-                                        {technicals.map(t => (
-                                            <div
-                                                key={t.id}
-                                                className={`flex items-center gap-2 px-3 py-1 text-xs rounded-full font-medium cursor-pointer ${selectedTechnicalId === t.id
-                                                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                                                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                                                    }`}
-                                                onClick={() => setSelectedTechnicalId(selectedTechnicalId === t.id ? null : t.id)}
-                                            >
-                                                {t.photo ? (
-                                                    <img
-                                                        src={t.photo.startsWith('http') ? t.photo : `/storage/${t.photo}`}
-                                                        alt={t.name}
-                                                        className="w-6 h-6 rounded-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
-                                                        {t.name.substring(0, 1)}
-                                                    </div>
-                                                )}
-                                                <span>{t.name.split(' ')[0]}</span>
-                                            </div>
-                                        ))}
+                            </div> */}                                {/* Solo mostrar la sección de técnicos si es jefe técnico (isTechnicalDefault) */}
+                                {isTechnicalDefault && (
+                                    <div>
+                                      
+                                        <div className="flex flex-wrap gap-2">
+                                            {technicals.map(t => (
+                                                <div
+                                                    key={t.id}
+                                                    className={`flex items-center gap-2 px-3 py-1 text-xs rounded-full font-medium cursor-pointer ${selectedTechnicalId === t.id
+                                                            ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                                                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                                                        }`}
+                                                    onClick={() => setSelectedTechnicalId(selectedTechnicalId === t.id ? null : t.id)}
+                                                >
+                                                    {t.photo ? (
+                                                        <img
+                                                            src={t.photo.startsWith('http') ? t.photo : `/storage/${t.photo}`}
+                                                            alt={t.name}
+                                                            className="w-6 h-6 rounded-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                                                            {t.name.substring(0, 1)}
+                                                        </div>
+                                                    )}
+                                                    <span>{t.name.split(' ')[0]}</span>
+                                                </div>
+                                            ))}
+                                             {isTechnicalDefault && selectedTechnicalId && (
+                                <>
+                                  
+                                    <button 
+                                        onClick={() => setSelectedTechnicalId(null)}
+                                        className="ml-2 text-xs text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-full"
+                                    >
+                                        Limpiar filtro
+                                    </button>
+                                </>
+                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </div>
 
