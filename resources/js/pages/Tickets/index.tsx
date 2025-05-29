@@ -581,9 +581,9 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                 )}
 
                 <div className="px-6 py-8">
-                    <div className={`grid grid-cols-1 xl:grid-cols-5 gap-8`}>
+                    <div className={`grid grid-cols-1 xl:grid-cols-12 gap-8`}>
                         {/* Main Content */}
-                        <div className={`xl:col-span-3 flex flex-col gap-8`}>
+                        <div className={`xl:col-span-8 flex flex-col gap-8`}>
                             {/* Tabs */}
                             {isSuperAdmin ? (
                                 <Card className="shadow-none border-0 bg-transparent mb-10">
@@ -778,7 +778,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                            {/**TICKETS GRID AQUI */}
                         </div>
                         {/* Sidebar - Ticket Details */}
-                        <div className={`${isMember ? "xl:col-span-2" : "xl:col-span-2"}`}>
+                        <div className={`${isMember ? "xl:col-span-4" : "xl:col-span-4"}`}>
                             <div className="sticky top-8">
                                 <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
                                     <CardHeader className=" text-black rounded-t-lg shadow pb-4">

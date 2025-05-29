@@ -2,6 +2,7 @@ import React, { useState, useEffect, Fragment, useCallback, useMemo } from "reac
 import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, XCircle, Filter, Search, MoreVertical } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { router } from "@inertiajs/react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@radix-ui/react-tooltip";
 
 const getStatuses = (props: any) => {
     if (props.isTechnicalDefault) {
@@ -9,8 +10,8 @@ const getStatuses = (props: any) => {
             { key: "recents", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
             { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
             { key: "resolved", label: "POR REVISAR", icon: CheckCircle, color: "bg-green-500" },
-            { key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
-            { key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
+          //  { key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
+            //{ key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
         ];
     }
     if (props.isTechnical) {
@@ -37,7 +38,7 @@ export default function KanbanBoard(props: any) {
     const [searchQuery, setSearchQuery] = useState("");
     const [technicals, setTechnicals] = useState<any[]>([]);
     const [selectedTechnicalId, setSelectedTechnicalId] = useState<number | null>(null);
-    const [showFilters, setShowFilters] = useState(false);    useEffect(() => {
+    const [showFilters, setShowFilters] = useState(false); useEffect(() => {
         // Cargar técnicos siempre, no solo para jefe técnico
         fetch('/api/technicals')
             .then(res => res.json())
@@ -47,8 +48,9 @@ export default function KanbanBoard(props: any) {
             })
             .catch(error => {
                 console.error("Error al cargar técnicos en KanbanBoard:", error);
-            });    }, []);
-    
+            });
+    }, []);
+
     // Memoizamos filteredTickets para evitar recálculos innecesarios
     const filteredTickets = useMemo(() => {
         return tickets.filter((t: any) => {
@@ -100,16 +102,16 @@ export default function KanbanBoard(props: any) {
         const newColumns = currentColumns;
         const currentKeys = Object.keys(columns);
         const newKeys = Object.keys(newColumns);
-        
+
         // Solo actualizamos si realmente hay cambios
-        if (currentKeys.length !== newKeys.length || 
-            !currentKeys.every(key => 
+        if (currentKeys.length !== newKeys.length ||
+            !currentKeys.every(key =>
                 columns[key]?.length === newColumns[key]?.length &&
                 columns[key]?.every((item, index) => item.id === newColumns[key][index]?.id)
             )) {
             setColumns(newColumns);
         }
-    }, [currentColumns]);    const canDrag = isTechnical || isTechnicalDefault;    // Memoizamos la función onDragEnd para evitar recreaciones innecesarias
+    }, [currentColumns]); const canDrag = isTechnical || isTechnicalDefault;    // Memoizamos la función onDragEnd para evitar recreaciones innecesarias
     const onDragEnd = useCallback((result: any) => {
         if (!canDrag) return;
         if (!result.destination) return;
@@ -130,11 +132,11 @@ export default function KanbanBoard(props: any) {
         <div className="flex flex-col h-full ">
             {/* Jira-style header */}
             <div className="bg-white border-b border-gray-300 py-3 px-4 mb-4 shadow-sm">                    <div className="flex items-center justify-start">
-                    <div className="flex items-center gap-3">                        <h1 className="text-xl font-bold text-gray-800">
-                            Tablero de Tickets
-                           
-                        </h1>
-                        <div className="relative">
+                <div className="flex items-center gap-3">                        <h1 className="text-xl font-bold text-gray-800">
+                    Tablero de Tickets
+
+                </h1>
+                    {/* <div className="relative">
                             <input
                                 type="text"
                                 placeholder="Buscar tickets..."
@@ -145,13 +147,13 @@ export default function KanbanBoard(props: any) {
                             <div className="absolute left-3 top-2.5 text-gray-400">
                                 <Search size={16} />
                             </div>
-                        </div>
-                    </div>
+                        </div> */}
+                </div>
 
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                    <div className="">
                         <div className="">
-                            <div className="">
-                                {/* <div>
+                            {/* <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
                                     Técnico
                                 </label>
@@ -167,7 +169,7 @@ export default function KanbanBoard(props: any) {
                                 </select>
                             </div> */}
 
-                                {/*        <div>
+                            {/*        <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
                                     Estado
                                 </label>
@@ -182,53 +184,70 @@ export default function KanbanBoard(props: any) {
                                     ))}
                                 </div>
                             </div> */}                                {/* Solo mostrar la sección de técnicos si es jefe técnico (isTechnicalDefault) */}
-                                {isTechnicalDefault && (
-                                    <div>
-                                      
-                                        <div className="flex flex-wrap gap-2">
-                                            {technicals.map(t => (
-                                                <div
-                                                    key={t.id}
-                                                    className={`flex items-center gap-2 px-3 py-1 text-xs rounded-full font-medium cursor-pointer ${selectedTechnicalId === t.id
-                                                            ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                                                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                                                        }`}
-                                                    onClick={() => setSelectedTechnicalId(selectedTechnicalId === t.id ? null : t.id)}
-                                                >
-                                                    {t.photo ? (
-                                                        <img
-                                                            src={t.photo.startsWith('http') ? t.photo : `/storage/${t.photo}`}
-                                                            alt={t.name}
-                                                            className="w-6 h-6 rounded-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
-                                                            {t.name.substring(0, 1)}
+                            {isTechnicalDefault && (                                <div>
+                                    
+                                    <div className="ml-4 flex flex-wrap gap-2 items-center">
+                                        {technicals.map(t => (                                            <TooltipProvider key={t.id}>
+                                                <Tooltip delayDuration={300}>
+                                                    <TooltipTrigger asChild>
+                                                        <div 
+                                                            className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${
+                                                                selectedTechnicalId === t.id 
+                                                                ? 'bg-blue-500 ring-2 ring-blue-300 scale-110' 
+                                                                : 'hover:bg-gray-100'
+                                                            }`}
+                                                            onClick={() => setSelectedTechnicalId(selectedTechnicalId === t.id ? null : t.id)}
+                                                        >
+                                                            <img
+                                                                src={t.photo?.startsWith('http') ? t.photo : `/storage/${t.photo}`}
+                                                                alt={t.name}
+                                                                className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                                                            />
+                                                            {selectedTechnicalId === t.id && (
+                                                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                                                    </svg>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                    <span>{t.name.split(' ')[0]}</span>
-                                                </div>
-                                            ))}
-                                             {isTechnicalDefault && selectedTechnicalId && (
-                                <>
-                                  
-                                    <button 
-                                        onClick={() => setSelectedTechnicalId(null)}
-                                        className="ml-2 text-xs text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-full"
-                                    >
-                                        Limpiar filtro
-                                    </button>
-                                </>
-                            )}
-                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
+                                                        <p className="font-medium">{t.name}</p>
+                                                       {/** <p className="text-gray-300 text-[10px]">{t.email}</p> */}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+
+                                        ))}                                        {isTechnicalDefault && selectedTechnicalId && (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <button
+                                                            onClick={() => setSelectedTechnicalId(null)}
+                                                            className="ml-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-blue-200 transition-all duration-200"
+                                                        >
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                            </svg>
+                                                            Limpiar filtro
+                                                        </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-gray-800 text-white text-xs">
+                                                        <p>Mostrar todos los técnicos</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </div>
-
-
                     </div>
+
+
                 </div>
+            </div>
 
 
             </div>
@@ -280,7 +299,7 @@ export default function KanbanBoard(props: any) {
                                                                         </span>
                                                                         {ticket.priority && (
                                                                             <span className={`inline-block w-2 h-2 rounded-full ${ticket.priority === 'high' ? 'bg-red-500' :
-                                                                                    ticket.priority === 'medium' ? 'bg-orange-400' : 'bg-green-500'
+                                                                                ticket.priority === 'medium' ? 'bg-orange-400' : 'bg-green-500'
                                                                                 }`}></span>
                                                                         )}
                                                                     </div>
@@ -367,10 +386,10 @@ export default function KanbanBoard(props: any) {
                                                                 {ticket.code}
                                                             </span>
                                                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                                                    ticket.status === 'resolved' ? 'bg-green-100 text-green-800' :
-                                                                        ticket.status === 'closed' ? 'bg-gray-100 text-gray-800' :
-                                                                            ticket.status === 'open' ? 'bg-orange-100 text-orange-800' :
-                                                                                'bg-red-100 text-red-800'
+                                                                ticket.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                                                                    ticket.status === 'closed' ? 'bg-gray-100 text-gray-800' :
+                                                                        ticket.status === 'open' ? 'bg-orange-100 text-orange-800' :
+                                                                            'bg-red-100 text-red-800'
                                                                 }`}>
                                                                 {status.label}
                                                             </span>
@@ -394,8 +413,8 @@ export default function KanbanBoard(props: any) {
                                                         </div>
                                                     </div>
 
-                                                
-                                                
+
+
                                                 </div>
                                             )
                                         ))}
