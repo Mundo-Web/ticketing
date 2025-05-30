@@ -597,6 +597,11 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                         isMember={isMember}
                                         onAssign={(ticket) => setShowAssignModal({ open: true, ticketId: ticket.id })}
                                         onComment={(ticket) => setShowHistoryModal({ open: true, ticketId: ticket.id })}
+                                        onStatusChange={(ticketId) => {
+                                            if (selectedTicket && selectedTicket.id === ticketId) {
+                                                refreshSelectedTicket(ticketId);
+                                            }
+                                        }}
                                     />
                                 </div>
                             ) : isMember ? (

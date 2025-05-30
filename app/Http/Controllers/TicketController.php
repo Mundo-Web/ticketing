@@ -104,7 +104,7 @@ class TicketController extends Controller
             'apartmentData' =>  $apartmentData,
             'buildingData' => $buildingData,
             'isTechnicalDefault' => $isTechnicalDefault,
-            'isTechnicalDefault' => $isTechnicalDefault,
+            'isSuperAdmin' => $user->hasRole('super-admin'),
         ]);
     }
 

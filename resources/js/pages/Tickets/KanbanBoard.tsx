@@ -37,7 +37,7 @@ const getStatuses = (props: any) => {
 
 export default function KanbanBoard(props: any) {
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
-    const { tickets, user, onTicketClick, isTechnicalDefault, isTechnical, isSuperAdmin, isMember } = props;
+    const { tickets, user, onTicketClick, isTechnicalDefault, isTechnical, isSuperAdmin, isMember, onStatusChange } = props;
     const isManager = isTechnicalDefault || isSuperAdmin;
     const [showRecents, setShowRecents] = useState(isManager);
     const [searchQuery, setSearchQuery] = useState("");
@@ -129,9 +129,16 @@ export default function KanbanBoard(props: any) {
         router.post(
             `/tickets/${ticket.id}/update-status`,
             { status: destination.droppableId === "recents" ? "open" : destination.droppableId },
-            { preserveScroll: true }
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    if (onStatusChange) {
+                        onStatusChange(ticket.id);
+                    }
+                }
+            }
         );
-    }, [canDrag, columns]);
+    }, [canDrag, columns, onStatusChange]);
 
     return (
         <div className="flex flex-col h-full ">
