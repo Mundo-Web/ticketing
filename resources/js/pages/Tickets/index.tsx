@@ -475,69 +475,69 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                     <p className="text-slate-600 mt-1 mb-4">
                                         Select a device to report an issue or search tickets.
                                     </p>
-                                   <div className="flex flex-wrap gap-4">
-                                     {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
+                                    <div className="flex flex-wrap gap-4">
+                                        {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
 
-                                        return (
-                                            <button
-                                                key={device.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    setData('device_id', device.id.toString());
-                                                    setShowCreateModal(true);
-                                                }}
-                                                className="flex flex-col items-center bg-white border border-slate-200 rounded-lg shadow hover:shadow-lg px-4 py-3 min-w-[140px] transition group"
-                                            >
-                                                <Monitor className="w-4 h-4 text-sky-500 mb-1" />
-                                                <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]">{device.name_device?.name || device.name || `Device #${device.id}`}</span>
-                                                {/* Mostrar con quién se comparte o el dueño */}
-                                                <div className="flex items-center gap-1 mt-2">
-                                                    {/* Dueño */}
-                                                    {device.owner && (
-                                                        <TooltipProvider key={device.owner[0].id}>
-                                                            <Tooltip>
-                                                                <TooltipTrigger>
-                                                                    <img
-                                                                        src={`/storage/${device.owner[0].photo}`}
-                                                                        alt={device.owner[0].name}
-                                                                        title={`Dueño: ${device.owner[0].name}`}
-                                                                        className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-yellow-400"
-                                                                    />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>{device.owner[0].name}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    )}
-                                                    {/* Compartido con */}
-                                                    {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.map((tenant: any) => (
+                                            return (
+                                                <button
+                                                    key={device.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setData('device_id', device.id.toString());
+                                                        setShowCreateModal(true);
+                                                    }}
+                                                    className="flex flex-col items-center bg-white border border-slate-200 rounded-lg shadow hover:shadow-lg px-4 py-3 min-w-[140px] transition group"
+                                                >
+                                                    <Monitor className="w-4 h-4 text-sky-500 mb-1" />
+                                                    <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]">{device.name_device?.name || device.name || `Device #${device.id}`}</span>
+                                                    {/* Mostrar con quién se comparte o el dueño */}
+                                                    <div className="flex items-center gap-1 mt-2">
+                                                        {/* Dueño */}
+                                                        {device.owner && (
+                                                            <TooltipProvider key={device.owner[0].id}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger>
+                                                                        <img
+                                                                            src={`/storage/${device.owner[0].photo}`}
+                                                                            alt={device.owner[0].name}
+                                                                            title={`Dueño: ${device.owner[0].name}`}
+                                                                            className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-yellow-400"
+                                                                        />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{device.owner[0].name}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        )}
+                                                        {/* Compartido con */}
+                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.map((tenant: any) => (
 
-                                                        <TooltipProvider key={tenant.id}>
-                                                            <Tooltip>
-                                                                <TooltipTrigger>
-                                                                    <img
-                                                                        key={tenant.id}
-                                                                        src={`/storage/${tenant.photo}`}
-                                                                        alt={tenant.name}
-                                                                        title={`Compartido con: ${tenant.name}`}
-                                                                        className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-blue-400 -ml-2"
-                                                                    />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>{tenant.name}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
+                                                            <TooltipProvider key={tenant.id}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger>
+                                                                        <img
+                                                                            key={tenant.id}
+                                                                            src={`/storage/${tenant.photo}`}
+                                                                            alt={tenant.name}
+                                                                            title={`Compartido con: ${tenant.name}`}
+                                                                            className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-blue-400 -ml-2"
+                                                                        />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{tenant.name}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
 
-                                                    ))}
-                                                </div>
-                                            </button>
-                                        )
-                                    }) : (
+                                                        ))}
+                                                    </div>
+                                                </button>
+                                            )
+                                        }) : (
                                             <span className="text-slate-500 text-sm">You have no registered devices.</span>
-                                    )}
-                                   </div>
+                                        )}
+                                    </div>
 
                                 </div>
                                 <div className="flex flex-col gap-2 items-end">
@@ -567,8 +567,8 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                             </h1>
                                         </div>
                                         <p className="text-slate-600 mt-1 mb-4 flex gap-2">
-                                           <span> {apartmentData?.name} </span> |
-                                           <span> {buildingData?.name} </span>
+                                            <span> {apartmentData?.name} </span> |
+                                            <span> {buildingData?.name} </span>
                                         </p>
 
 
@@ -707,7 +707,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                 </Card>
                             )}
 
-                           {/**TICKETS GRID AQUI */}
+                            {/**TICKETS GRID AQUI */}
                         </div>
                         {/* Sidebar - Ticket Details */}
                         <div className={`${isMember ? "xl:col-span-4" : "xl:col-span-4"}`}>
@@ -715,7 +715,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                 <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
                                     <CardHeader className=" text-black rounded-t-lg shadow pb-4">
                                         <div className="flex items-center gap-2">
-                                    <h2 className="text-lg font-semibold">Ticket Details</h2>
+                                            <h2 className="text-lg font-semibold">Ticket Details</h2>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-0">
@@ -743,14 +743,16 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                         {/* Botones de acción para técnicos/jefe, SIEMPRE antes de history */}
                                                         {(isTechnical || isTechnicalDefault) && !isSuperAdmin && (
                                                             <div className="flex flex-wrap gap-2 mb-4">
-                                                                <Button
-                                                                    size="sm"
-                                                                    className="bg-purple-600 hover:bg-purple-700 text-white"
-                                                                    onClick={() => setShowAssignModal({ open: true, ticketId: selectedTicket.id })}
-                                                                >
-                                                                    <Share2 className="w-4 h-4 mr-2" />
-                                                                    Asignar
-                                                                </Button>
+                                                                {isTechnicalDefault && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                                                                        onClick={() => setShowAssignModal({ open: true, ticketId: selectedTicket.id })}
+                                                                    >
+                                                                        <Share2 className="w-4 h-4 mr-2" />
+                                                                        Asignar
+                                                                    </Button>
+                                                                )}
                                                                 <Button
                                                                     size="sm"
                                                                     className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -800,7 +802,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                     : "-"}
                                                             </div>
                                                         </div>
-                                                        
+
                                                         {/* Action buttons for ticket management - only show when in the "Assigned" tab */}
                                                         {(canActOnTickets || isSuperAdmin) && (
                                                             <div className="flex flex-wrap gap-2 mt-4">
@@ -814,20 +816,22 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                     <MessageSquare className="w-4 h-4 mr-2" />
                                                                     Comentar
                                                                 </Button>
-                                                                <Button
-                                                                    variant={"ghost"}
-                                                                    size="sm"
-                                                                    className=" "
-                                                                    onClick={() => {
-                                                                        loadTechnicals();
-                                                                        setShowAssignModal({ open: true, ticketId: selectedTicket.id });
-                                                                    }}
-                                                                >
-                                                                    <Share2 className="w-4 h-4 mr-2" />
-                                                                    Asignar
-                                                                </Button>
-                                                                    
-                                                                
+                                                                {isTechnicalDefault && (
+                                                                    <Button
+                                                                        variant={"ghost"}
+                                                                        size="sm"
+                                                                        className=" "
+                                                                        onClick={() => {
+                                                                            loadTechnicals();
+                                                                            setShowAssignModal({ open: true, ticketId: selectedTicket.id });
+                                                                        }}
+                                                                    >
+                                                                        <Share2 className="w-4 h-4 mr-2" />
+                                                                        Asignar
+                                                                    </Button>
+                                                                )}
+
+
                                                                 {/* Status update buttons */}
                                                                 {getNextStatuses(selectedTicket.status).length > 0 && (
                                                                     <div className="flex flex-wrap gap-2 mt-2">
@@ -835,7 +839,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                         {getNextStatuses(selectedTicket.status).map((status) => {
                                                                             const statusInfo = statusConfig[status];
                                                                             let buttonStyle = "";
-                                                                            switch(status) {
+                                                                            switch (status) {
                                                                                 case "in_progress":
                                                                                     buttonStyle = "bg-amber-600 hover:bg-amber-700";
                                                                                     break;
@@ -902,9 +906,9 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                                         {h.action.replace("_", " ")}
                                                                                     </span>
                                                                                     {idx === 0 && (
-                                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                                                                        Recent
-                                                                    </span>
+                                                                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                                                                            Recent
+                                                                                        </span>
                                                                                     )}
                                                                                 </div>
                                                                                 <p className="text-sm text-slate-700 mb-2">{h.description}</p>
@@ -941,7 +945,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                                <MessageSquare className="w-5 h-5 text-blue-600" />
+                            <MessageSquare className="w-5 h-5 text-blue-600" />
                             Add Comment
                         </DialogTitle>
                         <DialogDescription>Add a comment or action to the ticket history.</DialogDescription>
@@ -951,11 +955,11 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                             e.preventDefault()
                             setAddingHistory(true)
                             // Use Inertia.js to handle CSRF token automatically
-                            router.post(`/tickets/${showHistoryModal.ticketId}/add-history`, 
-                                { 
-                                    action: historyAction, 
-                                    description: historyText 
-                                }, 
+                            router.post(`/tickets/${showHistoryModal.ticketId}/add-history`,
+                                {
+                                    action: historyAction,
+                                    description: historyText
+                                },
                                 {
                                     preserveScroll: true,
                                     onSuccess: () => {
@@ -1035,10 +1039,10 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                             if (!assignTechnicalId) return;
                             setAssigning(true);
                             // Use Inertia.js to handle CSRF token automatically
-                            router.post(`/tickets/${showAssignModal.ticketId}/assign-technical`, 
-                                { 
-                                    technical_id: assignTechnicalId 
-                                }, 
+                            router.post(`/tickets/${showAssignModal.ticketId}/assign-technical`,
+                                {
+                                    technical_id: assignTechnicalId
+                                },
                                 {
                                     preserveScroll: true,
                                     onSuccess: () => {

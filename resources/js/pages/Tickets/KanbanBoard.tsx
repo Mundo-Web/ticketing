@@ -10,7 +10,7 @@ const getStatuses = (props: any) => {
             { key: "recents", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
             { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
             { key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" },
-                 { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
+            { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
             //  { key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
             //{ key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
         ];
@@ -20,7 +20,7 @@ const getStatuses = (props: any) => {
             { key: "recents", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
             { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
             { key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" },
-                   { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
+            { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
             //{ key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
             //{ key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
         ];
@@ -29,9 +29,9 @@ const getStatuses = (props: any) => {
         { key: "open", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
         { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
         { key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" },
-               { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
+        { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
         { key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
-       { key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
+        { key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
     ];
 };
 
@@ -189,63 +189,62 @@ export default function KanbanBoard(props: any) {
                                     ))}
                                 </div>
                             </div> */}                                {/* Solo mostrar la sección de técnicos si es jefe técnico (isTechnicalDefault) */}
-                            {isTechnicalDefault && (                                <div>
-                                    
-                                    <div className="ml-4 flex flex-wrap gap-2 items-center">
-                                        {technicals.map(t => (                                            <TooltipProvider key={t.id}>
-                                                <Tooltip delayDuration={300}>
-                                                    <TooltipTrigger asChild>
-                                                        <div 
-                                                            className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${
-                                                                selectedTechnicalId === t.id 
-                                                                ? 'bg-blue-500 ring-2 ring-blue-300 scale-110' 
-                                                                : 'hover:bg-gray-100'
-                                                            }`}
-                                                            onClick={() => setSelectedTechnicalId(selectedTechnicalId === t.id ? null : t.id)}
-                                                        >
-                                                            <img
-                                                                src={t.photo?.startsWith('http') ? t.photo : `/storage/${t.photo}`}
-                                                                alt={t.name}
-                                                                className="w-8 h-8 rounded-full object-cover border border-gray-200"
-                                                            />
-                                                            {selectedTechnicalId === t.id && (
-                                                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                                                                    </svg>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
-                                                        <p className="font-medium">{t.name}</p>
-                                                       {/** <p className="text-gray-300 text-[10px]">{t.email}</p> */}
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                            {isTechnicalDefault && (<div>
 
-                                        ))}                                        {isTechnicalDefault && selectedTechnicalId && (
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <button
-                                                            onClick={() => setSelectedTechnicalId(null)}
-                                                            className="ml-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-blue-200 transition-all duration-200"
-                                                        >
-                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                <div className="ml-4 flex flex-wrap gap-2 items-center">
+                                    {technicals.map(t => (<TooltipProvider key={t.id}>
+                                        <Tooltip delayDuration={300}>
+                                            <TooltipTrigger asChild>
+                                                <div
+                                                    className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedTechnicalId === t.id
+                                                            ? 'bg-blue-500 ring-2 ring-blue-300 scale-110'
+                                                            : 'hover:bg-gray-100'
+                                                        }`}
+                                                    onClick={() => setSelectedTechnicalId(selectedTechnicalId === t.id ? null : t.id)}
+                                                >
+                                                    <img
+                                                        src={t.photo?.startsWith('http') ? t.photo : `/storage/${t.photo}`}
+                                                        alt={t.name}
+                                                        className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                                                    />
+                                                    {selectedTechnicalId === t.id && (
+                                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                                                             </svg>
-                                                            Limpiar filtro
-                                                        </button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className="bg-gray-800 text-white text-xs">
-                                                        <p>Mostrar todos los técnicos</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        )}
-                                    </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
+                                                <p className="font-medium">{t.name}</p>
+                                                {/** <p className="text-gray-300 text-[10px]">{t.email}</p> */}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+
+                                    ))}                                        {isTechnicalDefault && selectedTechnicalId && (
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        onClick={() => setSelectedTechnicalId(null)}
+                                                        className="ml-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-blue-200 transition-all duration-200"
+                                                    >
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                        </svg>
+                                                        Limpiar filtro
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="bg-gray-800 text-white text-xs">
+                                                    <p>Mostrar todos los técnicos</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    )}
                                 </div>
+                            </div>
                             )}
                         </div>
                     </div>
@@ -360,13 +359,15 @@ export default function KanbanBoard(props: any) {
 
                                                             {menuOpen === ticket.id && (
                                                                 <div className="border-t border-gray-200 p-2 bg-gray-50">
-                                                                    <button
-                                                                        className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-200 rounded"
-                                                                        onClick={e => { e.stopPropagation(); setMenuOpen(null); props.onAssign && props.onAssign(ticket); }}
-                                                                    >
-                                                                        <Share2 size={14} className="text-gray-500" />
-                                                                        Asignar
-                                                                    </button>
+                                                                    {isTechnicalDefault && (
+                                                                        <button
+                                                                            className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-200 rounded"
+                                                                            onClick={e => { e.stopPropagation(); setMenuOpen(null); props.onAssign && props.onAssign(ticket); }}
+                                                                        >
+                                                                            <Share2 size={14} className="text-gray-500" />
+                                                                            Asignar
+                                                                        </button>
+                                                                    )}
                                                                     <button
                                                                         className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-200 rounded"
                                                                         onClick={e => { e.stopPropagation(); setMenuOpen(null); props.onComment && props.onComment(ticket); }}
