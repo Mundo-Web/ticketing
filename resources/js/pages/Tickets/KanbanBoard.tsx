@@ -9,16 +9,18 @@ const getStatuses = (props: any) => {
         return [
             { key: "recents", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
             { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
-            { key: "resolved", label: "POR REVISAR", icon: CheckCircle, color: "bg-green-500" },
-          //  { key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
+            { key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" },
+                 { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
+            //  { key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
             //{ key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
         ];
     }
     if (props.isTechnical) {
         return [
-                { key: "recents", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
+            { key: "recents", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
             { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
-            { key: "resolved", label: "POR REVISAR", icon: CheckCircle, color: "bg-green-500" },
+            { key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" },
+                   { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
             //{ key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
             //{ key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
         ];
@@ -26,7 +28,8 @@ const getStatuses = (props: any) => {
     return [
         { key: "open", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
         { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
-        { key: "resolved", label: "POR REVISAR", icon: CheckCircle, color: "bg-green-500" },
+        { key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" },
+               { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
         { key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
        { key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
     ];

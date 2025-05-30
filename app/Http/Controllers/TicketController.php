@@ -104,7 +104,7 @@ class TicketController extends Controller
             'apartmentData' =>  $apartmentData,
             'buildingData' => $buildingData,
             'isTechnicalDefault' => $isTechnicalDefault,
-            'isSuperAdmin' => $user->hasRole('super-admin'),
+            'isTechnicalDefault' => $isTechnicalDefault,
         ]);
     }
 
@@ -178,7 +178,7 @@ class TicketController extends Controller
     public function update(Request $request, Ticket $ticket)
     {
         $validated = $request->validate([
-            'status' => 'required|in:open,in_progress,resolved,closed,cancelled',
+            'status' => 'required|in:open,in_progress,resolved,closed,cancelled,reopened',
         ]);
         $ticket->status = $validated['status'];
         if ($ticket->status === Ticket::STATUS_RESOLVED) {

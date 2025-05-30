@@ -55,6 +55,8 @@ class Ticket extends Model
     public const STATUS_RESOLVED = 'resolved';
     public const STATUS_CLOSED = 'closed';
     public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_REOPENED = 'reopened';
+    public function isReopened() { return $this->status === self::STATUS_REOPENED; }
 
     // Relaciones
     public function user()
