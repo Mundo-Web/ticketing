@@ -17,8 +17,15 @@ class TicketController extends Controller
     {
         // Listar tickets del usuario autenticado (o todos si es super-admin, o asignados si es technical)
         $user = auth()->user();
-        $ticketsQuery = Ticket::with(['technical', 'device', 'device.name_device', 'histories.technical']);
-        $allTicketsQuery = Ticket::query();
+        $withRelations = [
+            'technical',
+            'device',
+            'device.name_device',
+            'histories.technical',
+            'user.tenant.apartment.building', // Para saber quién creó el ticket y su info
+        ];
+        $ticketsQuery = Ticket::with($withRelations);
+        $allTicketsQuery = Ticket::with($withRelations);
         $devicesOwn = collect();
         $devicesShared = collect();
 
@@ -152,7 +159,13 @@ class TicketController extends Controller
      */
     public function show($id)
     {
-        $ticket = Ticket::with(['technical', 'device', 'device.name_device', 'histories.technical'])->findOrFail($id);
+        $ticket = Ticket::with([
+            'technical',
+            'device',
+            'device.name_device',
+            'histories.technical',
+            'user.tenant.apartment.building', // Para saber quién creó el ticket y su info
+        ])->findOrFail($id);
         // Si es AJAX/fetch, devolver JSON
         if (request()->wantsJson() || request()->ajax()) {
             return response()->json(['ticket' => $ticket]);

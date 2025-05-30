@@ -786,10 +786,44 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                             </div>
                                                         </div>
 
-                                                        <div className="space-y-2">
-                                                            <DeviceBadge device={selectedTicket.device} />
-                                                            <CategoryBadge category={selectedTicket.category} />
+                                                        <div className="space-y-2 flex justify-between items-center">
+                                                            <div className="flex flex-wrap gap-2 items-center">
+                                                                <DeviceBadge device={selectedTicket.device} />
+                                                                <CategoryBadge category={selectedTicket.category} />
+                                                            </div>
+                                                            {/* Creador del ticket */}
+                                                            {selectedTicket.user && selectedTicket.user.tenant && (
+                                                                <TooltipProvider>
+                                                                    <Tooltip delayDuration={200}>
+                                                                        <TooltipTrigger asChild>
+                                                                            <div className="flex items-center cursor-pointer group">
+                                                                                {selectedTicket.user.tenant.photo ? (
+                                                                                    <img
+                                                                                        src={selectedTicket.user.tenant.photo.startsWith('http')
+                                                                                            ? selectedTicket.user.tenant.photo
+                                                                                            : `/storage/${selectedTicket.user.tenant.photo}`}
+                                                                                        alt={selectedTicket.user.tenant.name}
+                                                                                        className="w-7 h-7 rounded-full border-2 border-purple-300 shadow-md group-hover:scale-105 transition-transform"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-base font-bold">
+                                                                                        {selectedTicket.user.tenant.name?.substring(0, 1) || '?'}
+                                                                                    </div>
+                                                                                )}
+
+                                                                            </div>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent className="bg-gray-900 text-white px-3 py-2 text-xs rounded shadow-lg">
+                                                                            <div className="font-semibold text-base">{selectedTicket.user.tenant.name}</div>
+                                                                            <div className="text-purple-200">{selectedTicket.user.tenant.apartment?.name || 'Sin departamento'}</div>
+                                                                            <div className="text-blue-200">{selectedTicket.user.tenant.apartment?.building?.name || 'Sin edificio'}</div>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            )}
                                                         </div>
+
+
 
                                                         <div className="text-xs text-slate-500 space-y-1">
                                                             <div className="flex items-center gap-1">
