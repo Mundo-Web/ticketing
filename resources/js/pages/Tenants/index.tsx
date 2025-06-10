@@ -80,6 +80,9 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [showDevicesModal, setShowDevicesModal] = useState(false);
     const [initialFormData, setInitialFormData] = useState<any>();
     const [showConfirmClose, setShowConfirmClose] = useState(false);
+    const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+    const [bulkFile, setBulkFile] = useState<File | null>(null);
+    const [isBulkUploading, setIsBulkUploading] = useState(false);
 
     const { building, all_buildings, googleMapsApiKey } = usePage().props as {
         building: {
@@ -279,6 +282,72 @@ export default function Index({ apartments, brands, models, systems, name_device
         return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(locationLink)}`;
     };
 
+    const toggleStatus = async (apartment: Apartment) => {
+        setIsUpdatingStatus(apartment.id);
+        try {
+            await router.put(
+                route('apartments.update-status', apartment.id),
+                { status: !apartment.status },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => toast.success('Status updated successfully'),
+                }
+            );
+        } catch (error) {
+            toast.error('Connection error');
+        } finally {
+            setIsUpdatingStatus(null);
+        }
+    };
+
+    const handleBulkUpload = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!bulkFile) {
+            toast.error('Please select a file');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', bulkFile);
+
+        setIsBulkUploading(true);
+        
+        router.post(route('buildings.apartments.bulk-upload', building.id), formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowBulkUploadModal(false);
+                setBulkFile(null);
+                toast.success('Apartments uploaded successfully');
+            },
+            onError: (errors) => {
+                Object.values(errors).forEach(error => toast.error(error as string));
+            },
+            onFinish: () => {
+                setIsBulkUploading(false);
+            }
+        });
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validate file type
+            if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+                toast.error('Please select an Excel file (.xlsx or .xls)');
+                return;
+            }
+            setBulkFile(file);
+        }
+    };
+
+    const downloadTemplate = () => {
+        const link = document.createElement('a');
+        link.href = route('apartments.bulk-template');
+        link.download = 'apartments_template.xlsx';
+        link.click();
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Apartments" />
@@ -302,6 +371,14 @@ export default function Index({ apartments, brands, models, systems, name_device
                         >
                             <Plus className="w-5 h-5" />
                             <span className="hidden sm:block">New Apartment</span>
+                        </Button>
+                        <Button
+                            onClick={() => setShowBulkUploadModal(true)}
+                            variant="outline"
+                            className="flex items-center gap-2"
+                        >
+                            <UploadCloud className="w-5 h-5" />
+                            <span className="hidden sm:block">Bulk Upload</span>
                         </Button>
                     </div>
                 </div>
@@ -471,6 +548,71 @@ export default function Index({ apartments, brands, models, systems, name_device
                             tenantId={selectedTenant?.id || 0}
                             tenants={selectedApartment?.tenants || []}
                         />
+                    </DialogContent>
+                </Dialog>
+
+                {/* Bulk Upload Modal */}
+                <Dialog open={showBulkUploadModal} onOpenChange={setShowBulkUploadModal}>
+                    <DialogContent className="w-full max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Bulk Upload Apartments</DialogTitle>
+                            <DialogDescription>
+                                Upload an Excel file with apartments and their members information
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <form onSubmit={handleBulkUpload} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="excel-file">
+                                    Excel File <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="excel-file"
+                                    type="file"
+                                    accept=".xlsx,.xls"
+                                    onChange={handleFileChange}
+                                    className="h-11 mt-2"
+                                    required
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                    Supported formats: .xlsx, .xls
+                                </p>
+                            </div>
+
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                                <h4 className="font-medium text-blue-900 mb-2">Excel Format Required:</h4>
+                                <ul className="text-sm text-blue-800 space-y-1">
+                                    <li>• <strong>apartment:</strong> Apartment name</li>
+                                    <li>• <strong>name:</strong> Member name</li>
+                                    <li>• <strong>email:</strong> Member email</li>
+                                    <li>• <strong>phone:</strong> Member phone</li>
+                                </ul>
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    className="text-blue-600 p-0 h-auto mt-2"
+                                    onClick={downloadTemplate}
+                                >
+                                    Download Template
+                                </Button>
+                            </div>
+
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setShowBulkUploadModal(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={isBulkUploading || !bulkFile}
+                                >
+                                    {isBulkUploading ? 'Uploading...' : 'Upload'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
                     </DialogContent>
                 </Dialog>
 
@@ -683,21 +825,3 @@ const ApartmentRow = ({ apartment, onEdit, onDelete, onToggleStatus, isUpdatingS
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Apartments', href: '/apartments' }
 ];
-
-async function toggleStatus(apartment: Apartment) {
-    setIsUpdatingStatus(apartment.id);
-    try {
-        await router.put(
-            route('apartments.update-status', apartment.id),
-            { status: !apartment.status },
-            {
-                preserveScroll: true,
-                onSuccess: () => toast.success('Status updated successfully'),
-            }
-        );
-    } catch (error) {
-        toast.error('Connection error');
-    } finally {
-        setIsUpdatingStatus(null);
-    }
-}

@@ -61,6 +61,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('buildings/{building}/update-status', [BuildingController::class, 'updateStatus'])->name('buildings.update-status');
     Route::get('buildings/{building}/apartments', [BuildingController::class, 'apartments'])->name('buildings.apartments');
     Route::post('/buildings/{building}/apartments', [ApartmentController::class, 'storeApartment'])->name('buildings.apartments.store');
+    Route::post('/buildings/{building}/apartments/bulk-upload', [ApartmentController::class, 'bulkUpload'])->name('buildings.apartments.bulk-upload');
+    Route::get('/apartments/bulk-template', [ApartmentController::class, 'downloadTemplate'])->name('apartments.bulk-template');
 
     Route::resource('technicals', TechnicalController::class);
     Route::put('technicals/{technical}/update-status', [TechnicalController::class, 'updateStatus'])
