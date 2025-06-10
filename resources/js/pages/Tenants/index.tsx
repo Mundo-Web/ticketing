@@ -342,10 +342,14 @@ export default function Index({ apartments, brands, models, systems, name_device
     };
 
     const downloadTemplate = () => {
+        // Descarga directa del archivo estático
         const link = document.createElement('a');
-        link.href = route('apartments.bulk-template');
+        link.href = '/resources/apartments_template.xlsx';
         link.download = 'apartments_template.xlsx';
+        link.target = '_blank';
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
     };
 
     return (
@@ -587,6 +591,11 @@ export default function Index({ apartments, brands, models, systems, name_device
                                     <li>• <strong>email:</strong> Member email</li>
                                     <li>• <strong>phone:</strong> Member phone</li>
                                 </ul>
+                                <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                                    <p className="text-yellow-800">
+                                        <strong>Limitations:</strong> Maximum 1000 rows, 10MB file size
+                                    </p>
+                                </div>
                                 <Button
                                     type="button"
                                     variant="link"
@@ -602,6 +611,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                     type="button"
                                     variant="outline"
                                     onClick={() => setShowBulkUploadModal(false)}
+                                    disabled={isBulkUploading}
                                 >
                                     Cancel
                                 </Button>
@@ -609,7 +619,14 @@ export default function Index({ apartments, brands, models, systems, name_device
                                     type="submit"
                                     disabled={isBulkUploading || !bulkFile}
                                 >
-                                    {isBulkUploading ? 'Uploading...' : 'Upload'}
+                                    {isBulkUploading ? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            Uploading...
+                                        </div>
+                                    ) : (
+                                        'Upload'
+                                    )}
                                 </Button>
                             </DialogFooter>
                         </form>

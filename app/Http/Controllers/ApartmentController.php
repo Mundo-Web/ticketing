@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ApartmentController extends Controller
@@ -250,8 +251,12 @@ class ApartmentController extends Controller
     public function bulkUpload(Request $request, Building $building)
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls',
+            'file' => 'required|file|mimes:xlsx,xls|max:10240', // Max 10MB
         ]);
+
+        // Aumentar el tiempo límite de ejecución
+        set_time_limit(300); // 5 minutos
+        ini_set('memory_limit', '512M'); // Aumentar memoria disponible
 
         DB::beginTransaction();
 
@@ -279,36 +284,60 @@ class ApartmentController extends Controller
                     $apartmentsCreated++;
                 }
 
-                // Crear members (tenants) para este apartamento
-                foreach ($members as $memberData) {
-                    // Verificar si el tenant ya existe en este apartamento
-                    $existingTenant = $apartment->tenants()
-                        ->where('email', $memberData['email'])
-                        ->first();
+                // Preparar datos para inserción en lote (procesamiento por chunks)
+                $chunkSize = 50; // Procesar de 50 en 50 para evitar timeouts
+                $membersChunks = $members->chunk($chunkSize);
+                
+                foreach ($membersChunks as $chunk) {
+                    $tenantsToCreate = [];
+                    $usersToCreate = [];
+                    $existingEmails = $apartment->tenants()->pluck('email')->toArray();
 
-                    if (!$existingTenant) {
-                        $tenant = $apartment->tenants()->create([
+                    foreach ($chunk as $memberData) {
+                        // Skip if tenant already exists in this apartment
+                        if (in_array($memberData['email'], $existingEmails)) {
+                            continue;
+                        }
+
+                        $tenantsToCreate[] = [
                             'name' => $memberData['name'],
                             'email' => $memberData['email'],
                             'phone' => $memberData['phone'] ?? '',
-                            'photo' => null
-                        ]);
+                            'apartment_id' => $apartment->id,
+                            'photo' => null,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ];
 
-                        // Crear usuario con rol member
-                        $user = User::updateOrCreate(
-                            ['email' => $tenant->email],
-                            [
-                                'name' => $tenant->name,
-                                'password' => Hash::make($tenant->email),
-                            ]
-                        );
-
-                        if (!$user->hasRole('member')) {
-                            $user->assignRole('member');
-                        }
-
-                        $membersCreated++;
+                        $usersToCreate[] = [
+                            'name' => $memberData['name'],
+                            'email' => $memberData['email'],
+                            'password' => Hash::make($memberData['email']),
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ];
                     }
+
+                    // Insertar tenants en lote
+                    if (!empty($tenantsToCreate)) {
+                        Tenant::insert($tenantsToCreate);
+                        $membersCreated += count($tenantsToCreate);
+
+                        // Crear usuarios y asignar roles (más eficiente)
+                        foreach ($usersToCreate as $userData) {
+                            $user = User::updateOrCreate(
+                                ['email' => $userData['email']],
+                                $userData
+                            );
+
+                            if (!$user->hasRole('member')) {
+                                $user->assignRole('member');
+                            }
+                        }
+                    }
+                    
+                    // Pequeña pausa para evitar sobrecarga
+                    usleep(10000); // 10ms
                 }
             }
 
@@ -319,87 +348,76 @@ class ApartmentController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()
-                ->withErrors(['file' => 'Error al procesar el archivo: ' . $e->getMessage()]);
+            
+            // Log the error for debugging
+            Log::error('Bulk upload error: ' . $e->getMessage(), [
+                'file' => $file->getClientOriginalName(),
+                'building_id' => $building->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Provide user-friendly error messages
+            $errorMessage = 'Error al procesar el archivo: ';
+            
+            if (str_contains($e->getMessage(), 'Maximum execution time')) {
+                $errorMessage .= 'El archivo es demasiado grande o complejo. Intente con un archivo más pequeño (máximo 1000 filas).';
+            } elseif (str_contains($e->getMessage(), 'Memory limit')) {
+                $errorMessage .= 'No hay suficiente memoria para procesar el archivo. Intente con un archivo más pequeño.';
+            } elseif (str_contains($e->getMessage(), 'demasiadas filas')) {
+                $errorMessage .= $e->getMessage();
+            } elseif (str_contains($e->getMessage(), 'Header') || str_contains($e->getMessage(), 'email format')) {
+                $errorMessage .= $e->getMessage();
+            } else {
+                $errorMessage .= $e->getMessage();
+            }
+            
+            return redirect()->back()->withErrors(['file' => $errorMessage]);
         }
-    }
-
-    public function downloadTemplate()
-    {
-        $headers = [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment;filename="apartments_template.xlsx"',
-            'Cache-Control' => 'max-age=0',
-        ];
-
-        // Crear un archivo Excel simple con PhpSpreadsheet
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-
-        // Headers
-        $sheet->setCellValue('A1', 'apartment');
-        $sheet->setCellValue('B1', 'name');
-        $sheet->setCellValue('C1', 'email');
-        $sheet->setCellValue('D1', 'phone');
-
-        // Ejemplo de datos
-        $sheet->setCellValue('A2', 'Apt 101');
-        $sheet->setCellValue('B2', 'John Doe');
-        $sheet->setCellValue('C2', 'john@example.com');
-        $sheet->setCellValue('D2', '123456789');
-
-        $sheet->setCellValue('A3', 'Apt 101');
-        $sheet->setCellValue('B3', 'Jane Doe');
-        $sheet->setCellValue('C3', 'jane@example.com');
-        $sheet->setCellValue('D3', '987654321');
-
-        $sheet->setCellValue('A4', 'Apt 102');
-        $sheet->setCellValue('B4', 'Bob Smith');
-        $sheet->setCellValue('C4', 'bob@example.com');
-        $sheet->setCellValue('D4', '555123456');
-
-        // Auto-adjust column widths
-        foreach (range('A', 'D') as $column) {
-            $sheet->getColumnDimension($column)->setAutoSize(true);
-        }
-
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-        
-        return response()->stream(function() use ($writer) {
-            $writer->save('php://output');
-        }, 200, $headers);
     }
 
     private function readExcelFile($file)
     {
-        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
-        $reader->setReadDataOnly(true);
-        $spreadsheet = $reader->load($file->getPathname());
-        $worksheet = $spreadsheet->getActiveSheet();
+        try {
+            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
+            $reader->setReadDataOnly(true);
+            $reader->setReadEmptyCells(false);
+            $spreadsheet = $reader->load($file->getPathname());
+            $worksheet = $spreadsheet->getActiveSheet();
 
-        $data = [];
-        $headers = [];
-        
-        foreach ($worksheet->getRowIterator() as $rowIndex => $row) {
-            $cellIterator = $row->getCellIterator();
-            $cellIterator->setIterateOnlyExistingCells(false);
+            $data = [];
+            $headers = [];
+            $maxRow = $worksheet->getHighestRow();
             
-            $rowData = [];
-            foreach ($cellIterator as $cell) {
-                $rowData[] = $cell->getValue();
+            // Limitar a 1000 filas para evitar timeout
+            if ($maxRow > 1000) {
+                throw new \Exception("El archivo contiene demasiadas filas. Máximo permitido: 1000 filas");
             }
             
-            if ($rowIndex === 1) {
-                $headers = $rowData;
-                // Validate required headers
-                $requiredHeaders = ['apartment', 'name', 'email', 'phone'];
-                foreach ($requiredHeaders as $required) {
-                    if (!in_array($required, $headers)) {
-                        throw new \Exception("Header '{$required}' is missing in Excel file");
-                    }
+            foreach ($worksheet->getRowIterator(1, $maxRow) as $rowIndex => $row) {
+                $cellIterator = $row->getCellIterator();
+                $cellIterator->setIterateOnlyExistingCells(false);
+                
+                $rowData = [];
+                foreach ($cellIterator as $cell) {
+                    $value = $cell->getValue();
+                    $rowData[] = $value !== null ? trim((string)$value) : '';
                 }
-            } else {
-                if (!empty(array_filter($rowData))) {
+                
+                if ($rowIndex === 1) {
+                    $headers = array_map('strtolower', $rowData);
+                    // Validate required headers
+                    $requiredHeaders = ['apartment', 'name', 'email', 'phone'];
+                    foreach ($requiredHeaders as $required) {
+                        if (!in_array($required, $headers)) {
+                            throw new \Exception("Header '{$required}' is missing in Excel file");
+                        }
+                    }
+                } else {
+                    // Skip completely empty rows
+                    if (empty(array_filter($rowData))) {
+                        continue;
+                    }
+                    
                     $record = [];
                     foreach ($headers as $index => $header) {
                         $record[$header] = $rowData[$index] ?? '';
@@ -407,23 +425,28 @@ class ApartmentController extends Controller
                     
                     // Validate required fields
                     if (empty($record['apartment']) || empty($record['name']) || empty($record['email'])) {
-                        continue; // Skip empty rows
+                        continue; // Skip rows with missing required data
                     }
                     
                     // Validate email format
                     if (!filter_var($record['email'], FILTER_VALIDATE_EMAIL)) {
-                        throw new \Exception("Invalid email format: {$record['email']}");
+                        throw new \Exception("Invalid email format in row {$rowIndex}: {$record['email']}");
                     }
                     
                     $data[] = $record;
                 }
             }
-        }
 
-        if (empty($data)) {
-            throw new \Exception('No valid data found in Excel file');
-        }
+            if (empty($data)) {
+                throw new \Exception('No valid data found in Excel file');
+            }
 
-        return $data;
+            return $data;
+            
+        } catch (\PhpOffice\PhpSpreadsheet\Exception $e) {
+            throw new \Exception("Error reading Excel file: " . $e->getMessage());
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 }
