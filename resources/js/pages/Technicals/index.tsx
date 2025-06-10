@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     Plus, Edit, Trash2, ChevronDown, MoreHorizontal, User,
@@ -24,10 +24,17 @@ interface Technical {
     phone: string;
     shift: 'morning' | 'afternoon' | 'night';
     status: boolean;
+    is_default: boolean;
     created_at: string;
 }
 
 export default function Index({ technicals }: { technicals: any }) {
+    const { auth } = usePage().props as any;
+    const userRoles = auth?.user?.roles || [];
+    const isSuperAdmin = Array.isArray(userRoles) ? userRoles.includes('super-admin') : false;
+    
+    console.log('User roles:', userRoles); // Debug para verificar estructura
+    
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
     const [open, setOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -78,6 +85,32 @@ export default function Index({ technicals }: { technicals: any }) {
             accessorKey: "shift",
             header: "Shift",
             cell: ({ row }) => <span className="capitalize">{row.original.shift}</span>,
+        },
+        {
+            accessorKey: "is_default",
+            header: "Default",
+            cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                    {isSuperAdmin ? (
+                        <Button
+                            variant={row.original.is_default ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => toggleDefaultTechnical(row.original)}
+                            className="h-6 px-2 text-xs"
+                        >
+                            {row.original.is_default ? "Tech Chief" : "Set Tech Chief"}
+                        </Button>
+                    ) : (
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                            row.original.is_default 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-gray-100 text-gray-600'
+                        }`}>
+                            {row.original.is_default ? "Tech Chief" : "Technical"}
+                        </span>
+                    )}
+                </div>
+            ),
         },
         {
             accessorKey: "status",
@@ -175,29 +208,45 @@ export default function Index({ technicals }: { technicals: any }) {
                                     <span className="capitalize text-primary bg-primary/10 px-2 py-1 rounded-md">
                                         {technical.shift}
                                     </span>
+                                    {technical.is_default && (
+                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-medium">
+                                            Tech Chief
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Botones en la parte inferior */}
-                            <div className="flex justify-end gap-2 mt-4">
-                                <Button
-                                    onClick={() => handleEdit(technical)}
-                                    variant="default"
-                                    size="sm"
-                                    className="gap-2 px-4"
-                                >
-                                    <Edit className="w-4 h-4" />
-
-                                </Button>
-                                <Button
-                                    onClick={() => handleDelete(technical)}
-                                    variant="destructive"
-                                    size="sm"
-                                    className="gap-2 px-4"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-
-                                </Button>
+                            <div className="flex justify-between items-center mt-4">
+                                <div className="flex gap-2">
+                                    <Button
+                                        onClick={() => handleEdit(technical)}
+                                        variant="default"
+                                        size="sm"
+                                        className="gap-2 px-4"
+                                    >
+                                        <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                        onClick={() => handleDelete(technical)}
+                                        variant="destructive"
+                                        size="sm"
+                                        className="gap-2 px-4"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                                
+                                {isSuperAdmin && (
+                                    <Button
+                                        onClick={() => toggleDefaultTechnical(technical)}
+                                        variant={technical.is_default ? "default" : "outline"}
+                                        size="sm"
+                                        className="text-xs"
+                                    >
+                                        {technical.is_default ? "Tech Chief" : "Set Tech Chief"}
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -216,6 +265,23 @@ export default function Index({ technicals }: { technicals: any }) {
             });
         } finally {
             setIsUpdatingStatus(null);
+        }
+    };
+
+    const toggleDefaultTechnical = async (technical: Technical) => {
+        if (!isSuperAdmin) {
+            toast.error('Only super-admin can set default technical');
+            return;
+        }
+
+        try {
+            await router.put(route('technicals.set-default', technical.id), {}, {
+                preserveScroll: true,
+                onSuccess: () => toast.success('Technical Chief updated'),
+                onError: () => toast.error('Error updating Technical Chief')
+            });
+        } catch (error) {
+            toast.error('Connection error');
         }
     };
 

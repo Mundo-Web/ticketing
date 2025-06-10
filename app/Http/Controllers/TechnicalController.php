@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class TechnicalController extends Controller
@@ -47,7 +48,13 @@ class TechnicalController extends Controller
         }
 
         // Verifica si es el primero en la tabla
-        $validated['is_default'] = Technical::count() === 0 ? true : false;
+        $isFirstTechnical = Technical::count() === 0;
+        $validated['is_default'] = $isFirstTechnical;
+        
+        // Si no es el primero pero no hay ningún default, este será el default
+        if (!$isFirstTechnical && !Technical::where('is_default', true)->exists()) {
+            $validated['is_default'] = true;
+        }
 
         $technical = Technical::create($validated);
 
@@ -102,5 +109,21 @@ class TechnicalController extends Controller
     {
         $technical->update(['status' => !$technical->status]);
         return back()->with('success', 'Status updated');
+    }
+
+    public function setDefault(Request $request, Technical $technical)
+    {
+        // Verificar que el usuario tenga rol super-admin
+        if (!Auth::user()->hasRole('super-admin')) {
+            return back()->withErrors(['error' => 'Only super-admin can set default technical']);
+        }
+
+        // Quitar el default de todos los técnicos
+        Technical::where('is_default', true)->update(['is_default' => false]);
+        
+        // Establecer el nuevo técnico como default
+        $technical->update(['is_default' => true]);
+        
+        return back()->with('success', 'Default technical updated successfully');
     }
 }

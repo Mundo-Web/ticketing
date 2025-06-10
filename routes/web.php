@@ -6,6 +6,7 @@
 use App\Http\Controllers\ApartmentController;
 use App\Http\Controllers\BuildingController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\TechnicalController;
@@ -17,9 +18,7 @@ use Inertia\Inertia;
 
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
@@ -66,6 +65,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('technicals', TechnicalController::class);
     Route::put('technicals/{technical}/update-status', [TechnicalController::class, 'updateStatus'])
         ->name('technicals.update-status');
+    Route::put('technicals/{technical}/set-default', [TechnicalController::class, 'setDefault'])
+        ->name('technicals.set-default');
 
 
 
