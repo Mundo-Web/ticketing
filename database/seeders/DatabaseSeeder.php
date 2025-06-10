@@ -16,10 +16,18 @@ class DatabaseSeeder extends Seeder
     {
 
       
+        // Primero ejecutar el seeder de roles y permisos
+        $this->call(RolesAndPermissionsSeeder::class);
+        
+        // Crear el usuario super-admin
+        $this->call(SuperAdminSeeder::class);
+        
+        // Crear datos de ejemplo
         \App\Models\Support::factory(5)->create();
         \App\Models\Ticket::factory(15)->create();
-        RolesAndPermissionsSeeder::class;
-        UsersFromEntitiesSeeder::class;
+        
+        // Crear usuarios desde entidades existentes
+        $this->call(UsersFromEntitiesSeeder::class);
         // User::factory(10)->create();
 
         /*
