@@ -181,6 +181,9 @@ export default function Index({ technicals }: { technicals: any }) {
                                     src={`/storage/${technical.photo}`}
                                     alt={technical.name}
                                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                    e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                }}
                                 />
                             ) : (
                                 <div className="w-full h-full bg-muted flex items-center justify-center">

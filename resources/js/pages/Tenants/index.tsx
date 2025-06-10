@@ -659,6 +659,9 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                 src={`/storage/${building.owner.photo}`}
                                                 alt={building.owner.name}
                                                 className="w-16 h-16 rounded-full object-cover border-2 border-primary"
+                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                    e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                                }}
                                             />
                                             <div className="space-y-2">
                                                 <h3 className="text-lg font-semibold">{building.owner.name}</h3>
@@ -683,6 +686,9 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                         src={`/storage/${doorman.photo}`}
                                                         alt={doorman.name}
                                                         className=" aspect-square rounded-full object-cover"
+                                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                            e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                                        }}
                                                     />
                                                     <div className="flex flex-col items-center justify-center gap-0 mt-4">
                                                         <h4 className="text-sm font-medium line-clamp-1">{doorman.name}</h4>
@@ -809,6 +815,9 @@ const ApartmentRow = ({ apartment, onEdit, onDelete, onToggleStatus, isUpdatingS
                                             src={`/storage/${tenant.photo}`}
                                             alt={tenant.name}
                                             className="w-10 h-10 rounded-full object-cover"
+                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                            }}
                                         />
                                         <div>
                                             <p className="font-medium">{tenant.name}</p>
