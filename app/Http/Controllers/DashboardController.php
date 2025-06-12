@@ -204,7 +204,7 @@ class DashboardController extends Controller
                 'buildingsWithTickets' => $buildingsWithTickets,
                 'recentTickets' => $recentTickets,
                 'problematicDevices' => $problematicDevices,
-                'unassignedTickets' => $canAssignTickets ? Ticket::with(['user', 'device.apartment.building', 'device.nameDevice'])
+                'unassignedTickets' => $canAssignTickets ? Ticket::with(['user.tenant.apartment.building', 'device.nameDevice', 'device.tenants.apartment.building'])
                     ->whereNull('technical_id')
                     ->where('status', '!=', 'closed')
                     ->where('status', '!=', 'cancelled')

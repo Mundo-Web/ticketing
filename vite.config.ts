@@ -22,4 +22,17 @@ export default defineConfig({
             'ziggy-js': resolve(__dirname, 'vendor/tightenco/ziggy'),
         },
     },
+    build: {
+        minify: 'esbuild',
+        chunkSizeWarningLimit: 1000,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    react: ['react', 'react-dom'],
+                    recharts: ['recharts'],
+                    ui: ['@radix-ui/react-tooltip', '@radix-ui/react-select', '@radix-ui/react-dialog'],
+                },
+            },
+        },
+    },
 });
