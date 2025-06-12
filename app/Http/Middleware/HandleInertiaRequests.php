@@ -71,6 +71,17 @@ class HandleInertiaRequests extends Middleware
                     'shift' => $user->doorman->shift,
                 ];
             }
+            if ($roles->contains('technical') && $user->technical) {
+                $extra['technical'] = [
+                    'id' => $user->technical->id,
+                    'name' => $user->technical->name,
+                    'email' => $user->technical->email,
+                    'photo' => $user->technical->photo,
+                    'phone' => $user->technical->phone,
+                    'shift' => $user->technical->shift,
+                    'is_default' => (bool) $user->technical->is_default,
+                ];
+            }
         }
         return [
             ...parent::share($request),

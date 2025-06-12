@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class TicketController extends Controller
 {
@@ -311,5 +312,85 @@ class TicketController extends Controller
 
         // Para Inertia
         return redirect()->back()->with('success', 'Status updated');
+    }
+
+    /**
+     * Mostrar página para asignar tickets sin asignar
+     */
+    
+    public function assignToTechnical(Request $request, $ticketId)
+    {
+        $user = Auth::user();
+        
+        // Verificar que sea super-admin o técnico por defecto
+        $isSuperAdmin = $user->hasRole('super-admin');
+        $isDefaultTechnical = false;
+        
+        if ($user->hasRole('technical')) {
+            $technical = Technical::where('email', $user->email)->first();
+            $isDefaultTechnical = $technical && $technical->is_default;
+        }
+        
+        if (!$isSuperAdmin && !$isDefaultTechnical) {
+            return response()->json(['error' => 'No tienes permisos para asignar tickets'], 403);
+        }
+        
+        $validated = $request->validate([
+            'technical_id' => 'required|exists:technicals,id',
+        ]);
+        
+        $ticket = Ticket::findOrFail($ticketId);
+        $technical = Technical::findOrFail($validated['technical_id']);
+        
+        // Asignar el ticket
+        $ticket->update([
+            'technical_id' => $technical->id,
+            'status' => 'in_progress'
+        ]);
+        
+        // Agregar entrada al historial
+        $ticket->addHistory(
+            'assigned_technical',
+            "Ticket assigned to {$technical->name}",
+            ['to' => $technical->id],
+            $user->hasRole('technical') ? Technical::where('email', $user->email)->first()?->id : null
+        );
+        
+        return response()->json([
+            'message' => 'Ticket assigned successfully',
+            'ticket' => $ticket->fresh(['technical'])
+        ]);
+    }
+
+    public function assignUnassigned()
+    {
+        $user = Auth::user();
+        
+        // Verificar que sea super-admin o técnico por defecto
+        $isSuperAdmin = $user->hasRole('super-admin');
+        $isDefaultTechnical = false;
+        
+        if ($user->hasRole('technical')) {
+            $technical = Technical::where('email', $user->email)->first();
+            $isDefaultTechnical = $technical && $technical->is_default;
+        }
+        
+        if (!$isSuperAdmin && !$isDefaultTechnical) {
+            abort(403, 'No tienes permisos para acceder a esta página');
+        }
+        
+        // Obtener tickets sin asignar
+        $unassignedTickets = Ticket::with([
+            'device.name_device',
+            'user.tenant.apartment.building'
+        ])->whereNull('technical_id')->get();
+        
+        // Obtener técnicos disponibles
+        $technicals = Technical::where('status', true)->get();
+        
+        return Inertia::render('Tickets/AssignUnassigned', [
+            'unassignedTickets' => $unassignedTickets,
+            'technicals' => $technicals,
+        ]);
     }
 }

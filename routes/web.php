@@ -49,6 +49,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tickets/{ticket}/assign-technical', [TicketController::class, 'assignTechnical'])->name('tickets.assignTechnical');
     Route::post('tickets/{ticket}/add-history', [TicketController::class, 'addHistory'])->name('tickets.addHistory');
     Route::post('tickets/{ticket}/update-status', [TicketController::class, 'updateStatus'])->name('tickets.updateStatus');
+    Route::get('tickets/assign-unassigned', [TicketController::class, 'assignUnassigned'])->name('tickets.assign-unassigned');
+    Route::post('tickets/{ticket}/assign-technical', [TicketController::class, 'assignToTechnical'])->name('tickets.assign-technical');
 
 
     Route::get('/apartment/member/{id}/devices', [ApartmentController::class, 'apartmentMemberDevice'])

@@ -22,8 +22,16 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         
-        // Verificar rol del usuario para filtrar datos
+        // Check user role to filter data
         $isSuperAdmin = $user->hasRole('super-admin');
+        
+        // Check if user can assign tickets (super-admin or default technical)
+        $isDefaultTechnical = false;
+        if ($user->hasRole('technical')) {
+            $technical = Technical::where('email', $user->email)->first();
+            $isDefaultTechnical = $technical && $technical->is_default;
+        }
+        $canAssignTickets = $isSuperAdmin || $isDefaultTechnical;
         
         // Base query para tickets según rol
         $ticketsQuery = Ticket::query();
@@ -44,6 +52,7 @@ class DashboardController extends Controller
         $openTickets = (clone $ticketsQuery)->where('status', 'open')->count();
         $inProgressTickets = (clone $ticketsQuery)->where('status', 'in_progress')->count();
         $resolvedTickets = (clone $ticketsQuery)->where('status', 'resolved')->count();
+        $unassignedTickets = (clone $ticketsQuery)->whereNull('technical_id')->count();
         
         // Métricas de recursos (solo super-admin ve todo)
         if ($isSuperAdmin) {
@@ -154,6 +163,16 @@ class DashboardController extends Controller
             $problematicDevices = collect();
         }
 
+        // Lista de técnicos disponibles para asignación (solo si puede asignar)
+        $availableTechnicals = collect();
+        if ($canAssignTickets) {
+            $availableTechnicals = Technical::where('status', true)
+                ->select('id', 'name', 'is_default')
+                ->orderBy('is_default', 'desc') // Técnicos por defecto primero
+                ->orderBy('name')
+                ->get();
+        }
+
         return Inertia::render('dashboard', [
             'metrics' => [
                 'tickets' => [
@@ -163,6 +182,7 @@ class DashboardController extends Controller
                     'resolved' => $resolvedTickets,
                     'resolved_today' => $ticketsResolvedToday,
                     'avg_resolution_hours' => $avgResolutionTime ? round($avgResolutionTime->avg_hours, 1) : 0,
+                    'unassigned' => $unassignedTickets,
                 ],
                 'resources' => [
                     'buildings' => $totalBuildings,
@@ -184,6 +204,14 @@ class DashboardController extends Controller
                 'buildingsWithTickets' => $buildingsWithTickets,
                 'recentTickets' => $recentTickets,
                 'problematicDevices' => $problematicDevices,
+                'unassignedTickets' => $canAssignTickets ? Ticket::with(['user', 'device.apartment.building', 'device.nameDevice'])
+                    ->whereNull('technical_id')
+                    ->where('status', '!=', 'closed')
+                    ->where('status', '!=', 'cancelled')
+                    ->orderBy('created_at', 'desc')
+                    ->limit(10)
+                    ->get() : collect(),
+                'availableTechnicals' => $availableTechnicals,
             ]
         ]);
     }

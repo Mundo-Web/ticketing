@@ -23,8 +23,8 @@ class DatabaseSeeder extends Seeder
         $this->call(SuperAdminSeeder::class);
         
         // Crear datos de ejemplo
-        \App\Models\Support::factory(5)->create();
-        \App\Models\Ticket::factory(15)->create();
+        // \App\Models\Support::factory(5)->create();
+        // \App\Models\Ticket::factory(15)->create();
         
         // Crear usuarios desde entidades existentes
         $this->call(UsersFromEntitiesSeeder::class);

@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\Customer;
-use App\Models\Support;
+use App\Models\User;
+use App\Models\Device;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,15 +18,17 @@ class TicketFactory extends Factory
      */
     public function definition(): array
     {
-
-        $customer = Customer::factory()->create();
-        $support = Support::factory()->create();
+        // Get random user and device from existing ones (or create if needed)
+        $user = User::inRandomOrder()->first() ?? User::factory()->create();
+        $device = Device::inRandomOrder()->first() ?? Device::factory()->create();
 
         return [
-            'customer_id' => $customer->id,
-            'support_id' => $support->id,
-            'description' => $this->faker->sentence,
-            'status' => $this->faker->randomElement(['Open', 'InProgress', 'Closed'])
+            'user_id' => $user->id,
+            'device_id' => $device->id,
+            'category' => $this->faker->randomElement(['Hardware', 'Software', 'Network', 'Maintenance']),
+            'title' => $this->faker->sentence(3),
+            'description' => $this->faker->paragraph,
+            'status' => $this->faker->randomElement(['open', 'in_progress', 'resolved', 'closed'])
         ];
     }
 }
