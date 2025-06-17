@@ -317,6 +317,7 @@ const HeaderCard = ({ title, subtitle, image, icon, type }: {
                             src={`/storage/${image}`}
                             alt={title}
                             className="w-12 h-12 rounded-full border border-primary object-cover"
+                            
                         />):(
                             <div className="bg-background/80 p-3 rounded-xl backdrop-blur-sm border">
                             <DoorOpen className="w-6 h-6 text-primary" />
@@ -466,6 +467,9 @@ const DeviceCard = ({ device, variant }: { device: Device; variant: 'owned' | 's
                                                     src={`/storage/${user.photo}`}
                                                     alt={user.name}
                                                     className="w-6 h-6 rounded-full border-2 border-white object-cover hover:scale-110 transition-transform shadow-sm"
+                                                  onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                    e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                                }}
                                                 />
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -488,6 +492,9 @@ const DeviceCard = ({ device, variant }: { device: Device; variant: 'owned' | 's
                                     src={`/storage/${device.owner[0].photo}`}
                                     alt={device.owner[0].name}
                                     className="w-6 h-6 rounded-full object-cover border-2 border-white shadow-sm"
+                                  onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                    e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                                }}
                                 />
                                 <span className="font-medium text-gray-700">{device.owner[0].name}</span>
                             </div>

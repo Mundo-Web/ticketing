@@ -50,7 +50,10 @@ export function BuildingCombobox({
                                 src={`/storage/${selected.image}`}
                                 alt={selected.name}
                                 className="w-12 h-12 rounded-full border border-primary object-cover"
-                            />
+                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                               e.currentTarget.src = '/images/default-build.png'; // Ruta de imagen por defecto
+                                                                           }}
+                           />
                             <span>{selected.name}</span>
                         </div>
                     ) : (
@@ -78,6 +81,9 @@ export function BuildingCombobox({
                                     src={`/storage/${building.image}`}
                                     alt={building.name}
                                     className="w-8 h-8 rounded-full border border-primary object-cover"
+                                 onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                    e.currentTarget.src = '/images/default-build.png'; // Ruta de imagen por defecto
+                                                                                }}
                                 />
                                 <span>{building.name}</span>
                                 {selectedId === building.id && (

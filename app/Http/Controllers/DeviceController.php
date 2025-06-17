@@ -30,7 +30,7 @@ class DeviceController extends Controller
         try {
             // Compartir con nuevos inquilinos
             if ($request->has('tenant_ids') && !empty($request->tenant_ids)) {
-                // Verificar que los inquilinos pertenecen al apartamento 
+                // Verificar que los inquilinos pertenecen al apartamento
                 $validTenantIds = Tenant::whereIn('id', $request->tenant_ids)
                     ->where('apartment_id', $request->apartment_id)
                     ->pluck('id')
@@ -43,7 +43,7 @@ class DeviceController extends Controller
                     ], 400);
                 }
 
-                // Sincronizar los inquilinos con los que se comparte 
+                // Sincronizar los inquilinos con los que se comparte
                 $syncData = [];
                 foreach ($validTenantIds as $tenantId) {
                     $syncData[$tenantId] = ['owner_tenant_id' => $request->tenant_id];
@@ -54,7 +54,7 @@ class DeviceController extends Controller
 
             // Descompartir con inquilinos
             if ($request->has('unshare_tenant_ids') && !empty($request->unshare_tenant_ids)) {
-                // Verificar que los inquilinos pertenecen al apartamento 
+                // Verificar que los inquilinos pertenecen al apartamento
                 $validUnshareIds = Tenant::whereIn('id', $request->unshare_tenant_ids)
                     ->where('apartment_id', $request->apartment_id)
                     ->pluck('id')
@@ -67,17 +67,17 @@ class DeviceController extends Controller
                 }
             }
 
-            // Cargar todas las relaciones necesarias 
+            // Cargar todas las relaciones necesarias
             $device->load([
                 'brand',
                 'model',
                 'system',
                 'name_device',
                 'sharedWith' => function ($query) {
-                    $query->select('tenants.id', 'tenants.name', 'tenants.email','tenants.photo');
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email', 'tenants.photo');
                 },
                 'tenants' => function ($query) {
-                    $query->select('tenants.id', 'tenants.name', 'tenants.email','tenants.photo');
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email', 'tenants.photo');
                 }
             ]);
 
@@ -319,50 +319,142 @@ class DeviceController extends Controller
 
 
     // BrandController.php
-    public function destroyBrand(Brand $brand, $id)
+    public function destroyBrand(Request $request, $id)
     {
         try {
             $brand = Brand::findOrFail($id);
+            $force = $request->input('force', false);
+            
+            // Check if brand is in use
+            $affectedDevices = Device::where('brand_id', $id)->get();
+            $devicesCount = $affectedDevices->count();
+            
+            if ($devicesCount > 0 && !$force) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Cannot delete brand because it is being used by ' . $devicesCount . ' device(s)',
+                    'devices_count' => $devicesCount,
+                    'can_force' => true
+                ], 422);
+            }
+            
+            // If forcing deletion, delete associated devices in cascade
+            if ($force && $devicesCount > 0) {
+                Device::where('brand_id', $id)->delete();
+            }
+            
             $brand->delete();
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true, 
+                'message' => $force ? 'Brand forcefully deleted and ' . $devicesCount . ' associated device(s) removed' : 'Brand deleted successfully'
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Error deleting brand: ' . $e->getMessage()], 500);
         }
     }
 
     // ModelController.php
-    public function destroyModel(DeviceModel $model, $id)
+    public function destroyModel(Request $request, $id)
     {
         try {
             $model = DeviceModel::findOrFail($id);
+            $force = $request->input('force', false);
+            
+            // Check if model is in use
+            $affectedDevices = Device::where('model_id', $id)->get();
+            $devicesCount = $affectedDevices->count();
+            
+            if ($devicesCount > 0 && !$force) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Cannot delete model because it is being used by ' . $devicesCount . ' device(s)',
+                    'devices_count' => $devicesCount,
+                    'can_force' => true
+                ], 422);
+            }
+            
+            // If forcing deletion, delete associated devices in cascade
+            if ($force && $devicesCount > 0) {
+                Device::where('model_id', $id)->delete();
+            }
+            
             $model->delete();
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true, 
+                'message' => $force ? 'Model forcefully deleted and ' . $devicesCount . ' associated device(s) removed' : 'Model deleted successfully'
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Error deleting model: ' . $e->getMessage()], 500);
         }
     }
 
     // SystemController.php
-    public function destroySystem(System $system, $id)
+    public function destroySystem(Request $request, $id)
     {
         try {
             $system = System::findOrFail($id);
+            $force = $request->input('force', false);
+            
+            // Check if system is in use
+            $affectedDevices = Device::where('system_id', $id)->get();
+            $devicesCount = $affectedDevices->count();
+            
+            if ($devicesCount > 0 && !$force) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Cannot delete system because it is being used by ' . $devicesCount . ' device(s)',
+                    'devices_count' => $devicesCount,
+                    'can_force' => true
+                ], 422);
+            }
+            
+            // If forcing deletion, delete associated devices in cascade
+            if ($force && $devicesCount > 0) {
+                Device::where('system_id', $id)->delete();
+            }
+            
             $system->delete();
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true, 
+                'message' => $force ? 'System forcefully deleted and ' . $devicesCount . ' associated device(s) removed' : 'System deleted successfully'
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Error deleting system: ' . $e->getMessage()], 500);
         }
     }
 
     // NameDeviceController.php
-    public function destroyNameDevice(NameDevice $nameDevice, $id)
+    public function destroyNameDevice(Request $request, $id)
     {
         try {
             $nameDevice = NameDevice::findOrFail($id);
+            $force = $request->input('force', false);
+            
+            // Check if name_device is in use
+            $affectedDevices = Device::where('name_device_id', $id)->get();
+            $devicesCount = $affectedDevices->count();
+            
+            if ($devicesCount > 0 && !$force) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Cannot delete device name because it is being used by ' . $devicesCount . ' device(s)',
+                    'devices_count' => $devicesCount,
+                    'can_force' => true
+                ], 422);
+            }
+            
+            // If forcing deletion, delete associated devices in cascade
+            if ($force && $devicesCount > 0) {
+                Device::where('name_device_id', $id)->delete();
+            }
+            
             $nameDevice->delete();
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true, 
+                'message' => $force ? 'Device name forcefully deleted and ' . $devicesCount . ' associated device(s) removed' : 'Device name deleted successfully'
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Error deleting device name: ' . $e->getMessage()], 500);
         }
     }
 
@@ -402,9 +494,7 @@ class DeviceController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false], 500);
         }
-    }
-
-    public function updateNameDevice(Request $request, NameDevice $nameDevice)
+    }    public function updateNameDevice(Request $request, NameDevice $nameDevice)
     {
         $request->validate(['name' => 'required|string|max:255']);
 

@@ -9,4 +9,19 @@ export interface Device {
     model?: { id: number; name: string };
     system?: { id: number; name: string };
     name_device?: { id: number; name: string };
+    shared_with?: Array<{
+        id: number;
+        name: string;
+        photo: string;
+    }>;
+    owner?: Array<{
+        id: number;
+        name: string;
+        photo: string;
+    }>;
+    tenants?: Array<{
+        id: number;
+        name: string;
+        photo: string;
+    }>;
 }

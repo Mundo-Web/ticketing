@@ -497,13 +497,16 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
             <div className={`grid ${getGridClass()} gap-6`}>
                 {buildings.map((building) => (
                     <div key={building.id} className="bg-card text-card-foreground p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow border relative">
-                        {building.image && (
+                      
                             <div className='relative'>
                                 <img
                                     src={`/storage/${building.image}`}
                                     alt={building.name}
                                     className="object-cover rounded-md mb-4 w-full aspect-[4/3]"
-                                />
+                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                   e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
+                                                                               }}
+                               />
                                 {building.location_link && (
                                     <Button
                                         variant="ghost"
@@ -515,7 +518,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                     </Button>
                                 )}
                             </div>
-                        )}
+                       
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-between">
                                 <h3 className="font-semibold text-xl truncate">{building.name}</h3>

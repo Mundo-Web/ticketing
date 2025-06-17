@@ -144,7 +144,8 @@ export default function KanbanBoard(props: any) {
         <div className="flex flex-col h-full ">
             {/* Jira-style header */}
             <div className="bg-white border-b border-gray-300 py-3 px-4 mb-4 shadow-sm">                    <div className="flex items-center justify-start">
-                <div className="flex items-center gap-3">                        <h1 className="text-xl font-bold text-gray-800">
+                <div className="flex items-center gap-3">                      
+                      <h1 className="text-xl font-bold text-gray-800">
                     Tablero de Tickets
 
                 </h1>
@@ -209,11 +210,18 @@ export default function KanbanBoard(props: any) {
                                                         }`}
                                                     onClick={() => setSelectedTechnicalId(selectedTechnicalId === t.id ? null : t.id)}
                                                 >
-                                                    <img
+                                                    {t.photo  ? (
+ <img
                                                         src={t.photo?.startsWith('http') ? t.photo : `/storage/${t.photo}`}
                                                         alt={t.name}
                                                         className="w-8 h-8 rounded-full object-cover border border-gray-200"
                                                     />
+                                                    ):(
+                                                         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-base font-bold">
+                                                                                                    {t.name?.substring(0, 1) || '?'}
+                                                                                                </div>
+                                                    )}
+                                                   
                                                     {selectedTechnicalId === t.id && (
                                                         <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
                                                             <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

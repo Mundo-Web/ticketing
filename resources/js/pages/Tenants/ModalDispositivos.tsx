@@ -9,11 +9,16 @@ import { Trash2, Edit, Plus, Laptop2, ShieldCheck, ShieldPlus, ScanQrCodeIcon, K
 import CreatableSelect from 'react-select/creatable';
 import axios from 'axios';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Device } from '@/types/models/Device';
+import { Device } from '@/types/models/Device.d';
 import { Tenant } from '@/types/models/Tenant';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Select, { components } from 'react-select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+// Helper para routes (Ziggy)
+declare global {
+    function route(name: string, params?: any): string;
+}
 
 interface ModalDispositivosProps {
     visible: boolean;
@@ -58,7 +63,12 @@ const ModalDispositivos = ({
     const [localModels, setLocalModels] = useState(models);
     const [localSystems, setLocalSystems] = useState(systems);
     const [localNameDevices, setLocalNameDevices] = useState(name_devices);
-    const [deleteConfirmation, setDeleteConfirmation] = useState<{ type: string; id: number | null }>({ type: '', id: null });
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{ 
+        type: string; 
+        id: number | null; 
+        deviceCount?: number; 
+        canForce?: boolean; 
+    }>({ type: '', id: null });
     useEffect(() => {
         setDeviceList(devices);
         setDeviceShareList(shareDevice);
@@ -239,28 +249,87 @@ const ModalDispositivos = ({
     // Modal de confirmación de eliminación
     const ConfirmDeleteModal = () => (
         <Dialog open={!!deleteConfirmation.id} onOpenChange={() => setDeleteConfirmation({ type: '', id: null })}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Confirm Deletion</DialogTitle>
+                    <DialogTitle>
+                        {deleteConfirmation.canForce ? 'Force Delete Confirmation' : 'Delete Confirmation'}
+                    </DialogTitle>
                 </DialogHeader>
                 <div className="py-4">
-                    <p>Are you sure you want to permanently delete this item?</p>
+                    {deleteConfirmation.canForce ? (
+                        <div className="space-y-4">
+                            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <div className="flex items-start space-x-3">
+                                    <div className="text-yellow-600">⚠️</div>
+                                    <div>
+                                        <h3 className="font-medium text-yellow-800">
+                                            This item is currently in use
+                                        </h3>
+                                        <p className="text-sm text-yellow-700 mt-1">
+                                            There are {deleteConfirmation.deviceCount} device(s) using this {deleteConfirmation.type}.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <p className="text-sm text-gray-600">
+                                    What would you like to do?
+                                </p>
+                                
+                                <div className="grid gap-3">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setDeleteConfirmation({ type: '', id: null })}
+                                        className="justify-start h-auto p-4"
+                                    >
+                                        <div className="text-left">
+                                            <div className="font-medium">Cancel</div>
+                                            <div className="text-sm ">Don't delete anything</div>
+                                        </div>
+                                    </Button>
+                                    
+                                    <Button
+                                        variant="destructive"
+                                        onClick={() => {
+                                            if (deleteConfirmation.id) {
+                                                confirmDelete(deleteConfirmation.id, deleteConfirmation.type as 'brand' | 'model' | 'system' | 'name_device', true);
+                                            }
+                                        }}
+                                        className="justify-start h-auto p-4"
+                                    >
+                                        <div className="text-left">
+                                            <div className="font-medium">Force Delete</div>
+                                            <div className="text-sm opacity-90">
+                                                Delete the {deleteConfirmation.type} and remove all associated devices
+                                            </div>
+                                        </div>
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <p>Are you sure you want to permanently delete this item?</p>
+                    )}
                 </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setDeleteConfirmation({ type: '', id: null })}>
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="destructive"
-                        onClick={() => {
-                            if (deleteConfirmation.id) {
-                                confirmDelete(deleteConfirmation.id, deleteConfirmation.type as any);
-                            }
-                        }}
-                    >
-                        Delete
-                    </Button>
-                </DialogFooter>
+                
+                {!deleteConfirmation.canForce && (
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteConfirmation({ type: '', id: null })}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                if (deleteConfirmation.id) {
+                                    confirmDelete(deleteConfirmation.id, deleteConfirmation.type as 'brand' | 'model' | 'system' | 'name_device');
+                                }
+                            }}
+                        >
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                )}
             </DialogContent>
         </Dialog>
     );
@@ -269,7 +338,7 @@ const ModalDispositivos = ({
         setDeleteConfirmation({ type, id });
     };
 
-    const confirmDelete = async (id: number, type: 'brand' | 'model' | 'system' | 'name_device') => {
+    const confirmDelete = async (id: number, type: 'brand' | 'model' | 'system' | 'name_device', force: boolean = false) => {
         try {
             const endpoint = {
                 brand: 'brands.destroy',
@@ -278,39 +347,73 @@ const ModalDispositivos = ({
                 name_device: 'name_devices.destroy'
             }[type];
 
-            await axios.delete(route(endpoint, id));
-            toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} eliminado`);
+            console.log(`Eliminando ${type} con ID: ${id}, endpoint: ${endpoint}, force: ${force}`);
+            console.log(`URL generada: ${route(endpoint, id)}`);
+            
+            const response = await axios.delete(route(endpoint, id), {
+                data: { force }
+            });
+            console.log('Respuesta del servidor:', response);
+            
+            // Check for successful response
+            if (response.status === 200 && response.data.success) {
+                toast.success(response.data.message || `${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully`);
 
-            // Actualizar estado local
-            switch (type) {
-                case 'brand':
-                    setLocalBrands(prev => prev.filter(b => b.id !== id));
-                    if (data.brand_id === id.toString()) {
-                        setData({ ...data, brand_id: '', new_brand: '' });
-                    }
-                    break;
-                case 'model':
-                    setLocalModels(prev => prev.filter(m => m.id !== id));
-                    if (data.model_id === id.toString()) {
-                        setData({ ...data, model_id: '', new_model: '' });
-                    }
-                    break;
-                case 'system':
-                    setLocalSystems(prev => prev.filter(s => s.id !== id));
-                    if (data.system_id === id.toString()) {
-                        setData({ ...data, system_id: '', new_system: '' });
-                    }
-                    break;
-                case 'name_device':
-                    setLocalNameDevices(prev => prev.filter(nd => nd.id !== id));
-                    if (data.name_device_id === id.toString()) {
-                        setData({ ...data, name_device_id: '', new_name_device: '' });
-                    }
-                    break;
+                // Update local state
+                switch (type) {
+                    case 'brand':
+                        setLocalBrands(prev => prev.filter(b => b.id !== id));
+                        if (data.brand_id === id.toString()) {
+                            setData({ ...data, brand_id: '', new_brand: '', model_id: '', new_model: '', system_id: '', new_system: '' });
+                        }
+                        break;
+                    case 'model':
+                        setLocalModels(prev => prev.filter(m => m.id !== id));
+                        if (data.model_id === id.toString()) {
+                            setData({ ...data, model_id: '', new_model: '', system_id: '', new_system: '' });
+                        }
+                        break;
+                    case 'system':
+                        setLocalSystems(prev => prev.filter(s => s.id !== id));
+                        if (data.system_id === id.toString()) {
+                            setData({ ...data, system_id: '', new_system: '' });
+                        }
+                        break;
+                    case 'name_device':
+                        setLocalNameDevices(prev => prev.filter(nd => nd.id !== id));
+                        if (data.name_device_id === id.toString()) {
+                            setData({ ...data, name_device_id: '', new_name_device: '', brand_id: '', new_brand: '', model_id: '', new_model: '', system_id: '', new_system: '' });
+                        }
+                        break;
+                }
+                
+                // If forced, reload device list to reflect changes
+                if (force) {
+                    window.location.reload();
+                }
             }
-        } catch (error) {
-            toast.error(`Error al eliminar ${type}`);
-        } finally {
+        } catch (error: unknown) {
+            console.error('Error al eliminar:', error);
+            const axiosError = error as any;
+            console.error('Respuesta del servidor:', axiosError.response);
+            
+            if (axiosError.response?.status === 422 && axiosError.response?.data?.can_force) {
+                // Show option to force delete
+                setDeleteConfirmation({ 
+                    type, 
+                    id, 
+                    deviceCount: axiosError.response.data.devices_count,
+                    canForce: true 
+                });
+                toast.error(axiosError.response.data.message);
+                return; // Don't close the modal yet
+            } else if (axiosError.response?.data?.message) {
+                toast.error(axiosError.response.data.message);
+            } else {
+                toast.error(`Error deleting ${type}: ${axiosError.message}`);
+            }
+            
+            // Close modal if it's not a force-delete scenario
             setDeleteConfirmation({ type: '', id: null });
         }
     };
@@ -369,33 +472,32 @@ const ModalDispositivos = ({
                         break;
                 }
 
-                toast.success('Actualizado correctamente');
-                setEditItem(null);
-            } catch (error) {
-                toast.error('Error al actualizar');
-            }
+                toast.success('Updated successfully');
+                setEditItem(null);        } catch (error) {
+            console.error('Error updating:', error);
+            toast.error('Error updating');
+        }
         };
 
         return (
             <Dialog open={!!editItem} onOpenChange={() => setEditItem(null)}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>Editar {editItem?.type}</DialogTitle>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <Input
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                        />
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditItem(null)}>
-                            Cancelar
-                        </Button>
-                        <Button onClick={handleSave}>
-                            Guardar
-                        </Button>
-                    </DialogFooter>
+                <DialogContent className="sm:max-w-[425px]">                <DialogHeader>
+                    <DialogTitle>Edit {editItem?.type}</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                    <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                    />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setEditItem(null)}>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleSave}>
+                        Save
+                    </Button>
+                </DialogFooter>
                 </DialogContent>
             </Dialog>
         );
@@ -631,6 +733,9 @@ const ModalDispositivos = ({
                                 src={`/storage/${tenantName?.photo}`}
                                 alt={tenantName?.name}
                                 className="w-20 h-20 object-cover rounded-full border-4 border-secondary fixed right-16"
+                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                    e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                }}
                             />
                         </div>
                     </DialogTitle>
@@ -837,11 +942,10 @@ const ModalDispositivos = ({
                                                 {device.owner && (
 
 
-                                                    <TooltipProvider>
+                                                    <TooltipProvider key={`owner-${device.id}`}>
                                                         <Tooltip>
                                                             <TooltipTrigger>
                                                                 <img
-                                                                    key={device.owner}
                                                                     src={device.owner ? `/storage/${device?.owner[0].photo}` : '/images/default-avatar.png'}
                                                                     alt={device.owner[0].name}
                                                                     className="w-8 h-8 object-cover rounded-full border-2 border-green-500"

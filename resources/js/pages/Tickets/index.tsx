@@ -562,6 +562,9 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                 src={`/storage/${memberData?.photo}`}
                                                 alt={memberData?.name}
                                                 className="w-12 h-12 rounded-full border border-primary object-cover"
+                                              onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                    e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                                }}
                                             />
                                             <h1 className="text-3xl font-extrabold text-accent flex justify-end text-end gap-2">
 
