@@ -1,5 +1,4 @@
 import { useForm } from '@inertiajs/react';
-import { router } from '@inertiajs/core';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -127,12 +126,12 @@ const ModalDispositivos = ({
                     return deviceExists ? prev.map(d => d.id === updatedDevice.id ? updatedDevice : d) : [...prev, updatedDevice];
                 });
 
-                toast.success(unshareIds.length > 0 ? 'Dispositivo actualizado' : 'Dispositivo compartido');
+                toast.success(unshareIds.length > 0 ? 'Device updated' : 'Device shared');
                 setShowShareModal(false);
             }
         } catch (error) {
-            console.error('Error al compartir dispositivo:', error);
-            toast.error('Error al compartir el dispositivo');
+            console.error('Error sharing device:', error);
+            toast.error('Error sharing device');
         }
     };
 
@@ -168,7 +167,7 @@ const ModalDispositivos = ({
 
     const validateForm = () => {
         const errors: string[] = [];
-        if (!data.name_device_id && !data.new_name_device) errors.push('Nombre del dispositivo requerido');
+        if (!data.name_device_id && !data.new_name_device) errors.push('Device name required');
         if (!data.brand_id && !data.new_brand) errors.push('Marca requerida');
         return errors;
     };
@@ -176,7 +175,10 @@ const ModalDispositivos = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const validationErrors = validateForm();
-        if (validationErrors.length > 0) return validationErrors.forEach(toast.error);
+        if (validationErrors.length > 0) {
+            validationErrors.forEach(error => toast.error(error));
+            return;
+        }
 
         // Asegurarse de que los campos dependientes solo se envíen si el padre está seleccionado
         const payload = {
@@ -194,7 +196,7 @@ const ModalDispositivos = ({
 
         try {
             const response = editMode
-                ? await axios.put(route('devices.update', data.id), payload)
+                ? await axios.put(route('devices.update', data.id!), payload)
                 : await axios.post(route('devices.store'), payload);
 
             const updatedDevice = response.data.device;
@@ -224,7 +226,7 @@ const ModalDispositivos = ({
                     const newList = [...localSystems, updatedDevice.system];
                     setLocalSystems(newList);
                 }
-                toast.success(editMode ? 'Dispositivo actualizado' : 'Dispositivo creado');
+                toast.success(editMode ? 'Device updated' : 'Device created');
                 reset();
                 setShowForm(false);
             }
@@ -243,7 +245,7 @@ const ModalDispositivos = ({
             setDeviceList(prev => prev.filter(d => d.id !== id));
             setDeviceShareList(prev => prev.filter(d => d.id !== id));
             toast.success('Device removed from tenant successfully');
-        } catch (error) {
+        } catch {
             toast.error('Error removing device from tenant');
         }
     };
@@ -395,7 +397,7 @@ const ModalDispositivos = ({
                 }
             }
         } catch (error: unknown) {
-            console.error('Error al eliminar:', error);
+            console.error('Error deleting:', error);
             const axiosError = error as any;
             console.error('Respuesta del servidor:', axiosError.response);
 
@@ -420,7 +422,7 @@ const ModalDispositivos = ({
         }
     };
 
-    /**EDITAR */
+    /**EDIT */
     // Estados nuevos para edición
     const [editItem, setEditItem] = useState<{
         type: 'brand' | 'model' | 'system' | 'name_device';
@@ -429,25 +431,20 @@ const ModalDispositivos = ({
     } | null>(null);
 
     const EditModal = () => {
-        const [editName, setEditName] = useState(editItem?.name || '');
-
-        useEffect(() => {
-            setEditName(editItem?.name || '');
-        }, [editItem]);
+        const [editName, setEditName] = useState('');
 
         const handleSave = async () => {
             if (!editItem) return;
 
             try {
-                const endpoint = {
-                    brand: 'brands.update',
-                    model: 'models.update',
-                    system: 'systems.update',
-                    name_device: 'name_devices.update'
-                }[editItem.type];
-
-                const response = await axios.put(route(endpoint, editItem.id), {
-                    name: editName // Send editName instead of editItem.name
+                await axios.put(route(
+                    {
+                        brand: 'brands.update',
+                        model: 'models.update',
+                        system: 'systems.update',
+                        name_device: 'name_devices.update'
+                    }[editItem.type], editItem.id), {
+                    name: editName
                 });
 
                 // Update local state with new name
@@ -489,7 +486,7 @@ const ModalDispositivos = ({
                 </DialogHeader>
                     <div className="py-4">
                         <Input
-                            value={editName}
+                            value={editName || editItem?.name || ''}
                             onChange={(e) => setEditName(e.target.value)}
                         />
                     </div>
@@ -588,7 +585,7 @@ const ModalDispositivos = ({
         setFilteredSystems(filtered.length > 0 ? filtered : systems);
     };
 
-    // Función para filtrar nombres de dispositivos basados en el sistema seleccionado
+    // Function to filter device names based on selected system
     const filterNameDevicesBySystem = (systemId: string) => {
         if (!systemId) {
             setFilteredNameDevices(name_devices);
@@ -746,7 +743,7 @@ const ModalDispositivos = ({
 
                 <div className="flex justify-between items-center mb-4">
                     <Button onClick={handleShowCreate} className="gap-2">
-                        <Plus className="w-4 h-4" /> Nuevo Dispositivo
+                        <Plus className="w-4 h-4" /> New Device
                     </Button>
                 </div>
 
@@ -829,7 +826,7 @@ const ModalDispositivos = ({
                             <Label>Sharing with members</Label>
                             <Select
                                 isMulti
-                                options={tenants.map(t => ({ label: t.name, value: t.id }))}
+                                options={tenants.filter(t => t.id !== tenantId).map(t => ({ label: t.name, value: t.id }))}
                                 onChange={(selected) =>
                                     setData('tenants', selected?.map(s => s.value) || [])
                                 }
@@ -1035,13 +1032,13 @@ const DeviceShareModal = ({ device, tenants, sharedWithIds, onClose, onShare }: 
         <Dialog open={true} onOpenChange={onClose}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Compartir dispositivo</DialogTitle>
+                    <DialogTitle>Share device</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-4">
-                        <Label>Selecciona inquilinos para compartir</Label>
+                        <Label>Select tenants to share with</Label>
                         {tenants.length === 0 ? (
-                            <p className="text-sm text-gray-500">No hay inquilinos disponibles para compartir</p>
+                            <p className="text-sm text-gray-500">No tenants available to share with</p>
                         ) : (
                             <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-3">
                                 {tenants.map((tenant) => {
