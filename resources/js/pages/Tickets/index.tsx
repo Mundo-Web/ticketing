@@ -307,6 +307,8 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
             onSuccess: () => {
                 setShowCreateModal(false);
                 reset();
+                // Refresh the page to show the new ticket
+                router.reload({ only: ['tickets', 'allTickets'] });
             },
         });
     };
@@ -409,7 +411,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
     const [memberTab, setMemberTab] = useState<string>("all");
 
     // Filter tickets for members by tab (status) and then by search
-    const memberTickets = tickets.data.filter((ticket: any) => ticket.user_id === userId);
+    const memberTickets = allTickets.filter((ticket: any) => ticket.user_id === userId);
     const memberTabFilteredTickets = memberTab === "all"
         ? memberTickets
         : memberTickets.filter((ticket: any) => ticket.status === memberTab);
@@ -713,6 +715,61 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                             )}
 
                             {/**TICKETS GRID AQUI */}
+                            {isMember && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {memberFilteredTickets.length === 0 ? (
+                                        <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400">
+                                            <AlertCircle className="w-12 h-12 mb-3" />
+                                            <p className="text-lg font-medium">No tickets found</p>
+                                            <p className="text-sm">Create a ticket by selecting a device above</p>
+                                        </div>
+                                    ) : (
+                                        memberFilteredTickets.map((ticket: any) => (
+                                            <Card 
+                                                key={ticket.id} 
+                                                className={`cursor-pointer transition-all hover:shadow-lg border-l-4 ${
+                                                    selectedTicket?.id === ticket.id 
+                                                        ? 'border-l-blue-500 bg-blue-50/50' 
+                                                        : 'border-l-slate-200 hover:border-l-blue-300'
+                                                }`}
+                                                onClick={() => handleSelectTicket(ticket)}
+                                            >
+                                                <CardContent className="p-4">
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-start justify-between">
+                                                            <h3 className="font-semibold text-slate-900 line-clamp-1">
+                                                                {ticket.title}
+                                                            </h3>
+                                                            <StatusBadge status={ticket.status} />
+                                                        </div>
+                                                        
+                                                        <p className="text-sm text-slate-600 line-clamp-2">
+                                                            {ticket.description}
+                                                        </p>
+                                                        
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <CategoryBadge category={ticket.category} />
+                                                            <DeviceBadge device={ticket.device} />
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center justify-between text-xs text-slate-500">
+                                                            <span>#{ticket.id}</span>
+                                                            <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                                                        </div>
+                                                        
+                                                        {ticket.technical && (
+                                                            <div className="flex items-center gap-2 text-xs text-slate-600">
+                                                                <UserIcon className="w-3 h-3" />
+                                                                <span>Assigned to {ticket.technical.name}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))
+                                    )}
+                                </div>
+                            )}
                         </div>
                         {/* Sidebar - Ticket Details */}
                         <div className={`${isMember ? "xl:col-span-4" : "xl:col-span-4"}`}>

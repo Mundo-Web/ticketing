@@ -40,7 +40,7 @@ class DashboardController extends Controller
             if ($user->hasRole('tenant')) {
                 $ticketsQuery->where('user_id', $user->id);
             } elseif ($user->hasRole('technical')) {
-                $technical = Technical::where('user_id', $user->id)->first();
+                $technical = Technical::where('email', $user->email)->first();
                 if ($technical) {
                     $ticketsQuery->where('technical_id', $technical->id);
                 }

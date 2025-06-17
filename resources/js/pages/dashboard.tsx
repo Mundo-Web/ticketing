@@ -251,7 +251,83 @@ export default function Dashboard() {
                                     Notifications
                                 </Button>
                             </div>
-                        </div>                          {/* SECTION 1: KEY TICKET METRICS */}
+                        </div>  
+                                     {/* SECTION: UNASSIGNED TICKETS TABLE */}
+                        {canAssignTickets && lists.unassignedTickets && lists.unassignedTickets.length > 0 && (
+                            <div className="space-y-8">
+                                <div className="text-center space-y-4">                                    <h2 className="text-4xl font-bold text-orange-600">
+                                        Unassigned Tickets
+                                    </h2>
+                                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                                        Recent tickets awaiting technical assignment - quick actions available
+                                    </p>
+                                </div>
+                                
+                                <Card className="border-0 shadow-xl bg-gradient-to-br from-slate-50 via-white to-slate-50">                                    <CardHeader className="border-b border-slate-100 bg-slate-50">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 rounded-lg bg-orange-100">
+                                                    <AlertTriangle className="h-5 w-5 text-orange-600" />
+                                                </div>
+                                                <div>
+                                                    <CardTitle className="text-xl text-slate-800">Latest Unassigned Tickets</CardTitle>
+                                                    <p className="text-sm text-slate-600 mt-1">Showing {lists.unassignedTickets.length} most recent unassigned tickets</p>
+                                                </div>
+                                            </div>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                                                onClick={() => window.open('/tickets', '_blank')}
+                                            >
+                                                <UserPlus className="h-4 w-4 mr-2" />
+                                                Bulk Assign
+                                            </Button>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-0">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="border-b border-slate-100">
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Ticket</th>
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Location</th>
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Device</th>
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Category</th>
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Created</th>
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Actions</th>
+                                                    </tr>
+                                                </thead>                                                <tbody>
+                                                    {lists.unassignedTickets.length > 0 ? (
+                                                        lists.unassignedTickets.map((ticket, index) => (
+                                                            <UnassignedTicketRow 
+                                                                key={ticket.id} 
+                                                                ticket={ticket} 
+                                                                index={index} 
+                                                                technicals={lists.availableTechnicals}
+                                                            />
+                                                        ))
+                                                    ) : (
+                                                        <tr>
+                                                            <td colSpan={6} className="py-12 text-center">
+                                                                <div className="space-y-3">
+                                                                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+                                                                    <p className="text-lg font-semibold text-slate-600">All tickets are assigned!</p>
+                                                                    <p className="text-sm text-slate-500">Great job keeping up with the workflow.</p>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}             
+                                                
+                                                
+                                                {/* SECTION 1: KEY TICKET METRICS */}
                         <div className="space-y-12">
                             <div className="text-center space-y-6">                                <h2 className="text-4xl font-bold text-slate-800">
                                     Ticket Analytics
@@ -462,79 +538,7 @@ export default function Dashboard() {
                                 </Card>                            </div>
                         </div>
 
-                        {/* SECTION: UNASSIGNED TICKETS TABLE */}
-                        {canAssignTickets && lists.unassignedTickets && lists.unassignedTickets.length > 0 && (
-                            <div className="space-y-8">
-                                <div className="text-center space-y-4">                                    <h2 className="text-4xl font-bold text-orange-600">
-                                        Unassigned Tickets
-                                    </h2>
-                                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                                        Recent tickets awaiting technical assignment - quick actions available
-                                    </p>
-                                </div>
-                                
-                                <Card className="border-0 shadow-xl bg-gradient-to-br from-slate-50 via-white to-slate-50">                                    <CardHeader className="border-b border-slate-100 bg-slate-50">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded-lg bg-orange-100">
-                                                    <AlertTriangle className="h-5 w-5 text-orange-600" />
-                                                </div>
-                                                <div>
-                                                    <CardTitle className="text-xl text-slate-800">Latest Unassigned Tickets</CardTitle>
-                                                    <p className="text-sm text-slate-600 mt-1">Showing {lists.unassignedTickets.length} most recent unassigned tickets</p>
-                                                </div>
-                                            </div>
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm"
-                                                className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
-                                                onClick={() => window.open('/tickets/assign-unassigned', '_blank')}
-                                            >
-                                                <UserPlus className="h-4 w-4 mr-2" />
-                                                Bulk Assign
-                                            </Button>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="p-0">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full">
-                                                <thead>
-                                                    <tr className="border-b border-slate-100">
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Ticket</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Location</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Device</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Category</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Created</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Actions</th>
-                                                    </tr>
-                                                </thead>                                                <tbody>
-                                                    {lists.unassignedTickets.length > 0 ? (
-                                                        lists.unassignedTickets.map((ticket, index) => (
-                                                            <UnassignedTicketRow 
-                                                                key={ticket.id} 
-                                                                ticket={ticket} 
-                                                                index={index} 
-                                                                technicals={lists.availableTechnicals}
-                                                            />
-                                                        ))
-                                                    ) : (
-                                                        <tr>
-                                                            <td colSpan={6} className="py-12 text-center">
-                                                                <div className="space-y-3">
-                                                                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-                                                                    <p className="text-lg font-semibold text-slate-600">All tickets are assigned!</p>
-                                                                    <p className="text-sm text-slate-500">Great job keeping up with the workflow.</p>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        )}
+                      
 
                           {/* SECTION 2: SYSTEM RESOURCES */}
                         {metrics.resources.buildings > 0 && (
@@ -1010,8 +1014,7 @@ function UnassignedTicketRow({ ticket, index, technicals }: UnassignedTicketRowP
         }
 
         setIsAssigning(true);
-        
-        try {
+          try {
             const response = await fetch(`/tickets/${ticket.id}/assign-technical`, {
                 method: 'POST',
                 headers: {
@@ -1019,14 +1022,14 @@ function UnassignedTicketRow({ ticket, index, technicals }: UnassignedTicketRowP
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                 },
                 body: JSON.stringify({ technical_id: selectedTech })
-            });
-
-            if (response.ok) {
+            });            if (response.ok) {
+                await response.json();
                 toast.success('Ticket assigned successfully!');
                 // Recargar la página para mostrar datos actualizados
-                router.reload();
+                router.reload({ only: ['lists'] });
             } else {
-                toast.error('Failed to assign ticket');
+                const errorData = await response.json();
+                toast.error(errorData.error || 'Failed to assign ticket');
             }
         } catch (error) {
             toast.error('Error assigning ticket');

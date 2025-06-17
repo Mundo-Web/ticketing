@@ -126,7 +126,12 @@ export function AppSidebar() {
   ];
 
     const technicalNavItems: NavItem[] = [
-
+ {
+      title: 'Dashboard',
+      href: '/dashboard',
+      icon: LayoutGrid,
+      isActive: route().current('dashboard'),
+    },
     {
       title: 'Tickets',
       href: '/tickets',

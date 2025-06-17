@@ -136,22 +136,23 @@ class TicketController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
         ]);
-        // Buscar técnico por defecto (ejemplo: primero con shift 'morning' y visible)
-        $defaultTechnical = Technical::where('is_default', true)->orderBy('id')->first();
+        
+        // Create ticket without assigning any technical - let it remain unassigned
         $ticket = Ticket::create([
             ...$validated,
             'user_id' => auth()->id(),
             'status' => Ticket::STATUS_OPEN,
-            'technical_id' => $defaultTechnical ? $defaultTechnical->id : null,
+            'technical_id' => null, // Leave unassigned
         ]);
-        if ($defaultTechnical) {
-            $ticket->addHistory(
-                'assigned_technical',
-                'Ticket asignado automáticamente al técnico principal',
-                ['to' => $defaultTechnical->id],
-                $defaultTechnical->id
-            );
-        }
+        
+        // Add initial history entry
+        $ticket->addHistory(
+            'created',
+            'Ticket creado por el usuario',
+            null,
+            null
+        );
+        
         return redirect()->back()->with('success', 'Ticket creado correctamente');
     }
 

@@ -41,7 +41,7 @@ export default function Index({ technicals }: { technicals: any }) {
     const [selectedTechnical, setSelectedTechnical] = useState<Technical | null>(null);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<number | null>(null);
     const [gridColumns, setGridColumns] = useState<number>(4);
-    const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
+    const { data, setData, put, delete: destroy, processing, errors, reset } = useForm({
         id: null as number | null,
         name: '',
         email: '',
@@ -88,7 +88,7 @@ export default function Index({ technicals }: { technicals: any }) {
         },
         {
             accessorKey: "is_default",
-            header: "Default",
+            header: "Role",
             cell: ({ row }) => (
                 <div className="flex items-center gap-2">
                     {isSuperAdmin ? (
@@ -98,7 +98,7 @@ export default function Index({ technicals }: { technicals: any }) {
                             onClick={() => toggleDefaultTechnical(row.original)}
                             className="h-6 px-2 text-xs"
                         >
-                            {row.original.is_default ? "Tech Chief" : "Set Tech Chief"}
+                            {row.original.is_default ? "Remove Chief" : "Set as Chief"}
                         </Button>
                     ) : (
                         <span className={`px-2 py-1 rounded-full text-xs ${
@@ -247,7 +247,7 @@ export default function Index({ technicals }: { technicals: any }) {
                                         size="sm"
                                         className="text-xs"
                                     >
-                                        {technical.is_default ? "Tech Chief" : "Set Tech Chief"}
+                                        {technical.is_default ? "Remove Chief" : "Set as Chief"}
                                     </Button>
                                 )}
                             </div>
@@ -273,15 +273,18 @@ export default function Index({ technicals }: { technicals: any }) {
 
     const toggleDefaultTechnical = async (technical: Technical) => {
         if (!isSuperAdmin) {
-            toast.error('Only super-admin can set default technical');
+            toast.error('Only super-admin can manage Tech Chiefs');
             return;
         }
 
         try {
             await router.put(route('technicals.set-default', technical.id), {}, {
                 preserveScroll: true,
-                onSuccess: () => toast.success('Technical Chief updated'),
-                onError: () => toast.error('Error updating Technical Chief')
+                onSuccess: () => {
+                    const action = technical.is_default ? 'removed from' : 'assigned as';
+                    toast.success(`Technical ${action} Tech Chief successfully`);
+                },
+                onError: () => toast.error('Error updating Tech Chief status')
             });
         } catch (error) {
             toast.error('Connection error');
@@ -304,33 +307,51 @@ export default function Index({ technicals }: { technicals: any }) {
 
     const submitForm = (e: React.FormEvent) => {
         e.preventDefault();
-        const formData = new FormData();
-
+        
         if (data.id) {
+            // Para actualización
+            const formData = new FormData();
             formData.append('_method', 'PUT');
             Object.entries(data).forEach(([key, value]) => {
-                if (value !== null) formData.append(key, value);
+                if (value !== null) {
+                    if (typeof value === 'number') {
+                        formData.append(key, value.toString());
+                    } else {
+                        formData.append(key, value);
+                    }
+                }
             });
+            
             router.post(route('technicals.update', data.id), formData, {
+                preserveScroll: true,
                 onSuccess: () => {
                     reset();
                     setOpen(false);
                     toast.success('Technical updated');
                 },
-                onError: (errors) => {
+                onError: (errors: Record<string, string>) => {
                     Object.values(errors).forEach(error => toast.error(error));
                 }
             });
         } else {
-            post(route('technicals.store'), {
-                data: formData,
+            // Para creación - usar el método post de useForm que maneja CSRF automáticamente
+            const formData = {
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
+                shift: data.shift,
+                photo: data.photo
+            };
+
+            router.post(route('technicals.store'), formData, {
+                preserveScroll: true,
                 forceFormData: true,
                 onSuccess: () => {
                     reset();
                     setOpen(false);
                     toast.success('Technical created');
                 },
-                onError: (errors) => {
+                onError: (errors: Record<string, string>) => {
                     Object.values(errors).forEach(error => toast.error(error));
                 }
             });
@@ -508,7 +529,7 @@ export default function Index({ technicals }: { technicals: any }) {
                                         <Label>Shift</Label>
                                         <Select
                                             value={data.shift}
-                                            onValueChange={value => setData('shift', value as any)}
+                                            onValueChange={(value) => setData('shift', value as 'morning' | 'afternoon' | 'night')}
                                         >
                                             <SelectTrigger className='h-11 mt-2' >
                                                 <SelectValue placeholder="Select shift" />

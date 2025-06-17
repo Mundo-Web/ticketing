@@ -118,12 +118,14 @@ class TechnicalController extends Controller
             return back()->withErrors(['error' => 'Only super-admin can set default technical']);
         }
 
-        // Quitar el default de todos los técnicos
-        Technical::where('is_default', true)->update(['is_default' => false]);
+        // Toggle del estado is_default del técnico
+        $newDefaultStatus = !$technical->is_default;
+        $technical->update(['is_default' => $newDefaultStatus]);
         
-        // Establecer el nuevo técnico como default
-        $technical->update(['is_default' => true]);
-        
-        return back()->with('success', 'Default technical updated successfully');
+        $message = $newDefaultStatus 
+            ? 'Technical assigned as Tech Chief successfully' 
+            : 'Technical removed from Tech Chief role successfully';
+            
+        return back()->with('success', $message);
     }
 }
