@@ -63,11 +63,11 @@ const ModalDispositivos = ({
     const [localModels, setLocalModels] = useState(models);
     const [localSystems, setLocalSystems] = useState(systems);
     const [localNameDevices, setLocalNameDevices] = useState(name_devices);
-    const [deleteConfirmation, setDeleteConfirmation] = useState<{ 
-        type: string; 
-        id: number | null; 
-        deviceCount?: number; 
-        canForce?: boolean; 
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{
+        type: string;
+        id: number | null;
+        deviceCount?: number;
+        canForce?: boolean;
     }>({ type: '', id: null });
     useEffect(() => {
         setDeviceList(devices);
@@ -237,12 +237,14 @@ const ModalDispositivos = ({
 
     const handleDelete = async (id: number) => {
         try {
-            await axios.delete(route('devices.destroy', id));
+            await axios.delete(route('devices.removeFromTenant', id), {
+                data: { tenant_id: tenantId }
+            });
             setDeviceList(prev => prev.filter(d => d.id !== id));
             setDeviceShareList(prev => prev.filter(d => d.id !== id));
-            toast.success('Dispositivo eliminado');
+            toast.success('Device removed from tenant successfully');
         } catch (error) {
-            toast.error('Error al eliminar');
+            toast.error('Error removing device from tenant');
         }
     };
 
@@ -271,12 +273,12 @@ const ModalDispositivos = ({
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="space-y-3">
                                 <p className="text-sm text-gray-600">
                                     What would you like to do?
                                 </p>
-                                
+
                                 <div className="grid gap-3">
                                     <Button
                                         variant="outline"
@@ -288,7 +290,7 @@ const ModalDispositivos = ({
                                             <div className="text-sm ">Don't delete anything</div>
                                         </div>
                                     </Button>
-                                    
+
                                     <Button
                                         variant="destructive"
                                         onClick={() => {
@@ -312,7 +314,7 @@ const ModalDispositivos = ({
                         <p>Are you sure you want to permanently delete this item?</p>
                     )}
                 </div>
-                
+
                 {!deleteConfirmation.canForce && (
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setDeleteConfirmation({ type: '', id: null })}>
@@ -349,12 +351,12 @@ const ModalDispositivos = ({
 
             console.log(`Eliminando ${type} con ID: ${id}, endpoint: ${endpoint}, force: ${force}`);
             console.log(`URL generada: ${route(endpoint, id)}`);
-            
+
             const response = await axios.delete(route(endpoint, id), {
                 data: { force }
             });
             console.log('Respuesta del servidor:', response);
-            
+
             // Check for successful response
             if (response.status === 200 && response.data.success) {
                 toast.success(response.data.message || `${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully`);
@@ -386,7 +388,7 @@ const ModalDispositivos = ({
                         }
                         break;
                 }
-                
+
                 // If forced, reload device list to reflect changes
                 if (force) {
                     window.location.reload();
@@ -396,14 +398,14 @@ const ModalDispositivos = ({
             console.error('Error al eliminar:', error);
             const axiosError = error as any;
             console.error('Respuesta del servidor:', axiosError.response);
-            
+
             if (axiosError.response?.status === 422 && axiosError.response?.data?.can_force) {
                 // Show option to force delete
-                setDeleteConfirmation({ 
-                    type, 
-                    id, 
+                setDeleteConfirmation({
+                    type,
+                    id,
                     deviceCount: axiosError.response.data.devices_count,
-                    canForce: true 
+                    canForce: true
                 });
                 toast.error(axiosError.response.data.message);
                 return; // Don't close the modal yet
@@ -412,7 +414,7 @@ const ModalDispositivos = ({
             } else {
                 toast.error(`Error deleting ${type}: ${axiosError.message}`);
             }
-            
+
             // Close modal if it's not a force-delete scenario
             setDeleteConfirmation({ type: '', id: null });
         }
@@ -473,10 +475,11 @@ const ModalDispositivos = ({
                 }
 
                 toast.success('Updated successfully');
-                setEditItem(null);        } catch (error) {
-            console.error('Error updating:', error);
-            toast.error('Error updating');
-        }
+                setEditItem(null);
+            } catch (error) {
+                console.error('Error updating:', error);
+                toast.error('Error updating');
+            }
         };
 
         return (
@@ -484,20 +487,20 @@ const ModalDispositivos = ({
                 <DialogContent className="sm:max-w-[425px]">                <DialogHeader>
                     <DialogTitle>Edit {editItem?.type}</DialogTitle>
                 </DialogHeader>
-                <div className="py-4">
-                    <Input
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                    />
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setEditItem(null)}>
-                        Cancel
-                    </Button>
-                    <Button onClick={handleSave}>
-                        Save
-                    </Button>
-                </DialogFooter>
+                    <div className="py-4">
+                        <Input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditItem(null)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSave}>
+                            Save
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         );
@@ -878,12 +881,16 @@ const ModalDispositivos = ({
                                                     return (
                                                         <TooltipProvider>
                                                             <Tooltip>
-                                                                <TooltipTrigger>   <img
-                                                                    key={tenant.photo}
-                                                                    src={tenant.photo ? `/storage/${tenant.photo}?v=${Date.now()}` : '/images/default-avatar.png'}
-                                                                    alt={tenant.name}
-                                                                    className="w-8 h-8 object-cover rounded-full border-2 border-blue-400"
-                                                                /></TooltipTrigger>
+                                                                <TooltipTrigger>
+                                                                    <img
+                                                                        key={tenant.photo}
+                                                                        src={tenant.photo ? `/storage/${tenant.photo}?v=${Date.now()}` : '/images/default-avatar.png'}
+                                                                        alt={tenant.name}
+                                                                        className="w-8 h-8 object-cover rounded-full border-2 border-blue-400"
+                                                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                            e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                                                        }}
+                                                                    /></TooltipTrigger>
                                                                 <TooltipContent>
                                                                     <p>{tenant.name}</p>
                                                                 </TooltipContent>
@@ -918,14 +925,23 @@ const ModalDispositivos = ({
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleDelete(device.id)}
-                                                    className="text-red-600 hover:text-red-800"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleDelete(device.id)}
+                                                                className="text-red-600 hover:text-red-800"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Remove device from this tenant</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
                                             </div>
                                         </td>
                                     </tr>
@@ -949,6 +965,9 @@ const ModalDispositivos = ({
                                                                     src={device.owner ? `/storage/${device?.owner[0].photo}` : '/images/default-avatar.png'}
                                                                     alt={device.owner[0].name}
                                                                     className="w-8 h-8 object-cover rounded-full border-2 border-green-500"
+                                                                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                        e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                                                    }}
                                                                 /></TooltipTrigger>
                                                             <TooltipContent>
                                                                 <p>  Own: {device.owner[0].name || (Array.isArray(device.owner) && device.owner[0]?.name) || 'Unknown'}</p>
@@ -1050,7 +1069,9 @@ const DeviceShareModal = ({ device, tenants, sharedWithIds, onClose, onShare }: 
                                                     }
                                                 }}
                                             />
-                                            <img src={`/storage/${tenant.photo}`} className='h-8 w-8 rounded-full object-cover' />
+                                            <img src={`/storage/${tenant.photo}`} className='h-8 w-8 rounded-full object-cover' onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                            }} />
                                             <Label htmlFor={`tenant-${tenant.id}`} className="cursor-pointer">
                                                 {tenant.name}
                                             </Label>

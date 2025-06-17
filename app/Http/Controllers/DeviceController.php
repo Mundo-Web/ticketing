@@ -273,6 +273,46 @@ class DeviceController extends Controller
         }
     }
 
+    // Remove device from tenant (remove relationship, not the device itself)
+    public function removeFromTenant(Request $request, Device $device)
+    {
+        try {
+            $tenantId = $request->input('tenant_id');
+            
+            if (!$tenantId) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Tenant ID is required'
+                ], 400);
+            }
+            
+            // Remove from device_tenant pivot table
+            DB::table('device_tenant')
+                ->where('device_id', $device->id)
+                ->where('tenant_id', $tenantId)
+                ->delete();
+            
+            // Also remove from share_device_tenant table if exists
+            DB::table('share_device_tenant')
+                ->where('device_id', $device->id)
+                ->where(function($query) use ($tenantId) {
+                    $query->where('owner_tenant_id', $tenantId)
+                          ->orWhere('shared_with_tenant_id', $tenantId);
+                })
+                ->delete();
+            
+            return response()->json([
+                'success' => true, 
+                'message' => 'Device removed from tenant successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Error removing device from tenant: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     private function processNameDevice(Request $request)
     {
         if ($request->filled('new_name_device')) {

@@ -75,6 +75,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/devices/{device}/share', [DeviceController::class, 'share'])
         ->name('devices.share');
         
+    Route::delete('/devices/{device}/remove-from-tenant', [DeviceController::class, 'removeFromTenant'])
+        ->name('devices.removeFromTenant');
+        
     Route::delete('/delete/brand/{id}', [DeviceController::class, 'destroyBrand'])
         ->name('brands.destroy');
 
