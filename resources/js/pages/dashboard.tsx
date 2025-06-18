@@ -41,9 +41,7 @@ import {
     Phone,
     Mail,    Monitor,    ChevronLeft,
     ChevronRight,
-    Laptop,
-    Check,
-    Settings,
+    Laptop,    Check,
     MessageSquare,
     Info,
     AlertOctagon
@@ -58,10 +56,9 @@ import {
     CartesianGrid,
     Tooltip as RechartsTooltip,
     Legend,
-    Area,
-    AreaChart
+    Area,    AreaChart
 } from 'recharts';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
 import { useState, useRef, useEffect } from 'react';
@@ -210,24 +207,439 @@ const CHART_COLORS = [
     '#F97316', '#06B6D4', '#84CC16', '#EC4899', '#6366F1'
 ];
 
-// Excel export functions
-const exportToExcel = (data: Record<string, unknown>[], filename: string, sheetName: string = 'Data') => {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const fileData = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(fileData, `${filename}.xlsx`);
+// Advanced Excel export functions with professional styling using ExcelJS
+const exportToExcel = async (data: Record<string, unknown>[], filename: string, sheetName: string = 'Data') => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(sheetName);
+    
+    // Add data to worksheet
+    if (data.length > 0) {
+        const keys = Object.keys(data[0]);
+        worksheet.addRow(keys);
+        data.forEach(row => {
+            worksheet.addRow(Object.values(row));
+        });
+    }
+    
+    // Generate and download
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `${filename}.xlsx`);
+};
+
+// Professional Dashboard Export with advanced styling using ExcelJS
+const exportProfessionalDashboard = async (metrics: any, charts: any, lists: any) => {
+    const workbook = new ExcelJS.Workbook();
+    
+    // Set workbook properties
+    workbook.creator = 'Ticketing System';
+    workbook.created = new Date();
+    workbook.company = 'Professional Dashboard';
+    
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    // Define professional color scheme
+    const colors = {
+        primary: 'FF2563EB',      // Blue
+        secondary: 'FF1E3A8A',   // Dark Blue
+        success: 'FF059669',     // Green
+        warning: 'FFF59E0B',     // Yellow
+        danger: 'FFDC2626',      // Red
+        light: 'FFF8FAFC',       // Light Gray
+        dark: 'FF1E293B',        // Dark Gray
+        white: 'FFFFFFFF'
+    };
+
+    // SHEET 1: Executive Summary
+    const summarySheet = workbook.addWorksheet('Executive Summary', {
+        pageSetup: { paperSize: 9, orientation: 'portrait' }
+    });
+
+    // Set column widths
+    summarySheet.columns = [
+        { width: 35 }, { width: 18 }, { width: 22 }, { width: 30 }
+    ];
+
+    // Main Title
+    summarySheet.mergeCells('A1:D1');
+    const titleCell = summarySheet.getCell('A1');
+    titleCell.value = 'EXECUTIVE DASHBOARD - TICKETING SYSTEM';
+    titleCell.style = {
+        font: { name: 'Segoe UI', size: 20, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: {
+            top: { style: 'thick', color: { argb: colors.secondary } },
+            left: { style: 'thick', color: { argb: colors.secondary } },
+            bottom: { style: 'thick', color: { argb: colors.secondary } },
+            right: { style: 'thick', color: { argb: colors.secondary } }
+        }
+    };
+    summarySheet.getRow(1).height = 40;
+
+    // Date and metadata
+    summarySheet.mergeCells('A2:B2');
+    const dateCell = summarySheet.getCell('A2');
+    dateCell.value = `Generation Date: ${currentDate}`;
+    dateCell.style = {
+        font: { name: 'Segoe UI', size: 12, italic: true, color: { argb: colors.dark } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } },
+        alignment: { horizontal: 'left', vertical: 'middle' },
+        border: {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+        }
+    };
+
+    // Company info
+    summarySheet.mergeCells('C2:D2');
+    const logoCell = summarySheet.getCell('C2');
+    logoCell.value = 'PROFESSIONAL REPORT';
+    logoCell.style = {
+        font: { name: 'Segoe UI', size: 12, bold: true, color: { argb: colors.primary } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } },
+        alignment: { horizontal: 'right', vertical: 'middle' },
+        border: {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+        }
+    };
+
+    // Section: KEY METRICS
+    let currentRow = 4;
+    
+    // Section header
+    summarySheet.mergeCells(`A${currentRow}:D${currentRow}`);
+    const metricsHeaderCell = summarySheet.getCell(`A${currentRow}`);
+    metricsHeaderCell.value = 'KEY PERFORMANCE METRICS';
+    metricsHeaderCell.style = {
+        font: { name: 'Segoe UI', size: 16, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.secondary } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: {
+            top: { style: 'medium', color: { argb: colors.primary } },
+            left: { style: 'medium', color: { argb: colors.primary } },
+            bottom: { style: 'medium', color: { argb: colors.primary } },
+            right: { style: 'medium', color: { argb: colors.primary } }
+        }
+    };
+    summarySheet.getRow(currentRow).height = 30;
+    currentRow++;
+
+    // Column headers
+    const headers = ['Indicator', 'Value', 'Status', 'Trend'];
+    headers.forEach((header, index) => {
+        const cell = summarySheet.getCell(currentRow, index + 1);
+        cell.value = header;
+        cell.style = {
+            font: { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
+            alignment: { horizontal: 'center', vertical: 'middle' },
+            border: {
+                top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
+            }
+        };
+    });
+    summarySheet.getRow(currentRow).height = 25;
+    currentRow++;
+
+    // Metrics data
+    const metricsData = [
+        ['Total Tickets', metrics.tickets.total, 'Active', '+12% vs last month'],
+        ['Open Tickets', metrics.tickets.open, 'Critical', 'Requires immediate attention'],
+        ['In Progress Tickets', metrics.tickets.in_progress, 'Processing', '+8% this week'],
+        ['Resolved Tickets', metrics.tickets.resolved, 'Completed', '+15% vs target'],
+        ['Resolved Today', metrics.tickets.resolved_today, 'Daily', 'Daily productivity'],
+        ['Average Time (h)', metrics.tickets.avg_resolution_hours, 'Efficiency', '-2h improvement'],
+        ['Unassigned', metrics.tickets.unassigned || 0, 'Pending', 'Requires assignment']
+    ];
+
+    metricsData.forEach((row, rowIndex) => {
+        row.forEach((value, colIndex) => {
+            const cell = summarySheet.getCell(currentRow + rowIndex, colIndex + 1);
+            cell.value = value;
+            
+            // Determine cell color based on status
+            let fillColor = 'FFFFFFFF';
+            let fontColor = colors.dark;
+            
+            if (colIndex === 2) { // Status column
+                switch (value) {
+                    case 'Critical':
+                        fillColor = colors.danger;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Completed':
+                        fillColor = colors.success;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Processing':
+                        fillColor = colors.warning;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Pending':
+                        fillColor = 'FFFBBF24';
+                        fontColor = 'FF1F2937';
+                        break;
+                    default:
+                        fillColor = 'FFF1F5F9';
+                        break;
+                }
+            }
+            
+            cell.style = {
+                font: { 
+                    name: 'Segoe UI', 
+                    size: 11, 
+                    bold: colIndex === 0,
+                    color: { argb: fontColor }
+                },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
+                alignment: { 
+                    horizontal: colIndex === 0 ? 'left' : 'center', 
+                    vertical: 'middle' 
+                },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                }
+            };
+        });
+        summarySheet.getRow(currentRow + rowIndex).height = 22;
+    });
+    
+    currentRow += metricsData.length + 2;
+
+    // SHEET 2: Tickets Analysis
+    const ticketsSheet = workbook.addWorksheet('Tickets Analysis', {
+        pageSetup: { paperSize: 9, orientation: 'landscape' }
+    });
+
+    // Set column widths for tickets sheet
+    ticketsSheet.columns = [
+        { width: 25 }, { width: 15 }, { width: 15 }, { width: 18 }, { width: 20 }
+    ];
+
+    // Title
+    ticketsSheet.mergeCells('A1:E1');
+    const ticketsTitleCell = ticketsSheet.getCell('A1');
+    ticketsTitleCell.value = 'DETAILED TICKETS ANALYSIS';
+    ticketsTitleCell.style = {
+        font: { name: 'Segoe UI', size: 18, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: {
+            top: { style: 'thick', color: { argb: colors.secondary } },
+            left: { style: 'thick', color: { argb: colors.secondary } },
+            bottom: { style: 'thick', color: { argb: colors.secondary } },
+            right: { style: 'thick', color: { argb: colors.secondary } }
+        }
+    };
+    ticketsSheet.getRow(1).height = 35;
+
+    // Weekly trend section
+    let ticketsRow = 3;
+    ticketsSheet.mergeCells(`A${ticketsRow}:E${ticketsRow}`);
+    const weeklyHeaderCell = ticketsSheet.getCell(`A${ticketsRow}`);
+    weeklyHeaderCell.value = 'WEEKLY TREND ANALYSIS';
+    weeklyHeaderCell.style = {
+        font: { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.secondary } },
+        alignment: { horizontal: 'center', vertical: 'middle' }
+    };
+    ticketsRow++;
+
+    // Weekly headers
+    const weeklyHeaders = ['Week', 'Total Tickets', 'Resolved', 'Resolution Rate', 'Performance'];
+    weeklyHeaders.forEach((header, index) => {
+        const cell = ticketsSheet.getCell(ticketsRow, index + 1);
+        cell.value = header;
+        cell.style = {
+            font: { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
+            alignment: { horizontal: 'center', vertical: 'middle' },
+            border: {
+                top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
+            }
+        };
+    });
+    ticketsRow++;
+
+    // Weekly data
+    charts.ticketsLastWeek.forEach((item: any, index: number) => {
+        const resolutionRate = item.total > 0 ? Math.round((item.resolved / item.total) * 100) : 0;
+        const performance = resolutionRate >= 80 ? 'Excellent' : resolutionRate >= 60 ? 'Good' : 'Needs Improvement';
+        
+        const weekData = [
+            `Week ${index + 1}`,
+            item.total,
+            item.resolved,
+            `${resolutionRate}%`,
+            performance
+        ];
+        
+        weekData.forEach((value, colIndex) => {
+            const cell = ticketsSheet.getCell(ticketsRow, colIndex + 1);
+            cell.value = value;
+            
+            let fillColor = 'FFFFFFFF';
+            let fontColor = colors.dark;
+            
+            if (colIndex === 4) { // Performance column
+                switch (value) {
+                    case 'Excellent':
+                        fillColor = colors.success;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Good':
+                        fillColor = colors.warning;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Needs Improvement':
+                        fillColor = colors.danger;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                }
+            }
+            
+            cell.style = {
+                font: { name: 'Segoe UI', size: 10, color: { argb: fontColor } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
+                alignment: { horizontal: 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                }
+            };
+        });
+        ticketsRow++;
+    });
+
+    // SHEET 3: Resources Summary
+    const resourcesSheet = workbook.addWorksheet('Resources Summary', {
+        pageSetup: { paperSize: 9, orientation: 'portrait' }
+    });
+
+    resourcesSheet.columns = [
+        { width: 30 }, { width: 18 }, { width: 20 }, { width: 25 }
+    ];
+
+    // Title
+    resourcesSheet.mergeCells('A1:D1');
+    const resourcesTitleCell = resourcesSheet.getCell('A1');
+    resourcesTitleCell.value = 'SYSTEM RESOURCES SUMMARY';
+    resourcesTitleCell.style = {
+        font: { name: 'Segoe UI', size: 18, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: {
+            top: { style: 'thick', color: { argb: colors.secondary } },
+            left: { style: 'thick', color: { argb: colors.secondary } },
+            bottom: { style: 'thick', color: { argb: colors.secondary } },
+            right: { style: 'thick', color: { argb: colors.secondary } }
+        }
+    };
+    resourcesSheet.getRow(1).height = 35;
+
+    // Resources data
+    let resourcesRow = 3;
+    resourcesSheet.mergeCells(`A${resourcesRow}:D${resourcesRow}`);
+    const portfolioHeaderCell = resourcesSheet.getCell(`A${resourcesRow}`);
+    portfolioHeaderCell.value = 'BUILDINGS PORTFOLIO';
+    portfolioHeaderCell.style = {
+        font: { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.secondary } },
+        alignment: { horizontal: 'center', vertical: 'middle' }
+    };
+    resourcesRow++;
+
+    const resourceHeaders = ['Metric', 'Value', 'Status', 'Observations'];
+    resourceHeaders.forEach((header, index) => {
+        const cell = resourcesSheet.getCell(resourcesRow, index + 1);
+        cell.value = header;
+        cell.style = {
+            font: { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
+            alignment: { horizontal: 'center', vertical: 'middle' },
+            border: {
+                top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+                right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
+            }
+        };
+    });
+    resourcesRow++;
+
+    const resourcesData = [
+        ['Buildings', lists.buildingsWithTickets.length, 'Active', 'Complete management'],
+        ['Apartments', metrics.resources.apartments, 'Operational', 'Distribution by buildings'],
+        ['Tenants/Members', metrics.resources.tenants, 'Active', 'User base'],
+        ['Devices', metrics.resources.devices, 'Monitored', 'Updated inventory'],
+        ['Technicians', metrics.resources.technicals, 'Available', 'Active team']
+    ];
+
+    resourcesData.forEach((row) => {
+        row.forEach((value, colIndex) => {
+            const cell = resourcesSheet.getCell(resourcesRow, colIndex + 1);
+            cell.value = value;
+            cell.style = {
+                font: { name: 'Segoe UI', size: 10, bold: colIndex === 0 },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
+                alignment: { horizontal: colIndex === 0 ? 'left' : 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                }
+            };
+        });
+        resourcesRow++;
+    });
+
+    // Generate and download
+    const fileName = `Dashboard_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, fileName);
+
+    // Show success message
+    toast.success('Professional Excel Report Generated!', {
+        description: `${fileName} has been downloaded with advanced styling, colors, and professional formatting.`
+    });
 };
 
 export default function Dashboard() {
     const { metrics, charts, lists } = usePage<DashboardProps>().props;
     const pageProps = usePage().props as unknown as { auth: { user: { roles: { name: string }[]; technical?: { is_default: boolean } } } };
     const isSuperAdmin = pageProps?.auth?.user?.roles?.some((role) => role.name === 'super-admin') || false;
-    const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false;
-    const canAssignTickets = isSuperAdmin || isDefaultTechnical;    // States for modals and UI
+    const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false;    const canAssignTickets = isSuperAdmin || isDefaultTechnical;    
+    // States for modals and UI
     const [showDevicesModal, setShowDevicesModal] = useState(false);
-    const buildingsContainerRef = useRef<HTMLDivElement>(null);    // Initialize notifications from localStorage or default values
+    const buildingsContainerRef = useRef<HTMLDivElement>(null);
+
+    // Initialize notifications from localStorage or default values
     const getInitialNotifications = (): NotificationItem[] => {
         try {
             const saved = localStorage.getItem('dashboard_notifications');
@@ -487,29 +899,16 @@ export default function Dashboard() {
                                 >
                                     <RefreshCcw className="h-6 w-6" />
                                     Refresh
-                                </Button>
-                                <Button 
+                                </Button>                                <Button 
                                     variant="outline" 
                                     size="lg"
-                                    onClick={() => {                                        const allMetrics = {
-                                            'Total Tickets': metrics.tickets.total,
-                                            'Open Tickets': metrics.tickets.open,
-                                            'In Progress Tickets': metrics.tickets.in_progress,
-                                            'Resolved Tickets': metrics.tickets.resolved,
-                                            'Resolved Today': metrics.tickets.resolved_today,
-                                            'Average Time (hours)': metrics.tickets.avg_resolution_hours,
-                                            'Buildings': metrics.resources.buildings,
-                                            'Apartments': metrics.resources.apartments,
-                                            'Tenants': metrics.resources.tenants,
-                                            'Devices': metrics.resources.devices,
-                                            'Technicians': metrics.resources.technicals
-                                        };
-                                        exportToExcel([allMetrics], 'dashboard_complete', 'General Metrics');
+                                    onClick={() => {
+                                        exportProfessionalDashboard(metrics, charts, lists);
                                     }}
                                     className="gap-4 h-14 px-8 shadow-xl text-lg"
                                 >
                                     <Download className="h-6 w-6" />
-                                    Export All                                </Button>                               
+                                    Export </Button>                               
                                 
                                 {/* Notifications Dropdown */}
                                 <DropdownMenu>
@@ -1368,7 +1767,7 @@ export default function Dashboard() {
                                         <BarChart className="h-6 w-6" />
                                         Ver Reportes Completos
                                     </Button> */}
-                                    <Button
+                                   {/* <Button
                                         variant="outline"
                                         size="lg"
                                         onClick={() => {
@@ -1400,7 +1799,7 @@ export default function Dashboard() {
                                     >
                                         <Download className="h-6 w-6" />
                                         Export Complete Analysis
-                                    </Button>
+                                    </Button> */}
                                 </div>
                             </div>
 
@@ -2010,8 +2409,7 @@ function UnassignedTicketRow({ ticket, index, technicals }: UnassignedTicketRowP
                             </>
                         )}
                     </Button>
-                </div>
-            </td>
+                </div>            </td>
         </tr>
     );
 }

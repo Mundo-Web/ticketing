@@ -58,6 +58,7 @@
         "cmdk": "^1.1.1",
         "concurrently": "^9.0.1",
         "date-fns": "^4.1.0",
+        "exceljs": "^4.4.0",
         "file-saver": "^2.0.5",
         "framer-motion": "^12.7.4",
         "globals": "^15.14.0",
@@ -75,8 +76,7 @@
         "tailwindcss": "^4.0.0",
         "tailwindcss-animate": "^1.0.7",
         "typescript": "^5.7.2",
-        "vite": "^6.0",
-        "xlsx": "^0.18.5"
+        "vite": "^6.0"
     },
     "optionalDependencies": {
         "@rollup/rollup-linux-x64-gnu": "4.9.5",
