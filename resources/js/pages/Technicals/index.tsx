@@ -1,9 +1,10 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
+import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
-    Plus, Edit, Trash2, ChevronDown, MoreHorizontal, User,
-    LayoutGrid, Table as TableIcon, ChevronLeft, ChevronRight
+    Plus, Edit, Trash2, MoreHorizontal, User,
+    LayoutGrid, Table as TableIcon,
+    List, Activity, Clock, CheckCircle, AlertCircle, Laptop, Trophy, Target
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,28 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+interface Device {
+    id: number;
+    name: string;
+    brand?: {
+        name: string;
+    };
+    system?: {
+        name: string;
+    };
+    model?: {
+        name: string;
+    };
+}
+
+interface Ticket {
+    id: number;
+    title: string;
+    status: string;
+    created_at: string;
+}
 
 interface Technical {
     id: number;
@@ -26,22 +49,46 @@ interface Technical {
     status: boolean;
     is_default: boolean;
     created_at: string;
+    total_tickets: number;
+    open_tickets: number;
+    in_progress_tickets: number;
+    resolved_tickets: number;
+    closed_tickets: number;
+    weekly_tickets: number;
+    monthly_tickets: number;
+    today_tickets: number;
+    resolved_today: number;
+    resolved_this_week: number;
+    assigned_devices: Device[];
+    assigned_devices_count: number;
+    tickets: Ticket[];
+    avg_resolution_time: number;
+    current_streak: number;
+    last_activity?: string;
 }
 
-export default function Index({ technicals }: { technicals: any }) {
-    const { auth } = usePage().props as any;
+interface TechnicalsPageProps {
+    technicals: {
+        data: Technical[];
+        links: unknown;
+        meta: unknown;
+    };
+}
+
+export default function Index({ technicals }: TechnicalsPageProps) {
+    const { auth } = usePage().props as unknown as { auth: { user: { roles: string[] } } };
     const userRoles = auth?.user?.roles || [];
     const isSuperAdmin = Array.isArray(userRoles) ? userRoles.includes('super-admin') : false;
     
     console.log('User roles:', userRoles); // Debug para verificar estructura
     
-    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'table' | 'list'>('list');
     const [open, setOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [selectedTechnical, setSelectedTechnical] = useState<Technical | null>(null);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<number | null>(null);
     const [gridColumns, setGridColumns] = useState<number>(4);
-    const { data, setData, put, delete: destroy, processing, errors, reset } = useForm({
+    const { data, setData, delete: destroy, processing, reset } = useForm({
         id: null as number | null,
         name: '',
         email: '',
@@ -235,6 +282,7 @@ export default function Index({ technicals }: { technicals: any }) {
                                         variant="destructive"
                                         size="sm"
                                         className="gap-2 px-4"
+                                      
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
@@ -246,6 +294,7 @@ export default function Index({ technicals }: { technicals: any }) {
                                         variant={technical.is_default ? "default" : "outline"}
                                         size="sm"
                                         className="text-xs"
+
                                     >
                                         {technical.is_default ? "Remove Chief" : "Set as Chief"}
                                     </Button>
@@ -256,6 +305,412 @@ export default function Index({ technicals }: { technicals: any }) {
                 ))}
             </div>
         )
+    };
+
+    // Nueva vista de lista con cards detallados
+    const ListView = ({ technicals }: { technicals: Technical[] }) => {
+        const getStatusColor = (status: string) => {
+            switch (status) {
+                case 'open': return 'bg-red-100 text-red-800';
+                case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+                case 'resolved': return 'bg-green-100 text-green-800';
+                case 'closed': return 'bg-gray-100 text-gray-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        };
+
+        const formatDate = (dateString: string) => {
+            return new Date(dateString).toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        };
+
+        const getTimeAgo = (dateString?: string) => {
+            if (!dateString) return 'Never';
+            const now = new Date();
+            const date = new Date(dateString);
+            const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+            
+            if (diffInHours < 1) return 'Just now';
+            if (diffInHours < 24) return `${diffInHours}h ago`;
+            const diffInDays = Math.floor(diffInHours / 24);
+            if (diffInDays < 7) return `${diffInDays}d ago`;
+            const diffInWeeks = Math.floor(diffInDays / 7);
+            return `${diffInWeeks}w ago`;
+        };
+
+        return (
+            <TooltipProvider>
+                <div className="space-y-6">
+                    {technicals.map((technical) => (
+                        <div key={technical.id} className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow border overflow-hidden">
+                            <div className="flex">
+                                {/* Card pequeño izquierdo - Info básica */}
+                                <div className="w-80 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 border-r">
+                                    <div className="flex flex-col items-center text-center space-y-4">
+                                        <div className="relative">
+                                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                                                {technical.photo ? (
+                                                    <img
+                                                        src={`/storage/${technical.photo}`}
+                                                        alt={technical.name}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                            e.currentTarget.src = '/images/default-user.png';
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                                        <User className="w-12 h-12 text-gray-400" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {technical.is_default && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-1">
+                                                            <Trophy className="w-4 h-4 text-yellow-800" />
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Technical Chief - Team Leader</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <h3 className="font-bold text-xl text-gray-900">{technical.name}</h3>
+                                            <p className="text-sm text-gray-600">{technical.email}</p>
+                                            <p className="font-medium text-gray-700">{technical.phone}</p>
+                                            
+                                            <div className="flex flex-col gap-2">
+                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium capitalize ${
+                                                    technical.shift === 'morning' ? 'bg-orange-100 text-orange-800' :
+                                                    technical.shift === 'afternoon' ? 'bg-blue-100 text-blue-800' :
+                                                    'bg-purple-100 text-purple-800'
+                                                }`}>
+                                                    <Clock className="w-3 h-3 mr-1" />
+                                                    {technical.shift}
+                                                </span>
+                                                
+                                                {technical.is_default && (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                        <Trophy className="w-3 h-3 mr-1" />
+                                                        Tech Chief
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Nuevas métricas adicionales */}
+                                            <div className="grid grid-cols-2 gap-2 mt-3">
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="bg-white/50 p-2 rounded-lg border text-center">
+                                                            <div className="text-lg font-bold text-green-600">{technical.current_streak}</div>
+                                                            <div className="text-xs text-gray-600">Streak</div>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Consecutive resolved tickets</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="bg-white/50 p-2 rounded-lg border text-center">
+                                                            <div className="text-lg font-bold text-blue-600">{technical.avg_resolution_time}h</div>
+                                                            <div className="text-xs text-gray-600">Avg Time</div>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Average resolution time in hours</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Switch
+                                                        checked={technical.status}
+                                                        onCheckedChange={() => toggleStatus(technical)}
+                                                        disabled={isUpdatingStatus === technical.id}
+                                                        className="data-[state=checked]:bg-green-500"
+                                                    />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{technical.status ? 'Deactivate' : 'Activate'} technical</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                technical.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                            }`}>
+                                                {technical.status ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex gap-2 pt-2">
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        onClick={() => handleEdit(technical)}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex-1"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Edit technical information</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        onClick={() => handleDelete(technical)}
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        className="flex-1"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Delete technical permanently</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+
+                                            {isSuperAdmin && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            onClick={() => toggleDefaultTechnical(technical)}
+                                                            variant={technical.is_default ? "default" : "outline"}
+                                                            size="sm"
+                                                            className="flex-1"
+                                                        >
+                                                            <Trophy className="w-4 h-4" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{technical.is_default ? 'Remove as' : 'Set as'} Tech Chief</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Card grande derecho - Información detallada */}
+                                <div className="flex-1 p-6">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                                        {/* Estadísticas de tickets */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <Activity className="w-5 h-5 text-blue-600" />
+                                                <h4 className="font-semibold text-lg">Performance Metrics</h4>
+                                            </div>
+
+                                            {/* Estadísticas principales */}
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="bg-green-50 p-3 rounded-lg border border-green-200 text-center">
+                                                            <div className="text-xl font-bold text-green-600">{technical.today_tickets}</div>
+                                                            <div className="text-xs text-green-600">Today</div>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Tickets assigned today</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-center">
+                                                            <div className="text-xl font-bold text-blue-600">{technical.weekly_tickets}</div>
+                                                            <div className="text-xs text-blue-600">This Week</div>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Tickets assigned this week</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="bg-purple-50 p-3 rounded-lg border border-purple-200 text-center">
+                                                            <div className="text-xl font-bold text-purple-600">{technical.monthly_tickets}</div>
+                                                            <div className="text-xs text-purple-600">This Month</div>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Tickets assigned this month</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </div>
+
+                                            {/* Estados de tickets */}
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <AlertCircle className="w-4 h-4 text-red-500" />
+                                                        <span className="text-sm">Open</span>
+                                                    </div>
+                                                    <span className="font-medium">{technical.open_tickets}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock className="w-4 h-4 text-yellow-500" />
+                                                        <span className="text-sm">In Progress</span>
+                                                    </div>
+                                                    <span className="font-medium">{technical.in_progress_tickets}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle className="w-4 h-4 text-green-500" />
+                                                        <span className="text-sm">Resolved</span>
+                                                    </div>
+                                                    <span className="font-medium">{technical.resolved_tickets}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <Target className="w-4 h-4 text-gray-500" />
+                                                        <span className="text-sm">Closed</span>
+                                                    </div>
+                                                    <span className="font-medium">{technical.closed_tickets}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Progress bar de eficiencia */}
+                                            {technical.total_tickets > 0 && (
+                                                <div className="mt-4">
+                                                    <div className="flex justify-between text-sm mb-1">
+                                                        <span>Success Rate</span>
+                                                        <span>{Math.round((technical.resolved_tickets / technical.total_tickets) * 100)}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                                        <div 
+                                                            className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                                                            style={{ width: `${Math.round((technical.resolved_tickets / technical.total_tickets) * 100)}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Información adicional */}
+                                            <div className="grid grid-cols-2 gap-3 pt-3 border-t">
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="text-center">
+                                                            <div className="text-sm font-medium text-gray-600">Resolved Today</div>
+                                                            <div className="text-lg font-bold text-green-600">{technical.resolved_today}</div>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Tickets resolved today</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="text-center">
+                                                            <div className="text-sm font-medium text-gray-600">Last Activity</div>
+                                                            <div className="text-lg font-bold text-blue-600">{getTimeAgo(technical.last_activity)}</div>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Time since last ticket assignment</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </div>
+                                        </div>
+
+                                        {/* Dispositivos asignados y tickets recientes */}
+                                        <div className="space-y-4">
+                                            {/* Dispositivos asignados */}
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <Laptop className="w-5 h-5 text-green-600" />
+                                                    <h4 className="font-semibold text-lg">Active Assignments</h4>
+                                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                                        {technical.assigned_devices_count}
+                                                    </span>
+                                                </div>
+
+                                                <div className="space-y-2 max-h-36 overflow-y-auto">
+                                                    {technical.assigned_devices?.length > 0 ? (
+                                                        technical.assigned_devices.map((device) => (
+                                                            <Tooltip key={device.id}>
+                                                                <TooltipTrigger asChild>
+                                                                    <div className="bg-gray-50 p-3 rounded-lg border hover:bg-gray-100 transition-colors cursor-pointer">
+                                                                        <div className="font-medium text-sm">{device.name}</div>
+                                                                        <div className="text-xs text-gray-600">
+                                                                            {device.brand?.name} • {device.model?.name}
+                                                                        </div>
+                                                                        {device.system && (
+                                                                            <div className="text-xs text-blue-600 mt-1">
+                                                                                System: {device.system.name}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>Device with active/in-progress tickets</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        ))
+                                                    ) : (
+                                                        <div className="text-sm text-gray-500 italic">No active device assignments</div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Tickets recientes */}
+                                            <div>
+                                                <h4 className="font-semibold text-lg mb-3">Recent Tickets</h4>
+                                                <div className="space-y-2 max-h-44 overflow-y-auto">
+                                                    {technical.tickets?.length > 0 ? (
+                                                        technical.tickets.map((ticket) => (
+                                                            <Tooltip key={ticket.id}>
+                                                                <TooltipTrigger asChild>
+                                                                    <div className="bg-gray-50 p-3 rounded-lg border hover:bg-gray-100 transition-colors cursor-pointer">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div className="font-medium text-sm truncate pr-2">{ticket.title}</div>
+                                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}>
+                                                                                {ticket.status.replace('_', ' ')}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="text-xs text-gray-600 mt-1">
+                                                                            {formatDate(ticket.created_at)}
+                                                                        </div>
+                                                                    </div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>Click to view ticket details</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        ))
+                                                    ) : (
+                                                        <div className="text-sm text-gray-500 italic">No recent tickets</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </TooltipProvider>
+        );
     };
 
     const toggleStatus = async (technical: Technical) => {
@@ -286,7 +741,7 @@ export default function Index({ technicals }: { technicals: any }) {
                 },
                 onError: () => toast.error('Error updating Tech Chief status')
             });
-        } catch (error) {
+        } catch {
             toast.error('Connection error');
         }
     };
@@ -379,14 +834,18 @@ export default function Index({ technicals }: { technicals: any }) {
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
                         <div className="bg-gray-100 p-1 rounded flex">
-                            <Button variant="ghost" onClick={() => setViewMode('grid')}
+                            <Button variant="ghost" onClick={() => setViewMode('list')}
+                                className={viewMode === 'list' ? 'bg-white shadow' : ''}>
+                                <List className="w-5 h-5" />
+                            </Button>
+                           {/* <Button variant="ghost" onClick={() => setViewMode('grid')}
                                 className={viewMode === 'grid' ? 'bg-white shadow' : ''}>
                                 <LayoutGrid className="w-5 h-5" />
                             </Button>
                             <Button variant="ghost" onClick={() => setViewMode('table')}
                                 className={viewMode === 'table' ? 'bg-white shadow' : ''}>
                                 <TableIcon className="w-5 h-5" />
-                            </Button>
+                            </Button> */}
                         </div>
                         {viewMode === 'grid' && (
                             <select
@@ -406,7 +865,9 @@ export default function Index({ technicals }: { technicals: any }) {
                     </Button>
                 </div>
 
-                {viewMode === 'grid' ? (
+                {viewMode === 'list' ? (
+                    <ListView technicals={technicals.data} />
+                ) : viewMode === 'grid' ? (
                     <GridView technicals={technicals.data} gridColumns={gridColumns} />
                 ) : (
                     <div className="rounded-md border">

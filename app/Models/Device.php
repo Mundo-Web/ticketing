@@ -69,6 +69,10 @@ class Device extends Model
         return $this->owner->merge($this->sharedWith);
     }
     
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
 
 
 }

@@ -15,6 +15,44 @@ class TechnicalController extends Controller
     public function index(Request $request)
     {
         $technicals = Technical::query()
+            ->with([
+                'tickets' => function($query) {
+                    $query->select('id', 'technical_id', 'status', 'title', 'created_at', 'resolved_at')
+                        ->latest()
+                        ->limit(5);
+                }
+            ])
+            ->withCount([
+                'tickets as total_tickets',
+                'tickets as open_tickets' => function($query) {
+                    $query->where('status', 'open');
+                },
+                'tickets as in_progress_tickets' => function($query) {
+                    $query->where('status', 'in_progress');
+                },
+                'tickets as resolved_tickets' => function($query) {
+                    $query->where('status', 'resolved');
+                },
+                'tickets as closed_tickets' => function($query) {
+                    $query->where('status', 'closed');
+                },
+                'tickets as weekly_tickets' => function($query) {
+                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                },
+                'tickets as monthly_tickets' => function($query) {
+                    $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
+                },
+                'tickets as today_tickets' => function($query) {
+                    $query->whereDate('created_at', today());
+                },
+                'tickets as resolved_today' => function($query) {
+                    $query->where('status', 'resolved')->whereDate('resolved_at', today());
+                },
+                'tickets as resolved_this_week' => function($query) {
+                    $query->where('status', 'resolved')
+                        ->whereBetween('resolved_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                }
+            ])
             ->when($request->input('search'), function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
@@ -22,6 +60,58 @@ class TechnicalController extends Controller
             ->latest()
             ->paginate(10)
             ->withQueryString();
+
+        // Agregar información adicional para cada técnico
+        $technicals->getCollection()->transform(function ($technical) {
+            // Obtener dispositivos únicos asignados a través de tickets activos
+            $deviceIds = $technical->tickets()
+                ->whereIn('status', ['open', 'in_progress'])
+                ->distinct()
+                ->pluck('device_id')
+                ->filter()
+                ->take(5); // Aumentar a 5 dispositivos
+
+            $assignedDevices = \App\Models\Device::whereIn('id', $deviceIds)
+                ->with(['brand', 'system', 'model', 'name_device'])
+                ->get();
+
+            // Calcular tiempo promedio de resolución (en horas)
+            $resolvedTickets = $technical->tickets()
+                ->where('status', 'resolved')
+                ->whereNotNull('resolved_at')
+                ->get();
+
+            $avgResolutionTime = 0;
+            if ($resolvedTickets->count() > 0) {
+                $totalHours = $resolvedTickets->sum(function($ticket) {
+                    return $ticket->created_at->diffInHours($ticket->resolved_at);
+                });
+                $avgResolutionTime = round($totalHours / $resolvedTickets->count(), 1);
+            }
+
+            // Calcular racha de tickets resueltos consecutivos
+            $recentTickets = $technical->tickets()
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get();
+            
+            $currentStreak = 0;
+            foreach ($recentTickets as $ticket) {
+                if ($ticket->status === 'resolved') {
+                    $currentStreak++;
+                } else {
+                    break;
+                }
+            }
+
+            $technical->assigned_devices = $assignedDevices;
+            $technical->assigned_devices_count = $assignedDevices->count();
+            $technical->avg_resolution_time = $avgResolutionTime;
+            $technical->current_streak = $currentStreak;
+            $technical->last_activity = $technical->tickets()->latest('created_at')->first()?->created_at;
+            
+            return $technical;
+        });
 
         return Inertia::render('Technicals/index', [
             'technicals' => $technicals,
