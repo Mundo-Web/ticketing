@@ -85,22 +85,43 @@ class DashboardController extends Controller
             ->orderBy('date')
             ->get();
             
-        // Técnicos más activos (con más tickets asignados) - solo para super-admin
+        // Técnicos más activos con información detallada
         if ($isSuperAdmin) {
             $topTechnicals = Technical::leftJoin('tickets', 'technicals.id', '=', 'tickets.technical_id')
-                ->select('technicals.name', 'technicals.photo', DB::raw('count(tickets.id) as tickets_count'))
-                ->groupBy('technicals.id', 'technicals.name', 'technicals.photo')
+                ->select(
+                    'technicals.id',
+                    'technicals.name', 
+                    'technicals.photo',
+                    'technicals.email',
+                    'technicals.phone',
+                    'technicals.shift',
+                    'technicals.is_default',
+                    DB::raw('count(tickets.id) as tickets_count')
+                )
+                ->where('technicals.status', true)
+                ->groupBy('technicals.id', 'technicals.name', 'technicals.photo', 'technicals.email', 'technicals.phone', 'technicals.shift', 'technicals.is_default')
                 ->orderByDesc('tickets_count')
-                ->limit(5)
                 ->get();
         } else {
             $topTechnicals = collect();
         }
             
-        // Edificios con más tickets - simplificar por ahora
+        // Edificios con información detallada
         if ($isSuperAdmin) {
-            $buildingsWithTickets = Building::select('buildings.name', 'buildings.image', DB::raw('0 as tickets_count'))
-                ->limit(5)
+            $buildingsWithTickets = Building::leftJoin('apartments', 'buildings.id', '=', 'apartments.buildings_id')
+                ->leftJoin('tenants', 'apartments.id', '=', 'tenants.apartment_id')
+                ->leftJoin('users', 'tenants.email', '=', 'users.email')
+                ->leftJoin('tickets', 'users.id', '=', 'tickets.user_id')
+                ->select(
+                    'buildings.id',
+                    'buildings.name', 
+                    'buildings.image',
+                    DB::raw('COUNT(DISTINCT apartments.id) as apartments_count'),
+                    DB::raw('COUNT(DISTINCT tenants.id) as tenants_count'),
+                    DB::raw('COUNT(tickets.id) as tickets_count')
+                )
+                ->groupBy('buildings.id', 'buildings.name', 'buildings.image')
+                ->orderBy('buildings.name')
                 ->get();
         } else {
             $buildingsWithTickets = collect();
@@ -113,14 +134,35 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
             
-        // Dispositivos por tipo - solo para super-admin
+        // Dispositivos por tipo con información detallada
         if ($isSuperAdmin) {
-            $devicesByType = Device::join('name_devices', 'devices.name_device_id', '=', 'name_devices.id')
-                ->select('name_devices.name', DB::raw('count(*) as count'))
-                ->groupBy('name_devices.id', 'name_devices.name')
+            $devicesByType = Device::with(['brand', 'system', 'name_device', 'tenants.apartment.building'])
+                ->join('name_devices', 'devices.name_device_id', '=', 'name_devices.id')
+                ->join('brands', 'devices.brand_id', '=', 'brands.id')
+                ->join('systems', 'devices.system_id', '=', 'systems.id')
+                ->leftJoin('device_tenant', 'devices.id', '=', 'device_tenant.device_id')
+                ->select(
+                    'devices.id',
+                    'devices.name as device_name',
+                    'name_devices.name as device_type',
+                    'brands.name as brand_name',
+                    'systems.name as system_name',
+                    DB::raw('COUNT(DISTINCT device_tenant.tenant_id) as users_count')
+                )
+                ->groupBy('devices.id', 'devices.name', 'name_devices.name', 'brands.name', 'systems.name')
                 ->get();
+
+            // Agrupar por tipo de dispositivo para el gráfico
+            $deviceTypesSummary = $devicesByType->groupBy('device_type')->map(function ($devices, $type) {
+                return [
+                    'name' => $type,
+                    'count' => $devices->count(),
+                    'devices' => $devices
+                ];
+            })->values();
         } else {
             $devicesByType = collect();
+            $deviceTypesSummary = collect();
         }
             
         // Tickets por prioridad - remover ya que no existe la columna
@@ -195,7 +237,7 @@ class DashboardController extends Controller
             'charts' => [
                 'ticketsByStatus' => $ticketsByStatus,
                 'ticketsLastWeek' => $ticketsLastWeek,
-                'devicesByType' => $devicesByType,
+                'devicesByType' => $deviceTypesSummary,
                 'ticketsByPriority' => $ticketsByPriority,
                 'ticketsByCategory' => $ticketsByCategory,
             ],
@@ -204,8 +246,15 @@ class DashboardController extends Controller
                 'buildingsWithTickets' => $buildingsWithTickets,
                 'recentTickets' => $recentTickets,
                 'problematicDevices' => $problematicDevices,
+                'allDevices' => $devicesByType,
                 'unassignedTickets' => $canAssignTickets ? Ticket::with([
-                        'user.tenant.apartment.building', 
+                        'user' => function($query) {
+                            $query->with(['tenant' => function($tenantQuery) {
+                                $tenantQuery->with(['apartment' => function($apartmentQuery) {
+                                    $apartmentQuery->with('building');
+                                }]);
+                            }]);
+                        },
                         'device' => function($query) {
                             $query->with(['name_device', 'tenants.apartment.building']);
                         }

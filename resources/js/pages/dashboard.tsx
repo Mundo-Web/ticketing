@@ -7,6 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
     Building,
     Users,
     Ticket,
@@ -21,15 +29,24 @@ import {
     BarChart3,
     Calendar,
     Timer,
-    Download,
-    ExternalLink,
+    Download,    ExternalLink,
     RefreshCcw,
     FileSpreadsheet,
-    BarChart,
     Bell,
     Zap,
     UserPlus,
-    AlertTriangle
+    AlertTriangle,
+    X,
+    User,
+    Phone,
+    Mail,    Monitor,    ChevronLeft,
+    ChevronRight,
+    Laptop,
+    Check,
+    Settings,
+    MessageSquare,
+    Info,
+    AlertOctagon
 } from 'lucide-react';
 import {
     ResponsiveContainer,
@@ -47,8 +64,20 @@ import {
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
+
+interface NotificationItem {
+    id: number;
+    type: string;
+    title: string;
+    message: string;
+    time: string;
+    read: boolean;
+    icon: React.ComponentType<{ className?: string }>;
+    iconName?: string;
+    color: string;
+}
 
 interface DashboardProps extends PageProps {
     metrics: {
@@ -68,16 +97,42 @@ interface DashboardProps extends PageProps {
             devices: number;
             technicals: number;
         };
-    };
-    charts: {
+    };    charts: {
         ticketsByStatus: Record<string, number>;
         ticketsLastWeek: Array<{ date: string; count: number }>;
-        devicesByType: Array<{ name: string; count: number }>;
+        devicesByType: Array<{ 
+            name: string; 
+            count: number; 
+            devices: Array<{
+                id: number;
+                device_name: string;
+                device_type: string;
+                brand_name: string;
+                system_name: string;
+                users_count: number;
+            }>;
+        }>;
         ticketsByPriority: Record<string, number>;
         ticketsByCategory: Record<string, number>;
     };    lists: {
-        topTechnicals: Array<{ name: string; photo?: string; tickets_count: number }>;
-        buildingsWithTickets: Array<{ name: string; image?: string; tickets_count: number }>;
+        topTechnicals: Array<{ 
+            id: number;
+            name: string; 
+            photo?: string; 
+            email: string;
+            phone?: string;
+            shift?: string;
+            is_default: boolean;
+            tickets_count: number;
+        }>;
+        buildingsWithTickets: Array<{ 
+            id: number;
+            name: string; 
+            image?: string; 
+            apartments_count: number;
+            tenants_count: number;
+            tickets_count: number;
+        }>;
         recentTickets: Array<{
             id: number;
             title: string;
@@ -120,10 +175,19 @@ interface DashboardProps extends PageProps {
                     building?: { name: string } 
                 } 
             };
-        }>;        problematicDevices: Array<{
+        }>;        
+        problematicDevices: Array<{
             device_type: string;
             device_name: string;
             tickets_count: number;
+        }>;
+        allDevices: Array<{
+            id: number;
+            device_name: string;
+            device_type: string;
+            brand_name: string;
+            system_name: string;
+            users_count: number;
         }>;
         availableTechnicals: Array<{
             id: number;
@@ -161,13 +225,198 @@ export default function Dashboard() {
     const pageProps = usePage().props as unknown as { auth: { user: { roles: { name: string }[]; technical?: { is_default: boolean } } } };
     const isSuperAdmin = pageProps?.auth?.user?.roles?.some((role) => role.name === 'super-admin') || false;
     const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false;
-    const canAssignTickets = isSuperAdmin || isDefaultTechnical;    // Function to handle ticket status clicks
+    const canAssignTickets = isSuperAdmin || isDefaultTechnical;    // States for modals and UI
+    const [showDevicesModal, setShowDevicesModal] = useState(false);
+    const buildingsContainerRef = useRef<HTMLDivElement>(null);    // Initialize notifications from localStorage or default values
+    const getInitialNotifications = (): NotificationItem[] => {
+        try {
+            const saved = localStorage.getItem('dashboard_notifications');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Convert icon names back to components
+                return parsed.map((notif: { iconName: string; [key: string]: unknown }) => ({
+                    ...notif,
+                    icon: notif.iconName === 'AlertCircle' ? AlertCircle :
+                          notif.iconName === 'Info' ? Info :
+                          notif.iconName === 'CheckCircle' ? CheckCircle :
+                          notif.iconName === 'AlertOctagon' ? AlertOctagon :
+                          notif.iconName === 'MessageSquare' ? MessageSquare : AlertCircle
+                }));
+            }
+        } catch (error) {
+            console.log('Error loading notifications from localStorage:', error);
+        }
+        
+        // Default notifications if nothing in localStorage
+        return [
+            {
+                id: 1,
+                type: 'ticket',
+                title: 'New Ticket Assigned',
+                message: 'You have been assigned ticket #TCK-2024-001 for AC repair in Apt 204',
+                time: '2 min ago',
+                read: false,
+                icon: AlertCircle,
+                iconName: 'AlertCircle',
+                color: 'text-red-500 bg-red-50'
+            },
+            {
+                id: 2,
+                type: 'system',
+                title: 'System Update',
+                message: 'Dashboard data has been refreshed with latest information',
+                time: '15 min ago',
+                read: false,
+                icon: Info,
+                iconName: 'Info',
+                color: 'text-blue-500 bg-blue-50'
+            },
+            {
+                id: 3,
+                type: 'resolution',
+                title: 'Ticket Resolved',
+                message: 'Ticket #TCK-2024-035 has been successfully resolved',
+                time: '1 hour ago',
+                read: false,
+                icon: CheckCircle,
+                iconName: 'CheckCircle',
+                color: 'text-green-500 bg-green-50'
+            },
+            {
+                id: 4,
+                type: 'urgent',
+                title: 'Urgent Maintenance',
+                message: 'Emergency repair needed in Building A - Elevator malfunction',
+                time: '2 hours ago',
+                read: true,
+                icon: AlertOctagon,
+                iconName: 'AlertOctagon',
+                color: 'text-orange-500 bg-orange-50'
+            },
+            {
+                id: 5,
+                type: 'message',
+                title: 'Team Message',
+                message: 'Weekly team meeting scheduled for tomorrow at 10:00 AM',
+                time: '1 day ago',
+                read: true,
+                icon: MessageSquare,
+                iconName: 'MessageSquare',
+                color: 'text-purple-500 bg-purple-50'
+            }
+        ];
+    };
+
+    // States for notifications
+    const [notifications, setNotifications] = useState<NotificationItem[]>(getInitialNotifications);
+    
+    // Calculate unread notifications count
+    const [unreadNotifications, setUnreadNotifications] = useState(() => {
+        const initialNotifications = getInitialNotifications();
+        return initialNotifications.filter((n: NotificationItem) => !n.read).length;
+    });
+
+    // States for last update tracking
+    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+    const [updateText, setUpdateText] = useState<string>('Updated just now');
+    
+    // Function to calculate time since last update
+    const calculateTimeSinceUpdate = (lastUpdateTime: Date): string => {
+        const now = new Date();
+        const diffInMinutes = Math.floor((now.getTime() - lastUpdateTime.getTime()) / (1000 * 60));
+        
+        if (diffInMinutes === 0) {
+            return 'Updated just now';
+        } else if (diffInMinutes === 1) {
+            return 'Updated 1 min ago';
+        } else if (diffInMinutes < 60) {
+            return `Updated ${diffInMinutes} min ago`;
+        } else {
+            const diffInHours = Math.floor(diffInMinutes / 60);
+            if (diffInHours === 1) {
+                return 'Updated 1 hour ago';
+            } else {
+                return `Updated ${diffInHours} hours ago`;
+            }
+        }
+    };
+
+    // Function to handle refresh
+    const handleRefresh = () => {
+        const newUpdateTime = new Date();
+        setLastUpdated(newUpdateTime);
+        setUpdateText(calculateTimeSinceUpdate(newUpdateTime));
+        
+        // Reload the page to fetch fresh data
+        router.reload();
+    };    // Function to save notifications to localStorage
+    const saveNotificationsToStorage = (notificationsList: NotificationItem[]) => {
+        try {
+            // Convert notifications to serializable format
+            const serializable = notificationsList.map(notif => ({
+                ...notif,
+                icon: undefined, // Remove icon component
+                iconName: notif.iconName
+            }));
+            localStorage.setItem('dashboard_notifications', JSON.stringify(serializable));
+        } catch (error) {
+            console.log('Error saving notifications to localStorage:', error);
+        }
+    };
+
+    // Update the text every minute
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setUpdateText(calculateTimeSinceUpdate(lastUpdated));
+        }, 60000); // Update every minute
+
+        return () => clearInterval(interval);
+    }, [lastUpdated]);
+
+    // Functions to handle notifications
+    const markAsRead = (notificationId: number) => {
+        setNotifications((prev: NotificationItem[]) => {
+            const updated = prev.map((notif: NotificationItem) => 
+                notif.id === notificationId 
+                    ? { ...notif, read: true }
+                    : notif
+            );
+            saveNotificationsToStorage(updated);
+            return updated;
+        });
+        
+        // Update unread count
+        setUnreadNotifications((prev: number) => Math.max(0, prev - 1));
+    };
+
+    const markAllAsRead = () => {
+        setNotifications((prev: NotificationItem[]) => {
+            const updated = prev.map((notif: NotificationItem) => ({ ...notif, read: true }));
+            saveNotificationsToStorage(updated);
+            return updated;
+        });
+        setUnreadNotifications(0);
+    };
+
+    const clearNotification = (notificationId: number) => {
+        setNotifications((prev: NotificationItem[]) => {
+            const updated = prev.filter((notif: NotificationItem) => notif.id !== notificationId);
+            saveNotificationsToStorage(updated);
+            return updated;
+        });
+        
+        // Update unread count if notification was unread
+        const notification = notifications.find((n: NotificationItem) => n.id === notificationId);
+        if (notification && !notification.read) {
+            setUnreadNotifications((prev: number) => Math.max(0, prev - 1));
+        }
+    };
+
+    // Function to handle ticket status clicks
     const handleTicketStatusClick = (status: string, count: number) => {
         console.log(`Clicked on ${status}: ${count} tickets`);
         window.open(`/tickets?status=${status}`, '_blank');
-    };
-
-    // Prepare data for trend charts
+    };    // Prepare data for trend charts
     const trendData = charts.ticketsLastWeek.map(item => ({
         date: format(new Date(item.date), 'dd/MM'),
         tickets: item.count,
@@ -176,8 +425,20 @@ export default function Dashboard() {
 
     return (
         <TooltipProvider>
-            <AppLayout breadcrumbs={breadcrumbs}>
-                <Head title="Professional Dashboard" />
+            <AppLayout breadcrumbs={breadcrumbs}>                <Head title="Professional Dashboard" />
+                
+                {/* Custom styles for scrollbar */}
+                <style dangerouslySetInnerHTML={{
+                    __html: `
+                        .scrollbar-hide {
+                            -ms-overflow-style: none;
+                            scrollbar-width: none;
+                        }
+                        .scrollbar-hide::-webkit-scrollbar {
+                            display: none;
+                        }
+                    `
+                }} />
                 
                 {/* Main container with premium spacing */}
                 <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-white">
@@ -206,10 +467,9 @@ export default function Dashboard() {
                                     <div className="flex items-center gap-4">
                                         <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
                                         <span className="text-lg font-bold text-slate-600">System Online</span>
-                                    </div>
-                                    <div className="flex items-center gap-4">
+                                    </div>                                    <div className="flex items-center gap-4">
                                         <Activity className="h-6 w-6 text-blue-500" />
-                                        <span className="text-lg font-bold text-slate-600">Updated 2 min ago</span>
+                                        <span className="text-lg font-bold text-slate-600">{updateText}</span>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <Zap className="h-6 w-6 text-yellow-500" />
@@ -219,8 +479,12 @@ export default function Dashboard() {
                             </div>
                             
                             {/* Main controls */}
-                            <div className="flex flex-wrap items-center gap-6">
-                                <Button variant="outline" size="lg" className="gap-4 h-14 px-8 shadow-xl text-lg">
+                            <div className="flex flex-wrap items-center gap-6">                                <Button 
+                                    variant="outline" 
+                                    size="lg" 
+                                    className="gap-4 h-14 px-8 shadow-xl text-lg"
+                                    onClick={handleRefresh}
+                                >
                                     <RefreshCcw className="h-6 w-6" />
                                     Refresh
                                 </Button>
@@ -245,86 +509,129 @@ export default function Dashboard() {
                                     className="gap-4 h-14 px-8 shadow-xl text-lg"
                                 >
                                     <Download className="h-6 w-6" />
-                                    Export All
-                                </Button>                                <Button variant="outline" size="lg" className="gap-4 h-14 px-8 shadow-xl text-lg">
-                                    <Bell className="h-6 w-6" />
-                                    Notifications
-                                </Button>
+                                    Export All                                </Button>                               
+                                
+                                {/* Notifications Dropdown */}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="lg" className="gap-4 h-14 px-8 shadow-xl text-lg relative">
+                                            <Bell className="h-6 w-6" />
+                                            Notifications
+                                            {unreadNotifications > 0 && (
+                                                <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center p-0">
+                                                    {unreadNotifications}
+                                                </Badge>
+                                            )}
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-96 max-h-96 mt-4 " align="end">
+                                        <DropdownMenuLabel className="flex items-center justify-between">
+                                            <span className="text-lg font-semibold">Notifications</span>
+                                            {unreadNotifications > 0 && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={markAllAsRead}
+                                                    className="text-xs"
+                                                >
+                                                    Mark all as read
+                                                </Button>
+                                            )}
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        
+                                        {notifications.length === 0 ? (
+                                            <div className="p-4 text-center text-slate-500">
+                                                <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                <p className="text-sm">No notifications</p>
+                                            </div>
+                                        ) : (
+                                            <div className="max-h-80 overflow-y-auto">
+                                                {notifications.map((notification: NotificationItem) => {
+                                                    const IconComponent = notification.icon;
+                                                    return (
+                                                        <DropdownMenuItem 
+                                                            key={notification.id}
+                                                            className={`p-0 focus:bg-slate-50 ${!notification.read ? 'bg-blue-50/50' : ''}`}
+                                                        >
+                                                            <div className="w-full p-4 flex items-start gap-3">
+                                                                <div className={`p-2 rounded-lg ${notification.color} flex-shrink-0`}>
+                                                                    <IconComponent className="h-4 w-4" />
+                                                                </div>
+                                                                
+                                                                <div className="flex-1 space-y-1">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <h4 className={`text-sm font-semibold ${!notification.read ? 'text-slate-900' : 'text-slate-700'}`}>
+                                                                            {notification.title}
+                                                                        </h4>
+                                                                        <div className="flex items-center gap-1">
+                                                                            <span className="text-xs text-slate-500">
+                                                                                {notification.time}
+                                                                            </span>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    clearNotification(notification.id);
+                                                                                }}
+                                                                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                                                                            >
+                                                                                <X className="h-3 w-3" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    <p className={`text-sm ${!notification.read ? 'text-slate-700' : 'text-slate-600'}`}>
+                                                                        {notification.message}
+                                                                    </p>
+                                                                    
+                                                                    {!notification.read && (
+                                                                        <div className="flex items-center gap-2 mt-2">
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    markAsRead(notification.id);
+                                                                                }}
+                                                                                className="h-7 px-3 text-xs hover:text-accent-foreground"
+                                                                            >
+                                                                                <Check className="h-3 w-3 mr-1" />
+                                                                                Mark as read
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                
+                                                                {!notification.read && (
+                                                                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
+                                                                )}
+                                                            </div>
+                                                        </DropdownMenuItem>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                        
+                                        <DropdownMenuSeparator />
+                                     {/*   <DropdownMenuItem className="p-0">
+                                            <Button 
+                                                variant="ghost" 
+                                                className="w-full justify-center py-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                onClick={() => {
+                                                    // Here you could navigate to a full notifications page
+                                                    console.log('View all notifications');
+                                                }}
+                                            >
+                                                <Settings className="h-4 w-4 mr-2" />
+                                                Notification Settings
+                                            </Button>
+                                        </DropdownMenuItem> */}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         </div>  
-                                     {/* SECTION: UNASSIGNED TICKETS TABLE */}
-                        {canAssignTickets && lists.unassignedTickets && lists.unassignedTickets.length > 0 && (
-                            <div className="space-y-8">
-                                <div className="text-center space-y-4">                                    <h2 className="text-4xl font-bold text-orange-600">
-                                        Unassigned Tickets
-                                    </h2>
-                                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                                        Recent tickets awaiting technical assignment - quick actions available
-                                    </p>
-                                </div>
-                                
-                                <Card className="border-0 shadow-xl bg-gradient-to-br from-slate-50 via-white to-slate-50">                                    <CardHeader className="border-b border-slate-100 bg-slate-50">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded-lg bg-orange-100">
-                                                    <AlertTriangle className="h-5 w-5 text-orange-600" />
-                                                </div>
-                                                <div>
-                                                    <CardTitle className="text-xl text-slate-800">Latest Unassigned Tickets</CardTitle>
-                                                    <p className="text-sm text-slate-600 mt-1">Showing {lists.unassignedTickets.length} most recent unassigned tickets</p>
-                                                </div>
-                                            </div>
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm"
-                                                className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
-                                                onClick={() => window.open('/tickets', '_blank')}
-                                            >
-                                                <UserPlus className="h-4 w-4 mr-2" />
-                                                Bulk Assign
-                                            </Button>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="p-0">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full">
-                                                <thead>
-                                                    <tr className="border-b border-slate-100">
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Ticket</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Location</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Device</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Category</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Created</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Actions</th>
-                                                    </tr>
-                                                </thead>                                                <tbody>
-                                                    {lists.unassignedTickets.length > 0 ? (
-                                                        lists.unassignedTickets.map((ticket, index) => (
-                                                            <UnassignedTicketRow 
-                                                                key={ticket.id} 
-                                                                ticket={ticket} 
-                                                                index={index} 
-                                                                technicals={lists.availableTechnicals}
-                                                            />
-                                                        ))
-                                                    ) : (
-                                                        <tr>
-                                                            <td colSpan={6} className="py-12 text-center">
-                                                                <div className="space-y-3">
-                                                                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-                                                                    <p className="text-lg font-semibold text-slate-600">All tickets are assigned!</p>
-                                                                    <p className="text-sm text-slate-500">Great job keeping up with the workflow.</p>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        )}             
                                                 
                                                 
                                                 {/* SECTION 1: KEY TICKET METRICS */}
@@ -539,6 +846,79 @@ export default function Dashboard() {
                         </div>
 
                       
+                                     {/* SECTION: UNASSIGNED TICKETS TABLE  canAssignTickets &&*/}
+                        { lists.unassignedTickets && lists.unassignedTickets.length > 0 && (
+                            <div className="space-y-8">
+                                <div className="text-center space-y-4">                                    <h2 className="text-4xl font-bold text-orange-600">
+                                        Unassigned Tickets
+                                    </h2>
+                                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                                        Recent tickets awaiting technical assignment - quick actions available
+                                    </p>
+                                </div>
+                                
+                                <Card className="border-0 shadow-xl bg-gradient-to-br from-slate-50 via-white to-slate-50">                                    <CardHeader className="border-b border-slate-100 bg-slate-50">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 rounded-lg bg-orange-100">
+                                                    <AlertTriangle className="h-5 w-5 text-orange-600" />
+                                                </div>
+                                                <div>
+                                                    <CardTitle className="text-xl text-slate-800">Latest Unassigned Tickets</CardTitle>
+                                                    <p className="text-sm text-slate-600 mt-1">Showing {lists.unassignedTickets.length} most recent unassigned tickets</p>
+                                                </div>
+                                            </div>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                                                onClick={() => window.open('/tickets', '_blank')}
+                                            >
+                                                <UserPlus className="h-4 w-4 mr-2" />
+                                                Bulk Assign
+                                            </Button>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-0">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="border-b border-slate-100">
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Ticket</th>
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Location</th>
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Device</th>
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Category</th>
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Created</th>
+                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Actions</th>
+                                                    </tr>
+                                                </thead>                                                <tbody>
+                                                    {lists.unassignedTickets.length > 0 ? (
+                                                        lists.unassignedTickets.map((ticket, index) => (
+                                                            <UnassignedTicketRow 
+                                                                key={ticket.id} 
+                                                                ticket={ticket} 
+                                                                index={index} 
+                                                                technicals={lists.availableTechnicals}
+                                                            />
+                                                        ))
+                                                    ) : (
+                                                        <tr>
+                                                            <td colSpan={6} className="py-12 text-center">
+                                                                <div className="space-y-3">
+                                                                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+                                                                    <p className="text-lg font-semibold text-slate-600">All tickets are assigned!</p>
+                                                                    <p className="text-sm text-slate-500">Great job keeping up with the workflow.</p>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}             
 
                           {/* SECTION 2: SYSTEM RESOURCES */}
                         {metrics.resources.buildings > 0 && (
@@ -555,10 +935,9 @@ export default function Dashboard() {
                                         Comprehensive management of buildings, apartments, users and devices
                                     </p>
                                 </div>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">                                    {/* Buildings */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-violet-50 via-white to-violet-50 overflow-hidden cursor-pointer"
-                                          onClick={() => window.open('/buildings', '_blank')}>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {/* Buildings Card - Enhanced with carousel */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-violet-50 via-white to-violet-50 overflow-hidden">
                                         <CardContent className="p-6">
                                             <div className="text-center space-y-4">
                                                 <div className="p-4 rounded-xl bg-violet-100 w-fit mx-auto">
@@ -567,16 +946,84 @@ export default function Dashboard() {
                                                 <div className="space-y-2">
                                                     <p className="text-sm font-semibold text-violet-600 uppercase tracking-wider">Buildings</p>
                                                     <p className="text-3xl font-bold text-slate-900">{metrics.resources.buildings}</p>
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <ExternalLink className="h-3 w-3 text-violet-400" />
-                                                        <span className="text-xs text-slate-500">View management</span>
+                                                </div>
+                                                
+                                                {/* Buildings Carousel */}
+                                                {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <h4 className="text-xs font-semibold text-violet-600">Buildings Overview</h4>
+                                                            {lists.buildingsWithTickets.length > 3 && (
+                                                                <div className="flex gap-1">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        className="h-6 w-6 p-0"
+                                                                        onClick={() => {
+                                                                            const container = buildingsContainerRef.current;
+                                                                            if (container) {
+                                                                                container.scrollBy({ left: -200, behavior: 'smooth' });
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <ChevronLeft className="h-3 w-3" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        className="h-6 w-6 p-0"
+                                                                        onClick={() => {
+                                                                            const container = buildingsContainerRef.current;
+                                                                            if (container) {
+                                                                                container.scrollBy({ left: 200, behavior: 'smooth' });
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <ChevronRight className="h-3 w-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div 
+                                                            ref={buildingsContainerRef}
+                                                            className="flex gap-2 overflow-x-auto scrollbar-hide"
+                                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                                        >
+                                                            {lists.buildingsWithTickets.map((building) => (
+                                                                <div
+                                                                    key={building.id}
+                                                                    className="flex-shrink-0 group/building cursor-pointer"
+                                                                    title={`${building.name} - ${building.apartments_count} apartments, ${building.tenants_count} tenants`}
+                                                                    onClick={() => window.open(`/buildings/${building.id}`, '_blank')}
+                                                                >
+                                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-200 to-violet-400 flex items-center justify-center transition-transform shadow-lg">
+                                                                        {building.image ? (
+                                                                            <img 
+                                                                                src={`/storage/${building.image}`}
+                                                                                alt={building.name}
+                                                                                className="w-full h-full rounded-full object-cover"
+                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                   e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
+                                                                               }}
+                                                                            />
+                                                                        ) : (
+                                                                            <Building className="h-6 w-6 text-white" />
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     </div>
+                                                )}
+                                                
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <ExternalLink className="h-3 w-3 text-violet-400" />
+                                                    <span className="text-xs text-slate-500">View management</span>
                                                 </div>
                                             </div>
                                         </CardContent>
-                                    </Card>
-
-                                    {/* Apartments */}
+                                    </Card>                                   
+                                     {/* Apartments Card - Enhanced with building breakdown */}
                                     <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-white to-blue-50 overflow-hidden cursor-pointer"
                                           onClick={() => window.open('/apartments', '_blank')}>
                                         <CardContent className="p-6">
@@ -587,16 +1034,93 @@ export default function Dashboard() {
                                                 <div className="space-y-2">
                                                     <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">Apartments</p>
                                                     <p className="text-3xl font-bold text-slate-900">{metrics.resources.apartments}</p>
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <ExternalLink className="h-3 w-3 text-blue-400" />
-                                                        <span className="text-xs text-slate-500">View management</span>
-                                                    </div>
                                                 </div>
+                                                
+                                                {/* Buildings Circles for Apartments */}
+                                                {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <h4 className="text-xs font-semibold text-blue-600">By Building</h4>
+                                                            {lists.buildingsWithTickets.length > 3 && (
+                                                                <div className="flex gap-1">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        className="h-6 w-6 p-0"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const container = document.getElementById('apartments-container');
+                                                                            if (container) {
+                                                                                container.scrollBy({ left: -200, behavior: 'smooth' });
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <ChevronLeft className="h-3 w-3" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        className="h-6 w-6 p-0"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const container = document.getElementById('apartments-container');
+                                                                            if (container) {
+                                                                                container.scrollBy({ left: 200, behavior: 'smooth' });
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <ChevronRight className="h-3 w-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div 
+                                                            id="apartments-container"
+                                                            className="flex gap-2 overflow-x-auto scrollbar-hide"
+                                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                                        >
+                                                            {lists.buildingsWithTickets.map((building) => (
+                                                                <div
+                                                                    key={`apt-${building.id}`}
+                                                                    className="flex-shrink-0 group/building cursor-pointer flex flex-col items-center gap-1"
+                                                                    title={`${building.name}: ${building.apartments_count} apartments`}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        window.open(`/buildings/${building.id}/apartments`, '_blank');
+                                                                    }}
+                                                                >
+                                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-200 to-blue-400 flex items-center justify-center  transition-transform shadow-lg">
+                                                                        {building.image ? (
+                                                                            <img 
+                                                                                 src={`/storage/${building.image}`}
+                                                                                alt={building.name}
+                                                                                className="w-full h-full rounded-full object-cover"
+                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                   e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
+                                                                               }}
+                                                                            
+                                                                            />
+                                                                        ) : (
+                                                                            <Building className="h-5 w-5 text-white" />
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="text-xs font-bold text-blue-700 min-w-0 text-center">
+                                                                        {building.apartments_count}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                              {/*  <div className="flex items-center justify-center gap-2">
+                                                    <ExternalLink className="h-3 w-3 text-blue-400" />
+                                                    <span className="text-xs text-slate-500">View management</span>
+                                                </div> */}
                                             </div>
                                         </CardContent>
-                                    </Card>
-
-                                    {/* Tenants */}
+                                    </Card>                                    
+                                    {/* Tenants Card - Enhanced with building breakdown */}
                                     <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 overflow-hidden cursor-pointer"
                                           onClick={() => window.open('/tenants', '_blank')}>
                                         <CardContent className="p-6">
@@ -605,57 +1129,224 @@ export default function Dashboard() {
                                                     <Users className="h-8 w-8 text-emerald-600" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Tenants</p>
+                                                    <p className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Members</p>
                                                     <p className="text-3xl font-bold text-slate-900">{metrics.resources.tenants}</p>
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <ExternalLink className="h-3 w-3 text-emerald-400" />
-                                                        <span className="text-xs text-slate-500">Ver gestión</span>
-                                                    </div>
                                                 </div>
+                                                
+                                                {/* Buildings Circles for Tenants */}
+                                                {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <h4 className="text-xs font-semibold text-emerald-600">By Building</h4>
+                                                            {lists.buildingsWithTickets.length > 3 && (
+                                                                <div className="flex gap-1">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        className="h-6 w-6 p-0"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const container = document.getElementById('tenants-container');
+                                                                            if (container) {
+                                                                                container.scrollBy({ left: -200, behavior: 'smooth' });
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <ChevronLeft className="h-3 w-3" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        className="h-6 w-6 p-0"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const container = document.getElementById('tenants-container');
+                                                                            if (container) {
+                                                                                container.scrollBy({ left: 200, behavior: 'smooth' });
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <ChevronRight className="h-3 w-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div 
+                                                            id="tenants-container"
+                                                            className="flex gap-2 overflow-x-auto scrollbar-hide"
+                                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                                        >
+                                                            {lists.buildingsWithTickets.map((building) => (
+                                                                <div
+                                                                    key={`tenant-${building.id}`}
+                                                                    className="flex-shrink-0 group/building cursor-pointer flex flex-col items-center gap-1"
+                                                                    title={`${building.name}: ${building.tenants_count} tenants`}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        window.open(`/buildings/${building.id}/tenants`, '_blank');
+                                                                    }}
+                                                                >
+                                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-200 to-emerald-400 flex items-center justify-center  transition-transform shadow-lg">
+                                                                        {building.image ? (
+                                                                            <img 
+                                                                                  src={`/storage/${building.image}`}
+                                                                                alt={building.name}
+                                                                                className="w-full h-full rounded-full object-cover"
+                                                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                    e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
+                                                                                }}
+                                                                            />
+                                                                        ) : (
+                                                                            <Building className="h-5 w-5 text-white" />
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="text-xs font-bold text-emerald-700 min-w-0 text-center">
+                                                                        {building.tenants_count}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                               {/* <div className="flex items-center justify-center gap-2">
+                                                    <ExternalLink className="h-3 w-3 text-emerald-400" />
+                                                    <span className="text-xs text-slate-500">Ver gestión</span>
+                                                </div> */}
                                             </div>
                                         </CardContent>
                                     </Card>
 
-                                    {/* Dispositivos */}
+                                    {/* Devices Card - Enhanced with modal */}
                                     <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-amber-50 via-white to-amber-50 overflow-hidden cursor-pointer"
-                                          onClick={() => window.open('/devices', '_blank')}>
+                                          onClick={() => setShowDevicesModal(true)}>
                                         <CardContent className="p-6">
                                             <div className="text-center space-y-4">
                                                 <div className="p-4 rounded-xl bg-amber-100 w-fit mx-auto">
                                                     <Smartphone className="h-8 w-8 text-amber-600" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-amber-600 uppercase tracking-wider">Dispositivos</p>
+                                                    <p className="text-sm font-semibold text-amber-600 uppercase tracking-wider">Devices</p>
                                                     <p className="text-3xl font-bold text-slate-900">{metrics.resources.devices}</p>
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <ExternalLink className="h-3 w-3 text-amber-400" />
-                                                        <span className="text-xs text-slate-500">Ver gestión</span>
-                                                    </div>
                                                 </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Técnicos */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-rose-50 via-white to-rose-50 overflow-hidden cursor-pointer"
-                                          onClick={() => window.open('/technicals', '_blank')}>
-                                        <CardContent className="p-6">
-                                            <div className="text-center space-y-4">
-                                                <div className="p-4 rounded-xl bg-rose-100 w-fit mx-auto">
-                                                    <Wrench className="h-8 w-8 text-rose-600" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-rose-600 uppercase tracking-wider">Técnicos</p>
-                                                    <p className="text-3xl font-bold text-slate-900">{metrics.resources.technicals}</p>
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <ExternalLink className="h-3 w-3 text-rose-400" />
-                                                        <span className="text-xs text-slate-500">Ver gestión</span>
+                                                
+                                                {/* Device types preview */}
+                                                {/*charts.devicesByType && charts.devicesByType.length > 0 && (
+                                                    <div className="space-y-2">
+                                                        <h4 className="text-xs font-semibold text-amber-600">By Type</h4>
+                                                        <div className="space-y-1">
+                                                            {charts.devicesByType.slice(0, 3).map((deviceType) => (
+                                                                <div key={deviceType.name} className="flex justify-between items-center text-xs">
+                                                                    <span className="text-slate-600 truncate">
+                                                                        {deviceType.name}
+                                                                    </span>
+                                                                    <span className="font-semibold text-amber-700">{deviceType.count}</span>
+                                                                </div>
+                                                            ))}
+                                                            {charts.devicesByType.length > 3 && (
+                                                                <div className="text-xs text-slate-500">+{charts.devicesByType.length - 3} more</div>
+                                                            )}
+                                                        </div>
                                                     </div>
+                                                )*/}
+                                                
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <Monitor className="h-3 w-3 text-amber-400" />
+                                                    <span className="text-xs text-slate-500">Click to view details</span>
                                                 </div>
                                             </div>
                                         </CardContent>
                                     </Card>
                                 </div>
+
+                                {/* Technicals Enhanced Section */}
+                                {isSuperAdmin && lists.topTechnicals && lists.topTechnicals.length > 0 && (
+                                    <div className="mt-8">
+                                        <Card className="border-0 bg-gradient-to-br from-rose-50 via-white to-rose-50 shadow-xl">
+                                            <CardHeader className="border-b border-rose-100">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 rounded-lg bg-rose-100">
+                                                            <Wrench className="h-5 w-5 text-rose-600" />
+                                                        </div>
+                                                        <div>
+                                                            <CardTitle className="text-xl text-slate-800">Technical Team</CardTitle>
+                                                            <p className="text-sm text-slate-600 mt-1">{lists.topTechnicals.length} active technicians</p>
+                                                        </div>
+                                                    </div>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        className="bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100"
+                                                        onClick={() => window.open('/technicals', '_blank')}
+                                                    >
+                                                        <ExternalLink className="h-4 w-4 mr-2" />
+                                                        View All
+                                                    </Button>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="p-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                                    {lists.topTechnicals.map((technical) => (
+                                                        <div key={technical.id} className="bg-white rounded-xl p-4 shadow-lg border border-rose-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                                                            <div className="flex items-center space-x-3">
+                                                                <div className="relative">
+                                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-200 to-rose-400 flex items-center justify-center overflow-hidden">
+                                                                        {technical.photo ? (
+                                                                            <img 
+                                                                                src={technical.photo} 
+                                                                                alt={technical.name}
+                                                                                className="w-full h-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <User className="h-6 w-6 text-white" />
+                                                                        )}
+                                                                    </div>
+                                                                    {technical.is_default && (
+                                                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
+                                                                            <span className="text-xs">★</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <h4 className="font-semibold text-slate-800 text-sm truncate">{technical.name}</h4>
+                                                                        {technical.is_default && (
+                                                                            <Badge variant="secondary" className="text-xs px-1 py-0">Default</Badge>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        {technical.email && (
+                                                                            <div className="flex items-center gap-1">
+                                                                                <Mail className="h-3 w-3 text-slate-400" />
+                                                                                <span className="text-xs text-slate-600 truncate">{technical.email}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {technical.phone && (
+                                                                            <div className="flex items-center gap-1">
+                                                                                <Phone className="h-3 w-3 text-slate-400" />
+                                                                                <span className="text-xs text-slate-600">{technical.phone}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div className="flex items-center gap-1">
+                                                                                <Ticket className="h-3 w-3 text-blue-500" />
+                                                                                <span className="text-xs font-semibold text-blue-700">{technical.tickets_count} tickets</span>
+                                                                            </div>
+                                                                            {technical.shift && (
+                                                                                <span className="text-xs text-slate-500 capitalize">{technical.shift}</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                )}
                             </div>
                         )}
                           {/* SECTION 3: VISUAL ANALYSIS AND CHARTS */}
@@ -668,7 +1359,7 @@ export default function Dashboard() {
                                     Interactive charts and trends to monitor system performance
                                 </p>
                                 <div className="flex justify-center gap-6">
-                                    <Button
+                                   {/* <Button
                                         variant="outline"
                                         size="lg"
                                         onClick={() => window.open('/reports', '_blank')}
@@ -676,7 +1367,7 @@ export default function Dashboard() {
                                     >
                                         <BarChart className="h-6 w-6" />
                                         Ver Reportes Completos
-                                    </Button>
+                                    </Button> */}
                                     <Button
                                         variant="outline"
                                         size="lg"
@@ -705,10 +1396,10 @@ export default function Dashboard() {
                                             ];
                                             exportToExcel(allMetrics, 'dashboard_complete_analysis', 'Dashboard Analysis');
                                         }}
-                                        className="gap-4 h-14 px-8 shadow-xl border-emerald-200 hover:bg-emerald-50 text-emerald-700 text-lg"
+                                        className="gap-4 h-14 px-8 shadow-xl border-emerald-200 hover:bg-emerald-50 hover:text-emerald-500 text-emerald-700 text-lg"
                                     >
                                         <Download className="h-6 w-6" />
-                                        Exportar Análisis
+                                        Export Complete Analysis
                                     </Button>
                                 </div>
                             </div>
@@ -831,14 +1522,14 @@ export default function Dashboard() {
                                                     >
                                                         <FileSpreadsheet className="h-6 w-6 text-indigo-600" />
                                                     </Button>
-                                                    <Button
+                                                   {/* <Button
                                                         variant="outline"
                                                         size="lg"
                                                         onClick={() => window.open('/reports/trends', '_blank')}
                                                         className="h-14 w-14 p-0 hover:bg-indigo-50 shadow-xl"
                                                     >
                                                         <BarChart className="h-6 w-6 text-indigo-600" />
-                                                    </Button>
+                                                    </Button> */}
                                                 </div>
                                             </div>
                                         </CardHeader>
@@ -957,10 +1648,167 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                 </CardContent>
-                            </Card>
-                        </div>
+                            </Card>                        </div>
                           </div>
                 </div>
+
+                {/* Devices Modal */}
+                {showDevicesModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+                            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-3 rounded-xl bg-amber-100">
+                                        <Smartphone className="h-6 w-6 text-amber-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800">Device Management</h2>
+                                        <p className="text-slate-600">Complete overview of all devices in the system</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="lg"
+                                    onClick={() => setShowDevicesModal(false)}
+                                    className="rounded-full hover:bg-slate-100"
+                                >
+                                    <X className="h-6 w-6" />
+                                </Button>
+                            </div>
+                            
+                            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                                {lists.allDevices && lists.allDevices.length > 0 ? (
+                                    <div className="space-y-6">
+                                        {/* Device Summary Cards */}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                                                <CardContent className="p-4 text-center">
+                                                    <Monitor className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                                                    <h3 className="font-semibold text-blue-800">Total Devices</h3>
+                                                    <p className="text-2xl font-bold text-blue-900">{lists.allDevices.length}</p>
+                                                </CardContent>
+                                            </Card>
+                                            
+                                            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                                                <CardContent className="p-4 text-center">
+                                                    <Users className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                                                    <h3 className="font-semibold text-green-800">Active Users</h3>
+                                                    <p className="text-2xl font-bold text-green-900">
+                                                        {lists.allDevices.reduce((sum, device) => sum + device.users_count, 0)}
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+                                            
+                                            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                                                <CardContent className="p-4 text-center">
+                                                    <BarChart3 className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                                                    <h3 className="font-semibold text-purple-800">Device Types</h3>
+                                                    <p className="text-2xl font-bold text-purple-900">
+                                                        {new Set(lists.allDevices.map(d => d.device_type)).size}
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+
+                                        {/* Devices Table */}
+                                        <Card className="border-0 shadow-lg">
+                                            <CardHeader className="pb-6 border-b">
+                                                <div className="flex items-center justify-between">
+                                                    <CardTitle className="text-xl text-slate-800">Device Inventory</CardTitle>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            const deviceData = lists.allDevices.map(device => ({
+                                                                'Device Name': device.device_name,
+                                                                'Type': device.device_type,
+                                                                'Brand': device.brand_name,
+                                                                'System': device.system_name,
+                                                                'Active Users': device.users_count
+                                                            }));
+                                                            exportToExcel(deviceData, 'devices_inventory', 'Devices');
+                                                        }}
+                                                        className="gap-2"
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                        Export
+                                                    </Button>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="p-0">
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full">
+                                                        <thead>
+                                                            <tr className="border-b border-slate-100">
+                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">Device</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">Type</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">Brand</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">System</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">Users</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {lists.allDevices.map((device, index) => (
+                                                                <tr key={device.id} className={`border-b border-slate-50 hover:bg-slate-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-slate-25'}`}>
+                                                                    <td className="py-3 px-4">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center">
+                                                                                <Laptop className="h-4 w-4 text-amber-600" />
+                                                                            </div>
+                                                                           {/* <div>
+                                                                                <p className="font-semibold text-slate-800 text-sm">{device.device_name}</p>
+                                                                                <p className="text-xs text-slate-500">ID: {device.id}</p>
+                                                                            </div> */}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="py-3 px-4">
+                                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                                                            {device.device_type}
+                                                                        </Badge>
+                                                                    </td>
+                                                                    <td className="py-3 px-4">
+                                                                        <span className="text-sm font-medium text-slate-700">{device.brand_name}</span>
+                                                                    </td>
+                                                                    <td className="py-3 px-4">
+                                                                        <span className="text-sm text-slate-600">{device.system_name}</span>
+                                                                    </td>
+                                                                    <td className="py-3 px-4">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Users className="h-4 w-4 text-green-500" />
+                                                                            <span className="font-semibold text-green-700">{device.users_count}</span>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="py-3 px-4">
+                                                                        <Badge 
+                                                                            variant="outline" 
+                                                                            className={device.users_count > 0 
+                                                                                ? "bg-green-50 text-green-700 border-green-200" 
+                                                                                : "bg-gray-50 text-gray-600 border-gray-200"
+                                                                            }
+                                                                        >
+                                                                            {device.users_count > 0 ? 'Active' : 'Unused'}
+                                                                        </Badge>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <Smartphone className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                                        <h3 className="text-xl font-semibold text-slate-600 mb-2">No Devices Found</h3>
+                                        <p className="text-slate-500">No device data is available at the moment.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </AppLayout>
         </TooltipProvider>
     );
