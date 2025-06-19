@@ -1,9 +1,9 @@
+import React from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     Plus, Edit, Trash2, MoreHorizontal, User,
-    LayoutGrid, Table as TableIcon,
     List, Activity, Clock, CheckCircle, AlertCircle, Laptop, Trophy, Target
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,6 +17,39 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+// Componente para contador animado
+const AnimatedCounter = ({ value, duration = 1000 }: { value: number; duration?: number }) => {
+    const [displayValue, setDisplayValue] = React.useState(0);
+
+    React.useEffect(() => {
+        let startTime: number;
+        let animationFrame: number;
+
+        const animate = (currentTime: number) => {
+            if (!startTime) startTime = currentTime;
+            const progress = Math.min((currentTime - startTime) / duration, 1);
+            const easedProgress = 1 - Math.pow(1 - progress, 3); // Easing out cubic
+            const currentValue = Math.floor(easedProgress * value);
+
+            setDisplayValue(currentValue);
+
+            if (progress < 1) {
+                animationFrame = requestAnimationFrame(animate);
+            }
+        };
+
+        animationFrame = requestAnimationFrame(animate);
+
+        return () => {
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+        };
+    }, [value, duration]);
+
+    return <span>{displayValue}</span>;
+};
 
 interface Device {
     id: number;
@@ -219,47 +252,65 @@ export default function Index({ technicals }: TechnicalsPageProps) {
 
         return (
             <div className={`grid ${getGridClass()} gap-6`}>
-                {technicals.map((technical) => (
-                    <div key={technical.id} className="bg-card group p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow border relative">
+                {technicals.map((technical, index) => (
+                    <div 
+                        key={technical.id} 
+                        className="bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10 group p-4 rounded-xl shadow-sm hover:shadow-xl transition-all duration-500 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 relative overflow-hidden"
+                        style={{
+                            animationDelay: `${index * 150}ms`,
+                            animation: 'fadeInUp 0.6s ease-out forwards'
+                        }}
+                    >
+                        {/* Decorative corner gradient */}
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-corporate-gold/20 to-transparent rounded-bl-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        
                         {/* Imagen cuadrada arriba */}
-                        <div className="w-full aspect-square rounded-lg overflow-hidden mb-4 border">
+                        <div className="w-full aspect-square rounded-lg overflow-hidden mb-4 border-2 border-corporate-gold/30 group-hover:border-corporate-gold/50 transition-all duration-300 relative">
                             {technical.photo ? (
                                 <img
                                     src={`/storage/${technical.photo}`}
                                     alt={technical.name}
-                                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                 onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                    e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                    e.currentTarget.src = '/images/default-user.png';
                                 }}
                                 />
                             ) : (
-                                <div className="w-full h-full bg-muted flex items-center justify-center">
-                                    <User className="w-16 h-16 text-muted-foreground" />
+                                <div className="w-full h-full bg-gradient-to-br from-corporate-gold/10 to-corporate-warm/10 flex items-center justify-center">
+                                    <User className="w-16 h-16 text-corporate-gold/60" />
                                 </div>
                             )}
+                            {/* Animated border ring */}
+                            <div className="absolute inset-0 rounded-lg border-2 border-corporate-gold/0 group-hover:border-corporate-gold/30 transition-all duration-300 group-hover:scale-105"></div>
                         </div>
 
                         {/* Contenido debajo de la imagen */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <h3 className="font-semibold text-xl truncate">{technical.name}</h3>
+                                <h3 className="font-semibold text-xl truncate text-corporate-gold dark:text-corporate-gold-light group-hover:text-corporate-warm transition-colors duration-300">{technical.name}</h3>
                                 <Switch
                                     checked={technical.status}
                                     onCheckedChange={() => toggleStatus(technical)}
                                     disabled={isUpdatingStatus === technical.id}
-                                    className="scale-90 data-[state=checked]:bg-green-500"
+                                    className="scale-90 data-[state=checked]:bg-corporate-gold"
                                 />
                             </div>
 
                             <div className="space-y-1 text-sm">
                                 <p className="text-muted-foreground truncate">{technical.email}</p>
-                                <p className="font-medium">{technical.phone}</p>
+                                <p className="font-medium text-corporate-dark-brown dark:text-corporate-gold-light">{technical.phone}</p>
                                 <div className="flex items-center gap-2">
-                                    <span className="capitalize text-primary bg-primary/10 px-2 py-1 rounded-md">
+                                    <span className={`capitalize text-white px-3 py-1 rounded-md font-medium transition-all duration-300 ${
+                                        technical.shift === 'morning' 
+                                            ? 'bg-gradient-to-r from-corporate-gold to-corporate-warm shadow-lg shadow-corporate-gold/30' 
+                                            : technical.shift === 'afternoon'
+                                            ? 'bg-gradient-to-r from-corporate-warm to-corporate-gold shadow-lg shadow-corporate-warm/30'
+                                            : 'bg-gradient-to-r from-corporate-dark-brown to-corporate-brown shadow-lg shadow-corporate-dark-brown/30'
+                                    }`}>
                                         {technical.shift}
                                     </span>
                                     {technical.is_default && (
-                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-medium">
+                                        <span className="bg-gradient-to-r from-corporate-gold via-corporate-warm to-corporate-gold text-white px-2 py-1 rounded-md text-xs font-medium animate-pulse shadow-lg">
                                             Tech Chief
                                         </span>
                                     )}
@@ -271,18 +322,17 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                 <div className="flex gap-2">
                                     <Button
                                         onClick={() => handleEdit(technical)}
-                                        variant="default"
+                                        variant="outline"
                                         size="sm"
-                                        className="gap-2 px-4"
+                                        className="gap-2 px-4 border-corporate-gold/30 hover:bg-corporate-gold hover:text-white hover:border-corporate-gold transition-all duration-300 group-hover:scale-105"
                                     >
                                         <Edit className="w-4 h-4" />
                                     </Button>
                                     <Button
                                         onClick={() => handleDelete(technical)}
-                                        variant="destructive"
+                                        variant="outline"
                                         size="sm"
-                                        className="gap-2 px-4"
-                                      
+                                        className="gap-2 px-4 border-red-300 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-300 group-hover:scale-105"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
@@ -293,8 +343,11 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                         onClick={() => toggleDefaultTechnical(technical)}
                                         variant={technical.is_default ? "default" : "outline"}
                                         size="sm"
-                                        className="text-xs"
-
+                                        className={`text-xs transition-all duration-300 group-hover:scale-105 ${
+                                            technical.is_default 
+                                                ? 'bg-gradient-to-r from-corporate-gold to-corporate-warm text-white shadow-lg hover:shadow-xl' 
+                                                : 'border-corporate-gold/30 hover:bg-corporate-gold hover:text-white'
+                                        }`}
                                     >
                                         {technical.is_default ? "Remove Chief" : "Set as Chief"}
                                     </Button>
@@ -344,14 +397,28 @@ export default function Index({ technicals }: TechnicalsPageProps) {
         return (
             <TooltipProvider>
                 <div className="space-y-6">
-                    {technicals.map((technical) => (
-                        <div key={technical.id} className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow border overflow-hidden">
-                            <div className="flex">
+                    {technicals.map((technical, index) => (
+                        <div 
+                            key={technical.id} 
+                            className="bg-gradient-to-r from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10 rounded-xl shadow-sm hover:shadow-xl transition-all duration-500 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 overflow-hidden group"
+                            style={{
+                                animationDelay: `${index * 200}ms`,
+                                animation: 'fadeInUp 0.8s ease-out forwards'
+                            }}
+                        >
+                            {/* Animated gradient overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-corporate-gold/0 via-corporate-gold/5 to-corporate-gold/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                            
+                            <div className="flex relative z-10">
                                 {/* Card pequeño izquierdo - Info básica */}
-                                <div className="w-80 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 border-r">
-                                    <div className="flex flex-col items-center text-center space-y-4">
+                                <div className="w-80 bg-gradient-to-br from-corporate-gold/10 to-corporate-warm/10 dark:from-corporate-gold/20 dark:to-corporate-warm/20 p-6 border-r border-corporate-gold/20 relative overflow-hidden">
+                                    {/* Decorative elements */}
+                                    <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-corporate-gold/20 to-transparent rounded-bl-3xl"></div>
+                                    <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-corporate-warm/20 to-transparent rounded-tr-3xl"></div>
+                                    
+                                    <div className="flex flex-col items-center text-center space-y-4 relative z-10">
                                         <div className="relative">
-                                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-corporate-gold/30 shadow-xl relative group-hover:scale-110 transition-transform duration-500">
                                                 {technical.photo ? (
                                                     <img
                                                         src={`/storage/${technical.photo}`}
@@ -362,16 +429,19 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                         }}
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                                        <User className="w-12 h-12 text-gray-400" />
+                                                    <div className="w-full h-full bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 flex items-center justify-center">
+                                                        <User className="w-12 h-12 text-corporate-gold" />
                                                     </div>
                                                 )}
                                             </div>
+                                            {/* Animated ring */}
+                                            <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/0 group-hover:border-corporate-gold/50 transition-all duration-500 group-hover:scale-125"></div>
+                                            
                                             {technical.is_default && (
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-1">
-                                                            <Trophy className="w-4 h-4 text-yellow-800" />
+                                                        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-corporate-gold to-corporate-warm rounded-full p-2 shadow-lg animate-bounce">
+                                                            <Trophy className="w-4 h-4 text-white" />
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -382,35 +452,39 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <h3 className="font-bold text-xl text-gray-900">{technical.name}</h3>
-                                            <p className="text-sm text-gray-600">{technical.email}</p>
-                                            <p className="font-medium text-gray-700">{technical.phone}</p>
+                                            <h3 className="font-bold text-xl text-corporate-gold dark:text-corporate-gold-light group-hover:text-corporate-warm transition-colors duration-300">{technical.name}</h3>
+                                            <p className="text-sm text-muted-foreground">{technical.email}</p>
+                                            <p className="font-medium text-corporate-dark-brown dark:text-corporate-gold-light">{technical.phone}</p>
                                             
                                             <div className="flex flex-col gap-2">
-                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium capitalize ${
-                                                    technical.shift === 'morning' ? 'bg-orange-100 text-orange-800' :
-                                                    technical.shift === 'afternoon' ? 'bg-blue-100 text-blue-800' :
-                                                    'bg-purple-100 text-purple-800'
+                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium capitalize shadow-lg transition-all duration-300  ${
+                                                    technical.shift === 'morning' 
+                                                        ? 'bg-gradient-to-r from-corporate-gold to-corporate-warm text-primary-foregrounde shadow-corporate-gold/30' 
+                                                        : technical.shift === 'afternoon' 
+                                                        ? 'bg-gradient-to-r from-corporate-warm to-corporate-gold text-primary-foreground shadow-corporate-warm/30'
+                                                        : 'bg-gradient-to-r from-corporate-dark-brown to-corporate-brown text-primary-foreground shadow-corporate-dark-brown/30'
                                                 }`}>
                                                     <Clock className="w-3 h-3 mr-1" />
                                                     {technical.shift}
                                                 </span>
                                                 
                                                 {technical.is_default && (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-corporate-gold via-corporate-warm to-corporate-gold text-primary-foreground shadow-lg">
                                                         <Trophy className="w-3 h-3 mr-1" />
                                                         Tech Chief
                                                     </span>
                                                 )}
                                             </div>
 
-                                            {/* Nuevas métricas adicionales */}
+                                            {/* Nuevas métricas adicionales con animaciones */}
                                             <div className="grid grid-cols-2 gap-2 mt-3">
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-white/50 p-2 rounded-lg border text-center">
-                                                            <div className="text-lg font-bold text-green-600">{technical.current_streak}</div>
-                                                            <div className="text-xs text-gray-600">Streak</div>
+                                                        <div className="bg-white/70 dark:bg-corporate-gold/10 p-2 rounded-lg border border-corporate-gold/20 text-center hover:bg-white/90 dark:hover:bg-corporate-gold/15 transition-colors duration-300 cursor-pointer">
+                                                            <div className="text-lg font-bold text-corporate-gold animate-pulse">
+                                                                <AnimatedCounter value={technical.current_streak} />
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">Streak</div>
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -420,9 +494,11 @@ export default function Index({ technicals }: TechnicalsPageProps) {
 
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-white/50 p-2 rounded-lg border text-center">
-                                                            <div className="text-lg font-bold text-blue-600">{technical.avg_resolution_time}h</div>
-                                                            <div className="text-xs text-gray-600">Avg Time</div>
+                                                        <div className="bg-white/70 dark:bg-corporate-gold/10 p-2 rounded-lg border border-corporate-gold/20 text-center hover:bg-white/90 dark:hover:bg-corporate-gold/15 transition-colors duration-300 cursor-pointer">
+                                                            <div className="text-lg font-bold text-corporate-warm">
+                                                                <AnimatedCounter value={technical.avg_resolution_time} />h
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">Avg Time</div>
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -439,15 +515,17 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                         checked={technical.status}
                                                         onCheckedChange={() => toggleStatus(technical)}
                                                         disabled={isUpdatingStatus === technical.id}
-                                                        className="data-[state=checked]:bg-green-500"
+                                                        className="data-[state=checked]:bg-corporate-gold"
                                                     />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>{technical.status ? 'Deactivate' : 'Activate'} technical</p>
                                                 </TooltipContent>
                                             </Tooltip>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                technical.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                                                technical.status 
+                                                    ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 shadow-green-200/50' 
+                                                    : 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 shadow-red-200/50'
                                             }`}>
                                                 {technical.status ? 'Active' : 'Inactive'}
                                             </span>
@@ -460,7 +538,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                         onClick={() => handleEdit(technical)}
                                                         variant="outline"
                                                         size="sm"
-                                                        className="flex-1"
+                                                        className="flex-1 border-corporate-gold/30 hover:bg-corporate-gold hover:text-primary-foreground hover:border-corporate-gold transition-colors duration-300"
                                                     >
                                                         <Edit className="w-4 h-4" />
                                                     </Button>
@@ -474,9 +552,9 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                 <TooltipTrigger asChild>
                                                     <Button
                                                         onClick={() => handleDelete(technical)}
-                                                        variant="destructive"
+                                                        variant="outline"
                                                         size="sm"
-                                                        className="flex-1"
+                                                        className="flex-1 border-red-300 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors duration-300"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </Button>
@@ -493,7 +571,11 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                             onClick={() => toggleDefaultTechnical(technical)}
                                                             variant={technical.is_default ? "default" : "outline"}
                                                             size="sm"
-                                                            className="flex-1"
+                                                            className={`flex-1 transition-colors duration-300 ${
+                                                                technical.is_default 
+                                                                    ? 'bg-gradient-to-r from-corporate-gold to-corporate-warm text-primary-foreground border-corporate-gold hover:opacity-90' 
+                                                                    : 'border-corporate-gold/30 hover:bg-corporate-gold hover:text-white hover:border-corporate-gold'
+                                                            }`}
                                                         >
                                                             <Trophy className="w-4 h-4" />
                                                         </Button>
@@ -513,16 +595,18 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                         {/* Estadísticas de tickets */}
                                         <div className="space-y-4">
                                             <div className="flex items-center gap-2 mb-4">
-                                                <Activity className="w-5 h-5 text-blue-600" />
-                                                <h4 className="font-semibold text-lg">Performance Metrics</h4>
+                                                <Activity className="w-5 h-5 text-corporate-gold" />
+                                                <h4 className="font-semibold text-lg text-corporate-gold dark:text-corporate-gold-light">Performance Metrics</h4>
                                             </div>
 
-                                            {/* Estadísticas principales */}
+                                            {/* Estadísticas principales con animación */}
                                             <div className="grid grid-cols-3 gap-3">
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-green-50 p-3 rounded-lg border border-green-200 text-center">
-                                                            <div className="text-xl font-bold text-green-600">{technical.today_tickets}</div>
+                                                        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 rounded-lg border border-green-200 text-center hover:bg-gradient-to-br hover:from-green-100 hover:to-green-150 transition-colors duration-300 cursor-pointer">
+                                                            <div className="text-xl font-bold text-green-600">
+                                                                <AnimatedCounter value={technical.today_tickets} />
+                                                            </div>
                                                             <div className="text-xs text-green-600">Today</div>
                                                         </div>
                                                     </TooltipTrigger>
@@ -533,9 +617,11 @@ export default function Index({ technicals }: TechnicalsPageProps) {
 
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-center">
-                                                            <div className="text-xl font-bold text-blue-600">{technical.weekly_tickets}</div>
-                                                            <div className="text-xs text-blue-600">This Week</div>
+                                                        <div className="bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 p-3 rounded-lg border border-corporate-gold/30 text-center hover:bg-gradient-to-br hover:from-corporate-gold/30 hover:to-corporate-warm/30 transition-colors duration-300 cursor-pointer">
+                                                            <div className="text-xl font-bold text-corporate-gold">
+                                                                <AnimatedCounter value={technical.weekly_tickets} />
+                                                            </div>
+                                                            <div className="text-xs text-corporate-gold">This Week</div>
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -545,8 +631,10 @@ export default function Index({ technicals }: TechnicalsPageProps) {
 
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-purple-50 p-3 rounded-lg border border-purple-200 text-center">
-                                                            <div className="text-xl font-bold text-purple-600">{technical.monthly_tickets}</div>
+                                                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-3 rounded-lg border border-purple-200 text-center hover:bg-gradient-to-br hover:from-purple-100 hover:to-purple-150 transition-colors duration-300 cursor-pointer">
+                                                            <div className="text-xl font-bold text-purple-600">
+                                                                <AnimatedCounter value={technical.monthly_tickets} />
+                                                            </div>
                                                             <div className="text-xs text-purple-600">This Month</div>
                                                         </div>
                                                     </TooltipTrigger>
@@ -556,61 +644,123 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                 </Tooltip>
                                             </div>
 
-                                            {/* Estados de tickets */}
+                                            {/* Estados de tickets con barras animadas */}
                                             <div className="space-y-3">
-                                                <div className="flex items-center justify-between">
+                                                <div className="flex items-center justify-between group">
                                                     <div className="flex items-center gap-2">
                                                         <AlertCircle className="w-4 h-4 text-red-500" />
                                                         <span className="text-sm">Open</span>
                                                     </div>
-                                                    <span className="font-medium">{technical.open_tickets}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-16 h-2 bg-red-100 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full transition-all duration-1000 ease-out"
+                                                                style={{ 
+                                                                    width: `${technical.total_tickets > 0 ? (technical.open_tickets / technical.total_tickets) * 100 : 0}%`,
+                                                                    animationDelay: `${index * 200}ms`
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <span className="font-medium text-red-600">
+                                                            <AnimatedCounter value={technical.open_tickets} />
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center justify-between">
+                                                <div className="flex items-center justify-between group">
                                                     <div className="flex items-center gap-2">
                                                         <Clock className="w-4 h-4 text-yellow-500" />
                                                         <span className="text-sm">In Progress</span>
                                                     </div>
-                                                    <span className="font-medium">{technical.in_progress_tickets}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-16 h-2 bg-yellow-100 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="h-full bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full transition-all duration-1000 ease-out"
+                                                                style={{ 
+                                                                    width: `${technical.total_tickets > 0 ? (technical.in_progress_tickets / technical.total_tickets) * 100 : 0}%`,
+                                                                    animationDelay: `${index * 200 + 100}ms`
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <span className="font-medium text-yellow-600">
+                                                            <AnimatedCounter value={technical.in_progress_tickets} />
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center justify-between">
+                                                <div className="flex items-center justify-between group">
                                                     <div className="flex items-center gap-2">
                                                         <CheckCircle className="w-4 h-4 text-green-500" />
                                                         <span className="text-sm">Resolved</span>
                                                     </div>
-                                                    <span className="font-medium">{technical.resolved_tickets}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-16 h-2 bg-green-100 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-1000 ease-out"
+                                                                style={{ 
+                                                                    width: `${technical.total_tickets > 0 ? (technical.resolved_tickets / technical.total_tickets) * 100 : 0}%`,
+                                                                    animationDelay: `${index * 200 + 200}ms`
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <span className="font-medium text-green-600">
+                                                            <AnimatedCounter value={technical.resolved_tickets} />
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center justify-between">
+                                                <div className="flex items-center justify-between group">
                                                     <div className="flex items-center gap-2">
                                                         <Target className="w-4 h-4 text-gray-500" />
                                                         <span className="text-sm">Closed</span>
                                                     </div>
-                                                    <span className="font-medium">{technical.closed_tickets}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="h-full bg-gradient-to-r from-gray-400 to-gray-600 rounded-full transition-all duration-1000 ease-out"
+                                                                style={{ 
+                                                                    width: `${technical.total_tickets > 0 ? (technical.closed_tickets / technical.total_tickets) * 100 : 0}%`,
+                                                                    animationDelay: `${index * 200 + 300}ms`
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <span className="font-medium text-gray-600">
+                                                            <AnimatedCounter value={technical.closed_tickets} />
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* Progress bar de eficiencia */}
+                                            {/* Progress bar de eficiencia con animación */}
                                             {technical.total_tickets > 0 && (
                                                 <div className="mt-4">
-                                                    <div className="flex justify-between text-sm mb-1">
-                                                        <span>Success Rate</span>
-                                                        <span>{Math.round((technical.resolved_tickets / technical.total_tickets) * 100)}%</span>
+                                                    <div className="flex justify-between text-sm mb-2">
+                                                        <span className="text-corporate-gold font-medium">Success Rate</span>
+                                                        <span className="font-bold text-corporate-gold">
+                                                            <AnimatedCounter value={Math.round((technical.resolved_tickets / technical.total_tickets) * 100)} />%
+                                                        </span>
                                                     </div>
-                                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                                    <div className="w-full bg-gradient-to-r from-gray-200 to-gray-300 rounded-full h-3 shadow-inner overflow-hidden">
                                                         <div 
-                                                            className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                                                            style={{ width: `${Math.round((technical.resolved_tickets / technical.total_tickets) * 100)}%` }}
-                                                        />
+                                                            className="bg-gradient-to-r from-corporate-gold via-corporate-warm to-corporate-gold h-3 rounded-full transition-all duration-2000 ease-out shadow-lg relative"
+                                                            style={{ 
+                                                                width: `${Math.round((technical.resolved_tickets / technical.total_tickets) * 100)}%`,
+                                                                animationDelay: `${index * 300}ms`
+                                                            }}
+                                                        >
+                                                            {/* Shimmering effect */}
+                                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             )}
 
                                             {/* Información adicional */}
-                                            <div className="grid grid-cols-2 gap-3 pt-3 border-t">
+                                            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-corporate-gold/20">
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="text-center">
-                                                            <div className="text-sm font-medium text-gray-600">Resolved Today</div>
-                                                            <div className="text-lg font-bold text-green-600">{technical.resolved_today}</div>
+                                                        <div className="text-center p-2 rounded-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 hover:bg-gradient-to-br hover:from-green-100 hover:to-green-150 transition-colors duration-300 cursor-pointer">
+                                                            <div className="text-sm font-medium text-green-600">Resolved Today</div>
+                                                            <div className="text-lg font-bold text-green-600">
+                                                                <AnimatedCounter value={technical.resolved_today} />
+                                                            </div>
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -620,9 +770,9 @@ export default function Index({ technicals }: TechnicalsPageProps) {
 
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="text-center">
-                                                            <div className="text-sm font-medium text-gray-600">Last Activity</div>
-                                                            <div className="text-lg font-bold text-blue-600">{getTimeAgo(technical.last_activity)}</div>
+                                                        <div className="text-center p-2 rounded-lg bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 border border-corporate-gold/30 hover:bg-gradient-to-br hover:from-corporate-gold/30 hover:to-corporate-warm/30 transition-colors duration-300 cursor-pointer">
+                                                            <div className="text-sm font-medium text-corporate-gold">Last Activity</div>
+                                                            <div className="text-lg font-bold text-corporate-gold">{getTimeAgo(technical.last_activity)}</div>
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -637,25 +787,31 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                             {/* Dispositivos asignados */}
                                             <div>
                                                 <div className="flex items-center gap-2 mb-4">
-                                                    <Laptop className="w-5 h-5 text-green-600" />
-                                                    <h4 className="font-semibold text-lg">Active Assignments</h4>
-                                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                                                        {technical.assigned_devices_count}
+                                                    <Laptop className="w-5 h-5 text-corporate-gold" />
+                                                    <h4 className="font-semibold text-lg text-corporate-gold dark:text-corporate-gold-light">Active Assignments</h4>
+                                                    <span className="bg-gradient-to-r from-corporate-gold/20 to-corporate-warm/20 text-corporate-gold border border-corporate-gold/30 px-2 py-1 rounded-full text-xs font-medium animate-pulse">
+                                                        <AnimatedCounter value={technical.assigned_devices_count} />
                                                     </span>
                                                 </div>
 
-                                                <div className="space-y-2 max-h-36 overflow-y-auto">
+                                                <div className="space-y-2 max-h-36 overflow-y-auto overflow-x-hidden">
                                                     {technical.assigned_devices?.length > 0 ? (
-                                                        technical.assigned_devices.map((device) => (
+                                                        technical.assigned_devices.map((device, deviceIndex) => (
                                                             <Tooltip key={device.id}>
                                                                 <TooltipTrigger asChild>
-                                                                    <div className="bg-gray-50 p-3 rounded-lg border hover:bg-gray-100 transition-colors cursor-pointer">
-                                                                        <div className="font-medium text-sm">{device.name}</div>
-                                                                        <div className="text-xs text-gray-600">
+                                                                    <div 
+                                                                        className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg border border-corporate-gold/20 hover:bg-gradient-to-r hover:from-corporate-gold/10 hover:to-corporate-warm/10 hover:border-corporate-gold/40 transition-colors duration-300 cursor-pointer"
+                                                                        style={{
+                                                                            animationDelay: `${index * 100 + deviceIndex * 50}ms`,
+                                                                            animation: 'fadeInUp 0.6s ease-out forwards'
+                                                                        }}
+                                                                    >
+                                                                        <div className="font-medium text-sm text-corporate-gold truncate">{device.name}</div>
+                                                                        <div className="text-xs text-muted-foreground truncate">
                                                                             {device.brand?.name} • {device.model?.name}
                                                                         </div>
                                                                         {device.system && (
-                                                                            <div className="text-xs text-blue-600 mt-1">
+                                                                            <div className="text-xs text-corporate-warm mt-1 truncate">
                                                                                 System: {device.system.name}
                                                                             </div>
                                                                         )}
@@ -667,27 +823,35 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                             </Tooltip>
                                                         ))
                                                     ) : (
-                                                        <div className="text-sm text-gray-500 italic">No active device assignments</div>
+                                                        <div className="text-sm text-muted-foreground italic p-3 text-center bg-corporate-gold/5 rounded-lg border border-corporate-gold/20">
+                                                            No active device assignments
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
 
                                             {/* Tickets recientes */}
                                             <div>
-                                                <h4 className="font-semibold text-lg mb-3">Recent Tickets</h4>
-                                                <div className="space-y-2 max-h-44 overflow-y-auto">
+                                                <h4 className="font-semibold text-lg mb-3 text-corporate-gold dark:text-corporate-gold-light">Recent Tickets</h4>
+                                                <div className="space-y-2 max-h-44 overflow-y-auto overflow-x-hidden">
                                                     {technical.tickets?.length > 0 ? (
-                                                        technical.tickets.map((ticket) => (
+                                                        technical.tickets.map((ticket, ticketIndex) => (
                                                             <Tooltip key={ticket.id}>
                                                                 <TooltipTrigger asChild>
-                                                                    <div className="bg-gray-50 p-3 rounded-lg border hover:bg-gray-100 transition-colors cursor-pointer">
+                                                                    <div 
+                                                                        className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg border border-corporate-gold/20 hover:bg-gradient-to-r hover:from-corporate-gold/10 hover:to-corporate-warm/10 hover:border-corporate-gold/40 transition-colors duration-300 cursor-pointer"
+                                                                        style={{
+                                                                            animationDelay: `${index * 100 + ticketIndex * 50}ms`,
+                                                                            animation: 'fadeInUp 0.6s ease-out forwards'
+                                                                        }}
+                                                                    >
                                                                         <div className="flex items-center justify-between">
-                                                                            <div className="font-medium text-sm truncate pr-2">{ticket.title}</div>
-                                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}>
+                                                                            <div className="font-medium text-sm truncate pr-2 text-corporate-gold">{ticket.title}</div>
+                                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 flex-shrink-0 ${getStatusColor(ticket.status)}`}>
                                                                                 {ticket.status.replace('_', ' ')}
                                                                             </span>
                                                                         </div>
-                                                                        <div className="text-xs text-gray-600 mt-1">
+                                                                        <div className="text-xs text-muted-foreground mt-1 truncate">
                                                                             {formatDate(ticket.created_at)}
                                                                         </div>
                                                                     </div>
@@ -698,7 +862,9 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                             </Tooltip>
                                                         ))
                                                     ) : (
-                                                        <div className="text-sm text-gray-500 italic">No recent tickets</div>
+                                                        <div className="text-sm text-muted-foreground italic p-3 text-center bg-corporate-gold/5 rounded-lg border border-corporate-gold/20">
+                                                            No recent tickets
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
