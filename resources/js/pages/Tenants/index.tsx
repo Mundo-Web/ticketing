@@ -1,13 +1,12 @@
 // pages/Apartments/Index.tsx
 import AppLayout from '@/layouts/app-layout';
-import { SharedData, type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { 
     LayoutGrid, Plus, Edit, Trash2, ChevronRight, Laptop, UploadCloud, 
     ChevronDown, ChevronLeft, Search, Filter, FileSpreadsheet, 
-    Download, Users, MapPin, Mail, Phone, Crown, Shield, MapPinIcon,
-    Building2, UserCheck
+    Download, Users, MapPin, Mail, Phone, Crown, Shield, MapPinIcon
 } from 'lucide-react';
 import * as XLSX from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -19,7 +18,6 @@ import {
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
@@ -65,11 +63,6 @@ import _ from 'lodash';
 interface ExtendedTenant extends Tenant {
     devices?: Array<{ id: number; name: string }>;
     shared_devices?: Array<{ id: number; name: string }>;
-}
-
-// Extend Apartment type to include tenants with extended properties
-interface ExtendedApartment extends Omit<Apartment, 'tenants'> {
-    tenants?: ExtendedTenant[];
 }
 
 // Add CSS animations for enhanced UX
@@ -172,7 +165,8 @@ interface Props {
 }
 
 export default function Index({ apartments, brands, models, systems, name_devices }: Props) {
-    const { auth } = usePage<SharedData>().props;
+    // Removing unused auth
+    // const { auth } = usePage<SharedData>().props;
   
     // Debug inicial
     console.log('=== COMPONENT RENDERED ===');
@@ -187,7 +181,8 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [rowSelection, setRowSelection] = useState({});
     const [globalFilter, setGlobalFilter] = useState('');
   
-    const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+    // Removing unused viewMode
+    // const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [currentApartment, setCurrentApartment] = useState<Apartment | null>(null);
@@ -230,7 +225,7 @@ export default function Index({ apartments, brands, models, systems, name_device
         googleMapsApiKey: string
     };
 
-    const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
+    const { data, setData, post, delete: destroy, processing, errors, reset } = useForm({
         id: null as number | null,
         name: '',
         ubicacion: '',
@@ -701,6 +696,28 @@ export default function Index({ apartments, brands, models, systems, name_device
         },
     ];
 
+    // Funciones para manejar la paginación del servidor
+    const handlePageChange = (page: number) => {
+        const currentUrl = window.location.pathname + window.location.search;
+        const url = new URL(currentUrl, window.location.origin);
+        url.searchParams.set('page', page.toString());
+        router.visit(url.toString(), {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const handlePageSizeChange = (pageSize: number) => {
+        const currentUrl = window.location.pathname + window.location.search;
+        const url = new URL(currentUrl, window.location.origin);
+        url.searchParams.set('per_page', pageSize.toString());
+        url.searchParams.set('page', '1'); // Reset to first page when changing page size
+        router.visit(url.toString(), {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
     // Configuración de la tabla
     const table = useReactTable({
         data: apartments.data,
@@ -708,19 +725,25 @@ export default function Index({ apartments, brands, models, systems, name_device
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
         onGlobalFilterChange: setGlobalFilter,
         globalFilterFn: 'includesString',
+        // No usar paginación de React Table ya que usamos la del servidor
+        manualPagination: true,
+        pageCount: apartments.meta.last_page,
         state: {
             sorting,
             columnFilters,
             columnVisibility,
             rowSelection,
             globalFilter,
+            pagination: {
+                pageIndex: apartments.meta.current_page - 1, // React Table usa 0-based indexing
+                pageSize: apartments.meta.per_page,
+            },
         },
     });
 
@@ -1041,8 +1064,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                             }}
                             visible={showDevicesModal}
                             tenantName={selectedTenant || undefined}
-                            devices={selectedDevices as any}
-                            shareDevice={selectedShareDevices as any}
+                            devices={selectedDevices}
+                            shareDevice={selectedShareDevices}
                             brands={brands}
                             models={models}
                             systems={systems}
@@ -1447,26 +1470,18 @@ export default function Index({ apartments, brands, models, systems, name_device
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t bg-muted/20">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <span>
-                                        Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-                                        {Math.min(
-                                            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                                            table.getFilteredRowModel().rows.length
-                                        )}{' '}
-                                        of {table.getFilteredRowModel().rows.length} entries
-                                        {table.getFilteredRowModel().rows.length !== table.getCoreRowModel().rows.length && (
-                                            <span className="text-primary font-medium">
-                                                (filtered from {table.getCoreRowModel().rows.length} total)
-                                            </span>
-                                        )}
+                                        Showing {((apartments.meta.current_page - 1) * apartments.meta.per_page) + 1} to{' '}
+                                        {Math.min(apartments.meta.current_page * apartments.meta.per_page, apartments.meta.total)}{' '}
+                                        of {apartments.meta.total} entries
                                     </span>
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    <div className="flex items-center gap-2">
+                                   {/* <div className="flex items-center gap-2">
                                         <span className="text-sm text-muted-foreground">Rows per page:</span>
                                         <select
-                                            value={table.getState().pagination.pageSize}
-                                            onChange={(e) => table.setPageSize(Number(e.target.value))}
+                                            value={apartments.meta.per_page}
+                                            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                                             className="border rounded px-2 py-1 text-sm bg-background"
                                         >
                                             {[10, 20, 30, 40, 50].map(pageSize => (
@@ -1475,14 +1490,14 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                 </option>
                                             ))}
                                         </select>
-                                    </div>
+                                    </div> */}
 
                                     <div className="flex items-center gap-1">
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => table.setPageIndex(0)}
-                                            disabled={!table.getCanPreviousPage()}
+                                            onClick={() => handlePageChange(1)}
+                                            disabled={apartments.meta.current_page === 1}
                                             className="h-8 w-8 p-0"
                                         >
                                             <ChevronLeft className="h-4 w-4" />
@@ -1491,8 +1506,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => table.previousPage()}
-                                            disabled={!table.getCanPreviousPage()}
+                                            onClick={() => handlePageChange(apartments.meta.current_page - 1)}
+                                            disabled={apartments.meta.current_page === 1}
                                             className="h-8 w-8 p-0"
                                         >
                                             <ChevronLeft className="h-4 w-4" />
@@ -1502,23 +1517,25 @@ export default function Index({ apartments, brands, models, systems, name_device
                                             <span className="text-sm text-muted-foreground">Page</span>
                                             <input
                                                 type="number"
-                                                value={table.getState().pagination.pageIndex + 1}
+                                                value={apartments.meta.current_page}
                                                 onChange={(e) => {
-                                                    const page = e.target.value ? Number(e.target.value) - 1 : 0;
-                                                    table.setPageIndex(page);
+                                                    const page = e.target.value ? Number(e.target.value) : 1;
+                                                    if (page >= 1 && page <= apartments.meta.last_page) {
+                                                        handlePageChange(page);
+                                                    }
                                                 }}
                                                 className="w-12 h-8 text-center border rounded text-sm bg-background"
                                                 min="1"
-                                                max={table.getPageCount()}
+                                                max={apartments.meta.last_page}
                                             />
-                                            <span className="text-sm text-muted-foreground">of {table.getPageCount()}</span>
+                                            <span className="text-sm text-muted-foreground">of {apartments.meta.last_page}</span>
                                         </div>
 
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => table.nextPage()}
-                                            disabled={!table.getCanNextPage()}
+                                            onClick={() => handlePageChange(apartments.meta.current_page + 1)}
+                                            disabled={apartments.meta.current_page === apartments.meta.last_page}
                                             className="h-8 w-8 p-0"
                                         >
                                             <ChevronRight className="h-4 w-4" />
@@ -1526,8 +1543,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                                            disabled={!table.getCanNextPage()}
+                                            onClick={() => handlePageChange(apartments.meta.last_page)}
+                                            disabled={apartments.meta.current_page === apartments.meta.last_page}
                                             className="h-8 w-8 p-0"
                                         >
                                             <ChevronRight className="h-4 w-4" />

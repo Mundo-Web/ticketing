@@ -33,7 +33,6 @@ import {
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
@@ -297,6 +296,28 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         },
     ];
 
+    // Funciones para manejar la paginación del servidor
+    const handlePageChange = (page: number) => {
+        const currentUrl = window.location.pathname + window.location.search;
+        const url = new URL(currentUrl, window.location.origin);
+        url.searchParams.set('page', page.toString());
+        router.visit(url.toString(), {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const handlePageSizeChange = (pageSize: number) => {
+        const currentUrl = window.location.pathname + window.location.search;
+        const url = new URL(currentUrl, window.location.origin);
+        url.searchParams.set('per_page', pageSize.toString());
+        url.searchParams.set('page', '1'); // Reset to first page when changing page size
+        router.visit(url.toString(), {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
     // Configuración de la tabla
     const table = useReactTable({
         data: buildings.data,
@@ -304,19 +325,25 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
         onGlobalFilterChange: setGlobalFilter,
         globalFilterFn: 'includesString',
+        // No usar paginación de React Table ya que usamos la del servidor
+        manualPagination: true,
+        pageCount: buildings.meta.last_page,
         state: {
             sorting,
             columnFilters,
             columnVisibility,
             rowSelection,
             globalFilter,
+            pagination: {
+                pageIndex: buildings.meta.current_page - 1, // React Table usa 0-based indexing
+                pageSize: buildings.meta.per_page,
+            },
         },
     });
 
@@ -1036,26 +1063,18 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t bg-muted/20">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <span>
-                                    Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-                                    {Math.min(
-                                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                                        table.getFilteredRowModel().rows.length
-                                    )}{' '}
-                                    of {table.getFilteredRowModel().rows.length} entries
-                                    {table.getFilteredRowModel().rows.length !== table.getCoreRowModel().rows.length && (
-                                        <span className="text-primary font-medium">
-                                            (filtered from {table.getCoreRowModel().rows.length} total)
-                                        </span>
-                                    )}
+                                    Showing {((buildings.meta.current_page - 1) * buildings.meta.per_page) + 1} to{' '}
+                                    {Math.min(buildings.meta.current_page * buildings.meta.per_page, buildings.meta.total)}{' '}
+                                    of {buildings.meta.total} entries
                                 </span>
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-2">
+                              {/*  <div className="flex items-center gap-2">
                                     <span className="text-sm text-muted-foreground">Rows per page:</span>
                                     <select
-                                        value={table.getState().pagination.pageSize}
-                                        onChange={(e) => table.setPageSize(Number(e.target.value))}
+                                        value={buildings.meta.per_page}
+                                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                                         className="border rounded px-2 py-1 text-sm bg-background"
                                     >
                                         {[10, 20, 30, 40, 50].map(pageSize => (
@@ -1064,14 +1083,14 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                             </option>
                                         ))}
                                     </select>
-                                </div>
+                                </div> */}
 
                                 <div className="flex items-center gap-1">
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => table.setPageIndex(0)}
-                                        disabled={!table.getCanPreviousPage()}
+                                        onClick={() => handlePageChange(1)}
+                                        disabled={buildings.meta.current_page === 1}
                                         className="h-8 w-8 p-0"
                                     >
                                         <ChevronLeft className="h-4 w-4" />
@@ -1080,8 +1099,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => table.previousPage()}
-                                        disabled={!table.getCanPreviousPage()}
+                                        onClick={() => handlePageChange(buildings.meta.current_page - 1)}
+                                        disabled={buildings.meta.current_page === 1}
                                         className="h-8 w-8 p-0"
                                     >
                                         <ChevronLeft className="h-4 w-4" />
@@ -1091,23 +1110,25 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                         <span className="text-sm text-muted-foreground">Page</span>
                                         <input
                                             type="number"
-                                            value={table.getState().pagination.pageIndex + 1}
+                                            value={buildings.meta.current_page}
                                             onChange={(e) => {
-                                                const page = e.target.value ? Number(e.target.value) - 1 : 0;
-                                                table.setPageIndex(page);
+                                                const page = e.target.value ? Number(e.target.value) : 1;
+                                                if (page >= 1 && page <= buildings.meta.last_page) {
+                                                    handlePageChange(page);
+                                                }
                                             }}
                                             className="w-12 h-8 text-center border rounded text-sm bg-background"
                                             min="1"
-                                            max={table.getPageCount()}
+                                            max={buildings.meta.last_page}
                                         />
-                                        <span className="text-sm text-muted-foreground">of {table.getPageCount()}</span>
+                                        <span className="text-sm text-muted-foreground">of {buildings.meta.last_page}</span>
                                     </div>
 
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => table.nextPage()}
-                                        disabled={!table.getCanNextPage()}
+                                        onClick={() => handlePageChange(buildings.meta.current_page + 1)}
+                                        disabled={buildings.meta.current_page === buildings.meta.last_page}
                                         className="h-8 w-8 p-0"
                                     >
                                         <ChevronRight className="h-4 w-4" />
@@ -1115,8 +1136,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                                        disabled={!table.getCanNextPage()}
+                                        onClick={() => handlePageChange(buildings.meta.last_page)}
+                                        disabled={buildings.meta.current_page === buildings.meta.last_page}
                                         className="h-8 w-8 p-0"
                                     >
                                         <ChevronRight className="h-4 w-4" />
