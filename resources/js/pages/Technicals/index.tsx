@@ -115,6 +115,11 @@ export default function Index({ technicals }: TechnicalsPageProps) {
     
     console.log('User roles:', userRoles); // Debug para verificar estructura
     
+    // Helper function to check if technical is default
+    const isDefaultTechnical = (technical: Technical): boolean => {
+        return Boolean(technical.is_default);
+    };
+    
     const [viewMode, setViewMode] = useState<'grid' | 'table' | 'list'>('list');
     const [open, setOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -173,20 +178,20 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                 <div className="flex items-center gap-2">
                     {isSuperAdmin ? (
                         <Button
-                            variant={row.original.is_default ? "default" : "outline"}
+                            variant={isDefaultTechnical(row.original) ? "default" : "outline"}
                             size="sm"
                             onClick={() => toggleDefaultTechnical(row.original)}
                             className="h-6 px-2 text-xs"
                         >
-                            {row.original.is_default ? "Remove Chief" : "Set as Chief"}
+                            {isDefaultTechnical(row.original) ? "Remove Chief" : "Set as Chief"}
                         </Button>
                     ) : (
                         <span className={`px-2 py-1 rounded-full text-xs ${
-                            row.original.is_default 
+                            isDefaultTechnical(row.original) 
                                 ? 'bg-blue-100 text-blue-800' 
                                 : 'bg-gray-100 text-gray-600'
                         }`}>
-                            {row.original.is_default ? "Tech Chief" : "Technical"}
+                            {isDefaultTechnical(row.original) ? "Tech Chief" : "Technical"}
                         </span>
                     )}
                 </div>
@@ -309,7 +314,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                     }`}>
                                         {technical.shift}
                                     </span>
-                                    {technical.is_default && (
+                                    {isDefaultTechnical(technical) && (
                                         <span className="bg-gradient-to-r from-corporate-gold via-corporate-warm to-corporate-gold text-white px-2 py-1 rounded-md text-xs font-medium animate-pulse shadow-lg">
                                             Tech Chief
                                         </span>
@@ -341,15 +346,15 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                 {isSuperAdmin && (
                                     <Button
                                         onClick={() => toggleDefaultTechnical(technical)}
-                                        variant={technical.is_default ? "default" : "outline"}
+                                        variant={isDefaultTechnical(technical) ? "default" : "outline"}
                                         size="sm"
                                         className={`text-xs transition-all duration-300 group-hover:scale-105 ${
-                                            technical.is_default 
+                                            isDefaultTechnical(technical) 
                                                 ? 'bg-gradient-to-r from-corporate-gold to-corporate-warm text-white shadow-lg hover:shadow-xl' 
                                                 : 'border-corporate-gold/30 hover:bg-corporate-gold hover:text-white'
                                         }`}
                                     >
-                                        {technical.is_default ? "Remove Chief" : "Set as Chief"}
+                                        {isDefaultTechnical(technical) ? "Remove Chief" : "Set as Chief"}
                                     </Button>
                                 )}
                             </div>
@@ -437,11 +442,11 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                             {/* Animated ring */}
                                             <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/0 group-hover:border-corporate-gold/50 transition-all duration-500 group-hover:scale-125"></div>
                                             
-                                            {technical.is_default && (
+                                            {isDefaultTechnical(technical) && (
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <div className="absolute -top-1 -right-1 bg-gradient-to-r from-corporate-gold to-corporate-warm rounded-full p-2 shadow-lg animate-bounce">
-                                                            <Trophy className="w-4 h-4 text-white" />
+                                                            <Trophy className="w-4 h-4 text-primary-foreground" />
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -468,7 +473,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                     {technical.shift}
                                                 </span>
                                                 
-                                                {technical.is_default && (
+                                                {isDefaultTechnical(technical) && (
                                                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-corporate-gold via-corporate-warm to-corporate-gold text-primary-foreground shadow-lg">
                                                         <Trophy className="w-3 h-3 mr-1" />
                                                         Tech Chief
@@ -569,10 +574,10 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                     <TooltipTrigger asChild>
                                                         <Button
                                                             onClick={() => toggleDefaultTechnical(technical)}
-                                                            variant={technical.is_default ? "default" : "outline"}
+                                                            variant={isDefaultTechnical(technical) ? "default" : "outline"}
                                                             size="sm"
                                                             className={`flex-1 transition-colors duration-300 ${
-                                                                technical.is_default 
+                                                                isDefaultTechnical(technical) 
                                                                     ? 'bg-gradient-to-r from-corporate-gold to-corporate-warm text-primary-foreground border-corporate-gold hover:opacity-90' 
                                                                     : 'border-corporate-gold/30 hover:bg-corporate-gold hover:text-white hover:border-corporate-gold'
                                                             }`}
@@ -581,7 +586,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                         </Button>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p>{technical.is_default ? 'Remove as' : 'Set as'} Tech Chief</p>
+                                                        <p>{isDefaultTechnical(technical) ? 'Remove as' : 'Set as'} Tech Chief</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             )}
@@ -902,7 +907,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
             await router.put(route('technicals.set-default', technical.id), {}, {
                 preserveScroll: true,
                 onSuccess: () => {
-                    const action = technical.is_default ? 'removed from' : 'assigned as';
+                    const action = isDefaultTechnical(technical) ? 'removed from' : 'assigned as';
                     toast.success(`Technical ${action} Tech Chief successfully`);
                 },
                 onError: () => toast.error('Error updating Tech Chief status')
