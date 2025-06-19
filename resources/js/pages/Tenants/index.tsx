@@ -200,7 +200,7 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [isBulkUploading, setIsBulkUploading] = useState(false);
     const [mapKey, setMapKey] = useState(0); // Para forzar re-render del mapa
 
-    const { building, all_buildings, googleMapsApiKey } = usePage().props as {
+    const { building, all_buildings, googleMapsApiKey } = usePage().props as unknown as {
         building: {
             id: number,
             name: string,
@@ -276,7 +276,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             }
         });
 
-        post(route('buildings.apartments.store', building), formData, {
+        post(route('buildings.apartments.store', building.id), formData, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -285,8 +285,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                 setShowCreateModal(false);
                 toast.success('Apartment created successfully');
             },
-            onError: (errors) => {
-                Object.values(errors).forEach(error => toast.error(error));
+            onError: (errors: Record<string, string>) => {
+                Object.values(errors).forEach((error: string) => toast.error(error));
             }
         });
     };
@@ -568,7 +568,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                     <Button
                         variant="ghost"
                         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent"
+                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent hover:text-primary-foreground"
                     >
                         Apartment
                         {column.getIsSorted() === "asc" ? (
@@ -591,7 +591,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                     <Button
                         variant="ghost"
                         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent"
+                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent  hover:text-primary-foreground"
                     >
                         <Users className="mr-2 h-4 w-4" />
                         Members
@@ -609,7 +609,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                 const apartment = row.original;
                 return (
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-corporate-gold/10 text-corporate-gold">
                             <Users className="w-4 h-4" />
                         </div>
                         <span className="font-medium">{apartment.tenants?.length || 0}</span>
@@ -625,9 +625,9 @@ export default function Index({ apartments, brands, models, systems, name_device
                     <Button
                         variant="ghost"
                         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent"
+                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent  hover:text-primary-foreground"
                     >
-                        <MapPin className="mr-2 h-4 w-4" />
+                        
                         Location
                         {column.getIsSorted() === "asc" ? (
                             <ChevronDown className="ml-2 h-4 w-4 rotate-180" />
@@ -652,7 +652,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                     <Button
                         variant="ghost"
                         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent"
+                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent  hover:text-primary-foreground"
                     >
                         Status
                         {column.getIsSorted() === "asc" ? (
@@ -701,17 +701,6 @@ export default function Index({ apartments, brands, models, systems, name_device
         const currentUrl = window.location.pathname + window.location.search;
         const url = new URL(currentUrl, window.location.origin);
         url.searchParams.set('page', page.toString());
-        router.visit(url.toString(), {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
-
-    const handlePageSizeChange = (pageSize: number) => {
-        const currentUrl = window.location.pathname + window.location.search;
-        const url = new URL(currentUrl, window.location.origin);
-        url.searchParams.set('per_page', pageSize.toString());
-        url.searchParams.set('page', '1'); // Reset to first page when changing page size
         router.visit(url.toString(), {
             preserveState: true,
             preserveScroll: true,
@@ -1105,23 +1094,23 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 </p>
                             </div>
 
-                            <div className="bg-blue-50 p-4 rounded-lg">
-                                <h4 className="font-medium text-blue-900 mb-2">Excel Format Required:</h4>
-                                <ul className="text-sm text-blue-800 space-y-1">
+                            <div className="bg-corporate-gold/10 dark:bg-corporate-gold/20 border border-corporate-gold/20 p-4 rounded-lg">
+                                <h4 className="font-medium text-corporate-gold dark:text-corporate-gold-light mb-2">Excel Format Required:</h4>
+                                <ul className="text-sm text-corporate-dark-brown dark:text-corporate-gold-light/80 space-y-1">
                                     <li>• <strong>apartment:</strong> Apartment name</li>
                                     <li>• <strong>name:</strong> Member name</li>
                                     <li>• <strong>email:</strong> Member email</li>
                                     <li>• <strong>phone:</strong> Member phone</li>
                                 </ul>
-                                <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-                                    <p className="text-yellow-800">
+                                <div className="mt-3 p-2 bg-corporate-warm/10 border border-corporate-warm/20 rounded text-sm">
+                                    <p className="text-corporate-dark-brown dark:text-corporate-gold-light/80">
                                         <strong>Limitations:</strong> Maximum 1000 rows, 10MB file size
                                     </p>
                                 </div>
                                 <Button
                                     type="button"
                                     variant="link"
-                                    className="text-blue-600 p-0 h-auto mt-2"
+                                    className="text-corporate-gold p-0 h-auto mt-2 hover:text-corporate-warm"
                                     onClick={downloadTemplate}
                                 >
                                     Download Template
@@ -1156,15 +1145,15 @@ export default function Index({ apartments, brands, models, systems, name_device
                 </Dialog>
 
                 {apartments.data.length === 0 ? (
-                    <div className="bg-background p-8 rounded-xl text-center border-2 border-dashed">
-                        <div className="text-primary mb-4 flex justify-center">
+                    <div className="bg-corporate-gold/10 dark:bg-corporate-gold/20 border-2 border-dashed border-corporate-gold/20 p-8 rounded-xl text-center">
+                        <div className="text-corporate-gold dark:text-corporate-gold-light mb-4 flex justify-center">
                             <LayoutGrid className="w-12 h-12" />
                         </div>
-                        <h3 className="text-xl font-semibold text-primary mb-2">No apartments registered</h3>
-                        <p className="text-primary mb-4">Start by adding your first apartment</p>
+                        <h3 className="text-xl font-semibold text-corporate-gold dark:text-corporate-gold-light mb-2">No apartments registered</h3>
+                        <p className="text-corporate-gold/70 dark:text-corporate-gold-light/70 mb-4">Start by adding your first apartment</p>
                         <Button
                             onClick={handleShowCreate}
-                            className="inline-flex items-center gap-2"
+                            className="inline-flex items-center gap-2 bg-gradient-to-r from-corporate-gold to-corporate-warm hover:from-corporate-warm hover:to-corporate-gold text-white shadow-lg hover:shadow-xl transition-all duration-300"
                         >
                             <Plus className="w-5 h-5" />
                             Create First Apartment
@@ -1174,18 +1163,18 @@ export default function Index({ apartments, brands, models, systems, name_device
                     <div className='flex flex-col lg:flex-row gap-4'>
                         <div className="w-full lg:w-4/12 space-y-6">
                             {building.owner && (
-                                <Card className="overflow-hidden !p-0 border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl group bg-gradient-to-br from-white to-primary/5">
+                                <Card className="overflow-hidden !p-0 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:shadow-xl group bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown to-corporate-gold/10">
                                     <CardContent className="p-0">
                                         {/* Header con gradiente mejorado */}
-                                        <div className="bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 p-4 border-b border-primary/10 relative overflow-hidden">
-                                            <div className="flex items-center gap-2 text-primary relative z-10">
-                                                <div className="p-2 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors duration-300">
+                                        <div className="bg-gradient-to-r from-corporate-gold/15 via-corporate-gold/10 to-corporate-gold/5 dark:from-corporate-gold/25 dark:via-corporate-gold/15 dark:to-corporate-gold/10 p-4 border-b border-corporate-gold/20 relative overflow-hidden">
+                                            <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light relative z-10">
+                                                <div className="p-2 bg-corporate-gold/10 rounded-full group-hover:bg-corporate-gold/20 transition-colors duration-300">
                                                     <Crown className="w-4 h-4" />
                                                 </div>
                                                 <span className="font-bold text-sm">Building Owner</span>
                                             </div>
                                             {/* Decorative gradient overlay */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-corporate-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                                         </div>
                                         
                                         {/* Contenido principal mejorado */}
@@ -1196,41 +1185,41 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                         <img
                                                             src={`/storage/${building.owner.photo}`}
                                                             alt={building.owner.name}
-                                                            className="w-20 h-20 rounded-full object-cover border-3 border-primary/30 shadow-lg group-hover:border-primary/50 transition-all duration-300 group-hover:shadow-xl"
+                                                            className="w-20 h-20 rounded-full object-cover border-3 border-corporate-gold/30 shadow-lg group-hover:border-corporate-gold/50 transition-all duration-300 group-hover:shadow-xl"
                                                             onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                                                                 e.currentTarget.src = '/images/default-user.png';
                                                             }}
                                                         />
                                                         {/* Ring animado */}
-                                                        <div className="absolute inset-0 rounded-full border-2 border-primary/40 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"></div>
+                                                        <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/40 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"></div>
                                                     </div>
                                                     
-                                                    <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 rounded-full border-3 border-white shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                                    <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-gradient-to-br from-corporate-warm via-corporate-gold to-corporate-dark-brown rounded-full border-3 border-background shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                                                         <Crown className="w-4 h-4 text-white" />
                                                     </div>
                                                 </div>
                                                 
                                                 <div className="flex-1 space-y-4">
                                                     <div>
-                                                        <h3 className="text-xl font-bold text-primary group-hover:text-primary/80 transition-colors">{building.owner.name}</h3>
+                                                        <h3 className="text-xl font-bold text-foreground group-hover:text-corporate-gold transition-colors">{building.owner.name}</h3>
                                                         <div className="flex items-center gap-2 mt-1">
-                                                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                                            <div className="w-2 h-2 bg-corporate-gold rounded-full animate-pulse"></div>
                                                             <p className="text-sm text-muted-foreground font-semibold">Property Owner</p>
                                                         </div>
                                                     </div>
                                                     
                                                     <div className="space-y-3">
-                                                        <div className="flex items-center gap-3 text-sm group/item hover:bg-primary/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-primary/20">
-                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center group-hover/item:from-blue-200 group-hover/item:to-blue-300 transition-all duration-300 group-hover/item:scale-110">
-                                                                <Mail className="w-4 h-4 text-blue-600" />
+                                                        <div className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
+                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 flex items-center justify-center group-hover/item:from-corporate-gold/30 group-hover/item:to-corporate-warm/30 transition-all duration-300 group-hover/item:scale-110">
+                                                                <Mail className="w-4 h-4 text-corporate-gold dark:text-corporate-gold-light" />
                                                             </div>
-                                                            <span className="text-muted-foreground group-hover/item:text-primary font-medium flex-1">{building.owner.email}</span>
+                                                            <span className="text-muted-foreground group-hover/item:text-foreground font-medium flex-1">{building.owner.email}</span>
                                                         </div>
-                                                        <div className="flex items-center gap-3 text-sm group/item hover:bg-primary/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-primary/20">
-                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center group-hover/item:from-green-200 group-hover/item:to-green-300 transition-all duration-300 group-hover/item:scale-110">
-                                                                <Phone className="w-4 h-4 text-green-600" />
+                                                        <div className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
+                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-warm/20 to-corporate-gold/20 flex items-center justify-center group-hover/item:from-corporate-warm/30 group-hover/item:to-corporate-gold/30 transition-all duration-300 group-hover/item:scale-110">
+                                                                <Phone className="w-4 h-4 text-corporate-warm dark:text-corporate-gold-light" />
                                                             </div>
-                                                            <span className="text-muted-foreground group-hover/item:text-primary font-medium flex-1">{building.owner.phone}</span>
+                                                            <span className="text-muted-foreground group-hover/item:text-foreground font-medium flex-1">{building.owner.phone}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1244,12 +1233,12 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 <div className="space-y-4 w-full">
                                     {/* Header mejorado */}
                                     <div className="flex items-center gap-3 px-2">
-                                        <div className="flex items-center gap-2 text-primary">
+                                        <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light">
                                             <Shield className="w-5 h-5" />
                                             <h3 className="text-lg font-bold">Doormen</h3>
                                         </div>
-                                        <div className="flex-1 h-px bg-gradient-to-r from-primary/30 to-transparent"></div>
-                                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full font-medium">
+                                        <div className="flex-1 h-px bg-gradient-to-r from-corporate-gold/30 to-transparent"></div>
+                                        <span className="text-xs text-muted-foreground bg-corporate-gold/10 border border-corporate-gold/20 px-2 py-1 rounded-full font-medium">
                                             {building.doormen.length} {building.doormen.length === 1 ? 'Guard' : 'Guards'}
                                         </span>
                                     </div>
@@ -1258,7 +1247,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         {building.doormen.map((doorman, index) => (
                                             <Card 
                                                 key={doorman.id} 
-                                                className="group !p-0 overflow-hidden border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-white to-gray-50/50"
+                                                className="group !p-0 overflow-hidden border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10"
                                                 style={{
                                                     animationDelay: `${index * 150}ms`,
                                                 }}
@@ -1270,32 +1259,28 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                             <img
                                                                 src={`/storage/${doorman.photo}`}
                                                                 alt={doorman.name}
-                                                                className="w-full aspect-square rounded-full object-cover border-3 border-primary/20 group-hover:border-primary/50 transition-all duration-300 shadow-lg group-hover:shadow-xl"
+                                                                className="w-full aspect-square rounded-full object-cover border-3 border-corporate-gold/20 group-hover:border-corporate-gold/50 transition-all duration-300 shadow-lg group-hover:shadow-xl"
                                                                 onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                                                                     e.currentTarget.src = '/images/default-user.png';
                                                                 }}
                                                             />
                                                             {/* Ring animado en hover */}
-                                                            <div className="absolute inset-0 rounded-full border-2 border-primary/30 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"></div>
+                                                            <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/30 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"></div>
                                                         </div>
-                                                        
-                                                      
-                                                        
-                                                      
                                                     </div>
                                                     
                                                     {/* Información del portero */}
                                                     <div className="text-center space-y-2">
-                                                        <h4 className="text-sm font-bold text-primary line-clamp-1 group-hover:text-primary/80 transition-colors">
+                                                        <h4 className="text-sm font-bold text-corporate-gold dark:text-corporate-gold-light line-clamp-1 group-hover:text-corporate-warm transition-colors">
                                                             {doorman.name}
                                                         </h4>
                                                         <div className="flex items-center justify-center gap-2">
                                                             <div className={`w-3 h-3 rounded-full ${
                                                                 doorman.shift.toLowerCase().includes('morning') || doorman.shift.toLowerCase().includes('day') 
-                                                                    ? 'bg-yellow-400' 
+                                                                    ? 'bg-corporate-gold shadow-lg shadow-corporate-gold/30' 
                                                                     : doorman.shift.toLowerCase().includes('night') 
-                                                                    ? 'bg-purple-500'
-                                                                    : 'bg-orange-400'
+                                                                    ? 'bg-corporate-dark-brown shadow-lg shadow-corporate-dark-brown/30'
+                                                                    : 'bg-corporate-warm shadow-lg shadow-corporate-warm/30'
                                                             }`}></div>
                                                             <p className="text-xs font-semibold text-muted-foreground">{doorman.shift}</p>
                                                         </div>
@@ -1310,17 +1295,17 @@ export default function Index({ apartments, brands, models, systems, name_device
                             )}
 
                             {building.location_link && (
-                                <Card className="overflow-hidden !p-0 border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl group bg-gradient-to-br from-white to-blue-50/30">
+                                <Card className="overflow-hidden !p-0 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:shadow-xl group bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10">
                                     {/* Header del mapa mejorado */}
-                                    <div className="bg-gradient-to-r from-blue-50 via-primary/10 to-blue-50 p-4 border-b border-primary/10 relative overflow-hidden">
-                                        <div className="flex items-center gap-2 text-primary relative z-10">
-                                            <div className="p-2 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors duration-300">
+                                    <div className="bg-gradient-to-r from-corporate-gold/10 via-corporate-gold/15 to-corporate-gold/10 dark:from-corporate-gold/20 dark:via-corporate-gold/25 dark:to-corporate-gold/20 p-4 border-b border-corporate-gold/20 relative overflow-hidden">
+                                        <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light relative z-10">
+                                            <div className="p-2 bg-corporate-gold/10 rounded-full group-hover:bg-corporate-gold/20 transition-colors duration-300">
                                                 <MapPinIcon className="w-4 h-4" />
                                             </div>
                                             <span className="font-bold text-sm">Building Location</span>
                                         </div>
                                         {/* Decorative moving gradient */}
-                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -translate-x-full group-hover:translate-x-full duration-1000"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-corporate-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -translate-x-full group-hover:translate-x-full duration-1000"></div>
                                     </div>
                                     
                                     {/* Contenedor del mapa mejorado */}
@@ -1353,8 +1338,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                         
                                         {/* Corner accent */}
-                                        <div className="absolute top-3 right-3 w-3 h-3 bg-primary/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-150"></div>
-                                        <div className="absolute bottom-3 left-3 w-2 h-2 bg-blue-500/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:scale-125"></div>
+                                        <div className="absolute top-3 right-3 w-3 h-3 bg-corporate-gold/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-150"></div>
+                                        <div className="absolute bottom-3 left-3 w-2 h-2 bg-corporate-warm/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:scale-125"></div>
                                     </div>
                                 </Card>
                             )}
@@ -1362,15 +1347,15 @@ export default function Index({ apartments, brands, models, systems, name_device
                         </div>
                         <div className='lg:w-8/12 flex flex-col'>
                             {/* Advanced Table Controls */}
-                            <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-muted/30 rounded-lg">
+                            <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-corporate-gold/5 dark:bg-corporate-gold/10 border border-corporate-gold/20 rounded-lg">
                                 <div className="flex items-center gap-4 flex-1">
                                     <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-corporate-gold/60 w-4 h-4" />
                                         <Input
                                             placeholder="Search apartments, members, locations..."
                                             value={globalFilter ?? ""}
                                             onChange={(event) => setGlobalFilter(event.target.value)}
-                                            className="pl-10 w-80"
+                                            className="pl-10 w-80 border-corporate-gold/20 focus:border-corporate-gold focus:ring-corporate-gold/20"
                                         />
                                     </div>
                                     <div className="hidden sm:block text-sm text-muted-foreground">
@@ -1381,7 +1366,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 <div className="flex items-center gap-2">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" size="sm">
+                                            <Button variant="outline" size="sm" className="border-corporate-gold/20 hover:bg-corporate-gold/10 hover:border-corporate-gold">
                                                 <Filter className="mr-2 h-4 w-4" />
                                                 Columns <ChevronDown className="ml-1 h-4 w-4" />
                                             </Button>
@@ -1407,7 +1392,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                     
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" size="sm">
+                                            <Button variant="outline" size="sm" className="border-corporate-gold/20 hover:bg-corporate-gold/10 hover:border-corporate-gold">
                                                 <FileSpreadsheet className="mr-2 h-4 w-4" />
                                                 Export <ChevronDown className="ml-1 h-4 w-4" />
                                             </Button>
@@ -1467,7 +1452,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                             </div>
 
                             {/* Enhanced Pagination */}
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t bg-muted/20">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-corporate-gold/20 bg-corporate-gold/5 dark:bg-corporate-gold/10">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <span>
                                         Showing {((apartments.meta.current_page - 1) * apartments.meta.per_page) + 1} to{' '}
@@ -1613,14 +1598,14 @@ const ApartmentRowExpanded = ({ row, handleShowDevices }: ApartmentRowExpandedPr
                                         {/* Enhanced expand/collapse icon */}
                                         <div className={`
                                             flex items-center justify-center w-8 h-8 rounded-full 
-                                            bg-gradient-to-br from-primary/10 to-primary/20 
-                                            border border-primary/20 transition-all duration-300 
-                                            hover:from-primary/20 hover:to-primary/30 hover:border-primary/30
+                                            bg-gradient-to-br from-corporate-gold/10 to-corporate-gold/20 
+                                            border border-corporate-gold/20 transition-all duration-300 
+                                            hover:from-corporate-gold/20 hover:to-corporate-gold/30 hover:border-corporate-gold/30
                                             hover:scale-110 hover:shadow-md
-                                            ${expanded ? 'bg-gradient-to-br from-primary/20 to-primary/30 border-primary/40 shadow-sm' : ''}
+                                            ${expanded ? 'bg-gradient-to-br from-corporate-gold/20 to-corporate-gold/30 border-corporate-gold/40 shadow-sm' : ''}
                                         `}>
                                             <ChevronRight className={`
-                                                w-4 h-4 text-primary transition-all duration-300 ease-in-out
+                                                w-4 h-4 text-corporate-gold transition-all duration-300 ease-in-out
                                                 ${expanded ? 'rotate-90 scale-110' : 'hover:scale-105'}
                                             `} />
                                         </div>
@@ -1629,12 +1614,12 @@ const ApartmentRowExpanded = ({ row, handleShowDevices }: ApartmentRowExpandedPr
                                         <div className="flex items-center gap-2">
                                             <div className={`
                                                 flex items-center justify-center w-6 h-6 rounded-full 
-                                                bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700
-                                                transition-all duration-200 hover:from-blue-200 hover:to-blue-300
+                                                bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 text-corporate-gold
+                                                transition-all duration-200 hover:from-corporate-gold/30 hover:to-corporate-warm/30
                                             `}>
                                                 <Users className="w-3 h-3" />
                                             </div>
-                                            <span className="font-semibold text-primary">{apartment.tenants?.length || 0}</span>
+                                            <span className="font-semibold text-corporate-gold dark:text-corporate-gold-light">{apartment.tenants?.length || 0}</span>
                                             <span className="text-muted-foreground text-sm font-medium">
                                                 {apartment.tenants?.length === 1 ? 'member' : 'members'}
                                             </span>
@@ -1664,12 +1649,12 @@ const ApartmentRowExpanded = ({ row, handleShowDevices }: ApartmentRowExpandedPr
             
             {/* Expanded members details row with enhanced animation */}
             {expanded && apartment.tenants && apartment.tenants.length > 0 && (
-                <TableRow className="border-b bg-gradient-to-r from-muted/10 to-muted/30">
+                <TableRow className="border-b bg-gradient-to-r from-corporate-gold/5 to-corporate-gold/10 dark:from-corporate-gold/10 dark:to-corporate-gold/15">
                     <TableCell colSpan={5} className="p-6">
                         <div className="animate-in slide-in-from-top-2 duration-300">
                             <div className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
-                                <div className="w-1 h-4 bg-primary rounded-full"></div>
-                                <Users className="w-4 h-4 text-primary" />
+                                <div className="w-1 h-4 bg-corporate-gold rounded-full"></div>
+                                <Users className="w-4 h-4 text-corporate-gold" />
                                 <span>Apartment Members ({apartment.tenants?.length || 0})</span>
                             </div>
                             
@@ -1677,7 +1662,7 @@ const ApartmentRowExpanded = ({ row, handleShowDevices }: ApartmentRowExpandedPr
                                 {apartment.tenants?.map((tenant: ExtendedTenant, index: number) => (
                                     <div 
                                         key={tenant.id} 
-                                        className="flex items-center justify-between gap-4 p-5 bg-background rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 hover:border-primary/20 group/member"
+                                        className="flex items-center justify-between gap-4 p-5 bg-background border border-corporate-gold/20 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:border-corporate-gold/40 group/member"
                                         style={{ 
                                             animationDelay: `${index * 100}ms`,
                                             animation: 'fadeInUp 0.4s ease-out forwards'
@@ -1688,7 +1673,7 @@ const ApartmentRowExpanded = ({ row, handleShowDevices }: ApartmentRowExpandedPr
                                                 <img
                                                     src={`/storage/${tenant.photo}`}
                                                     alt={tenant.name}
-                                                    className="w-14 h-14 rounded-full object-cover border-2 border-primary/20 shadow-sm group-hover/member:border-primary/40 transition-all duration-200"
+                                                    className="w-14 h-14 rounded-full object-cover border-2 border-corporate-gold/20 shadow-sm group-hover/member:border-corporate-gold/40 transition-all duration-200"
                                                     onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                                                         e.currentTarget.src = '/images/default-user.png';
                                                     }}
@@ -1697,22 +1682,22 @@ const ApartmentRowExpanded = ({ row, handleShowDevices }: ApartmentRowExpandedPr
                                             
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-2">
-                                                    <h4 className="font-bold text-primary text-lg">{tenant.name}</h4>
-                                                    <span className="px-3 py-1 bg-gradient-to-r from-primary/10 to-primary/20 text-primary text-xs font-medium rounded-full border border-primary/20">
+                                                    <h4 className="font-bold text-corporate-gold dark:text-corporate-gold-light text-lg">{tenant.name}</h4>
+                                                    <span className="px-3 py-1 bg-gradient-to-r from-corporate-gold/10 to-corporate-gold/20 text-corporate-gold border border-corporate-gold/20 text-xs font-medium rounded-full">
                                                         Member
                                                     </span>
                                                 </div>
                                                 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                                                    <div className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
-                                                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                                                            <Mail className="w-3 h-3 text-blue-600" />
+                                                    <div className="flex items-center gap-2 text-muted-foreground hover:text-corporate-gold transition-colors">
+                                                        <div className="w-6 h-6 rounded-full bg-corporate-gold/20 flex items-center justify-center">
+                                                            <Mail className="w-3 h-3 text-corporate-gold" />
                                                         </div>
                                                         <span className="font-medium">{tenant.email}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
-                                                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                                                            <Phone className="w-3 h-3 text-green-600" />
+                                                    <div className="flex items-center gap-2 text-muted-foreground hover:text-corporate-gold transition-colors">
+                                                        <div className="w-6 h-6 rounded-full bg-corporate-warm/20 flex items-center justify-center">
+                                                            <Phone className="w-3 h-3 text-corporate-warm" />
                                                         </div>
                                                         <span className="font-medium">{tenant.phone}</span>
                                                     </div>
@@ -1724,14 +1709,14 @@ const ApartmentRowExpanded = ({ row, handleShowDevices }: ApartmentRowExpandedPr
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="flex items-center gap-2 hover:bg-primary hover:text-white transition-all duration-300 border-primary/20 hover:border-primary group-hover/member:border-primary/40"
+                                                className="flex items-center gap-2 hover:bg-corporate-gold hover:text-primary-foreground transition-all duration-300 border-corporate-gold/20 hover:border-corporate-gold group-hover/member:border-corporate-gold/40"
                                                 onClick={() => handleShowDevices(apartment, tenant)}
                                             >
                                                 <Laptop className="w-4 h-4" />
                                                 <span className="font-bold text-base">
                                                     {Number(tenant.devices?.length || 0) + Number(tenant.shared_devices?.length || 0)}
                                                 </span>
-                                                <span className="hidden sm:inline font-medium">Devices</span>
+                                                <span className="hidden sm:inline font-medium ">Devices</span>
                                             </Button>
                                         </div>
                                     </div>

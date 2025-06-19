@@ -79,95 +79,95 @@
 
 :root {
     /* Colores base */
-    --background: oklch(0.98 0.02 83);
-    --foreground: oklch(0.2 0.03 83);
-    --card: oklch(0.98 0.02 83);
-    --card-foreground: oklch(0.2 0.03 83);
-    --popover: oklch(0.98 0.02 83);
-    --popover-foreground: oklch(0.2 0.03 83);
+    --background: #FDFCFB; /* Blanco cálido */
+    --foreground: #574B36; /* Marrón más oscuro de tu paleta */
+    --card: #FDFCFB;
+    --card-foreground: #574B36;
+    --popover: #FDFCFB;
+    --popover-foreground: #574B36;
 
-    /* Dorados principales */
-    --primary: oklch(0.75 0.17 83); /* Dorado real elegante */
-    --primary-foreground: oklch(0.98 0.02 83);
-    --secondary: oklch(0.82 0.13 84); /* Dorado champagne */
-    --secondary-foreground: oklch(0.2 0.03 83);
+    /* Colores principales de tu logo */
+    --primary: #D8B16F; /* Dorado claro de tu paleta */
+    --primary-foreground: #574B36; /* Contraste oscuro */
+    --secondary: #C2A26A; /* Segundo tono de tu paleta */
+    --secondary-foreground: #574B36;
 
     /* Acentos y estados */
-    --muted: oklch(0.88 0.07 83);
-    --muted-foreground: oklch(0.45 0.08 83);
-    --accent: oklch(0.7 0.19 83); /* Dorado premium */
-    --accent-foreground: oklch(0.98 0.02 83);
-    --destructive: oklch(0.6 0.25 25);
-    --destructive-foreground: oklch(0.98 0.02 83);
+    --muted: #F5F2EC; /* Tono muy claro derivado */
+    --muted-foreground: #9C8458; /* Tono medio de tu paleta */
+    --accent: #9C8458; /* Tono medio de tu paleta */
+    --accent-foreground: #FDFCFB;
+    --destructive: #D2542C; /* Rojo que combina con tu paleta */
+    --destructive-foreground: #FDFCFB;
 
     /* Elementos de interfaz */
-    --border: oklch(0.78 0.09 83);
-    --input: oklch(0.78 0.09 83);
-    --ring: oklch(0.72 0.14 83);
+    --border: #E8DCC6; /* Tono claro derivado de tu paleta */
+    --input: #E8DCC6;
+    --ring: #D8B16F; /* Tu dorado principal */
     --radius: 0.625rem;
 
-    /* Paleta de gráficos luxury */
-    --chart-1: oklch(0.68 0.19 83); /* Dorado imperial */
-    --chart-2: oklch(0.72 0.17 83.5); /* Dorado antiguo */
-    --chart-3: oklch(0.76 0.15 84); /* Dorado brillante */
-    --chart-4: oklch(0.8 0.13 84.5); /* Dorado satinado */
-    --chart-5: oklch(0.84 0.11 85); /* Dorado perlado */
+    /* Paleta de gráficos basada en tu logo */
+    --chart-1: #D8B16F; /* Tu dorado más claro */
+    --chart-2: #C2A26A; /* Tu segundo tono */
+    --chart-3: #9C8458; /* Tu tono medio */
+    --chart-4: #736345; /* Tu tono oscuro */
+    --chart-5: #574B36; /* Tu tono más oscuro */
 
-    /* Sidebar elegante */
-    --sidebar: oklch(0.96 0.03 83);
-    --sidebar-foreground: oklch(0.2 0.03 83);
-    --sidebar-primary: oklch(0.75 0.17 83);
-    --sidebar-primary-foreground: oklch(0.98 0.02 83);
-    --sidebar-accent: oklch(0.7 0.19 83);
-    --sidebar-accent-foreground: oklch(0.98 0.02 83);
-    --sidebar-border: oklch(0.78 0.09 83);
-    --sidebar-ring: oklch(0.72 0.14 83);
+    /* Sidebar con tu identidad corporativa */
+    --sidebar: #F9F6F0; /* Fondo muy sutil */
+    --sidebar-foreground: #574B36;
+    --sidebar-primary: #D8B16F;
+    --sidebar-primary-foreground: #574B36;
+    --sidebar-accent: #C2A26A;
+    --sidebar-accent-foreground: #574B36;
+    --sidebar-border: #E8DCC6;
+    --sidebar-ring: #D8B16F;
 }
 
 .dark {
     /* Colores base oscuros */
-    --background: oklch(0.12 0.03 83);
-    --foreground: oklch(0.92 0.06 83);
-    --card: oklch(0.15 0.03 83);
-    --card-foreground: oklch(0.92 0.06 83);
-    --popover: oklch(0.15 0.03 83);
-    --popover-foreground: oklch(0.92 0.06 83);
+    --background: #1A1611; /* Muy oscuro basado en tu marrón más oscuro */
+    --foreground: #F5F2EC; /* Claro cálido */
+    --card: #2D251A; /* Derivado de #574B36 */
+    --card-foreground: #F5F2EC;
+    --popover: #2D251A;
+    --popover-foreground: #F5F2EC;
 
-    /* Dorados nocturnos */
-    --primary: oklch(0.65 0.18 83); /* Dorado nocturno elegante */
-    --primary-foreground: oklch(0.12 0.03 83);
-    --secondary: oklch(0.55 0.15 84); /* Dorado ahumado */
-    --secondary-foreground: oklch(0.92 0.06 83);
+    /* Colores principales adaptados para modo oscuro */
+    --primary: #C2A26A; /* Tu segundo tono, más suave para modo oscuro */
+    --primary-foreground: #1A1611;
+    --secondary: #9C8458; /* Tu tono medio */
+    --secondary-foreground: #F5F2EC;
 
     /* Acentos y estados oscuros */
-    --muted: oklch(0.25 0.06 83);
-    --muted-foreground: oklch(0.65 0.1 83);
-    --accent: oklch(0.6 0.2 83); /* Dorado premium nocturno */
-    --accent-foreground: oklch(0.92 0.06 83);
-    --destructive: oklch(0.35 0.25 25);
-    --destructive-foreground: oklch(0.92 0.06 83);
+    --muted: #3A3125; /* Derivado de tus tonos oscuros */
+    --muted-foreground: #C2A26A;
+    --accent: #D8B16F; /* Tu dorado más claro como acento */
+    --accent-foreground: #1A1611;
+    --destructive: #D2542C;
+    --destructive-foreground: #F5F2EC;
 
     /* Elementos de interfaz oscuros */
-    --border: oklch(0.32 0.1 83);
-    --input: oklch(0.32 0.1 83);
-    --ring: oklch(0.5 0.15 83);
+    --border: #4A3F2F; /* Entre #574B36 y #736345 */
+    --input: #4A3F2F;
+    --ring: #C2A26A;
 
-    /* Paleta de gráficos luxury nocturna */
-    --chart-1: oklch(0.45 0.2 83); /* Dorado imperial nocturno */
-    --chart-2: oklch(0.5 0.18 83.5); /* Dorado antiguo nocturno */
-    --chart-3: oklch(0.55 0.16 84); /* Dorado brillante nocturno */
-    --chart-4: oklch(0.6 0.14 84.5); /* Dorado satinado nocturno */
-    --chart-5: oklch(0.65 0.12 85); /* Dorado perlado nocturno */
+    /* Paleta de gráficos para modo oscuro */
+    --chart-1: #D8B16F; /* Mantiene tu dorado claro */
+    --chart-2: #C2A26A; /* Tu segundo tono */
+    --chart-3: #9C8458; /* Tu tono medio */
+    --chart-4: #736345; /* Tu tono oscuro */
+    --chart-5: #8B7A5E; /* Variación más clara de #736345 */
 
-    /* Sidebar elegante nocturno */
-    --sidebar: oklch(0.18 0.05 83);
-    --sidebar-foreground: oklch(0.92 0.06 83);
-    --sidebar-primary: oklch(0.65 0.18 83);
-    --sidebar-primary-foreground: oklch(0.12 0.03 83);
-    --sidebar-accent: oklch(0.6 0.2 83);
-    --sidebar-accent-foreground: oklch(0.92 0.06 83);
-    --sidebar-border: oklch(0.32 0.1 83);
-    --sidebar-ring: oklch(0.5 0.15 83);
+    /* Sidebar para modo oscuro */
+    --sidebar: #221D15; /* Más oscuro que el fondo principal */
+    --sidebar-foreground: #F5F2EC;
+    --sidebar-primary: #C2A26A;
+    --sidebar-primary-foreground: #1A1611;
+    --sidebar-accent: #D8B16F;
+    --sidebar-accent-foreground: #1A1611;
+    --sidebar-border: #4A3F2F;
+    --sidebar-ring: #C2A26A;
 }
 
 @layer base {

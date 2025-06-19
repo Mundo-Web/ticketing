@@ -851,16 +851,15 @@ export default function Dashboard() {
                         }
                     `
                 }} />
-                
-                {/* Main container with premium spacing */}
-                <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-white">
+                  {/* Main container with premium spacing */}
+                <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
                     <div className="container mx-auto px-8 py-16 space-y-20">
                         
                         {/* Premium header with maximum spacing */}
                         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-12">
                             <div className="space-y-8">
                                 <div className="flex items-center gap-8">
-                                    <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 flex items-center justify-center shadow-2xl ring-4 ring-blue-100">
+                                    <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-primary via-primary-foreground to-secondary-foreground flex items-center justify-center shadow-2xl ring-4 ring-blue-100">
                                         <BarChart3 className="h-10 w-10 text-white" />
                                     </div>
                                     <div className="space-y-4">                                        <h1 className="text-6xl font-black tracking-tight text-slate-900">
@@ -1034,105 +1033,100 @@ export default function Dashboard() {
                                                 
                                                 
                                                 {/* SECTION 1: KEY TICKET METRICS */}
-                        <div className="space-y-12">
-                            <div className="text-center space-y-6">                                <h2 className="text-4xl font-bold text-slate-800">
+                        <div className="space-y-12">                            <div className="text-center space-y-6">                                <h2 className="text-4xl font-bold text-foreground">
                                     Ticket Analytics
                                 </h2>
-                                <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                                     Real-time monitoring of workflow and performance metrics
                                 </p>
                             </div>
                             
                             {/* Perfectly aligned metrics grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {/* Card 1: Total Tickets */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-white to-blue-50 overflow-hidden">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">                                {/* Card 1: Total Tickets */}
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-primary/10 via-background to-primary/5 overflow-hidden">
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
-                                            <div className="p-3 rounded-xl bg-blue-100">
-                                                <Ticket className="h-6 w-6 text-blue-600" />
+                                            <div className="p-3 rounded-xl bg-primary/20">
+                                                <Ticket className="h-6 w-6 text-primary" />
                                             </div>
                                             <ExternalLink 
-                                                className="h-4 w-4 text-blue-400 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="h-4 w-4 text-primary/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                                                 onClick={() => window.open('/tickets', '_blank')}
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">Total Tickets</p>
-                                            <p className="text-3xl font-bold text-slate-900">{metrics.tickets.total}</p>
+                                            <p className="text-sm font-semibold text-primary uppercase tracking-wider">Total Tickets</p>
+                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.total}</p>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/20 text-primary">
                                                     +12%
                                                 </span>
-                                                <span className="text-xs text-slate-500">vs last month</span>
+                                                <span className="text-xs text-muted-foreground">vs last month</span>
                                             </div>
                                         </div>
                                     </CardContent>
-                                </Card>
-
-                                {/* Card 2: Critical Tickets */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-red-50 via-white to-red-50 overflow-hidden cursor-pointer"
+                                </Card>                                {/* Card 2: Critical Tickets */}
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-destructive/10 via-background to-destructive/5 overflow-hidden cursor-pointer"
                                       onClick={() => window.open('/tickets?status=open', '_blank')}>
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
-                                            <div className="p-3 rounded-xl bg-red-100">
-                                                <AlertCircle className="h-6 w-6 text-red-600" />
+                                            <div className="p-3 rounded-xl bg-destructive/20">
+                                                <AlertCircle className="h-6 w-6 text-destructive" />
                                             </div>
-                                            <ExternalLink className="h-4 w-4 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <ExternalLink className="h-4 w-4 text-destructive/60 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-red-600 uppercase tracking-wider">Open Tickets</p>
-                                            <p className="text-3xl font-bold text-slate-900">{metrics.tickets.open}</p>
+                                            <p className="text-sm font-semibold text-destructive uppercase tracking-wider">Open Tickets</p>
+                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.open}</p>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-red-100 text-red-700">                                                    Priority
+                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-destructive/20 text-destructive">                                                    Priority
                                                 </span>
-                                                <span className="text-xs text-slate-500">Immediate attention</span>
+                                                <span className="text-xs text-muted-foreground">Immediate attention</span>
                                             </div>
                                         </div>
                                     </CardContent>
                                 </Card>
 
                                 {/* Card 3: In Progress */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-amber-50 via-white to-amber-50 overflow-hidden cursor-pointer"
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-secondary/10 via-background to-secondary/5 overflow-hidden cursor-pointer"
                                       onClick={() => window.open('/tickets?status=in_progress', '_blank')}>
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
-                                            <div className="p-3 rounded-xl bg-amber-100">
-                                                <Clock className="h-6 w-6 text-amber-600" />
+                                            <div className="p-3 rounded-xl bg-secondary/20">
+                                                <Clock className="h-6 w-6 text-secondary" />
                                             </div>
-                                            <ExternalLink className="h-4 w-4 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </div>
+                                            <ExternalLink className="h-4 w-4 text-secondary/60 opacity-0 group-hover:opacity-100 transition-opacity" />                                        </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-amber-600 uppercase tracking-wider">In Progress</p>
-                                            <p className="text-3xl font-bold text-slate-900">{metrics.tickets.in_progress}</p>
+                                            <p className="text-sm font-semibold text-secondary uppercase tracking-wider">In Progress</p>
+                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.in_progress}</p>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-700">
+                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-secondary/20 text-secondary">
                                                     +8%
                                                 </span>
-                                                <span className="text-xs text-slate-500">This week</span>
+                                                <span className="text-xs text-muted-foreground">This week</span>
                                             </div>
                                         </div>
                                     </CardContent>
                                 </Card>
 
                                 {/* Card 4: Resolved */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 overflow-hidden cursor-pointer"
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-accent/10 via-background to-accent/5 overflow-hidden cursor-pointer"
                                       onClick={() => window.open('/tickets?status=resolved', '_blank')}>
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
-                                            <div className="p-3 rounded-xl bg-emerald-100">
-                                                <CheckCircle className="h-6 w-6 text-emerald-600" />
+                                            <div className="p-3 rounded-xl bg-accent/20">
+                                                <CheckCircle className="h-6 w-6 text-accent" />
                                             </div>
-                                            <ExternalLink className="h-4 w-4 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <ExternalLink className="h-4 w-4 text-accent/60 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Resolved</p>
-                                            <p className="text-3xl font-bold text-slate-900">{metrics.tickets.resolved}</p>
+                                            <p className="text-sm font-semibold text-accent uppercase tracking-wider">Resolved</p>
+                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved}</p>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-accent/20 text-accent">
                                                     +15%
                                                 </span>
-                                                <span className="text-xs text-slate-500">vs target</span>
+                                                <span className="text-xs text-muted-foreground">vs target</span>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -1142,7 +1136,7 @@ export default function Dashboard() {
                             {/* Additional metrics cards - Second row */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {/* Card 5: Unassigned (only visible for admins and default technicians) */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-orange-50 via-white to-orange-50 overflow-hidden">
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-3/10 via-background to-chart-3/5 overflow-hidden">
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">                                            <div className="p-3 rounded-xl bg-orange-100">
                                                 <AlertTriangle className="h-6 w-6 text-orange-600" />
@@ -1173,7 +1167,7 @@ export default function Dashboard() {
                                 </Card>
 
                                 {/* Card 6: Resolved Today */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-purple-50 via-white to-purple-50 overflow-hidden">
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-4/10 via-background to-chart-4/5 overflow-hidden">
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="p-3 rounded-xl bg-purple-100">
@@ -1195,7 +1189,7 @@ export default function Dashboard() {
                                 </Card>
 
                                 {/* Card 7: Average Time */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-indigo-50 via-white to-indigo-50 overflow-hidden">
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-2/10 via-background to-chart-2/5 overflow-hidden">
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="p-3 rounded-xl bg-indigo-100">
@@ -1218,7 +1212,7 @@ export default function Dashboard() {
                                 </Card>
 
                                 {/* Card 8: Efficiency */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-teal-50 via-white to-teal-50 overflow-hidden">
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-5/10 via-background to-chart-5/5 overflow-hidden">
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="p-3 rounded-xl bg-teal-100">
@@ -1247,11 +1241,10 @@ export default function Dashboard() {
                       
                                      {/* SECTION: UNASSIGNED TICKETS TABLE  canAssignTickets &&*/}
                         { lists.unassignedTickets && lists.unassignedTickets.length > 0 && (
-                            <div className="space-y-8">
-                                <div className="text-center space-y-4">                                    <h2 className="text-4xl font-bold text-orange-600">
+                            <div className="space-y-8">                                <div className="text-center space-y-4">                                    <h2 className="text-4xl font-bold text-chart-3">
                                         Unassigned Tickets
                                     </h2>
-                                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                                         Recent tickets awaiting technical assignment - quick actions available
                                     </p>
                                 </div>
@@ -1322,21 +1315,20 @@ export default function Dashboard() {
                           {/* SECTION 2: SYSTEM RESOURCES */}
                         {metrics.resources.buildings > 0 && (
                             <div className="space-y-8">
-                                <div className="text-center space-y-4">
-                                    <div className="flex items-center justify-center gap-4">                                        <h2 className="text-4xl font-bold text-slate-800">
+                                <div className="text-center space-y-4">                                    <div className="flex items-center justify-center gap-4">                                        <h2 className="text-4xl font-bold text-foreground">
                                             System Resources
                                         </h2>
-                                        <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200 px-4 py-2 text-sm font-semibold">
+                                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-4 py-2 text-sm font-semibold">
                                             Full Access - Admin
                                         </Badge>
                                     </div>
-                                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                                         Comprehensive management of buildings, apartments, users and devices
                                     </p>
                                 </div>
                                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {/* Buildings Card - Enhanced with carousel */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-violet-50 via-white to-violet-50 overflow-hidden">
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-1/10 via-background to-chart-1/5 overflow-hidden">
                                         <CardContent className="p-6">
                                             <div className="text-center space-y-4">
                                                 <div className="p-4 rounded-xl bg-violet-100 w-fit mx-auto">
@@ -1423,7 +1415,7 @@ export default function Dashboard() {
                                         </CardContent>
                                     </Card>                                   
                                      {/* Apartments Card - Enhanced with building breakdown */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-white to-blue-50 overflow-hidden cursor-pointer"
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-2/10 via-background to-chart-2/5 overflow-hidden cursor-pointer"
                                           onClick={() => window.open('/apartments', '_blank')}>
                                         <CardContent className="p-6">
                                             <div className="text-center space-y-4">
@@ -1520,7 +1512,7 @@ export default function Dashboard() {
                                         </CardContent>
                                     </Card>                                    
                                     {/* Tenants Card - Enhanced with building breakdown */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 overflow-hidden cursor-pointer"
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-3/10 via-background to-chart-3/5 overflow-hidden cursor-pointer"
                                           onClick={() => window.open('/tenants', '_blank')}>
                                         <CardContent className="p-6">
                                             <div className="text-center space-y-4">
@@ -1617,7 +1609,7 @@ export default function Dashboard() {
                                     </Card>
 
                                     {/* Devices Card - Enhanced with modal */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-amber-50 via-white to-amber-50 overflow-hidden cursor-pointer"
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-4/10 via-background to-chart-4/5 overflow-hidden cursor-pointer"
                                           onClick={() => setShowDevicesModal(true)}>
                                         <CardContent className="p-6">
                                             <div className="text-center space-y-4">
@@ -1749,12 +1741,11 @@ export default function Dashboard() {
                             </div>
                         )}
                           {/* SECTION 3: VISUAL ANALYSIS AND CHARTS */}
-                        <div className="space-y-16">
-                            <div className="text-center space-y-6">
-                                <h2 className="text-5xl font-black text-slate-800">
+                        <div className="space-y-16">                            <div className="text-center space-y-6">
+                                <h2 className="text-5xl font-black text-foreground">
                                     Visual Analysis
                                 </h2>
-                                <p className="text-2xl text-slate-600 max-w-3xl mx-auto font-semibold">
+                                <p className="text-2xl text-muted-foreground max-w-3xl mx-auto font-semibold">
                                     Interactive charts and trends to monitor system performance
                                 </p>
                                 <div className="flex justify-center gap-6">
@@ -1804,15 +1795,14 @@ export default function Dashboard() {
                             </div>
 
                             <div className="grid gap-20 lg:grid-cols-12">
-                                {/* Main Chart - Ticket Distribution */}
-                                <div className="lg:col-span-6">
-                                    <Card className="h-full border-0 bg-gradient-to-br from-slate-50 via-white to-blue-50 shadow-2xl overflow-hidden relative">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5"></div>
+                                {/* Main Chart - Ticket Distribution */}                                <div className="lg:col-span-6">
+                                    <Card className="h-full border-0 bg-gradient-to-br from-muted/20 via-background to-primary/5 shadow-2xl overflow-hidden relative">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5"></div>
                                         <CardHeader className="pb-12 relative">
                                             <div className="flex items-center justify-between">
                                                 <div className="space-y-4">
-                                                    <CardTitle className="text-3xl font-black text-slate-900">Ticket Distribution</CardTitle>
-                                                    <p className="text-xl text-slate-600">Estado actual del sistema</p>
+                                                    <CardTitle className="text-3xl font-black text-foreground">Ticket Distribution</CardTitle>
+                                                    <p className="text-xl text-muted-foreground">Estado actual del sistema</p>
                                                 </div>
                                                 <div className="flex gap-4">
                                                     <Button
@@ -1826,17 +1816,16 @@ export default function Dashboard() {
                                                             }));
                                                             exportToExcel(chartData, 'tickets_by_status', 'Ticket Distribution');
                                                         }}
-                                                        className="h-14 w-14 p-0 hover:bg-blue-50 shadow-xl"
-                                                    >
-                                                        <FileSpreadsheet className="h-6 w-6 text-blue-600" />
+                                                        className="h-14 w-14 p-0 hover:bg-primary/10 shadow-xl border-primary/20"
+                                                    >                                                        <FileSpreadsheet className="h-6 w-6 text-primary" />
                                                     </Button>
                                                     <Button
                                                         variant="outline"
                                                         size="lg"
                                                         onClick={() => window.open('/tickets', '_blank')}
-                                                        className="h-14 w-14 p-0 hover:bg-blue-50 shadow-xl"
+                                                        className="h-14 w-14 p-0 hover:bg-primary/10 shadow-xl border-primary/20"
                                                     >
-                                                        <ExternalLink className="h-6 w-6 text-blue-600" />
+                                                        <ExternalLink className="h-6 w-6 text-primary" />
                                                     </Button>
                                                 </div>
                                             </div>
@@ -1900,15 +1889,14 @@ export default function Dashboard() {
                                     </Card>
                                 </div>
 
-                                {/* Gráfico de Tendencias */}
-                                <div className="lg:col-span-6">
-                                    <Card className="h-full border-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50 shadow-2xl overflow-hidden relative">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5"></div>
+                                {/* Gráfico de Tendencias */}                                <div className="lg:col-span-6">
+                                    <Card className="h-full border-0 bg-gradient-to-br from-secondary/10 via-background to-accent/5 shadow-2xl overflow-hidden relative">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-accent/5"></div>
                                         <CardHeader className="pb-12 relative">
                                             <div className="flex items-center justify-between">
                                                 <div className="space-y-4">
-                                                    <CardTitle className="text-3xl font-black text-slate-900">Weekly Trend</CardTitle>
-                                                    <p className="text-xl text-slate-600 font-semibold">Ticket evolution over the last 7 days</p>
+                                                    <CardTitle className="text-3xl font-black text-foreground">Weekly Trend</CardTitle>
+                                                    <p className="text-xl text-muted-foreground font-semibold">Ticket evolution over the last 7 days</p>
                                                 </div>
                                                 <div className="flex gap-4">
                                                     <Button
@@ -1917,9 +1905,9 @@ export default function Dashboard() {
                                                         onClick={() => {
                                                             exportToExcel(trendData, 'weekly_tickets_trend', 'Weekly Trend');
                                                         }}
-                                                        className="h-14 w-14 p-0 hover:bg-indigo-50 shadow-xl"
+                                                        className="h-14 w-14 p-0 hover:bg-secondary/10 shadow-xl border-secondary/20"
                                                     >
-                                                        <FileSpreadsheet className="h-6 w-6 text-indigo-600" />
+                                                        <FileSpreadsheet className="h-6 w-6 text-secondary" />
                                                     </Button>
                                                    {/* <Button
                                                         variant="outline"
@@ -1995,54 +1983,52 @@ export default function Dashboard() {
                             </div>
                         </div>
                         
-                        {/* FOOTER PREMIUM */}
-                        <div className="mt-32">                            <Card className="border-0 bg-slate-900 text-white shadow-2xl overflow-hidden relative">
-                                <div className="absolute inset-0 bg-blue-600/10"></div>
+                        {/* FOOTER PREMIUM */}                        <div className="mt-32">                            <Card className="border-0 bg-chart-5 text-background shadow-2xl overflow-hidden relative">
+                                <div className="absolute inset-0 bg-primary/10"></div>
                                 <CardContent className="p-16 relative">
-                                    <div className="grid gap-16 lg:grid-cols-4">
-                                        <div className="text-center space-y-4">
-                                            <div className="p-6 rounded-3xl bg-blue-500/20 w-fit mx-auto">
-                                                <Activity className="h-10 w-10 text-blue-300" />
+                                    <div className="grid gap-16 lg:grid-cols-4">                                        <div className="text-center space-y-4">
+                                            <div className="p-6 rounded-3xl bg-primary/20 w-fit mx-auto">
+                                                <Activity className="h-10 w-10 text-primary" />
                                             </div>
                                             <div className="space-y-2">
-                                                <p className="text-4xl font-black text-white">
+                                                <p className="text-4xl font-black text-background">
                                                     {metrics.tickets.total + metrics.tickets.resolved_today}
                                                 </p>
-                                                <p className="text-blue-200 font-bold text-lg">Total Processed</p>
+                                                <p className="text-primary/80 font-bold text-lg">Total Processed</p>
                                             </div>
                                         </div>
                                         
                                         <div className="text-center space-y-4">
-                                            <div className="p-6 rounded-3xl bg-green-500/20 w-fit mx-auto">
-                                                <TrendingUp className="h-10 w-10 text-green-300" />
+                                            <div className="p-6 rounded-3xl bg-secondary/20 w-fit mx-auto">
+                                                <TrendingUp className="h-10 w-10 text-secondary" />
                                             </div>
                                             <div className="space-y-2">
-                                                <p className="text-4xl font-black text-white">98.5%</p>
-                                                <p className="text-green-200 font-bold text-lg">Uptime</p>
+                                                <p className="text-4xl font-black text-background">98.5%</p>
+                                                <p className="text-secondary/80 font-bold text-lg">Uptime</p>
                                             </div>
                                         </div>
                                         
                                         <div className="text-center space-y-4">
-                                            <div className="p-6 rounded-3xl bg-purple-500/20 w-fit mx-auto">
-                                                <Users className="h-10 w-10 text-purple-300" />
+                                            <div className="p-6 rounded-3xl bg-accent/20 w-fit mx-auto">
+                                                <Users className="h-10 w-10 text-accent" />
                                             </div>
                                             <div className="space-y-2">
-                                                <p className="text-4xl font-black text-white">
+                                                <p className="text-4xl font-black text-background">
                                                     {metrics.resources.tenants + metrics.resources.technicals}
                                                 </p>
-                                                <p className="text-purple-200 font-bold text-lg">Active Users</p>
+                                                <p className="text-accent/80 font-bold text-lg">Active Users</p>
                                             </div>
                                         </div>
                                         
                                         <div className="text-center space-y-4">
-                                            <div className="p-6 rounded-3xl bg-yellow-500/20 w-fit mx-auto">
-                                                <Zap className="h-10 w-10 text-yellow-300" />
+                                            <div className="p-6 rounded-3xl bg-chart-1/20 w-fit mx-auto">
+                                                <Zap className="h-10 w-10 text-chart-1" />
                                             </div>
                                             <div className="space-y-2">
-                                                <p className="text-4xl font-black text-white">
+                                                <p className="text-4xl font-black text-background">
                                                     {Math.round(metrics.tickets.avg_resolution_hours * 0.8)}h
                                                 </p>
-                                                <p className="text-yellow-200 font-bold text-lg">Response Time</p>
+                                                <p className="text-chart-1/80 font-bold text-lg">Response Time</p>
                                             </div>
                                         </div>
                                     </div>
@@ -2054,15 +2040,14 @@ export default function Dashboard() {
                 {/* Devices Modal */}
                 {showDevicesModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <div className="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
-                            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">                            <div className="flex items-center justify-between p-6 border-b border-border bg-gradient-to-r from-chart-4/10 to-chart-3/10">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-3 rounded-xl bg-amber-100">
-                                        <Smartphone className="h-6 w-6 text-amber-600" />
+                                    <div className="p-3 rounded-xl bg-chart-4/20">
+                                        <Smartphone className="h-6 w-6 text-chart-4" />
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-bold text-slate-800">Device Management</h2>
-                                        <p className="text-slate-600">Complete overview of all devices in the system</p>
+                                        <h2 className="text-2xl font-bold text-foreground">Device Management</h2>
+                                        <p className="text-muted-foreground">Complete overview of all devices in the system</p>
                                     </div>
                                 </div>
                                 <Button
@@ -2079,30 +2064,29 @@ export default function Dashboard() {
                                 {lists.allDevices && lists.allDevices.length > 0 ? (
                                     <div className="space-y-6">
                                         {/* Device Summary Cards */}
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">                                            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
                                                 <CardContent className="p-4 text-center">
-                                                    <Monitor className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                                                    <h3 className="font-semibold text-blue-800">Total Devices</h3>
-                                                    <p className="text-2xl font-bold text-blue-900">{lists.allDevices.length}</p>
+                                                    <Monitor className="h-8 w-8 text-primary mx-auto mb-2" />
+                                                    <h3 className="font-semibold text-primary">Total Devices</h3>
+                                                    <p className="text-2xl font-bold text-foreground">{lists.allDevices.length}</p>
                                                 </CardContent>
                                             </Card>
                                             
-                                            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                                            <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20">
                                                 <CardContent className="p-4 text-center">
-                                                    <Users className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                                                    <h3 className="font-semibold text-green-800">Active Users</h3>
-                                                    <p className="text-2xl font-bold text-green-900">
+                                                    <Users className="h-8 w-8 text-secondary mx-auto mb-2" />
+                                                    <h3 className="font-semibold text-secondary">Active Users</h3>
+                                                    <p className="text-2xl font-bold text-foreground">
                                                         {lists.allDevices.reduce((sum, device) => sum + device.users_count, 0)}
                                                     </p>
                                                 </CardContent>
                                             </Card>
                                             
-                                            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                                            <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
                                                 <CardContent className="p-4 text-center">
-                                                    <BarChart3 className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                                                    <h3 className="font-semibold text-purple-800">Device Types</h3>
-                                                    <p className="text-2xl font-bold text-purple-900">
+                                                    <BarChart3 className="h-8 w-8 text-accent mx-auto mb-2" />
+                                                    <h3 className="font-semibold text-accent">Device Types</h3>
+                                                    <p className="text-2xl font-bold text-foreground">
                                                         {new Set(lists.allDevices.map(d => d.device_type)).size}
                                                     </p>
                                                 </CardContent>
@@ -2111,9 +2095,8 @@ export default function Dashboard() {
 
                                         {/* Devices Table */}
                                         <Card className="border-0 shadow-lg">
-                                            <CardHeader className="pb-6 border-b">
-                                                <div className="flex items-center justify-between">
-                                                    <CardTitle className="text-xl text-slate-800">Device Inventory</CardTitle>
+                                            <CardHeader className="pb-6 border-b">                                                <div className="flex items-center justify-between">
+                                                    <CardTitle className="text-xl text-foreground">Device Inventory</CardTitle>
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
@@ -2137,53 +2120,52 @@ export default function Dashboard() {
                                             <CardContent className="p-0">
                                                 <div className="overflow-x-auto">
                                                     <table className="w-full">
-                                                        <thead>
-                                                            <tr className="border-b border-slate-100">
-                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">Device</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">Type</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">Brand</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">System</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">Users</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-slate-700 text-sm">Status</th>
+                                                        <thead>                                                            <tr className="border-b border-muted/50">
+                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">Device</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">Type</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">Brand</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">System</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">Users</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">Status</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
                                                             {lists.allDevices.map((device, index) => (
-                                                                <tr key={device.id} className={`border-b border-slate-50 hover:bg-slate-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-slate-25'}`}>
+                                                                <tr key={device.id} className={`border-b border-muted/30 hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background' : 'bg-muted/5'}`}>
                                                                     <td className="py-3 px-4">
                                                                         <div className="flex items-center gap-3">
-                                                                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center">
-                                                                                <Laptop className="h-4 w-4 text-amber-600" />
+                                                                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-chart-4/20 to-chart-3/20 flex items-center justify-center">
+                                                                                <Laptop className="h-4 w-4 text-chart-4" />
                                                                             </div>
                                                                            {/* <div>
-                                                                                <p className="font-semibold text-slate-800 text-sm">{device.device_name}</p>
-                                                                                <p className="text-xs text-slate-500">ID: {device.id}</p>
+                                                                                <p className="font-semibold text-foreground text-sm">{device.device_name}</p>
+                                                                                <p className="text-xs text-muted-foreground">ID: {device.id}</p>
                                                                             </div> */}
                                                                         </div>
                                                                     </td>
                                                                     <td className="py-3 px-4">
-                                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                                                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                                                                             {device.device_type}
                                                                         </Badge>
                                                                     </td>
                                                                     <td className="py-3 px-4">
-                                                                        <span className="text-sm font-medium text-slate-700">{device.brand_name}</span>
+                                                                        <span className="text-sm font-medium text-foreground">{device.brand_name}</span>
                                                                     </td>
                                                                     <td className="py-3 px-4">
-                                                                        <span className="text-sm text-slate-600">{device.system_name}</span>
+                                                                        <span className="text-sm text-muted-foreground">{device.system_name}</span>
                                                                     </td>
                                                                     <td className="py-3 px-4">
                                                                         <div className="flex items-center gap-2">
-                                                                            <Users className="h-4 w-4 text-green-500" />
-                                                                            <span className="font-semibold text-green-700">{device.users_count}</span>
+                                                                            <Users className="h-4 w-4 text-accent" />
+                                                                            <span className="font-semibold text-accent">{device.users_count}</span>
                                                                         </div>
                                                                     </td>
                                                                     <td className="py-3 px-4">
                                                                         <Badge 
                                                                             variant="outline" 
                                                                             className={device.users_count > 0 
-                                                                                ? "bg-green-50 text-green-700 border-green-200" 
-                                                                                : "bg-gray-50 text-gray-600 border-gray-200"
+                                                                                ? "bg-accent/10 text-accent border-accent/20" 
+                                                                                : "bg-muted/20 text-muted-foreground border-muted"
                                                                             }
                                                                         >
                                                                             {device.users_count > 0 ? 'Active' : 'Unused'}
@@ -2197,11 +2179,10 @@ export default function Dashboard() {
                                             </CardContent>
                                         </Card>
                                     </div>
-                                ) : (
-                                    <div className="text-center py-12">
-                                        <Smartphone className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-                                        <h3 className="text-xl font-semibold text-slate-600 mb-2">No Devices Found</h3>
-                                        <p className="text-slate-500">No device data is available at the moment.</p>
+                                ) : (                                    <div className="text-center py-12">
+                                        <Smartphone className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                                        <h3 className="text-xl font-semibold text-muted-foreground mb-2">No Devices Found</h3>
+                                        <p className="text-muted-foreground">No device data is available at the moment.</p>
                                     </div>
                                 )}
                             </div>

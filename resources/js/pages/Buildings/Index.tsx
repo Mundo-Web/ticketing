@@ -675,57 +675,90 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         const [openBuildingId, setOpenBuildingId] = useState<number | null>(null);
 
         return (
-            <div className={`grid ${getGridClass()} gap-6`}>
+            <div className={`grid ${getGridClass()} gap-8`}>
                 {buildings.map((building) => (
-                    <div key={building.id} className="bg-card text-card-foreground p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow border relative">
-                      
-                            <div className='relative'>
+                    <div key={building.id} className="group relative bg-gradient-to-br from-background via-muted/20 to-background rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-border/50 hover:border-primary/30 overflow-hidden backdrop-blur-sm">
+                        {/* Status Indicator */}
+                        <div className={`absolute text-primary-foreground top-4 left-4 z-10 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md ${
+                            building.status 
+                                ? 'bg-accent/20 text-accent border border-accent/30' 
+                                : 'bg-muted/30 text-muted-foreground border border-muted/50'
+                        }`}>
+                            {building.status ? 'Active' : 'Archived'}
+                        </div>
+
+                        {/* Enhanced Location Button */}
+                        {building.location_link && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onShowLocation(building)}
+                                className="absolute top-4 right-4 z-10 w-12 h-12 rounded-full bg-gradient-to-br from-red-500/20 to-red-600/20 backdrop-blur-md border-2 border-red-500/30 hover:bg-gradient-to-br hover:from-red-500/30 hover:to-red-600/30 hover:border-red-500/50 hover:scale-110 transition-all duration-300 shadow-lg hover:shadow-xl group/location"
+                                title="View Location on Map"
+                            >
+                                <div className="relative">
+                                    <MapPin className="w-6 h-6 text-red-600 transition-transform duration-300 group-hover/location:scale-110 drop-shadow-sm" />
+                                    {/* Animated pulse dot */}
+                                </div>
+                            </Button>
+                        )}
+
+                        {/* Image Container */}
+                        <div className="relative overflow-hidden">
+                            <div className="aspect-[4/3] overflow-hidden">
                                 <img
                                     src={`/storage/${building.image}`}
                                     alt={building.name}
-                                    className="object-cover rounded-md mb-4 w-full aspect-[4/3]"
-                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                                   e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
-                                                                               }}
-                               />
-                                {building.location_link && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => onShowLocation(building)}
-                                        className="absolute top-0 right-0 w-max text-destructive hover:bg-transparent hover:text-destructive"
-                                    >
-                                        <MapPin className="w-4 h-4" />
-                                    </Button>
-                                )}
+                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                        e.currentTarget.src = '/images/default-builder-square.png';
+                                    }}
+                                />
                             </div>
-                       
-                        <div className="flex flex-col gap-2">
+                            {/* Gradient Overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 space-y-4">
+                            {/* Header */}
                             <div className="flex items-center justify-between">
-                                <h3 className="font-semibold text-xl truncate">{building.name}</h3>
-                                <div className="relative">
-                                    {/* Botón para mostrar lista (CLICK) */}
+                                <div className="flex-1">
+                                    <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-1">
+                                        {building.name}
+                                    </h3>
+                                    {building.description && (
+                                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                            {building.description}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Doormen Counter */}
+                                <div className="relative ml-4">
                                     <button
                                         onClick={() => setOpenBuildingId(openBuildingId === building.id ? null : building.id)}
-                                        className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+                                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all duration-300 hover:scale-105"
                                     >
-                                        <span className="text-sm">{building.doormen.length}</span>
-                                        <User className="w-4 h-4" />
+                                        <span className="text-sm font-semibold text-primary">{building.doormen.length}</span>
+                                        <User className="w-4 h-4 text-primary" />
                                     </button>
 
-                                    {/* Lista de doormans (aparece al CLICK) */}
+                                    {/* Doormen List */}
                                     {openBuildingId === building.id && (
-                                        <div className="absolute right-0 bottom-8 mt-2   rounded-lg z-20  space-y-2">
-                                            {building.doormen.map((doorman) => (
+                                        <div className="absolute right-0 top-full mt-3 z-30 space-y-3 animate-in slide-in-from-top-2">
+                                            {building.doormen.map((doorman, index) => (
                                                 <div
                                                     key={doorman.id}
-                                                    className="relative group flex items-center gap-3 p-1 rounded-full bg-muted shadow-xl border-2 border-white cursor-pointer"
+                                                    className="relative group/doorman flex items-center gap-3 p-2 rounded-xl bg-background shadow-xl border border-border cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-105"
                                                     onClick={() => setSelectedDoorman(doorman)}
+                                                    style={{ animationDelay: `${index * 100}ms` }}
                                                 >
-                                                    {/* Tooltip que aparece al HOVER */}
-                                                    <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                        <div className="bg-foreground text-background px-2 py-1 rounded-md text-sm whitespace-nowrap shadow-lg">
-                                                            {doorman.name}
+                                                    {/* Tooltip */}
+                                                    <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 opacity-0 group-hover/doorman:opacity-100 transition-all duration-300 pointer-events-none">
+                                                        <div className="bg-foreground text-background px-3 py-2 rounded-lg text-sm whitespace-nowrap shadow-xl">
+                                                            <div className="font-semibold">{doorman.name}</div>
+                                                            <div className="text-xs opacity-80 capitalize">{doorman.shift} shift</div>
                                                             <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[1px] w-2 h-2 bg-foreground rotate-45" />
                                                         </div>
                                                     </div>
@@ -733,100 +766,151 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                                     <img
                                                         src={doorman.photo ? `/storage/${doorman.photo}` : '/placeholder-user.jpg'}
                                                         alt={doorman.name}
-                                                        className="w-8 h-8 rounded-full object-cover"
+                                                        className="w-10 h-10 rounded-full object-cover border-2 border-primary/30"
                                                     />
+                                                    <div className="w-2 h-2 rounded-full bg-accent absolute -bottom-1 -right-1 border-2 border-background"></div>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
                                 </div>
                             </div>
-                            {building.apartments && (
-                                <p className="text-sm line-clamp-2">{building.apartments.length} apartments</p>
-                            )}
-                            <div className="text-xs mt-2">
-                                Created: {new Date(building.created_at).toLocaleDateString()}
+
+                            {/* Stats */}
+                            <div className="flex items-center justify-between text-sm">
+                                {building.apartments && (
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <div className="w-2 h-2 rounded-full bg-secondary"></div>
+                                        <span>{building.apartments.length} apartments</span>
+                                    </div>
+                                )}
+                                <div className="text-xs text-muted-foreground">
+                                    {new Date(building.created_at).toLocaleDateString()}
+                                </div>
                             </div>
-                            <div className='flex space-x-4'>
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-2">
+                                {/* Admin Button */}
                                 <Link
                                     href={route('buildings.apartments', building)}
-                                    className="flex rounded-lg items-center justify-center gap-2 transition-all duration-300 w-7/12 bg-primary text-primary-foreground"
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg group/admin"
                                 >
-                                    <span className="hidden sm:block">Admin</span>
-                                    <ChevronRight className="w-5 h-5" />
+                                    <span>Admin</span>
+                                    <ChevronRight className="w-4 h-4 transition-transform duration-300 group-hover/admin:translate-x-0.5" />
                                 </Link>
-                                <div className="relative flex gap-4 w-5/12 justify-end items-center">
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-2">
                                     {building.status ? (
                                         <>
                                             <Button
                                                 onClick={() => onEdit(building)}
                                                 variant="secondary"
-                                                title="Edit"
                                                 size="icon"
+                                                className="rounded-xl hover:scale-105 transition-all duration-300 hover:shadow-md"
+                                                title="Edit Building"
                                             >
-                                                <Edit className="w-6 h-6" />
+                                                <Edit className="w-4 h-4" />
                                             </Button>
                                             <Button
                                                 onClick={() => onToggleStatus(building)}
-                                                variant="default"
-                                                title="Archive"
                                                 size="icon"
-                                                className='bg-amber-600 hover:bg-amber-500'
+                                                className="rounded-xl bg-secondary hover:bg-secondary/90 hover:scale-105 transition-all duration-300 hover:shadow-md"
+                                                title="Archive Building"
                                             >
-                                                <Archive className="w-6 h-6" />
+                                                <Archive className="w-4 h-4" />
                                             </Button>
                                         </>
                                     ) : (
                                         <>
                                             <Button
                                                 onClick={() => onToggleStatus(building)}
-                                                variant="default"
-                                                title="Restore"
                                                 size="icon"
-                                                className='bg-amber-600 hover:bg-amber-500'
+                                                className="rounded-xl bg-secondary hover:bg-secondary/90 hover:scale-105 transition-all duration-300 hover:shadow-md"
+                                                title="Restore Building"
                                             >
-                                                <ArchiveRestore className="w-6 h-6" />
+                                                <ArchiveRestore className="w-4 h-4" />
                                             </Button>
                                             <Button
                                                 onClick={() => onDelete(building)}
                                                 variant="destructive"
-                                                title="Delete"
                                                 size="icon"
+                                                className="rounded-xl hover:scale-105 transition-all duration-300 hover:shadow-md"
+                                                title="Delete Building"
                                             >
-                                                <Trash2 className="w-6 h-6" />
+                                                <Trash2 className="w-4 h-4" />
                                             </Button>
                                         </>
                                     )}
                                 </div>
                             </div>
                         </div>
-                        {/* Modal de detalles del doorman */}
+
+                        {/* Hover Effect Border */}
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                        {/* Enhanced Doorman Modal */}
                         {selectedDoorman && (
-                            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                                <div className="bg-card rounded-lg p-6 max-w-sm w-full mx-4">
-                                    <div className="flex flex-col items-center gap-4">
-                                        <img
-                                            src={selectedDoorman.photo
-                                                ? `/storage/${selectedDoorman.photo}`
-                                                : '/placeholder-user.jpg'}
-                                            alt={selectedDoorman.name}
-                                            className="w-24 h-24 rounded-full object-cover border-4 border-primary"
-                                        />
-                                        <div className="text-center">
-                                            <h4 className="text-xl font-semibold">  {selectedDoorman.name}</h4>
-                                            <p className="text-muted-foreground"> Email: {selectedDoorman.email}</p>
-                                            <p className="text-muted-foreground"> Phone: {selectedDoorman.phone}</p>
-                                            <p className="text-muted-foreground">
-                                                Shift: {selectedDoorman.shift === 'morning' ? 'Morning' :
-                                                    selectedDoorman.shift === 'afternoon' ? 'Afternoon' : 'Night'}
-                                            </p>
+                            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                                <div className="bg-background rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden border border-border/50">
+                                    {/* Header with gradient */}
+                                    <div className="relative p-6 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent"></div>
+                                        <div className="relative flex flex-col items-center">
+                                            <div className="relative">
+                                                <img
+                                                    src={selectedDoorman.photo
+                                                        ? `/storage/${selectedDoorman.photo}`
+                                                        : '/placeholder-user.jpg'}
+                                                    alt={selectedDoorman.name}
+                                                    className="w-24 h-24 rounded-full object-cover border-4 border-primary/30 shadow-lg"
+                                                />
+                                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-accent rounded-full border-4 border-background flex items-center justify-center">
+                                                    <div className="w-2 h-2 bg-background rounded-full"></div>
+                                                </div>
+                                            </div>
+                                            <h4 className="text-2xl font-bold text-foreground mt-4">{selectedDoorman.name}</h4>
+                                            <div className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-semibold mt-2 capitalize">
+                                                {selectedDoorman.shift === 'morning' ? '🌅 Morning' :
+                                                selectedDoorman.shift === 'afternoon' ? '☀️ Afternoon' : '🌙 Night'} Shift
+                                            </div>
                                         </div>
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="p-6 space-y-4">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+                                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="text-xs text-muted-foreground">Email</div>
+                                                    <div className="text-sm font-medium">{selectedDoorman.email || 'Not provided'}</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+                                                <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
+                                                    <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="text-xs text-muted-foreground">Phone</div>
+                                                    <div className="text-sm font-medium">{selectedDoorman.phone || 'Not provided'}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Close Button */}
                                         <Button
-                                            variant="destructive"
-                                            className="mt-4"
                                             onClick={() => setSelectedDoorman(null)}
+                                            className="w-full mt-6 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground rounded-xl py-3 font-semibold transition-all duration-300 hover:scale-105"
                                         >
-                                            Cerrar
+                                            Close
                                         </Button>
                                     </div>
                                 </div>
@@ -838,21 +922,49 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         );
     };
 
-    // Estado vacío
+    // Enhanced Empty State
     const EmptyState = ({ onAddNew }: { onAddNew: () => void }) => (
-        <div className="bg-sidebar p-8 rounded-xl text-center border-2 border-dashed">
-            <div className="text-primary mb-4 flex justify-center">
-                <IconBuilding className="w-12 h-12" />
+        <div className="relative overflow-hidden">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent)]"></div>
+            
+            <div className="relative bg-gradient-to-br from-background via-muted/10 to-background p-12 rounded-2xl text-center border-2 border-dashed border-primary/30 backdrop-blur-sm">
+                {/* Icon with animation */}
+                <div className="relative mb-6 flex justify-center">
+                    <div className="relative p-6 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/30">
+                        <IconBuilding className="w-16 h-16 text-primary" />
+                        {/* Floating particles */}
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full animate-pulse"></div>
+                        <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-secondary rounded-full animate-pulse delay-300"></div>
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="space-y-4 mb-8">
+                    <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                        No Buildings Yet
+                    </h3>
+                    <p className="text-lg text-muted-foreground max-w-md mx-auto">
+                        Create your first building to start managing apartments, tenants, and doormen
+                    </p>
+                </div>
+
+                {/* Action Button */}
+                <button
+                    onClick={onAddNew}
+                    className="group inline-flex items-center gap-3 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground px-8 py-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                >
+                    <Plus className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" />
+                    Create First Building
+                </button>
+
+                {/* Decorative elements */}
+                <div className="absolute top-8 left-8 w-16 h-16 border-2 border-primary/20 rounded-full"></div>
+                <div className="absolute bottom-8 right-8 w-12 h-12 border-2 border-secondary/20 rounded-full"></div>
+                <div className="absolute top-1/2 left-4 w-2 h-8 bg-gradient-to-b from-accent/30 to-transparent rounded-full"></div>
+                <div className="absolute top-1/3 right-4 w-2 h-12 bg-gradient-to-b from-primary/30 to-transparent rounded-full"></div>
             </div>
-            <h3 className="text-xl font-semibold text-primary mb-2">No buildings registered</h3>
-            <p className="text-primary mb-4">Start by adding your first building</p>
-            <button
-                onClick={onAddNew}
-                className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg transition-colors"
-            >
-                <Plus className="w-5 h-5" />
-                Create First Building
-            </button>
         </div>
     );
 
