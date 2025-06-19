@@ -944,25 +944,25 @@ export default function Dashboard() {
                                                 <p className="text-sm">No notifications</p>
                                             </div>
                                         ) : (
-                                            <div className="max-h-80 overflow-y-auto">
+                                            <div className="max-h-80 overflow-y-auto flex flex-col gap-4">
                                                 {notifications.map((notification: NotificationItem) => {
                                                     const IconComponent = notification.icon;
                                                     return (
                                                         <DropdownMenuItem 
                                                             key={notification.id}
-                                                            className={`p-0 focus:bg-slate-50 ${!notification.read ? 'bg-blue-50/50' : ''}`}
+                                                            className={`p-0 focus:bg-slate-50 dark:!text-slate-100 ${!notification.read ? 'bg-blue-50/50 dark:bg-secondary/10' : ''}`}
                                                         >
-                                                            <div className="w-full p-4 flex items-start gap-3">
+                                                            <div className="w-full p-4 flex items-start gap-3 dark:!text-slate-100">
                                                                 <div className={`p-2 rounded-lg ${notification.color} flex-shrink-0`}>
                                                                     <IconComponent className="h-4 w-4" />
                                                                 </div>
                                                                 
-                                                                <div className="flex-1 space-y-1">
+                                                                <div className="flex-1 space-y-1 dark:!text-slate-100">
                                                                     <div className="flex items-center justify-between">
-                                                                        <h4 className={`text-sm font-semibold ${!notification.read ? 'text-slate-900' : 'text-slate-700'}`}>
+                                                                        <h4 className={`text-sm font-semibold dark:!text-slate-100 ${!notification.read ? 'text-slate-900' : 'text-slate-700'}`}>
                                                                             {notification.title}
                                                                         </h4>
-                                                                        <div className="flex items-center gap-1">
+                                                                        <div className="flex items-center gap-1 dark:!text-slate-200">
                                                                             <span className="text-xs text-slate-500">
                                                                                 {notification.time}
                                                                             </span>
@@ -980,7 +980,7 @@ export default function Dashboard() {
                                                                         </div>
                                                                     </div>
                                                                     
-                                                                    <p className={`text-sm ${!notification.read ? 'text-slate-700' : 'text-slate-600'}`}>
+                                                                    <p className={`text-sm dark:!text-slate-100 ${!notification.read ? 'text-slate-700' : 'text-slate-600'}`}>
                                                                         {notification.message}
                                                                     </p>
                                                                     
