@@ -1,14 +1,15 @@
-
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import {
-    LayoutGrid, Table as TableIcon, Plus, Edit, Trash2, Upload, UploadCloud,
-    Star, ChevronLeft, ChevronRight, Archive, MapPin, ArchiveRestore,
-    ChevronDown, MoreHorizontal, Download, Sliders, Building as IconBuilding, X, CheckCircle,
-    User
+    LayoutGrid, Table as TableIcon, Plus, Edit, Trash2, UploadCloud,
+    ChevronLeft, ChevronRight, Archive, MapPin, ArchiveRestore,
+    ChevronDown, MoreHorizontal, Download, Building as IconBuilding,
+    User, Search, Filter, FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'exceljs';
+import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
 import {
     Dialog,
@@ -54,7 +55,15 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Building } from '@/types/models/Building';
 
-
+// TypeScript interfaces for better type safety
+interface Doorman {
+    id?: number;
+    name: string;
+    photo: string | null;
+    email: string;
+    phone: string;
+    shift: 'morning' | 'afternoon' | 'night';
+}
 
 interface PaginationLink {
     url: string | null;
@@ -88,6 +97,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [rowSelection, setRowSelection] = useState({});
+    const [globalFilter, setGlobalFilter] = useState('');
 
     // Estados para la vista y modales
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -126,6 +136,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         {
             accessorKey: "image",
             header: "Image",
+            enableSorting: false,
             cell: ({ row }) => {
                 const building = row.original;
                 return building.image ? (
@@ -143,12 +154,46 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         },
         {
             accessorKey: "name",
-            header: "Name",
+            header: ({ column }) => {
+                return (
+                    <Button
+                        variant="ghost"
+                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent hover:text-black"
+                    >
+                        Name
+                        {column.getIsSorted() === "asc" ? (
+                            <ChevronDown className="ml-2 h-4 w-4 rotate-180" />
+                        ) : column.getIsSorted() === "desc" ? (
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                        ) : (
+                            <ChevronDown className="ml-2 h-4 w-4 opacity-20" />
+                        )}
+                    </Button>
+                )
+            },
             cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
         },
         {
             accessorKey: "status",
-            header: "Status",
+            header: ({ column }) => {
+                return (
+                    <Button
+                        variant="ghost"
+                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent hover:text-black"
+                    >
+                        Status
+                        {column.getIsSorted() === "asc" ? (
+                            <ChevronDown className="ml-2 h-4 w-4 rotate-180" />
+                        ) : column.getIsSorted() === "desc" ? (
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                        ) : (
+                            <ChevronDown className="ml-2 h-4 w-4 opacity-20" />
+                        )}
+                    </Button>
+                )
+            },
             cell: ({ row }) => {
                 const building = row.original;
                 return (
@@ -167,6 +212,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         {
             accessorKey: "description",
             header: "Description",
+            enableSorting: false,
             cell: ({ row }) => (
                 <div className="max-w-[200px] truncate">
                     {row.getValue("description") || "No description"}
@@ -175,7 +221,24 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         },
         {
             accessorKey: "created_at",
-            header: "Created At",
+            header: ({ column }) => {
+                return (
+                    <Button
+                        variant="ghost"
+                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent hover:text-black"
+                    >
+                        Created At
+                        {column.getIsSorted() === "asc" ? (
+                            <ChevronDown className="ml-2 h-4 w-4 rotate-180" />
+                        ) : column.getIsSorted() === "desc" ? (
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                        ) : (
+                            <ChevronDown className="ml-2 h-4 w-4 opacity-20" />
+                        )}
+                    </Button>
+                )
+            },
             cell: ({ row }) => (
                 <div className="text-sm text-gray-500">
                     {new Date(row.getValue("created_at")).toLocaleDateString()}
@@ -246,50 +309,141 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         getFilteredRowModel: getFilteredRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
+        onGlobalFilterChange: setGlobalFilter,
+        globalFilterFn: 'includesString',
         state: {
             sorting,
             columnFilters,
             columnVisibility,
             rowSelection,
+            globalFilter,
         },
     });
 
     // Funciones para exportar datos
     const exportToCSV = () => {
-        const headers = table.getAllColumns()
-            .filter(column => column.getIsVisible())
-            .map(column => column.id)
-            .join(',') + '\n';
+        const visibleColumns = table.getAllColumns()
+            .filter(column => column.getIsVisible() && column.id !== 'actions')
+            .map(column => ({
+                id: column.id,
+                header: typeof column.columnDef.header === 'string' 
+                    ? column.columnDef.header 
+                    : column.id.charAt(0).toUpperCase() + column.id.slice(1)
+            }));
+
+        const headers = visibleColumns.map(col => col.header).join(',') + '\n';
 
         const rows = table.getFilteredRowModel().rows.map(row => {
-            return table.getAllColumns()
-                .filter(column => column.getIsVisible())
-                .map(column => {
-                    const value = row.getValue(column.id);
-                    // Formatear valores para CSV
-                    if (column.id === 'status') {
-                        return row.original.status ? 'Active' : 'Inactive';
-                    }
-                    if (column.id === 'created_at') {
-                        return new Date(row.original.created_at).toLocaleDateString();
-                    }
-                    return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value;
-                })
-                .join(',');
+            return visibleColumns.map(column => {
+                const value = row.getValue(column.id);
+                // Formatear valores para CSV
+                if (column.id === 'status') {
+                    return row.original.status ? 'Active' : 'Inactive';
+                }
+                if (column.id === 'created_at') {
+                    return new Date(row.original.created_at).toLocaleDateString();
+                }
+                if (column.id === 'image') {
+                    return row.original.image ? 'Yes' : 'No';
+                }
+                return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value || '';
+            })
+            .join(',');
         }).join('\n');
 
         const csv = headers + rows;
-        const blob = new Blob([csv], { type: 'text/csv' });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         link.download = `buildings_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success('CSV exported successfully!');
     };
 
-    const exportToExcel = () => {
-        toast.info('Excel export feature coming soon!');
-        // Implementación real requeriría una librería como xlsx
+    const exportToExcel = async () => {
+        try {
+            // Create a new workbook
+            const workbook = new XLSX.Workbook();
+            const worksheet = workbook.addWorksheet('Buildings');
+            
+            // Get visible columns
+            const visibleColumns = table.getAllColumns()
+                .filter(column => column.getIsVisible() && column.id !== 'actions')
+                .map(column => ({
+                    id: column.id,
+                    header: typeof column.columnDef.header === 'string' 
+                        ? column.columnDef.header 
+                        : column.id.charAt(0).toUpperCase() + column.id.slice(1)
+                }));
+
+            // Add headers
+            const headerRow = worksheet.addRow(visibleColumns.map(col => col.header));
+            headerRow.font = { bold: true };
+            headerRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFE0E0E0' }
+            };
+
+            // Add data rows
+            table.getFilteredRowModel().rows.forEach(row => {
+                const rowData = visibleColumns.map(column => {
+                    const value = row.getValue(column.id);
+                    // Format values for Excel
+                    if (column.id === 'status') {
+                        return row.original.status ? 'Active' : 'Inactive';
+                    }
+                    if (column.id === 'created_at') {
+                        return new Date(row.original.created_at);
+                    }
+                    if (column.id === 'image') {
+                        return row.original.image ? 'Yes' : 'No';
+                    }
+                    return value || '';
+                });
+                worksheet.addRow(rowData);
+            });
+
+            // Auto-fit columns
+            worksheet.columns.forEach(column => {
+                if (column.header) {
+                    column.width = Math.max(
+                        column.header.toString().length,
+                        ...worksheet.getColumn(column.number!).values
+                            .slice(1)
+                            .map(v => v?.toString().length || 0)
+                    ) + 2;
+                }
+            });
+
+            // Add borders to all cells
+            worksheet.eachRow({ includeEmpty: false }, (row) => {
+                row.eachCell({ includeEmpty: false }, (cell) => {
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                });
+            });
+
+            // Generate buffer and save
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { 
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+            });
+            
+            saveAs(blob, `buildings_${new Date().toISOString().split('T')[0]}.xlsx`);
+            toast.success('Excel file exported successfully!');
+        } catch (error) {
+            console.error('Error exporting to Excel:', error);
+            toast.error('Error exporting to Excel. Please try again.');
+        }
     };
 
     // Funciones para manejar edificios
@@ -735,25 +889,6 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                     </div>
 
                     <div className="flex gap-2 w-full sm:w-auto">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="ml-2">
-                                    <Sliders className="mr-2 h-4 w-4" />
-                                    Actions
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={exportToCSV}>
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Export to CSV
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={exportToExcel}>
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Export to Excel
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
                         <Button
                             onClick={() => {
                                 reset();
@@ -770,40 +905,68 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
 
                 {/* Filtros y controles de tabla */}
                 {viewMode === 'table' && (
-                    <div className="flex items-center gap-4">
-                        <Input
-                            placeholder="Filter by name..."
-                            value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-                            onChange={(event) =>
-                                table.getColumn("name")?.setFilterValue(event.target.value)
-                            }
-                            className="max-w-sm"
-                        />
+                    <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                <Input
+                                    placeholder="Search across all columns..."
+                                    value={globalFilter ?? ""}
+                                    onChange={(event) => setGlobalFilter(event.target.value)}
+                                    className="pl-10 w-64"
+                                />
+                            </div>
+                            <div className="hidden sm:block text-sm text-muted-foreground">
+                                {table.getFilteredRowModel().rows.length} of {table.getCoreRowModel().rows.length} entries
+                            </div>
+                        </div>
 
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="ml-auto">
-                                    Columns <ChevronDown className="ml-2 h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                {table
-                                    .getAllColumns()
-                                    .filter((column) => column.getCanHide())
-                                    .map((column) => (
-                                        <DropdownMenuCheckboxItem
-                                            key={column.id}
-                                            className="capitalize"
-                                            checked={column.getIsVisible()}
-                                            onCheckedChange={(value) =>
-                                                column.toggleVisibility(!!value)
-                                            }
-                                        >
-                                            {column.id}
-                                        </DropdownMenuCheckboxItem>
-                                    ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-2">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                        <Filter className="mr-2 h-4 w-4" />
+                                        Columns <ChevronDown className="ml-1 h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                    {table
+                                        .getAllColumns()
+                                        .filter((column) => column.getCanHide())
+                                        .map((column) => (
+                                            <DropdownMenuCheckboxItem
+                                                key={column.id}
+                                                className="capitalize"
+                                                checked={column.getIsVisible()}
+                                                onCheckedChange={(value) =>
+                                                    column.toggleVisibility(!!value)
+                                                }
+                                            >
+                                                {column.id.replace(/_/g, ' ')}
+                                            </DropdownMenuCheckboxItem>
+                                        ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                        <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                        Export <ChevronDown className="ml-1 h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={exportToCSV}>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Export to CSV
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={exportToExcel}>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Export to Excel
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </div>
                 )}
 
@@ -869,30 +1032,97 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                             </Table>
                         </div>
 
-                        {/* Paginación */}
-                        <div className="flex items-center justify-between px-2">
-                            <div className="flex-1 text-sm text-muted-foreground">
-                                {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                                {table.getFilteredRowModel().rows.length} row(s) selected.
+                        {/* Enhanced Pagination */}
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t bg-muted/20">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>
+                                    Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
+                                    {Math.min(
+                                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                                        table.getFilteredRowModel().rows.length
+                                    )}{' '}
+                                    of {table.getFilteredRowModel().rows.length} entries
+                                    {table.getFilteredRowModel().rows.length !== table.getCoreRowModel().rows.length && (
+                                        <span className="text-primary font-medium">
+                                            (filtered from {table.getCoreRowModel().rows.length} total)
+                                        </span>
+                                    )}
+                                </span>
                             </div>
 
-                            <div className="flex items-center space-x-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => table.previousPage()}
-                                    disabled={!table.getCanPreviousPage()}
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => table.nextPage()}
-                                    disabled={!table.getCanNextPage()}
-                                >
-                                    Next
-                                </Button>
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">Rows per page:</span>
+                                    <select
+                                        value={table.getState().pagination.pageSize}
+                                        onChange={(e) => table.setPageSize(Number(e.target.value))}
+                                        className="border rounded px-2 py-1 text-sm bg-background"
+                                    >
+                                        {[10, 20, 30, 40, 50].map(pageSize => (
+                                            <option key={pageSize} value={pageSize}>
+                                                {pageSize}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => table.setPageIndex(0)}
+                                        disabled={!table.getCanPreviousPage()}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                        <ChevronLeft className="h-4 w-4 -ml-2" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => table.previousPage()}
+                                        disabled={!table.getCanPreviousPage()}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                                    
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-sm text-muted-foreground">Page</span>
+                                        <input
+                                            type="number"
+                                            value={table.getState().pagination.pageIndex + 1}
+                                            onChange={(e) => {
+                                                const page = e.target.value ? Number(e.target.value) - 1 : 0;
+                                                table.setPageIndex(page);
+                                            }}
+                                            className="w-12 h-8 text-center border rounded text-sm bg-background"
+                                            min="1"
+                                            max={table.getPageCount()}
+                                        />
+                                        <span className="text-sm text-muted-foreground">of {table.getPageCount()}</span>
+                                    </div>
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => table.nextPage()}
+                                        disabled={!table.getCanNextPage()}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                                        disabled={!table.getCanNextPage()}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                        <ChevronRight className="h-4 w-4 -ml-2" />
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </>
