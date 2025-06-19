@@ -895,7 +895,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                         onClick={() => setShowAssignModal({ open: true, ticketId: selectedTicket.id })}
                                                                     >
                                                                         <Share2 className="w-4 h-4 mr-2" />
-                                                                        Asignar
+                                                                        Assign technician
                                                                     </Button>
                                                                 )}
                                                                 <Button
@@ -904,7 +904,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                     onClick={() => setShowHistoryModal({ open: true, ticketId: selectedTicket.id })}
                                                                 >
                                                                     <MessageSquare className="w-4 h-4 mr-2" />
-                                                                    Comentar
+                                                                    Comment
                                                                 </Button>
                                                             </div>
                                                         )}
@@ -963,7 +963,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                     }}
                                                                 >
                                                                     <MessageSquare className="w-4 h-4 mr-2" />
-                                                                    Comentar
+                                                                    Comment
                                                                 </Button>
                                                              
                                                                     <Button
@@ -976,7 +976,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                         }}
                                                                     >
                                                                         <Share2 className="w-4 h-4 mr-2" />
-                                                                        Asignar
+                                                                        Assign Technician
                                                                     </Button>
                                                                
 
@@ -1239,10 +1239,10 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                 {assigning ? (
                                     <>
                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Asignando...
+                                        Assigning ...
                                     </>
                                 ) : (
-                                    "Asignar"
+                                    "Assign technician"
                                 )}
                             </Button>
                         </DialogFooter>
