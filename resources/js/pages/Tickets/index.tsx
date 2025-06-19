@@ -24,6 +24,9 @@ import {
     PlayCircle,
     StopCircle,
     Search,
+    User,
+    Building,
+    Home,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -202,6 +205,80 @@ function DeviceBadge({ device }: { device: any }) {
             {device?.name_device?.name || device?.name || "Sin dispositivo"}
         </div>
     )
+}
+
+// Componente MemberCard para mostrar información del member de forma consistente
+function MemberCard({ ticket, showContactInfo = false }: { ticket: any, showContactInfo?: boolean }) {
+    if (!ticket.user || !ticket.user.tenant) return null;
+
+    const tenant = ticket.user.tenant;
+    
+    return (
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-3 mb-3">
+            <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                    {tenant.photo ? (
+                        <img
+                            src={tenant.photo.startsWith('http')
+                                ? tenant.photo
+                                : `/storage/${tenant.photo}`}
+                            alt={tenant.name}
+                            className="w-12 h-12 rounded-full border-2 border-purple-300 shadow-md object-cover"
+                        />
+                    ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-sm font-bold">
+                            {tenant.name?.substring(0, 1) || '?'}
+                        </div>
+                    )}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1 mb-1">
+                        <User className="w-3 h-3 text-purple-600" />
+                        <p className="text-sm font-semibold text-purple-900 truncate">
+                            {tenant.name}
+                        </p>
+                    </div>
+                    
+                    {showContactInfo && tenant.email && (
+                        <div className="flex items-center gap-1 mb-1">
+                            <MessageSquare className="w-3 h-3 text-green-600" />
+                            <p className="text-xs text-green-800 truncate">
+                                {tenant.email}
+                            </p>
+                        </div>
+                    )}
+                    
+                    {showContactInfo && tenant.phone && (
+                        <div className="flex items-center gap-1 mb-1">
+                            <UserIcon className="w-3 h-3 text-orange-600" />
+                            <p className="text-xs text-orange-800 truncate">
+                                {tenant.phone}
+                            </p>
+                        </div>
+                    )}
+                    
+                    {tenant.apartment && (
+                        <div className="flex items-center gap-1 mb-1">
+                            <Home className="w-3 h-3 text-blue-600" />
+                            <p className="text-xs text-blue-800 truncate">
+                                {tenant.apartment.name}
+                            </p>
+                        </div>
+                    )}
+                    
+                    {tenant.apartment?.building && (
+                        <div className="flex items-center gap-1">
+                            <Building className="w-3 h-3 text-gray-600" />
+                            <p className="text-xs text-gray-700 truncate">
+                                {tenant.apartment.building.name}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
 }
 
 function SkeletonCard() {
@@ -802,7 +879,10 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                             )}
 
                                             {selectedTicket && !selectedTicketLoading && (
-                                                <div className="p-6 space-y-6">
+                                                <div className="px-6 pb-6">
+                                                    {/* Member Card - Creador del ticket - Movido arriba */}
+                                                    <MemberCard ticket={selectedTicket} showContactInfo={true} />
+
                                                     {/* Ticket Info */}
                                                     <div className="space-y-4">
                                                         {/* Botones de acción para técnicos/jefe, SIEMPRE antes de history */}
@@ -846,41 +926,11 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                             </div>
                                                         </div>
 
-                                                        <div className="space-y-2 flex justify-between items-center">
+                                                        <div className="space-y-2">
                                                             <div className="flex flex-wrap gap-2 items-center">
                                                                 <DeviceBadge device={selectedTicket.device} />
                                                                 <CategoryBadge category={selectedTicket.category} />
                                                             </div>
-                                                            {/* Creador del ticket */}
-                                                            {selectedTicket.user && selectedTicket.user.tenant && (
-                                                                <TooltipProvider>
-                                                                    <Tooltip delayDuration={200}>
-                                                                        <TooltipTrigger asChild>
-                                                                            <div className="flex items-center cursor-pointer group">
-                                                                                {selectedTicket.user.tenant.photo ? (
-                                                                                    <img
-                                                                                        src={selectedTicket.user.tenant.photo.startsWith('http')
-                                                                                            ? selectedTicket.user.tenant.photo
-                                                                                            : `/storage/${selectedTicket.user.tenant.photo}`}
-                                                                                        alt={selectedTicket.user.tenant.name}
-                                                                                        className="w-7 h-7 rounded-full border-2 border-purple-300 shadow-md group-hover:scale-105 transition-transform"
-                                                                                    />
-                                                                                ) : (
-                                                                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-base font-bold">
-                                                                                        {selectedTicket.user.tenant.name?.substring(0, 1) || '?'}
-                                                                                    </div>
-                                                                                )}
-
-                                                                            </div>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent className="bg-gray-900 text-white px-3 py-2 text-xs rounded shadow-lg">
-                                                                            <div className="font-semibold text-base">{selectedTicket.user.tenant.name}</div>
-                                                                            <div className="text-purple-200">{selectedTicket.user.tenant.apartment?.name || 'Sin departamento'}</div>
-                                                                            <div className="text-blue-200">{selectedTicket.user.tenant.apartment?.building?.name || 'Sin edificio'}</div>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </TooltipProvider>
-                                                            )}
                                                         </div>
 
 
@@ -915,7 +965,7 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                     <MessageSquare className="w-4 h-4 mr-2" />
                                                                     Comentar
                                                                 </Button>
-                                                                {isTechnicalDefault && (
+                                                             
                                                                     <Button
                                                                         variant={"ghost"}
                                                                         size="sm"
@@ -928,12 +978,12 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                                                         <Share2 className="w-4 h-4 mr-2" />
                                                                         Asignar
                                                                     </Button>
-                                                                )}
+                                                               
 
 
                                                                 {/* Status update buttons */}
                                                                 {getNextStatuses(selectedTicket.status).length > 0 && (
-                                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                                    <div className="flex flex-wrap gap-2 mt-2 mb-4">
                                                                         <p className="w-full text-sm text-slate-500 mb-1">Update Status:</p>
                                                                         {getNextStatuses(selectedTicket.status).map((status) => {
                                                                             const statusInfo = statusConfig[status];

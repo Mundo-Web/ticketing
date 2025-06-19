@@ -334,7 +334,7 @@ class TicketController extends Controller
         }
         
         if (!$isSuperAdmin && !$isDefaultTechnical) {
-            return response()->json(['error' => 'No tienes permisos para asignar tickets'], 403);
+            return redirect()->back()->withErrors(['error' => 'No tienes permisos para asignar tickets']);
         }
         
         $validated = $request->validate([
@@ -358,10 +358,7 @@ class TicketController extends Controller
             $user->hasRole('technical') ? Technical::where('email', $user->email)->first()?->id : null
         );
         
-        return response()->json([
-            'message' => 'Ticket assigned successfully',
-            'ticket' => $ticket->fresh(['technical'])
-        ]);
+        return redirect()->back()->with('success', 'Ticket assigned successfully');
     }
 
     public function assignUnassigned()

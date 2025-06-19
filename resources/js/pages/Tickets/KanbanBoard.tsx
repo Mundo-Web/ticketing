@@ -1,8 +1,64 @@
 import React, { useState, useEffect, Fragment, useCallback, useMemo } from "react";
-import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, XCircle, Filter, Search, MoreVertical, Tag, Monitor } from "lucide-react";
+import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, XCircle, Filter, Search, MoreVertical, Tag, Monitor, User, Building, Home } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { router } from "@inertiajs/react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@radix-ui/react-tooltip";
+
+// Componente MemberCard para mostrar información del member
+const MemberCard = ({ ticket }: { ticket: any }) => {
+    if (!ticket.user || !ticket.user.tenant) return null;
+
+    const tenant = ticket.user.tenant;
+    
+    return (
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-3 mb-3">
+            <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                    {tenant.photo ? (
+                        <img
+                            src={tenant.photo.startsWith('http')
+                                ? tenant.photo
+                                : `/storage/${tenant.photo}`}
+                            alt={tenant.name}
+                            className="w-10 h-10 rounded-full border-2 border-purple-300 shadow-md object-cover"
+                        />
+                    ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-sm font-bold">
+                            {tenant.name?.substring(0, 1) || '?'}
+                        </div>
+                    )}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1 mb-1">
+                        <User className="w-3 h-3 text-purple-600" />
+                        <p className="text-sm font-semibold text-purple-900 truncate">
+                            {tenant.name}
+                        </p>
+                    </div>
+                    
+                    {tenant.apartment && (
+                        <div className="flex items-center gap-1 mb-1">
+                            <Home className="w-3 h-3 text-blue-600" />
+                            <p className="text-xs text-blue-800 truncate">
+                                {tenant.apartment.name}
+                            </p>
+                        </div>
+                    )}
+                    
+                    {tenant.apartment?.building && (
+                        <div className="flex items-center gap-1">
+                            <Building className="w-3 h-3 text-gray-600" />
+                            <p className="text-xs text-gray-700 truncate">
+                                {tenant.apartment.building.name}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const getStatuses = (props: any) => {
     if (props.isTechnicalDefault) {
@@ -329,98 +385,60 @@ export default function KanbanBoard(props: any) {
                                                                     >
                                                                         <MoreVertical size={16} />
                                                                     </button>
-                                                                </div>
+                                                                </div>                                                <h4 className="text-sm font-medium text-gray-800 mb-3">
+                                                    {ticket.title}
+                                                </h4>
 
-                                                                <h4 className="text-sm font-medium text-gray-800 mb-3">
-                                                                    {ticket.title}
-                                                                </h4>
+                                                {/* Member Card */}
+                                                <MemberCard ticket={ticket} />
 
-                                                                <div className="flex flex-wrap gap-2 mb-3 items-center">
-                                                                    {(ticket.user && ticket.user.tenant) && (
+                                                <div className="flex flex-wrap gap-2 mb-3 items-center">
+                                                    <span className="px-2 py-0.5 bg-gradient-to-r from-purple-200 to-purple-100 text-purple-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
+                                                        <Tag className="inline w-3 h-3 mr-1 text-purple-400" />
+                                                        {ticket.category}
+                                                    </span>
+                                                    {ticket.device && (
+                                                        <span className="px-2 py-0.5 bg-gradient-to-r from-blue-200 to-blue-100 text-blue-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
+                                                            <Monitor className="inline w-3 h-3 mr-1 text-blue-400" />
+                                                            {ticket.device.name || (ticket.device.name_device && ticket.device.name_device.name) || "Dispositivo"}
+                                                        </span>
+                                                    )}
+                                                </div>
 
-                                                                        <>
-                                                                            {/* Creador */}
-                                                                            <TooltipProvider>
-                                                                                <Tooltip delayDuration={200}>
-                                                                                    <TooltipTrigger asChild>
-                                                                                        <div className="flex items-center cursor-pointer group">
-                                                                                            {ticket.user.tenant.photo ? (
-                                                                                                <img
-                                                                                                    src={ticket.user.tenant.photo.startsWith('http')
-                                                                                                        ? ticket.user.tenant.photo
-                                                                                                        : `/storage/${ticket.user.tenant.photo}`}
-                                                                                                    alt={ticket.user.tenant.name}
-                                                                                                    className="w-7 h-7 rounded-full border-2 border-purple-300 shadow-md group-hover:scale-105 transition-transform"
-                                                                                                />
-                                                                                            ) : (
-                                                                                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-base font-bold">
-                                                                                                    {ticket.user.tenant.name?.substring(0, 1) || '?'}
-                                                                                                </div>
-                                                                                            )}
+                                                <div className="flex justify-between items-center text-xs text-gray-500 mt-4">
+                                                    <div className="flex items-center">
+                                                        <CalendarIcon className="w-3 h-3 mr-1" />
+                                                        {new Date(ticket.created_at).toLocaleDateString()}
+                                                    </div>
 
-                                                                                        </div>
-                                                                                    </TooltipTrigger>
-                                                                                    <TooltipContent className="bg-gray-900 text-white px-3 py-2 text-xs rounded shadow-lg">
-                                                                                        <div className="font-semibold text-base">{ticket.user.tenant.name}</div>
-                                                                                        <div className="text-purple-200">{ticket.user.tenant.apartment?.name || 'Sin departamento'}</div>
-                                                                                        <div className="text-blue-200">{ticket.user.tenant.apartment?.building?.name || 'Sin edificio'}</div>
-                                                                                    </TooltipContent>
-                                                                                </Tooltip>
-                                                                            </TooltipProvider>
-                                                                            {/* Técnico asignado */}</>
-
-
-                                                                    )}
-                                                                    <span className="px-2 py-0.5 bg-gradient-to-r from-purple-200 to-purple-100 text-purple-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
-                                                                        <Tag className="inline w-3 h-3 mr-1 text-purple-400" />
-                                                                        {ticket.category}
-                                                                    </span>
-                                                                    {ticket.device && (
-                                                                        <span className="px-2 py-0.5 bg-gradient-to-r from-blue-200 to-blue-100 text-blue-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
-                                                                            <Monitor className="inline w-3 h-3 mr-1 text-blue-400" />
-                                                                            {ticket.device.name || (ticket.device.name_device && ticket.device.name_device.name) || "Dispositivo"}
-                                                                        </span>
-                                                                    )}
-                                                                    {/* Creador y técnico asignado */}
-
-                                                                </div>
-
-
-
-                                                                <div className="flex justify-between items-center text-xs text-gray-500 mt-4">
-                                                                    <div className="flex items-center">
-                                                                        <CalendarIcon className="w-3 h-3 mr-1" />
-                                                                        {new Date(ticket.created_at).toLocaleDateString()}
+                                                    {ticket.technical && (
+                                                        <TooltipProvider>
+                                                            <Tooltip delayDuration={200}>
+                                                                <TooltipTrigger asChild>
+                                                                    <div className="flex items-center cursor-pointer group">
+                                                                        {ticket.technical.photo ? (
+                                                                            <img
+                                                                                src={ticket.technical.photo.startsWith('http')
+                                                                                    ? ticket.technical.photo
+                                                                                    : `/storage/${ticket.technical.photo}`}
+                                                                                alt={ticket.technical.name}
+                                                                                className="w-7 h-7 rounded-full border-2 border-blue-300 shadow-md group-hover:scale-105 transition-transform"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center text-white text-base font-bold">
+                                                                                {ticket.technical.name?.substring(0, 1) || '?'}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
-
-                                                                    {ticket.technical && (
-                                                                        <TooltipProvider>
-                                                                            <Tooltip delayDuration={200}>
-                                                                                <TooltipTrigger asChild>
-                                                                                    <div className="flex items-center cursor-pointer group">
-                                                                                        {ticket.technical.photo ? (
-                                                                                            <img
-                                                                                                src={ticket.technical.photo.startsWith('http')
-                                                                                                    ? ticket.technical.photo
-                                                                                                    : `/storage/${ticket.technical.photo}`}
-                                                                                                alt={ticket.technical.name}
-                                                                                                className="w-7 h-7 rounded-full border-2 border-blue-300 shadow-md group-hover:scale-105 transition-transform"
-                                                                                            />
-                                                                                        ) : (
-                                                                                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center text-white text-base font-bold">
-                                                                                                {ticket.technical.name?.substring(0, 1) || '?'}
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
-                                                                                </TooltipTrigger>
-                                                                                <TooltipContent className="bg-gray-900 text-white px-3 py-2 text-xs rounded shadow-lg">
-                                                                                    <div className="font-semibold text-base">{ticket.technical.name}</div>
-                                                                                </TooltipContent>
-                                                                            </Tooltip>
-                                                                        </TooltipProvider>
-                                                                    )}
-                                                                </div>
-                                                            </div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent className="bg-gray-900 text-white px-3 py-2 text-xs rounded shadow-lg">
+                                                                    <div className="font-semibold text-base">{ticket.technical.name}</div>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    )}
+                                                </div>
+                                            </div>
 
                                                             {menuOpen === ticket.id && (
                                                                 <div className="border-t border-gray-200 p-2 bg-gray-50">
@@ -471,6 +489,9 @@ export default function KanbanBoard(props: any) {
                                                         {ticket.title}
                                                     </h4>
 
+                                                    {/* Member Card */}
+                                                    <MemberCard ticket={ticket} />
+
                                                     <div className="flex flex-wrap gap-2 mb-3 items-center">
                                                         <span className="px-2 py-0.5 bg-gradient-to-r from-purple-200 to-purple-100 text-purple-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
                                                             <Tag className="inline w-3 h-3 mr-1 text-purple-400" />
@@ -483,43 +504,6 @@ export default function KanbanBoard(props: any) {
                                                             </span>
                                                         )}
                                                     </div>
-
-                                                    {/* Creador del ticket destacado */}
-                                                    {ticket.user && ticket.user.tenant && (
-                                                        <div className="flex items-center gap-2 mt-2 p-2 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100">
-                                                            <TooltipProvider>
-                                                                <Tooltip delayDuration={200}>
-                                                                    <TooltipTrigger asChild>
-                                                                        <div className="flex items-center cursor-pointer group">
-                                                                            {ticket.user.tenant.photo ? (
-                                                                                <img
-                                                                                    src={ticket.user.tenant.photo.startsWith('http')
-                                                                                        ? ticket.user.tenant.photo
-                                                                                        : `/storage/${ticket.user.tenant.photo}`}
-                                                                                    alt={ticket.user.tenant.name}
-                                                                                    className="w-7 h-7 rounded-full border-2 border-purple-300 shadow-md group-hover:scale-105 transition-transform"
-                                                                                />
-                                                                            ) : (
-                                                                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-base font-bold">
-                                                                                    {ticket.user.tenant.name?.substring(0, 1) || '?'}
-                                                                                </div>
-                                                                            )}
-                                                                            <div className="ml-2">
-                                                                                <div className="font-semibold text-slate-800 text-xs">{ticket.user.tenant.name}</div>
-                                                                                <div className="text-[10px] text-purple-700">{ticket.user.tenant.apartment?.name || 'Sin departamento'}</div>
-                                                                                <div className="text-[10px] text-blue-700">{ticket.user.tenant.apartment?.building?.name || 'Sin edificio'}</div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent className="bg-gray-900 text-white px-3 py-2 text-xs rounded shadow-lg">
-                                                                        <div className="font-semibold text-base">{ticket.user.tenant.name}</div>
-                                                                        <div className="text-purple-200">{ticket.user.tenant.apartment?.name || 'Sin departamento'}</div>
-                                                                        <div className="text-blue-200">{ticket.user.tenant.apartment?.building?.name || 'Sin edificio'}</div>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                        </div>
-                                                    )}
 
                                                     <div className="flex justify-between items-center text-xs text-gray-500 mt-4">
                                                         <div className="flex items-center">
