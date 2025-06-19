@@ -198,11 +198,8 @@ class ApartmentController extends Controller
 
         $apartment->update(['status' => $request->status]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Estado actualizado',
-            'status' => $apartment->status
-        ]);
+        // Usar redirect back para que sea compatible con Inertia
+        return redirect()->back()->with('success', 'Estado actualizado exitosamente');
     }
 
 

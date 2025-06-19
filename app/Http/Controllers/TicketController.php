@@ -256,6 +256,7 @@ class TicketController extends Controller
             $validated['technical_id']
         );
         // SIEMPRE redirige (no devuelvas JSON)
+        
         return redirect()->back()->with('success', 'Technician assigned');
     }
 

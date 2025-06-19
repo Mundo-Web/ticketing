@@ -374,17 +374,26 @@ export default function Index({ apartments, brands, models, systems, name_device
     const toggleStatus = async (apartment: Apartment) => {
         setIsUpdatingStatus(apartment.id);
         try {
-            await router.put(
+            router.put(
                 route('apartments.update-status', apartment.id),
                 { status: !apartment.status },
                 {
                     preserveScroll: true,
-                    onSuccess: () => toast.success('Status updated successfully'),
+                    onSuccess: () => {
+                        toast.success('Status updated successfully');
+                    },
+                    onError: (errors) => {
+                        console.error('Error updating status:', errors);
+                        toast.error('Error updating status');
+                    },
+                    onFinish: () => {
+                        setIsUpdatingStatus(null);
+                    }
                 }
             );
-        } catch {
+        } catch (error) {
+            console.error('Connection error:', error);
             toast.error('Connection error');
-        } finally {
             setIsUpdatingStatus(null);
         }
     };
@@ -828,8 +837,9 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b bg-muted/50">
-                                            <th className="h-12 px-4 text-left align-middle font-medium">Members</th>
                                             <th className="h-12 px-4 text-left align-middle font-medium">Apartment</th>
+                                          
+                                            <th className="h-12 px-4 text-left align-middle font-medium">Members</th>
                                             <th className="h-12 px-4 text-left align-middle font-medium">Ubication</th>
                                             <th className="h-12 px-4 text-left align-middle font-medium">State</th>
                                             <th className="h-12 px-4 text-left align-middle font-medium">Actions</th>
@@ -886,13 +896,14 @@ const ApartmentRow = ({ apartment, onEdit, onDelete, onToggleStatus, isUpdatingS
     return (
         <>
             <tr className="border-b">
+                <td className="p-4 align-middle">{apartment.name}</td>
+               
                 <td className="p-4 align-middle cursor-pointer hover:bg-muted/50" onClick={() => setExpanded(!expanded)}>
                     <div className="flex items-center gap-2">
                         <ChevronRight className={`w-4 h-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
                         <span>{apartment.tenants?.length || 0}</span>
                     </div>
                 </td>
-                <td className="p-4 align-middle">{apartment.name}</td>
                 <td className="p-4 align-middle">{apartment.ubicacion}</td>
                 <td className="p-4 align-middle">
                     <Switch
