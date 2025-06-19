@@ -1005,13 +1005,13 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
 
                                                     <div className="space-y-4">
                                                         <Label htmlFor="location_link" className="text-base">
-                                                            Location URL
+                                                            Location (Latitude, Longitude)
                                                         </Label>
                                                         <Input
                                                             id="location_link"
                                                             value={data.location_link}
                                                             onChange={(e) => setData('location_link', e.target.value)}
-                                                            type="url"
+                                                            type="text"
                                                             placeholder="https://maps.google.com/..."
                                                             className="h-11"
                                                         />

@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { SharedData, type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LayoutGrid, Table, Plus, Edit, Trash2, ChevronRight, Laptop, User, UploadCloud, ChevronsUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -66,6 +66,11 @@ interface Props {
 export default function Index({ apartments, brands, models, systems, name_devices }: Props) {
     const { auth } = usePage<SharedData>().props;
   
+    // Debug inicial
+    console.log('=== COMPONENT RENDERED ===');
+    console.log('Apartments data:', apartments);
+    console.log('Building info:', usePage().props);
+    console.log('=== END COMPONENT DEBUG ===');
   
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -83,6 +88,7 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
     const [bulkFile, setBulkFile] = useState<File | null>(null);
     const [isBulkUploading, setIsBulkUploading] = useState(false);
+    const [mapKey, setMapKey] = useState(0); // Para forzar re-render del mapa
 
     const { building, all_buildings, googleMapsApiKey } = usePage().props as {
         building: {
@@ -122,6 +128,20 @@ export default function Index({ apartments, brands, models, systems, name_device
             photoPreview?: string;
         }>,
     });
+
+    // Efecto para forzar re-render del mapa cuando cambie el building
+    useEffect(() => {
+        console.log('=== BUILDING CHANGED IN USEEFFECT ===');
+        console.log('Building ID:', building.id);
+        console.log('Building name:', building.name);
+        console.log('Building location_link:', building.location_link);
+        console.log('Full building object:', building);
+        setMapKey(prev => {
+            console.log('MapKey changed from', prev, 'to', prev + 1);
+            return prev + 1;
+        });
+        console.log('=== END BUILDING CHANGE ===');
+    }, [building]);
 
     const hasUnsavedChanges = () => {
         return !_.isEqual(data, initialFormData);
@@ -264,23 +284,92 @@ export default function Index({ apartments, brands, models, systems, name_device
     };
 
     const getEmbedUrl = (locationLink: string): string => {
-        if (!locationLink) return '';
-        if (locationLink.includes('maps.app.goo.gl')) {
-            return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=-10.916879,-74.883391&zoom=15`;
+    console.log('=== GENERATING EMBED URL ===');
+    console.log('Input location_link:', locationLink);
+    console.log('Building ID:', building?.id);
+    console.log('Google Maps API Key:', googleMapsApiKey ? 'Present' : 'Missing');
+
+    if (!locationLink?.trim()) {
+        console.warn('No location link provided');
+        return '';
+    }
+
+    if (!googleMapsApiKey) {
+        console.warn('No Google Maps API Key provided');
+        return '';
+    }
+
+    const cleanedLink = locationLink.trim();
+
+    // Si ya es un embed URL válido
+    if (cleanedLink.includes('/embed')) {
+        console.log('Using existing embed URL:', cleanedLink);
+        return cleanedLink;
+    }
+
+    // Coordenadas directas "lat, lng"
+    const coordsDirectMatch = cleanedLink.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+    if (coordsDirectMatch) {
+        const lat = parseFloat(coordsDirectMatch[1]);
+        const lng = parseFloat(coordsDirectMatch[2]);
+
+        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            // Usar /v1/place con coordenadas para mostrar el PIN/MARCADOR
+            const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${lat},${lng}&zoom=17`;
+            console.log('Generated embed URL for coordinates WITH PIN:', embedUrl);
+            return embedUrl;
+        } else {
+            console.warn('Invalid coordinates:', { lat, lng });
         }
-        if (locationLink.includes('/embed')) return locationLink;
-        if (locationLink.includes('google.com/maps')) {
-            const coordsMatch = locationLink.match(/@([-0-9.]+),([-0-9.]+)/);
-            if (coordsMatch) {
-                return `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${coordsMatch[1]},${coordsMatch[2]}&zoom=15`;
-            }
-            const placeIdMatch = locationLink.match(/place\/([^\/]+)/);
-            if (placeIdMatch) {
-                return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=place_id:${placeIdMatch[1]}`;
+    }
+
+    // Enlace acortado (maps.app.goo.gl o goo.gl/maps) — solo se puede usar como búsqueda
+    if (/maps\.app\.goo\.gl|goo\.gl\/maps/.test(cleanedLink)) {
+        const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(cleanedLink)}`;
+        console.log('Generated embed URL for short link (fallback as search):', embedUrl);
+        return embedUrl;
+    }
+
+    // URL de Google Maps completa
+    if (cleanedLink.includes('google.com/maps')) {
+        // Extraer el parámetro pb si existe
+        const pbMatch = cleanedLink.match(/pb=([^&]+)/);
+        if (pbMatch) {
+            const embedUrl = `https://www.google.com/maps/embed?pb=${pbMatch[1]}`;
+            console.log('Generated embed URL from pb parameter:', embedUrl);
+            return embedUrl;
+        }
+
+        // Extraer coordenadas del patrón @lat,lng,zoom
+        const coordsMatch = cleanedLink.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+        if (coordsMatch) {
+            const lat = parseFloat(coordsMatch[1]);
+            const lng = parseFloat(coordsMatch[2]);
+
+            if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+                // Usar /v1/place con coordenadas para mostrar el PIN/MARCADOR
+                const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${lat},${lng}&zoom=17`;
+                console.log('Generated embed URL from @ coordinates WITH PIN:', embedUrl);
+                return embedUrl;
             }
         }
-        return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(locationLink)}`;
-    };
+
+        // Buscar place ID
+        const placeIdMatch = cleanedLink.match(/place\/([^/?#]+)/);
+        if (placeIdMatch) {
+            const placeId = placeIdMatch[1];
+            const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&place_id=${placeId}`;
+            console.log('Generated embed URL for place ID:', embedUrl);
+            return embedUrl;
+        }
+    }
+
+    // Fallback: tratar como dirección
+    const fallbackEmbed = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(cleanedLink)}`;
+    console.log('Fallback embed URL (address or query):', fallbackEmbed);
+    return fallbackEmbed;
+};
+
 
     const toggleStatus = async (apartment: Apartment) => {
         setIsUpdatingStatus(apartment.id);
@@ -293,7 +382,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                     onSuccess: () => toast.success('Status updated successfully'),
                 }
             );
-        } catch (error) {
+        } catch {
             toast.error('Connection error');
         } finally {
             setIsUpdatingStatus(null);
@@ -361,7 +450,14 @@ export default function Index({ apartments, brands, models, systems, name_device
                         <BuildingCombobox
                             buildings={all_buildings}
                             selectedId={building.id}
-                            onChange={(id) => router.visit(route('buildings.apartments', id))}
+                            onChange={(id) => {
+                                console.log('=== BUILDING COMBOBOX ONCHANGE CALLED ===');
+                                console.log('New building ID:', id);
+                                console.log('Current building ID:', building.id);
+                                console.log('Route that will be called:', route('buildings.apartments', id));
+                                console.log('=== CALLING ROUTER.VISIT ===');
+                                router.visit(route('buildings.apartments', id));
+                            }}
                            
                         />
                     </CardContent>
@@ -703,7 +799,16 @@ export default function Index({ apartments, brands, models, systems, name_device
 
                             {building.location_link && (
                                 <div className="aspect-video rounded-lg overflow-hidden border">
+                                    {(() => {
+                                        console.log('=== RENDERING IFRAME ===');
+                                        console.log('Building location_link:', building.location_link);
+                                        console.log('Generated iframe src:', getEmbedUrl(building?.location_link || ''));
+                                        console.log('Iframe key:', `map-${building.id}-${mapKey}`);
+                                        console.log('=== END IFRAME RENDER ===');
+                                        return null;
+                                    })()}
                                     <iframe
+                                        key={`map-${building.id}-${mapKey}`}
                                         src={getEmbedUrl(building?.location_link || '')}
                                         width="100%"
                                         height="100%"
@@ -711,9 +816,12 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         allowFullScreen
                                         loading="lazy"
                                         referrerPolicy="no-referrer-when-downgrade"
+                                        onLoad={() => console.log('Iframe loaded successfully')}
+                                        onError={() => console.log('Iframe failed to load')}
                                     />
                                 </div>
                             )}
+
                         </div>
                         <div className='lg:w-8/12 flex flex-col'>
                             <div className="rounded-md border">

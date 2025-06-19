@@ -57,7 +57,7 @@ class BuildingController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'location_link' => 'nullable|url',
+            'location_link' => 'nullable|string',
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'owner.name' => 'required|string|max:255',
             'owner.email' => 'required|email',
@@ -88,7 +88,7 @@ class BuildingController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'location_link' => 'nullable|url',
+            'location_link' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'owner.name' => 'required|string|max:255',
             'owner.email' => 'required|email',
@@ -263,6 +263,35 @@ class BuildingController extends Controller
         return $path;
     }
 
+    private function detectLocationFormat($locationLink)
+    {
+        if (empty($locationLink)) {
+            return 'empty';
+        }
+        
+        // Coordenadas directas formato "lat, lng"
+        if (preg_match('/^([-0-9.]+),\s*([-0-9.]+)$/', trim($locationLink))) {
+            return 'direct_coordinates';
+        }
+        
+        // Links acortados de Google
+        if (strpos($locationLink, 'maps.app.goo.gl') !== false) {
+            return 'google_short_link';
+        }
+        
+        // URLs completas de Google Maps
+        if (strpos($locationLink, 'google.com/maps') !== false) {
+            return 'google_maps_url';
+        }
+        
+        // Embed URLs
+        if (strpos($locationLink, '/embed') !== false) {
+            return 'embed_url';
+        }
+        
+        return 'unknown';
+    }
+
     public function destroy(Building $building)
     {
         // Delete images
@@ -288,6 +317,17 @@ class BuildingController extends Controller
 
     public function apartments(Building $building)
     {
+        // Asegurar que el building tenga todos los datos necesarios
+        $building = Building::with(['owner', 'doormen'])->find($building->id);
+        
+        // Debug temporal - quitar después
+        \Log::info('Building data:', [
+            'id' => $building->id,
+            'name' => $building->name,
+            'location_link' => $building->location_link,
+            'location_link_format_detected' => $this->detectLocationFormat($building->location_link)
+        ]);
+        
         $apartments = Apartment::with([
             'tenants.devices' => function ($query) {
                 $query->with(['tenants', 'brand', 'system', 'model', 'name_device', 'sharedWith']);
@@ -301,10 +341,8 @@ class BuildingController extends Controller
             ->latest()
             ->paginate(6);
 
-
-
         $data = $apartments->toArray();
-        $building->load(['owner', 'doormen']);
+        
         return Inertia::render('Tenants/index', [
             'googleMapsApiKey' => env('GMAPS_API_KEY'),
             'building' => $building,

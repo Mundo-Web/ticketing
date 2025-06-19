@@ -72,6 +72,11 @@ export function BuildingCombobox({
                             <CommandItem
                                 key={building.id}
                                 onSelect={() => {
+                                    console.log('=== BUILDING COMBOBOX CHANGE ===');
+                                    console.log('From building ID:', selectedId);
+                                    console.log('To building ID:', building.id);
+                                    console.log('Building name:', building.name);
+                                    console.log('=== END COMBOBOX CHANGE ===');
                                     onChange(building.id);
                                     setOpen(false);
                                 }}
