@@ -837,7 +837,7 @@ export default function Dashboard() {
 
     return (
         <TooltipProvider>
-            <AppLayout breadcrumbs={breadcrumbs}>                <Head title="Professional Dashboard" />
+            <AppLayout breadcrumbs={breadcrumbs}>                <Head title="Dashboard" />
                 
                 {/* Custom styles for scrollbar */}
                 <style dangerouslySetInnerHTML={{
@@ -862,7 +862,7 @@ export default function Dashboard() {
                                     <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-primary via-primary-foreground to-secondary-foreground flex items-center justify-center shadow-2xl ring-4 ring-blue-100">
                                         <BarChart3 className="h-10 w-10 text-white" />
                                     </div>
-                                    <div className="space-y-4">                                        <h1 className="text-6xl font-black tracking-tight text-slate-900">
+                                    <div className="space-y-4">                                        <h1 className="text-6xl font-black tracking-tight text-slate-900 dark:text-white">
                                             Dashboard
                                         </h1><p className="text-2xl text-slate-600 font-medium">
                                             {isSuperAdmin 
@@ -1155,7 +1155,7 @@ export default function Dashboard() {
                                         </div>
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-orange-600 uppercase tracking-wider">Unassigned</p>
-                                            <p className="text-3xl font-bold text-slate-900">{metrics.tickets.unassigned || 0}</p>
+                                            <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.tickets.unassigned || 0}</p>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-medium px-2 py-1 rounded-full bg-orange-100 text-orange-700">
                                                     Pending
@@ -1177,12 +1177,12 @@ export default function Dashboard() {
                                         </div>
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-purple-600 uppercase tracking-wider">Resolved Today</p>
-                                            <p className="text-3xl font-bold text-slate-900">{metrics.tickets.resolved_today}</p>
+                                            <p className="text-3xl font-bold text-slate-900 dark:text-white ">{metrics.tickets.resolved_today}</p>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-100 text-purple-700">
-                                                    Hoy
+                                                    Today
                                                 </span>
-                                                <span className="text-xs text-slate-500">Productividad diaria</span>
+                                                <span className="text-xs text-slate-500">Daily Productivity</span>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -1200,7 +1200,7 @@ export default function Dashboard() {
                                             </span>
                                         </div>                                        <div className="space-y-2">
                                             <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wider">Average Time</p>
-                                            <p className="text-3xl font-bold text-slate-900">{metrics.tickets.avg_resolution_hours}h</p>
+                                            <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.tickets.avg_resolution_hours}h</p>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-medium px-2 py-1 rounded-full bg-indigo-100 text-indigo-700">
                                                     Resolution
@@ -1222,7 +1222,7 @@ export default function Dashboard() {
                                         </div>
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-teal-600 uppercase tracking-wider">Efficiency</p>
-                                            <p className="text-3xl font-bold text-slate-900">
+                                            <p className="text-3xl font-bold text-slate-900 dark:text-white">
                                                 {metrics.tickets.total > 0 
                                                     ? Math.round((metrics.tickets.resolved / metrics.tickets.total) * 100)
                                                     : 0}%
@@ -1336,7 +1336,7 @@ export default function Dashboard() {
                                                 </div>
                                                 <div className="space-y-2">
                                                     <p className="text-sm font-semibold text-violet-600 uppercase tracking-wider">Buildings</p>
-                                                    <p className="text-3xl font-bold text-slate-900">{metrics.resources.buildings}</p>
+                                                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.buildings}</p>
                                                 </div>
                                                 
                                                 {/* Buildings Carousel */}
@@ -1416,7 +1416,7 @@ export default function Dashboard() {
                                     </Card>                                   
                                      {/* Apartments Card - Enhanced with building breakdown */}
                                     <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-2/10 via-background to-chart-2/5 overflow-hidden cursor-pointer"
-                                          onClick={() => window.open('/apartments', '_blank')}>
+                                         >
                                         <CardContent className="p-6">
                                             <div className="text-center space-y-4">
                                                 <div className="p-4 rounded-xl bg-blue-100 w-fit mx-auto">
@@ -1424,7 +1424,7 @@ export default function Dashboard() {
                                                 </div>
                                                 <div className="space-y-2">
                                                     <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">Apartments</p>
-                                                    <p className="text-3xl font-bold text-slate-900">{metrics.resources.apartments}</p>
+                                                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.apartments}</p>
                                                 </div>
                                                 
                                                 {/* Buildings Circles for Apartments */}
@@ -1513,7 +1513,7 @@ export default function Dashboard() {
                                     </Card>                                    
                                     {/* Tenants Card - Enhanced with building breakdown */}
                                     <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-3/10 via-background to-chart-3/5 overflow-hidden cursor-pointer"
-                                          onClick={() => window.open('/tenants', '_blank')}>
+                                         >
                                         <CardContent className="p-6">
                                             <div className="text-center space-y-4">
                                                 <div className="p-4 rounded-xl bg-emerald-100 w-fit mx-auto">
@@ -1521,7 +1521,7 @@ export default function Dashboard() {
                                                 </div>
                                                 <div className="space-y-2">
                                                     <p className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Members</p>
-                                                    <p className="text-3xl font-bold text-slate-900">{metrics.resources.tenants}</p>
+                                                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.tenants}</p>
                                                 </div>
                                                 
                                                 {/* Buildings Circles for Tenants */}
@@ -1618,7 +1618,7 @@ export default function Dashboard() {
                                                 </div>
                                                 <div className="space-y-2">
                                                     <p className="text-sm font-semibold text-amber-600 uppercase tracking-wider">Devices</p>
-                                                    <p className="text-3xl font-bold text-slate-900">{metrics.resources.devices}</p>
+                                                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.devices}</p>
                                                 </div>
                                                 
                                                 {/* Device types preview */}
@@ -1983,12 +1983,14 @@ export default function Dashboard() {
                             </div>
                         </div>
                         
-                        {/* FOOTER PREMIUM */}                        <div className="mt-32">                            <Card className="border-0 bg-chart-5 text-background shadow-2xl overflow-hidden relative">
-                                <div className="absolute inset-0 bg-primary/10"></div>
+                        {/* FOOTER PREMIUM */}                       
+                         <div className="mt-32">                         
+                               <Card className="border-0 bg-chart-5 text-background shadow-2xl overflow-hidden relative dark:bg-white/10">
+                                <div className="absolute inset-0 bg-primary/10 dark:bg-transparent"></div>
                                 <CardContent className="p-16 relative">
                                     <div className="grid gap-16 lg:grid-cols-4">                                        <div className="text-center space-y-4">
-                                            <div className="p-6 rounded-3xl bg-primary/20 w-fit mx-auto">
-                                                <Activity className="h-10 w-10 text-primary" />
+                                            <div className="p-6 rounded-3xl bg-primary/20 w-fit mx-auto dark:bg-primary">
+                                                <Activity className="h-10 w-10 text-primary dark:text-primary-foreground" />
                                             </div>
                                             <div className="space-y-2">
                                                 <p className="text-4xl font-black text-background">
@@ -1999,18 +2001,18 @@ export default function Dashboard() {
                                         </div>
                                         
                                         <div className="text-center space-y-4">
-                                            <div className="p-6 rounded-3xl bg-secondary/20 w-fit mx-auto">
-                                                <TrendingUp className="h-10 w-10 text-secondary" />
+                                            <div className="p-6 rounded-3xl bg-primary/20 w-fit mx-auto dark:bg-primary">
+                                                <TrendingUp  className="h-10 w-10 text-primary dark:text-primary-foreground" />
                                             </div>
                                             <div className="space-y-2">
                                                 <p className="text-4xl font-black text-background">98.5%</p>
-                                                <p className="text-secondary/80 font-bold text-lg">Uptime</p>
+                                                <p className="text-primary/80 font-bold text-lg">Uptime</p>
                                             </div>
                                         </div>
                                         
                                         <div className="text-center space-y-4">
-                                            <div className="p-6 rounded-3xl bg-accent/20 w-fit mx-auto">
-                                                <Users className="h-10 w-10 text-accent" />
+                                            <div className="p-6 rounded-3xl bg-accent/20 w-fit mx-auto dark:bg-primary">
+                                                <Users className="h-10 w-10 text-accent dark:text-primary-foreground" />
                                             </div>
                                             <div className="space-y-2">
                                                 <p className="text-4xl font-black text-background">
@@ -2021,8 +2023,8 @@ export default function Dashboard() {
                                         </div>
                                         
                                         <div className="text-center space-y-4">
-                                            <div className="p-6 rounded-3xl bg-chart-1/20 w-fit mx-auto">
-                                                <Zap className="h-10 w-10 text-chart-1" />
+                                            <div className="p-6 rounded-3xl bg-chart-1/20 w-fit mx-auto dark:bg-primary">
+                                                <Zap className="h-10 w-10 text-chart-1 dark:text-primary-foreground" />
                                             </div>
                                             <div className="space-y-2">
                                                 <p className="text-4xl font-black text-background">
@@ -2035,58 +2037,58 @@ export default function Dashboard() {
                                 </CardContent>
                             </Card>                        </div>
                           </div>
-                </div>
-
-                {/* Devices Modal */}
+                </div>                {/* Devices Modal */}
                 {showDevicesModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <div className="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">                            <div className="flex items-center justify-between p-6 border-b border-border bg-gradient-to-r from-chart-4/10 to-chart-3/10">
+                        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-chart-4/10 to-chart-3/10 dark:from-chart-4/20 dark:to-chart-3/20">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-3 rounded-xl bg-chart-4/20">
-                                        <Smartphone className="h-6 w-6 text-chart-4" />
+                                    <div className="p-3 rounded-xl bg-chart-4/20 dark:bg-chart-4/30">
+                                        <Smartphone className="h-6 w-6 text-chart-4 dark:text-chart-4" />
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-bold text-foreground">Device Management</h2>
-                                        <p className="text-muted-foreground">Complete overview of all devices in the system</p>
+                                        <h2 className="text-2xl font-bold text-foreground dark:text-white">Device Management</h2>
+                                        <p className="text-muted-foreground dark:text-gray-300">Complete overview of all devices in the system</p>
                                     </div>
                                 </div>
                                 <Button
                                     variant="ghost"
                                     size="lg"
                                     onClick={() => setShowDevicesModal(false)}
-                                    className="rounded-full hover:bg-slate-100"
+                                    className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                                 >
                                     <X className="h-6 w-6" />
                                 </Button>
                             </div>
                             
-                            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] bg-white dark:bg-gray-900">
                                 {lists.allDevices && lists.allDevices.length > 0 ? (
                                     <div className="space-y-6">
                                         {/* Device Summary Cards */}
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">                                            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border-primary/20 dark:border-primary/30 dark:bg-gray-800/50">
                                                 <CardContent className="p-4 text-center">
-                                                    <Monitor className="h-8 w-8 text-primary mx-auto mb-2" />
-                                                    <h3 className="font-semibold text-primary">Total Devices</h3>
-                                                    <p className="text-2xl font-bold text-foreground">{lists.allDevices.length}</p>
+                                                    <Monitor className="h-8 w-8 text-primary dark:text-primary mx-auto mb-2" />
+                                                    <h3 className="font-semibold text-primary dark:text-primary">Total Devices</h3>
+                                                    <p className="text-2xl font-bold text-foreground dark:text-white">{lists.allDevices.length}</p>
                                                 </CardContent>
                                             </Card>
                                             
-                                            <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20">
+                                            <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 dark:from-secondary/20 dark:to-secondary/10 border-secondary/20 dark:border-secondary/30 dark:bg-gray-800/50">
                                                 <CardContent className="p-4 text-center">
-                                                    <Users className="h-8 w-8 text-secondary mx-auto mb-2" />
-                                                    <h3 className="font-semibold text-secondary">Active Users</h3>
-                                                    <p className="text-2xl font-bold text-foreground">
+                                                    <Users className="h-8 w-8 text-secondary dark:text-secondary mx-auto mb-2" />
+                                                    <h3 className="font-semibold text-secondary dark:text-secondary">Active Users</h3>
+                                                    <p className="text-2xl font-bold text-foreground dark:text-white">
                                                         {lists.allDevices.reduce((sum, device) => sum + device.users_count, 0)}
                                                     </p>
                                                 </CardContent>
                                             </Card>
                                             
-                                            <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
+                                            <Card className="bg-gradient-to-br from-accent/10 to-accent/5 dark:from-accent/20 dark:to-accent/10 border-accent/20 dark:border-accent/30 dark:bg-gray-800/50">
                                                 <CardContent className="p-4 text-center">
-                                                    <BarChart3 className="h-8 w-8 text-accent mx-auto mb-2" />
-                                                    <h3 className="font-semibold text-accent">Device Types</h3>
-                                                    <p className="text-2xl font-bold text-foreground">
+                                                    <BarChart3 className="h-8 w-8 text-accent dark:text-accent mx-auto mb-2" />
+                                                    <h3 className="font-semibold text-accent dark:text-accent">Device Types</h3>
+                                                    <p className="text-2xl font-bold text-foreground dark:text-white">
                                                         {new Set(lists.allDevices.map(d => d.device_type)).size}
                                                     </p>
                                                 </CardContent>
@@ -2094,9 +2096,10 @@ export default function Dashboard() {
                                         </div>
 
                                         {/* Devices Table */}
-                                        <Card className="border-0 shadow-lg">
-                                            <CardHeader className="pb-6 border-b">                                                <div className="flex items-center justify-between">
-                                                    <CardTitle className="text-xl text-foreground">Device Inventory</CardTitle>
+                                        <Card className="border-0 shadow-lg dark:bg-gray-800/50 dark:border-gray-700">
+                                            <CardHeader className="pb-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:!bg-transparent">
+                                                <div className="flex items-center justify-between dark:!bg-transparent">
+                                                    <CardTitle className="text-xl text-foreground dark:text-white">Device Inventory</CardTitle>
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
@@ -2110,62 +2113,63 @@ export default function Dashboard() {
                                                             }));
                                                             exportToExcel(deviceData, 'devices_inventory', 'Devices');
                                                         }}
-                                                        className="gap-2"
+                                                        className="gap-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                                                     >
                                                         <Download className="h-4 w-4" />
                                                         Export
                                                     </Button>
                                                 </div>
                                             </CardHeader>
-                                            <CardContent className="p-0">
+                                            <CardContent className="p-0 bg-white dark:bg-gray-800/50">
                                                 <div className="overflow-x-auto">
                                                     <table className="w-full">
-                                                        <thead>                                                            <tr className="border-b border-muted/50">
-                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">Device</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">Type</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">Brand</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">System</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">Users</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">Status</th>
+                                                        <thead>
+                                                            <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70">
+                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Device</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Type</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Brand</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">System</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Users</th>
+                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Status</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
                                                             {lists.allDevices.map((device, index) => (
-                                                                <tr key={device.id} className={`border-b border-muted/30 hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background' : 'bg-muted/5'}`}>
+                                                                <tr key={device.id} className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${index % 2 === 0 ? 'bg-white dark:bg-gray-800/30' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
                                                                     <td className="py-3 px-4">
                                                                         <div className="flex items-center gap-3">
-                                                                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-chart-4/20 to-chart-3/20 flex items-center justify-center">
-                                                                                <Laptop className="h-4 w-4 text-chart-4" />
+                                                                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-chart-4/20 to-chart-3/20 dark:from-chart-4/30 dark:to-chart-3/30 flex items-center justify-center">
+                                                                                <Laptop className="h-4 w-4 text-chart-4 dark:text-chart-4" />
                                                                             </div>
-                                                                           {/* <div>
-                                                                                <p className="font-semibold text-foreground text-sm">{device.device_name}</p>
-                                                                                <p className="text-xs text-muted-foreground">ID: {device.id}</p>
-                                                                            </div> */}
+                                                                            <div>
+                                                                                <p className="font-semibold text-foreground dark:text-white text-sm">{device.device_name}</p>
+                                                                                <p className="text-xs text-muted-foreground dark:text-gray-400">ID: {device.id}</p>
+                                                                            </div>
                                                                         </div>
                                                                     </td>
                                                                     <td className="py-3 px-4">
-                                                                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                                                        <Badge variant="outline" className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary border-primary/20 dark:border-primary/30">
                                                                             {device.device_type}
                                                                         </Badge>
                                                                     </td>
                                                                     <td className="py-3 px-4">
-                                                                        <span className="text-sm font-medium text-foreground">{device.brand_name}</span>
+                                                                        <span className="text-sm font-medium text-foreground dark:text-white">{device.brand_name}</span>
                                                                     </td>
                                                                     <td className="py-3 px-4">
-                                                                        <span className="text-sm text-muted-foreground">{device.system_name}</span>
+                                                                        <span className="text-sm text-muted-foreground dark:text-gray-400">{device.system_name}</span>
                                                                     </td>
                                                                     <td className="py-3 px-4">
                                                                         <div className="flex items-center gap-2">
-                                                                            <Users className="h-4 w-4 text-accent" />
-                                                                            <span className="font-semibold text-accent">{device.users_count}</span>
+                                                                            <Users className="h-4 w-4 text-accent dark:text-accent" />
+                                                                            <span className="font-semibold text-accent dark:text-accent">{device.users_count}</span>
                                                                         </div>
                                                                     </td>
                                                                     <td className="py-3 px-4">
                                                                         <Badge 
                                                                             variant="outline" 
                                                                             className={device.users_count > 0 
-                                                                                ? "bg-accent/10 text-accent border-accent/20" 
-                                                                                : "bg-muted/20 text-muted-foreground border-muted"
+                                                                                ? "bg-accent/10 dark:bg-accent/20 text-accent dark:text-accent border-accent/20 dark:border-accent/30" 
+                                                                                : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600"
                                                                             }
                                                                         >
                                                                             {device.users_count > 0 ? 'Active' : 'Unused'}
@@ -2179,10 +2183,11 @@ export default function Dashboard() {
                                             </CardContent>
                                         </Card>
                                     </div>
-                                ) : (                                    <div className="text-center py-12">
-                                        <Smartphone className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                                        <h3 className="text-xl font-semibold text-muted-foreground mb-2">No Devices Found</h3>
-                                        <p className="text-muted-foreground">No device data is available at the moment.</p>
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <Smartphone className="h-16 w-16 text-muted-foreground dark:text-gray-400 mx-auto mb-4" />
+                                        <h3 className="text-xl font-semibold text-muted-foreground dark:text-gray-300 mb-2">No Devices Found</h3>
+                                        <p className="text-muted-foreground dark:text-gray-400">No device data is available at the moment.</p>
                                     </div>
                                 )}
                             </div>
