@@ -47,9 +47,6 @@ import { Separator } from "@/components/ui/separator"
 import { Device } from "@/types/models/Device"
 import { Tenant } from "@/types/models/Tenant";
 
-
-const breadcrumbs: BreadcrumbItem[] = [{ title: "Tickets", href: "/tickets" }]
-
 // Define available ticket categories here
 const TICKET_CATEGORIES = [
     "Hardware",
@@ -182,11 +179,13 @@ interface TicketsProps {
         meta: PaginationMeta
     }
     allTickets: Ticket[],
+    allTicketsUnfiltered: Ticket[],
     devicesOwn: Device[],
     devicesShared: Device[],
     memberData: Tenant | null;
     apartmentData: Apartment | null;
     buildingData: Building | null;
+    statusFilter?: string;
 }
 
 function CategoryBadge({ category }: { category: string }) {
@@ -311,7 +310,14 @@ function SkeletonCard() {
     )
 }
 
-export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesShared, memberData, apartmentData, buildingData }: TicketsProps) {
+export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered, devicesOwn, devicesShared, memberData, apartmentData, buildingData, statusFilter }: TicketsProps) {
+    // Dynamic breadcrumbs based on status filter
+    const breadcrumbs: BreadcrumbItem[] = statusFilter 
+        ? [
+            { title: "Tickets", href: "/tickets" },
+            { title: statusFilter === 'closed,cancelled' ? "Closed & Cancelled" : statusFilter, href: "#" }
+          ]
+        : [{ title: "Tickets", href: "/tickets" }];
     // Refresca el ticket seleccionado desde el backend
     const refreshSelectedTicket = async (ticketId?: number) => {
         if (!ticketId) return;
@@ -488,10 +494,18 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
     const [memberTab, setMemberTab] = useState<string>("all");
 
     // Filter tickets for members by tab (status) and then by search
-    const memberTickets = allTickets.filter((ticket: any) => ticket.user_id === userId);
-    const memberTabFilteredTickets = memberTab === "all"
-        ? memberTickets
-        : memberTickets.filter((ticket: any) => ticket.status === memberTab);
+    // Si hay statusFilter del backend, allTickets ya viene filtrado y solo contiene tickets del usuario
+    // Si no hay statusFilter, necesitamos filtrar por user_id y luego por tab local
+    const memberTickets = statusFilter 
+        ? allTickets  // Si hay filtro del backend, allTickets ya está filtrado por usuario y estado
+        : allTickets.filter((ticket: any) => ticket.user_id === userId);
+    
+    const memberTabFilteredTickets = statusFilter 
+        ? memberTickets  // Si hay filtro del backend, usar todos los tickets filtrados
+        : (memberTab === "all"
+            ? memberTickets
+            : memberTickets.filter((ticket: any) => ticket.status === memberTab));
+    
     const memberFilteredTickets = memberTabFilteredTickets.filter(
         (ticket: any) =>
             ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -500,9 +514,11 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
     );
 
     // Super admin filtered tickets by current tab
-    const superAdminFilteredTickets = superTab === "all"
-        ? allTickets
-        : allTickets.filter((ticket: any) => ticket.status === superTab);
+    const superAdminFilteredTickets = statusFilter
+        ? allTickets  // Si hay filtro del backend, usar todos los tickets filtrados
+        : (superTab === "all"
+            ? allTickets
+            : allTickets.filter((ticket: any) => ticket.status === superTab));
 
     // Apply search filter
     const filteredTickets = isSuperAdmin
@@ -541,6 +557,8 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
             <Head title="Ticket Management" />
 
             <div className="flex flex-col gap-6 p-6">
+                
+
                 {/* Header Section */}
                 {isMember && (
                     <div className="border-b bg-background border-slate-200 sticky top-0 z-20">
@@ -670,13 +688,14 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                             {(isTechnicalDefault || isSuperAdmin || isTechnical) ? (
                                 <div className="kanban-container flex w-full min-h-[500px] overflow-x-scroll">
                                     <KanbanBoard
-                                        tickets={allTickets}
+                                        tickets={statusFilter ? allTickets : (allTicketsUnfiltered.length > 0 ? allTicketsUnfiltered : allTickets)}
                                         user={auth.user}
                                         onTicketClick={handleSelectTicket}
                                         isTechnicalDefault={isTechnicalDefault}
                                         isTechnical={isTechnical}
                                         isSuperAdmin={isSuperAdmin}
                                         isMember={isMember}
+                                        statusFilter={statusFilter} // Pasar el filtro de estado
                                         onAssign={(ticket) => setShowAssignModal({ open: true, ticketId: ticket.id })}
                                         onComment={(ticket) => setShowHistoryModal({ open: true, ticketId: ticket.id })}
                                         onStatusChange={(ticketId) => {
@@ -686,69 +705,72 @@ export default function TicketsIndex({ tickets, allTickets, devicesOwn, devicesS
                                         }}
                                     />
                                 </div>
-                            ) : isMember ? (
-                                <Card className="shadow-none border-0 bg-transparent mb-10">
-                                    <CardContent className="p-0">
-                                        <Tabs value={memberTab} onValueChange={setMemberTab} className="w-full">
-                                            <TabsList className="grid w-full grid-cols-5 bg-transparent rounded-full p-1">
-                                                {memberTabs.map((tabItem) => {
-                                                    // Define color classes for each tab
-                                                    let colorClass = "";
-                                                    let countColor = "";
-                                                    let iconColor = "";
-                                                    switch (tabItem.value) {
-                                                        case "all":
-                                                            colorClass = "data-[state=active]:text-blue-700";
-                                                            countColor = "text-blue-700";
-                                                            iconColor = "text-blue-700";
-                                                            break;
-                                                        case "open":
-                                                            colorClass = "data-[state=active]:text-yellow-600";
-                                                            countColor = "text-yellow-600";
-                                                            iconColor = "text-yellow-600";
-                                                            break;
-                                                        case "in_progress":
-                                                            colorClass = "data-[state=active]:text-amber-700";
-                                                            countColor = "text-amber-700";
-                                                            iconColor = "text-amber-700";
-                                                            break;
-                                                        case "resolved":
-                                                            colorClass = "data-[state=active]:text-emerald-700";
-                                                            countColor = "text-emerald-700";
-                                                            iconColor = "text-emerald-700";
-                                                            break;
-                                                        case "closed":
-                                                            colorClass = "data-[state=active]:text-slate-700";
-                                                            countColor = "text-slate-700";
-                                                            iconColor = "text-slate-700";
-                                                            break;
-                                                        default:
-                                                            colorClass = "";
-                                                            countColor = "text-blue-700";
-                                                            iconColor = "text-blue-700";
-                                                    }
-                                                    return (
-                                                        <TabsTrigger
-                                                            key={tabItem.value}
-                                                            value={tabItem.value}
-                                                            className={`flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all rounded-xl ${colorClass}`}
-                                                        >
-                                                            <span className={`font-bold text-3xl ${countColor}`}>
-                                                                {tabItem.value === "all"
-                                                                    ? memberTickets.length
-                                                                    : memberTickets.filter((t: any) => t.status === tabItem.value).length}
-                                                            </span>
-                                                            <div className="flex gap-2 items-center">
-                                                                <tabItem.icon className={`w-5 h-5 ${iconColor}`} />
-                                                                <span className="text-sm">{tabItem.label}</span>
-                                                            </div>
-                                                        </TabsTrigger>
-                                                    );
-                                                })}
-                                            </TabsList>
-                                        </Tabs>
-                                    </CardContent>
-                                </Card>
+                ) : isMember ? (
+                // Solo mostrar tabs locales si NO hay filtro del backend
+                !statusFilter ? (
+                <Card className="shadow-none border-0 bg-transparent mb-10">
+                    <CardContent className="p-0">
+                        <Tabs value={memberTab} onValueChange={setMemberTab} className="w-full">
+                            <TabsList className="grid w-full grid-cols-5 bg-transparent rounded-full p-1">
+                                {memberTabs.map((tabItem) => {
+                                    // Define color classes for each tab
+                                    let colorClass = "";
+                                    let countColor = "";
+                                    let iconColor = "";
+                                    switch (tabItem.value) {
+                                        case "all":
+                                            colorClass = "data-[state=active]:text-blue-700";
+                                            countColor = "text-blue-700";
+                                            iconColor = "text-blue-700";
+                                            break;
+                                        case "open":
+                                            colorClass = "data-[state=active]:text-yellow-600";
+                                            countColor = "text-yellow-600";
+                                            iconColor = "text-yellow-600";
+                                            break;
+                                        case "in_progress":
+                                            colorClass = "data-[state=active]:text-amber-700";
+                                            countColor = "text-amber-700";
+                                            iconColor = "text-amber-700";
+                                            break;
+                                        case "resolved":
+                                            colorClass = "data-[state=active]:text-emerald-700";
+                                            countColor = "text-emerald-700";
+                                            iconColor = "text-emerald-700";
+                                            break;
+                                        case "closed":
+                                            colorClass = "data-[state=active]:text-slate-700";
+                                            countColor = "text-slate-700";
+                                            iconColor = "text-slate-700";
+                                            break;
+                                        default:
+                                            colorClass = "";
+                                            countColor = "text-blue-700";
+                                            iconColor = "text-blue-700";
+                                    }
+                                    return (
+                                        <TabsTrigger
+                                            key={tabItem.value}
+                                            value={tabItem.value}
+                                            className={`flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all rounded-xl ${colorClass}`}
+                                        >
+                                            <span className={`font-bold text-3xl ${countColor}`}>
+                                                {tabItem.value === "all"
+                                                    ? memberTickets.length
+                                                    : memberTickets.filter((t: any) => t.status === tabItem.value).length}
+                                            </span>
+                                            <div className="flex gap-2 items-center">
+                                                <tabItem.icon className={`w-5 h-5 ${iconColor}`} />
+                                                <span className="text-sm">{tabItem.label}</span>
+                                            </div>
+                                        </TabsTrigger>
+                                    );
+                                })}
+                            </TabsList>
+                        </Tabs>
+                    </CardContent>
+                </Card>
+                ) : null // No mostrar tabs cuando hay filtro del backend
                             ) : (
                                 <Card className="shadow-none border-0 bg-transparent mb-10">
                                     <CardContent className="p-0">

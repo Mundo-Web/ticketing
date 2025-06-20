@@ -14,7 +14,7 @@ class TicketController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         // Listar tickets del usuario autenticado (o todos si es super-admin, o asignados si es technical)
         $user = auth()->user();
@@ -87,6 +87,39 @@ class TicketController extends Controller
             // No filter
         }
 
+        // Crear query para todos los tickets sin filtro (siempre necesario)
+        $allTicketsUnfilteredQuery = Ticket::with($withRelations);
+        
+        // Aplicar las mismas restricciones de usuario que a las queries principales
+        if ($user->hasRole('super-admin')) {
+            // Ver todos los tickets - no filtro
+        } elseif ($user->hasRole('technical')) {
+            $technical = Technical::where('email', $user->email)->first();
+            if ($technical) {
+                if (!$technical->is_default) {
+                    // Técnico normal: solo tickets asignados a él
+                    $allTicketsUnfilteredQuery->where('technical_id', $technical->id);
+                }
+                // Si es técnico por defecto, ve todos los tickets
+            } else {
+                $allTicketsUnfilteredQuery->whereRaw('1 = 0');
+            }
+        } elseif ($user->hasRole('member')) {
+            // Ver solo tickets creados por el usuario
+            $allTicketsUnfilteredQuery->where('user_id', $user->id);
+        }
+        
+        // Obtener todos los tickets sin filtro de estado
+        $allTicketsUnfiltered = $allTicketsUnfilteredQuery->get();
+
+        // Aplicar filtro de estado si se proporciona
+        $statusFilter = $request->get('status');
+        if ($statusFilter) {
+            $statuses = explode(',', $statusFilter);
+            $ticketsQuery->whereIn('status', $statuses);
+            $allTicketsQuery->whereIn('status', $statuses);
+        }
+
         $tickets = $ticketsQuery->latest()->paginate(10);
         $allTickets = $allTicketsQuery->get();
         $memberData = null;
@@ -106,6 +139,7 @@ class TicketController extends Controller
         return Inertia::render('Tickets/index', [
             'tickets' => $tickets,
             'allTickets' => $allTickets,
+            'allTicketsUnfiltered' => $allTicketsUnfiltered,
             'devicesOwn' => $devicesOwn,
             'devicesShared' => $devicesShared,
             'memberData' => $memberData,
@@ -113,6 +147,7 @@ class TicketController extends Controller
             'buildingData' => $buildingData,
             'isTechnicalDefault' => $isTechnicalDefault,
             'isSuperAdmin' => $user->hasRole('super-admin'),
+            'statusFilter' => $statusFilter, // Pasar el filtro actual al frontend
         ]);
     }
 

@@ -61,26 +61,58 @@ const MemberCard = ({ ticket }: { ticket: any }) => {
 };
 
 const getStatuses = (props: any) => {
-    if (props.isTechnicalDefault) {
+    const { isTechnicalDefault, isTechnical, isSuperAdmin, isMember, statusFilter } = props;
+    
+    // Si hay un filtro de estado específico, mostrar SOLO las columnas de ese filtro
+    if (statusFilter) {
+        const statuses = statusFilter.split(',');
+        const filteredColumns = [];
+        
+        for (const status of statuses) {
+            switch (status.trim()) {
+                case 'open':
+                    filteredColumns.push({ key: "open", label: "ABIERTO", icon: AlertCircle, color: "bg-orange-500" });
+                    break;
+                case 'in_progress':
+                    filteredColumns.push({ key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" });
+                    break;
+                case 'resolved':
+                    filteredColumns.push({ key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" });
+                    break;
+                case 'closed':
+                    filteredColumns.push({ key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" });
+                    break;
+                case 'cancelled':
+                    filteredColumns.push({ key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" });
+                    break;
+                case 'reopened':
+                    filteredColumns.push({ key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" });
+                    break;
+            }
+        }
+        
+        return filteredColumns;
+    }
+    
+    // Sin filtro: mostrar columnas normales según el rol
+    if (isTechnicalDefault) {
         return [
             { key: "recents", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
             { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
             { key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" },
             { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
-            //  { key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
-            //{ key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
         ];
     }
-    if (props.isTechnical) {
+    
+    if (isTechnical) {
         return [
             { key: "recents", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
             { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
             { key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" },
             { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
-            //{ key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
-            //{ key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
         ];
     }
+    
     return [
         { key: "open", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
         { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
@@ -93,7 +125,7 @@ const getStatuses = (props: any) => {
 
 export default function KanbanBoard(props: any) {
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
-    const { tickets, user, onTicketClick, isTechnicalDefault, isTechnical, isSuperAdmin, isMember, onStatusChange } = props;
+    const { tickets, user, onTicketClick, isTechnicalDefault, isTechnical, isSuperAdmin, isMember, onStatusChange, statusFilter } = props;
     const isManager = isTechnicalDefault || isSuperAdmin;
     const [showRecents, setShowRecents] = useState(isManager);
     const [searchQuery, setSearchQuery] = useState("");
@@ -132,10 +164,10 @@ export default function KanbanBoard(props: any) {
 
             return true;
         });
-    }, [tickets, isManager, selectedTechnicalId, searchQuery]);// Memoizamos los estados para evitar recálculos innecesarios
+    }, [tickets, isManager, selectedTechnicalId, searchQuery]);    // Memoizamos los estados para evitar recálculos innecesarios
     const statuses = useMemo(() => {
-        return getStatuses({ isTechnicalDefault: isManager, isTechnical, isSuperAdmin, isMember });
-    }, [isManager, isTechnical, isSuperAdmin, isMember]);
+        return getStatuses({ isTechnicalDefault: isManager, isTechnical, isSuperAdmin, isMember, statusFilter });
+    }, [isManager, isTechnical, isSuperAdmin, isMember, statusFilter]);
 
     // Usamos useCallback para memoizar la función groupTickets
     const groupTickets = useCallback(() => {

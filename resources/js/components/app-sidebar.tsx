@@ -1,10 +1,9 @@
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { SharedData, type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, UsersRound, FileText, LifeBuoy, Settings, PieChart, Building, CheckCircle, XCircle, Laptop } from 'lucide-react';
+import { LayoutGrid, FileText, Building, CheckCircle, XCircle, Laptop } from 'lucide-react';
 import AppLogo from './app-logo';
 
 
@@ -26,7 +25,10 @@ import AppLogo from './app-logo';
 export function AppSidebar() {
   const { url, component } = usePage()
   const { auth } = usePage<SharedData>().props;
-  // Menú principal para super-admin
+  
+  // Type-safe access to user roles
+  const user = auth?.user as { roles?: string[] } | undefined;
+  const userRoles = user?.roles || [];
   const mainNavItems: NavItem[] = [
 
     {
@@ -65,9 +67,22 @@ export function AppSidebar() {
     },
     {
       title: 'Tickets',
-      href: '/tickets',
       icon: FileText,
       isActive: route().current('tickets.*'),
+      items: [
+        {
+          title: 'All Tickets',
+          href: '/tickets',
+          icon: FileText,
+          isActive: component === 'Tickets/Index' && !url.includes('status='),
+        },
+        {
+          title: 'Closed & Cancelled',
+          href: '/tickets?status=closed,cancelled',
+          icon: XCircle,
+          isActive: component === 'Tickets/Index' && url.includes('status=closed,cancelled'),
+        }
+      ]
     },
     /*
        title: 'Support',
@@ -108,7 +123,7 @@ export function AppSidebar() {
        ]
      }*/
   ];
-  console.log('auth', auth.user)
+  
   // Menú para members (usuarios normales)
   const memberNavItems: NavItem[] = [
    /* {
@@ -134,9 +149,22 @@ export function AppSidebar() {
     },
     {
       title: 'Tickets',
-      href: '/tickets',
       icon: FileText,
       isActive: route().current('tickets.*'),
+      items: [
+        {
+          title: 'All Tickets',
+          href: '/tickets',
+          icon: FileText,
+          isActive: component === 'Tickets/Index' && !url.includes('status='),
+        },
+        {
+          title: 'Closed & Cancelled',
+          href: '/tickets?status=closed,cancelled',
+          icon: XCircle,
+          isActive: component === 'Tickets/Index' && url.includes('status=closed,cancelled'),
+        }
+      ]
     },
   ];
 
@@ -151,11 +179,11 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className='px-4'>
-        {auth.user?.roles.includes('super-admin') ? (
+        {userRoles.includes('super-admin') ? (
           <NavMain items={mainNavItems} />
-        ) :  auth.user?.roles.includes('technical') ? (
+        ) : userRoles.includes('technical') ? (
           <NavMain items={technicalNavItems} />
-        ):(
+        ) : (
           <NavMain items={memberNavItems} />
         )}
       </SidebarContent>
