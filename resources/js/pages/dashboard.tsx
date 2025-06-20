@@ -227,6 +227,751 @@ const exportToExcel = async (data: Record<string, unknown>[], filename: string, 
     saveAs(blob, `${filename}.xlsx`);
 };
 
+// Professional Weekly Trend Export
+const exportWeeklyTrendExcel = async (trendData: any[]) => {
+    const workbook = new ExcelJS.Workbook();
+    
+    workbook.creator = 'Ticketing System - Trend Analysis';
+    workbook.created = new Date();
+    workbook.company = 'Weekly Performance Report';
+    
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    // Ensure we have exactly 7 days of data, filling gaps with zeros
+    const ensureSevenDays = (data: any[]) => {
+        const result = [];
+        const today = new Date();
+        
+        for (let i = 6; i >= 0; i--) {
+            const targetDate = new Date(today);
+            targetDate.setDate(today.getDate() - i);
+            const dateStr = targetDate.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+            });
+            
+            const existingData = data.find(item => item.date === dateStr);
+            result.push({
+                date: dateStr,
+                count: existingData ? (existingData.count || 0) : 0
+            });
+        }
+        
+        return result;
+    };
+
+    const validatedTrendData = ensureSevenDays(trendData);
+
+    const colors = {
+        primary: 'FF2563EB',
+        secondary: 'FF1E3A8A',
+        success: 'FF059669',
+        warning: 'FFF59E0B',
+        danger: 'FFDC2626',
+        info: 'FF0891B2',
+        light: 'FFF8FAFC',
+        dark: 'FF1E293B',
+        white: 'FFFFFFFF'
+    };
+
+    const sheet = workbook.addWorksheet('Weekly Trend Analysis', {
+        pageSetup: { paperSize: 9, orientation: 'landscape' }
+    });
+
+    sheet.columns = [
+        { width: 15 }, { width: 18 }, { width: 18 }, { width: 20 }, { width: 25 }, { width: 30 }
+    ];
+
+    // Title
+    sheet.mergeCells('A1:F1');
+    const titleCell = sheet.getCell('A1');
+    titleCell.value = 'WEEKLY PERFORMANCE TREND ANALYSIS';
+    titleCell.style = {
+        font: { name: 'Segoe UI', size: 20, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: {
+            top: { style: 'thick', color: { argb: colors.secondary } },
+            left: { style: 'thick', color: { argb: colors.secondary } },
+            bottom: { style: 'thick', color: { argb: colors.secondary } },
+            right: { style: 'thick', color: { argb: colors.secondary } }
+        }
+    };
+    sheet.getRow(1).height = 40;
+
+    // Date range
+    sheet.mergeCells('A2:D2');
+    const dateCell = sheet.getCell('A2');
+    dateCell.value = `Analysis Period: Last 7 Days | Generated: ${currentDate}`;
+    dateCell.style = {
+        font: { name: 'Segoe UI', size: 11, italic: true, color: { argb: colors.dark } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } },
+        alignment: { horizontal: 'left', vertical: 'middle' }
+    };
+
+    // Summary stats with safe calculations
+    sheet.mergeCells('E2:F2');
+    const totalTickets = validatedTrendData.reduce((sum, day) => sum + (day.count || 0), 0);
+    const avgDaily = validatedTrendData.length > 0 ? Math.round(totalTickets / validatedTrendData.length) : 0;
+    const summaryCell = sheet.getCell('E2');
+    summaryCell.value = `Total: ${totalTickets} tickets | Daily Avg: ${avgDaily}`;
+    summaryCell.style = {
+        font: { name: 'Segoe UI', size: 11, bold: true, color: { argb: colors.primary } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } },
+        alignment: { horizontal: 'right', vertical: 'middle' }
+    };
+
+    // Headers
+    let currentRow = 4;
+    const headers = ['Date', 'Tickets Created', 'Trend vs Avg', 'Performance', 'Volume Category', 'Action Needed'];
+    headers.forEach((header, index) => {
+        const cell = sheet.getCell(currentRow, index + 1);
+        cell.value = header;
+        cell.style = {
+            font: { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.secondary } },
+            alignment: { horizontal: 'center', vertical: 'middle' },
+            border: {
+                top: { style: 'medium', color: { argb: 'FFFFFFFF' } },
+                left: { style: 'medium', color: { argb: 'FFFFFFFF' } },
+                bottom: { style: 'medium', color: { argb: 'FFFFFFFF' } },
+                right: { style: 'medium', color: { argb: 'FFFFFFFF' } }
+            }
+        };
+    });
+    sheet.getRow(currentRow).height = 30;
+    currentRow++;
+
+    // Data rows with enhanced analysis and safe calculations
+    validatedTrendData.forEach((day, index) => {
+        const dayCount = day.count || 0;
+        const safeAvgDaily = avgDaily || 1; // Prevent division by zero
+        
+        const vsAverage = safeAvgDaily > 0 ? Math.round(((dayCount - safeAvgDaily) / safeAvgDaily) * 100) : 0;
+        const trendDirection = vsAverage > 15 ? '↗ Above Average' : 
+                              vsAverage < -15 ? '↘ Below Average' : 
+                              '→ Normal Range';
+        
+        const performance = dayCount > safeAvgDaily * 1.3 ? 'High Volume' :
+                           dayCount < safeAvgDaily * 0.7 ? 'Low Volume' :
+                           'Standard Volume';
+        
+        const volumeCategory = dayCount > safeAvgDaily * 1.5 ? 'Peak Day' :
+                              dayCount > safeAvgDaily * 1.2 ? 'Busy Day' :
+                              dayCount < safeAvgDaily * 0.8 ? 'Light Day' :
+                              'Normal Day';
+        
+        const actionNeeded = dayCount > safeAvgDaily * 1.5 ? 'Monitor capacity & resources' :
+                            dayCount < safeAvgDaily * 0.5 ? 'Review for issues' :
+                            'Continue monitoring';
+
+        const rowData = [
+            day.date || 'Unknown',
+            dayCount,
+            `${vsAverage > 0 ? '+' : ''}${vsAverage}% ${trendDirection}`,
+            performance,
+            volumeCategory,
+            actionNeeded
+        ];
+
+        rowData.forEach((value, colIndex) => {
+            const cell = sheet.getCell(currentRow, colIndex + 1);
+            cell.value = value;
+            
+            let fillColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
+            let fontColor = colors.dark;
+            
+            // Trend column styling
+            if (colIndex === 2) {
+                if (vsAverage > 15) {
+                    fillColor = colors.success;
+                    fontColor = 'FFFFFFFF';
+                } else if (vsAverage < -15) {
+                    fillColor = colors.warning;
+                    fontColor = 'FFFFFFFF';
+                }
+            }
+            
+            // Performance column styling
+            if (colIndex === 3) {
+                switch (value) {
+                    case 'High Volume':
+                        fillColor = colors.info;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Low Volume':
+                        fillColor = colors.warning;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                }
+            }
+            
+            // Volume category styling
+            if (colIndex === 4) {
+                switch (value) {
+                    case 'Peak Day':
+                        fillColor = colors.danger;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Busy Day':
+                        fillColor = colors.warning;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Light Day':
+                        fillColor = colors.info;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                }
+            }
+
+            cell.style = {
+                font: { name: 'Segoe UI', size: 10, color: { argb: fontColor } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
+                alignment: { horizontal: colIndex === 0 || colIndex === 5 ? 'left' : 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                }
+            };
+        });
+        sheet.getRow(currentRow).height = 25;
+        currentRow++;
+    });
+
+    // Trend Analysis
+    currentRow += 2;
+    sheet.mergeCells(`A${currentRow}:F${currentRow}`);
+    const analysisHeaderCell = sheet.getCell(`A${currentRow}`);
+    analysisHeaderCell.value = 'TREND ANALYSIS & INSIGHTS';
+    analysisHeaderCell.style = {
+        font: { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.info } },
+        alignment: { horizontal: 'center', vertical: 'middle' }
+    };
+    currentRow++;
+
+    const maxDay = trendData.reduce((max, day) => day.count > max.count ? day : max, trendData[0]);
+    const minDay = trendData.reduce((min, day) => day.count < min.count ? day : min, trendData[0]);
+    const peakVariance = Math.round(((maxDay.count - minDay.count) / avgDaily) * 100);
+    
+    const insights = [
+        ['Metric', 'Value', 'Analysis', 'Recommendation'],
+        ['Peak Day', `${maxDay.date} (${maxDay.count} tickets)`, maxDay.count > avgDaily * 1.5 ? 'Significant spike' : 'Normal peak', 'Monitor for patterns'],
+        ['Lowest Day', `${minDay.date} (${minDay.count} tickets)`, minDay.count < avgDaily * 0.5 ? 'Unusual low' : 'Normal variation', 'Check for issues if unusually low'],
+        ['Variance', `${peakVariance}%`, peakVariance > 50 ? 'High volatility' : 'Stable pattern', peakVariance > 50 ? 'Review capacity planning' : 'Maintain current approach'],
+        ['Trend Direction', totalTickets > avgDaily * 7 ? 'Growing' : 'Stable', 'Week over week', 'Adjust resources as needed'],
+        ['Consistency', Math.abs(peakVariance) < 30 ? 'Very Consistent' : 'Variable', 'Daily fluctuation', 'Plan for peak capacity']
+    ];
+
+    insights.forEach((row, rowIndex) => {
+        row.forEach((value, colIndex) => {
+            const cell = sheet.getCell(currentRow + rowIndex, colIndex + 1);
+            cell.value = value;
+            
+            let fillColor = rowIndex === 0 ? colors.secondary : 'FFFFFFFF';
+            let fontColor = rowIndex === 0 ? 'FFFFFFFF' : colors.dark;
+            
+            if (rowIndex > 0 && colIndex === 2) {
+                if (value.includes('spike') || value.includes('High volatility')) {
+                    fillColor = colors.warning;
+                    fontColor = 'FFFFFFFF';
+                } else if (value.includes('Consistent') || value.includes('Stable')) {
+                    fillColor = colors.success;
+                    fontColor = 'FFFFFFFF';
+                }
+            }
+
+            cell.style = {
+                font: { name: 'Segoe UI', size: 10, bold: rowIndex === 0 || colIndex === 0, color: { argb: fontColor } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
+                alignment: { horizontal: colIndex === 0 ? 'left' : 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                }
+            };
+        });
+        sheet.getRow(currentRow + rowIndex).height = 22;
+    });
+
+    const fileName = `Weekly_Trend_Analysis_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, fileName);
+
+    toast.success('Weekly Trend Analysis Generated!', {
+        description: `${fileName} has been downloaded with comprehensive trend analysis and insights.`
+    });
+};
+
+// Professional Ticket Distribution Export
+const exportTicketDistributionExcel = async (ticketsByStatus: any, totalTickets: number) => {
+    const workbook = new ExcelJS.Workbook();
+    
+    workbook.creator = 'Ticketing System - Analytics';
+    workbook.created = new Date();
+    workbook.company = 'Ticket Distribution Analysis';
+    
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const colors = {
+        primary: 'FF2563EB',
+        secondary: 'FF1E3A8A',
+        success: 'FF059669',
+        warning: 'FFF59E0B',
+        danger: 'FFDC2626',
+        info: 'FF0891B2',
+        light: 'FFF8FAFC',
+        dark: 'FF1E293B',
+        white: 'FFFFFFFF'
+    };
+
+    const sheet = workbook.addWorksheet('Ticket Distribution Analysis', {
+        pageSetup: { paperSize: 9, orientation: 'portrait' }
+    });
+
+    sheet.columns = [
+        { width: 25 }, { width: 15 }, { width: 18 }, { width: 20 }, { width: 25 }
+    ];
+
+    // Title
+    sheet.mergeCells('A1:E1');
+    const titleCell = sheet.getCell('A1');
+    titleCell.value = 'TICKET DISTRIBUTION ANALYSIS REPORT';
+    titleCell.style = {
+        font: { name: 'Segoe UI', size: 18, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: {
+            top: { style: 'thick', color: { argb: colors.secondary } },
+            left: { style: 'thick', color: { argb: colors.secondary } },
+            bottom: { style: 'thick', color: { argb: colors.secondary } },
+            right: { style: 'thick', color: { argb: colors.secondary } }
+        }
+    };
+    sheet.getRow(1).height = 35;
+
+    // Date and stats
+    sheet.mergeCells('A2:C2');
+    const dateCell = sheet.getCell('A2');
+    dateCell.value = `Report Generated: ${currentDate}`;
+    dateCell.style = {
+        font: { name: 'Segoe UI', size: 11, italic: true, color: { argb: colors.dark } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } },
+        alignment: { horizontal: 'left', vertical: 'middle' }
+    };
+
+    sheet.mergeCells('D2:E2');
+    const totalCell = sheet.getCell('D2');
+    totalCell.value = `Total Tickets: ${totalTickets}`;
+    totalCell.style = {
+        font: { name: 'Segoe UI', size: 11, bold: true, color: { argb: colors.primary } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } },
+        alignment: { horizontal: 'right', vertical: 'middle' }
+    };
+
+    // Headers
+    let currentRow = 4;
+    const headers = ['Status', 'Count', 'Percentage', 'Priority Level', 'Action Required'];
+    headers.forEach((header, index) => {
+        const cell = sheet.getCell(currentRow, index + 1);
+        cell.value = header;
+        cell.style = {
+            font: { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.secondary } },
+            alignment: { horizontal: 'center', vertical: 'middle' },
+            border: {
+                top: { style: 'medium', color: { argb: 'FFFFFFFF' } },
+                left: { style: 'medium', color: { argb: 'FFFFFFFF' } },
+                bottom: { style: 'medium', color: { argb: 'FFFFFFFF' } },
+                right: { style: 'medium', color: { argb: 'FFFFFFFF' } }
+            }
+        };
+    });
+    sheet.getRow(currentRow).height = 30;
+    currentRow++;
+
+    // Data rows with enhanced information
+    const statusMapping = {
+        'open': { label: 'Open', priority: 'Critical', action: 'Immediate Assignment Required', color: colors.danger },
+        'in_progress': { label: 'In Progress', priority: 'High', action: 'Monitor Progress', color: colors.warning },
+        'resolved': { label: 'Resolved', priority: 'Low', action: 'Quality Check', color: colors.success },
+        'closed': { label: 'Closed', priority: 'Completed', action: 'Archive', color: colors.info }
+    };
+
+    Object.entries(ticketsByStatus).forEach(([status, count]) => {
+        const percentage = Math.round((count / totalTickets) * 100);
+        const statusInfo = statusMapping[status] || { label: status, priority: 'Unknown', action: 'Review', color: colors.dark };
+        
+        const rowData = [
+            statusInfo.label,
+            count,
+            `${percentage}%`,
+            statusInfo.priority,
+            statusInfo.action
+        ];
+
+        rowData.forEach((value, colIndex) => {
+            const cell = sheet.getCell(currentRow, colIndex + 1);
+            cell.value = value;
+            
+            let fillColor = 'FFFFFFFF';
+            let fontColor = colors.dark;
+            
+            // Status column styling
+            if (colIndex === 0) {
+                fillColor = statusInfo.color;
+                fontColor = 'FFFFFFFF';
+            }
+            
+            // Priority column styling
+            if (colIndex === 3) {
+                switch (value) {
+                    case 'Critical':
+                        fillColor = colors.danger;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'High':
+                        fillColor = colors.warning;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Low':
+                        fillColor = colors.success;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Completed':
+                        fillColor = colors.info;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                }
+            }
+
+            cell.style = {
+                font: { name: 'Segoe UI', size: 11, bold: colIndex === 0, color: { argb: fontColor } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
+                alignment: { horizontal: 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                }
+            };
+        });
+        sheet.getRow(currentRow).height = 25;
+        currentRow++;
+    });
+
+    // Analysis section
+    currentRow += 2;
+    sheet.mergeCells(`A${currentRow}:E${currentRow}`);
+    const analysisHeaderCell = sheet.getCell(`A${currentRow}`);
+    analysisHeaderCell.value = 'WORKFLOW ANALYSIS & RECOMMENDATIONS';
+    analysisHeaderCell.style = {
+        font: { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.info } },
+        alignment: { horizontal: 'center', vertical: 'middle' }
+    };
+    currentRow++;
+
+    const openPercentage = Math.round((ticketsByStatus.open / totalTickets) * 100);
+    const resolvedPercentage = Math.round((ticketsByStatus.resolved / totalTickets) * 100);
+    
+    const recommendations = [
+        ['Metric', 'Value', 'Status', 'Recommendation'],
+        ['Open Tickets Rate', `${openPercentage}%`, openPercentage > 20 ? 'High' : 'Normal', openPercentage > 20 ? 'Increase technical resources' : 'Maintain current level'],
+        ['Resolution Rate', `${resolvedPercentage}%`, resolvedPercentage > 70 ? 'Excellent' : 'Needs Improvement', resolvedPercentage > 70 ? 'Continue best practices' : 'Review resolution processes'],
+        ['Workflow Efficiency', totalTickets > 100 ? 'High Volume' : 'Standard', 'Active', 'Monitor trends and adjust capacity'],
+        ['System Health', 'Operational', 'Good', 'Regular monitoring recommended']
+    ];
+
+    recommendations.forEach((row, rowIndex) => {
+        row.forEach((value, colIndex) => {
+            const cell = sheet.getCell(currentRow + rowIndex, colIndex + 1);
+            cell.value = value;
+            
+            let fillColor = rowIndex === 0 ? colors.secondary : 'FFFFFFFF';
+            let fontColor = rowIndex === 0 ? 'FFFFFFFF' : colors.dark;
+            
+            if (rowIndex > 0 && colIndex === 2) {
+                switch (value) {
+                    case 'High':
+                        fillColor = colors.danger;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Excellent':
+                        fillColor = colors.success;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Good':
+                        fillColor = colors.success;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Needs Improvement':
+                        fillColor = colors.warning;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                }
+            }
+
+            cell.style = {
+                font: { name: 'Segoe UI', size: 10, bold: rowIndex === 0 || colIndex === 0, color: { argb: fontColor } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
+                alignment: { horizontal: colIndex === 0 ? 'left' : 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                }
+            };
+        });
+        sheet.getRow(currentRow + rowIndex).height = 22;
+    });
+
+    const fileName = `Ticket_Distribution_Analysis_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, fileName);
+
+    toast.success('Ticket Distribution Analysis Generated!', {
+        description: `${fileName} has been downloaded with detailed analysis and recommendations.`
+    });
+};
+
+// Professional Devices Export
+const exportDevicesExcel = async (devices: any[]) => {
+    const workbook = new ExcelJS.Workbook();
+    
+    // Set workbook properties
+    workbook.creator = 'Ticketing System - Device Management';
+    workbook.created = new Date();
+    workbook.company = 'Device Inventory Report';
+    
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    // Professional color scheme
+    const colors = {
+        primary: 'FF2563EB',
+        secondary: 'FF1E3A8A',
+        success: 'FF059669',
+        warning: 'FFF59E0B',
+        info: 'FF0891B2',
+        light: 'FFF8FAFC',
+        dark: 'FF1E293B',
+        white: 'FFFFFFFF'
+    };
+
+    // Main sheet
+    const sheet = workbook.addWorksheet('Device Inventory', {
+        pageSetup: { paperSize: 9, orientation: 'landscape' }
+    });    // Set column widths
+    sheet.columns = [
+        { width: 8 }, { width: 25 }, { width: 18 }, { width: 18 }, { width: 20 }, 
+        { width: 20 }, { width: 15 }, { width: 15 }, { width: 25 }
+    ];// Title
+    sheet.mergeCells('A1:H1');
+    const titleCell = sheet.getCell('A1');
+    titleCell.value = 'DEVICE INVENTORY MANAGEMENT REPORT';
+    titleCell.style = {
+        font: { name: 'Segoe UI', size: 20, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: {
+            top: { style: 'thick', color: { argb: colors.secondary } },
+            left: { style: 'thick', color: { argb: colors.secondary } },
+            bottom: { style: 'thick', color: { argb: colors.secondary } },
+            right: { style: 'thick', color: { argb: colors.secondary } }
+        }
+    };
+    sheet.getRow(1).height = 40;
+
+    // Subtitle with date
+    sheet.mergeCells('A2:E2');
+    const dateCell = sheet.getCell('A2');
+    dateCell.value = `Generated on: ${currentDate}`;
+    dateCell.style = {
+        font: { name: 'Segoe UI', size: 12, italic: true, color: { argb: colors.dark } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } },
+        alignment: { horizontal: 'left', vertical: 'middle' },
+    };    // Statistics
+    sheet.mergeCells('F2:H2');
+    const statsCell = sheet.getCell('F2');
+    const totalDevices = devices.length;
+    const activeDevices = devices.filter(d => d.users_count > 0).length;
+    const uniqueTypes = new Set(devices.map(d => d.device_type)).size;
+    statsCell.value = `Total: ${totalDevices} | Active: ${activeDevices} | Types: ${uniqueTypes}`;
+    statsCell.style = {
+        font: { name: 'Segoe UI', size: 12, bold: true, color: { argb: colors.primary } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } },
+        alignment: { horizontal: 'right', vertical: 'middle' },
+    };    // Headers
+    const headers = ['ID', 'Name Device', 'Model', 'Brand', 'System', 'Users', 'Status', 'Usage Level'];
+    let currentRow = 4;
+    
+    headers.forEach((header, index) => {
+        const cell = sheet.getCell(currentRow, index + 1);
+        cell.value = header;
+        cell.style = {
+            font: { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FFFFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.secondary } },
+            alignment: { horizontal: 'center', vertical: 'middle' },
+            border: {
+                top: { style: 'medium', color: { argb: 'FFFFFFFF' } },
+                left: { style: 'medium', color: { argb: 'FFFFFFFF' } },
+                bottom: { style: 'medium', color: { argb: 'FFFFFFFF' } },
+                right: { style: 'medium', color: { argb: 'FFFFFFFF' } }
+            }
+        };
+    });
+    sheet.getRow(currentRow).height = 30;
+    currentRow++;
+
+    // Data rows
+    devices.forEach((device, index) => {
+        const usageLevel = device.users_count === 0 ? 'Unused' : 
+                          device.users_count <= 2 ? 'Low Usage' :
+                          device.users_count <= 5 ? 'Medium Usage' : 'High Usage';
+        
+        const status = device.users_count > 0 ? 'Active' : 'Inactive';        const rowData = [
+            device.id,
+           // device.device_name || 'N/A',
+            device.device_type || 'Unknown',
+            device.model_name || 'N/A',
+            device.brand_name || 'N/A',
+            device.system_name || 'N/A',
+            device.users_count || 0,
+            status,
+            usageLevel
+        ];
+
+        rowData.forEach((value, colIndex) => {
+            const cell = sheet.getCell(currentRow, colIndex + 1);
+            cell.value = value;
+            
+            let fillColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
+            let fontColor = colors.dark;            // Status column styling
+            if (colIndex === 7) {
+                if (value === 'Active') {
+                    fillColor = colors.success;
+                    fontColor = 'FFFFFFFF';
+                } else {
+                    fillColor = 'FFEF4444';
+                    fontColor = 'FFFFFFFF';
+                }
+            }
+            
+            // Usage level styling
+            if (colIndex === 8) {
+                switch (value) {
+                    case 'High Usage':
+                        fillColor = colors.success;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Medium Usage':
+                        fillColor = colors.warning;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Low Usage':
+                        fillColor = colors.info;
+                        fontColor = 'FFFFFFFF';
+                        break;
+                    case 'Unused':
+                        fillColor = 'FFEF4444';
+                        fontColor = 'FFFFFFFF';
+                        break;
+                }
+            }
+
+            cell.style = {
+                font: { name: 'Segoe UI', size: 10, color: { argb: fontColor } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
+                alignment: { horizontal: colIndex === 1 ? 'left' : 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                }
+            };
+        });
+        sheet.getRow(currentRow).height = 25;
+        currentRow++;
+    });
+
+    // Summary section
+    currentRow += 2;
+    sheet.mergeCells(`A${currentRow}:H${currentRow}`);
+    const summaryHeaderCell = sheet.getCell(`A${currentRow}`);
+    summaryHeaderCell.value = 'INVENTORY SUMMARY';
+    summaryHeaderCell.style = {
+        font: { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.info } },
+        alignment: { horizontal: 'center', vertical: 'middle' }
+    };
+    currentRow++;
+
+    // Summary stats
+    const summaryData = [
+        ['Total Devices', totalDevices, 'Complete inventory count'],
+        ['Active Devices', activeDevices, `${Math.round((activeDevices/totalDevices)*100)}% utilization rate`],
+        ['Inactive Devices', totalDevices - activeDevices, 'Available for assignment'],
+        ['Device Types', uniqueTypes, 'Different categories available'],
+        ['Total Users', devices.reduce((sum, d) => sum + d.users_count, 0), 'Active device users']
+    ];
+
+    summaryData.forEach((row) => {
+        row.forEach((value, colIndex) => {
+            const cell = sheet.getCell(currentRow, colIndex + 1);
+            cell.value = value;
+            cell.style = {
+                font: { name: 'Segoe UI', size: 10, bold: colIndex === 0 },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
+                alignment: { horizontal: colIndex === 0 ? 'left' : 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                }
+            };
+        });
+        currentRow++;
+    });
+
+    // Generate and download
+    const fileName = `Device_Inventory_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, fileName);
+
+    toast.success('Device Inventory Report Generated!', {
+        description: `${fileName} has been downloaded with professional formatting and detailed analysis.`
+    });
+};
+
 // Professional Dashboard Export with advanced styling using ExcelJS
 const exportProfessionalDashboard = async (metrics: any, charts: any, lists: any) => {
     const workbook = new ExcelJS.Workbook();
@@ -839,8 +1584,7 @@ export default function Dashboard() {
         <TooltipProvider>
             <AppLayout breadcrumbs={breadcrumbs}>                <Head title="Dashboard" />
                 
-                {/* Custom styles for scrollbar */}
-                <style dangerouslySetInnerHTML={{
+                {/* Custom styles for scrollbar */}                <style dangerouslySetInnerHTML={{
                     __html: `
                         .scrollbar-hide {
                             -ms-overflow-style: none;
@@ -848,6 +1592,43 @@ export default function Dashboard() {
                         }
                         .scrollbar-hide::-webkit-scrollbar {
                             display: none;
+                        }
+                        
+                        /* Custom scrollbar para modales */
+                        .custom-scrollbar {
+                            scrollbar-width: thin;
+                            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+                        }
+                        
+                        .custom-scrollbar::-webkit-scrollbar {
+                            width: 8px;
+                        }
+                        
+                        .custom-scrollbar::-webkit-scrollbar-track {
+                            background: transparent;
+                            border-radius: 4px;
+                        }
+                        
+                        .custom-scrollbar::-webkit-scrollbar-thumb {
+                            background: rgba(156, 163, 175, 0.3);
+                            border-radius: 4px;
+                            transition: background-color 0.2s ease;
+                        }
+                        
+                        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                            background: rgba(156, 163, 175, 0.6);
+                        }
+                        
+                        .dark .custom-scrollbar {
+                            scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
+                        }
+                        
+                        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+                            background: rgba(75, 85, 99, 0.3);
+                        }
+                        
+                        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                            background: rgba(75, 85, 99, 0.6);
                         }
                     `
                 }} />
@@ -1240,7 +2021,7 @@ export default function Dashboard() {
 
                       
                                      {/* SECTION: UNASSIGNED TICKETS TABLE  canAssignTickets &&*/}
-                        { lists.unassignedTickets && lists.unassignedTickets.length > 0 && (
+                        {lists.unassignedTickets && lists.unassignedTickets.length > 0 && (
                             <div className="space-y-8">                                <div className="text-center space-y-4">                                    <h2 className="text-4xl font-bold text-chart-3">
                                         Unassigned Tickets
                                     </h2>
@@ -1804,19 +2585,15 @@ export default function Dashboard() {
                                                     <CardTitle className="text-3xl font-black text-foreground">Ticket Distribution</CardTitle>
                                                     <p className="text-xl text-muted-foreground">Estado actual del sistema</p>
                                                 </div>
-                                                <div className="flex gap-4">
-                                                    <Button
+                                                <div className="flex gap-4">                                                    <Button
                                                         variant="outline"
                                                         size="lg"
                                                         onClick={() => {
-                                                            const chartData = Object.entries(charts.ticketsByStatus).map(([key, value]) => ({
-                                                                'Estado': key.replace('_', ' ').toUpperCase(),
-                                                                'Cantidad': value,
-                                                                'Porcentaje': `${Math.round((value / Object.values(charts.ticketsByStatus).reduce((sum, val) => sum + val, 0)) * 100)}%`
-                                                            }));
-                                                            exportToExcel(chartData, 'tickets_by_status', 'Ticket Distribution');
+                                                            const totalTickets = Object.values(charts.ticketsByStatus).reduce((sum, val) => sum + val, 0);
+                                                            exportTicketDistributionExcel(charts.ticketsByStatus, totalTickets);
                                                         }}
-                                                        className="h-14 w-14 p-0 hover:bg-primary/10 shadow-xl border-primary/20"
+                                                        className="h-14 w-14 p-0 hover:bg-primary/10 shadow-xl border-primary/20 hover:scale-105 transition-all duration-300"
+                                                        title="Export Professional Analysis"
                                                     >                                                        <FileSpreadsheet className="h-6 w-6 text-primary" />
                                                     </Button>
                                                     <Button
@@ -1898,14 +2675,14 @@ export default function Dashboard() {
                                                     <CardTitle className="text-3xl font-black text-foreground">Weekly Trend</CardTitle>
                                                     <p className="text-xl text-muted-foreground font-semibold">Ticket evolution over the last 7 days</p>
                                                 </div>
-                                                <div className="flex gap-4">
-                                                    <Button
+                                                <div className="flex gap-4">                                                    <Button
                                                         variant="outline"
                                                         size="lg"
                                                         onClick={() => {
-                                                            exportToExcel(trendData, 'weekly_tickets_trend', 'Weekly Trend');
+                                                            exportWeeklyTrendExcel(trendData);
                                                         }}
-                                                        className="h-14 w-14 p-0 hover:bg-secondary/10 shadow-xl border-secondary/20"
+                                                        className="h-14 w-14 p-0 hover:bg-secondary/10 shadow-xl border-secondary/20 hover:scale-105 transition-all duration-300"
+                                                        title="Export Weekly Trend Analysis"
                                                     >
                                                         <FileSpreadsheet className="h-6 w-6 text-secondary" />
                                                     </Button>
@@ -2037,12 +2814,18 @@ export default function Dashboard() {
                                 </CardContent>
                             </Card>                        </div>
                           </div>
-                </div>                {/* Devices Modal */}
+                </div>                {/* Devices Modal con animaciones mejoradas */}
                 {showDevicesModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <div 
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-300"
+                        onClick={() => setShowDevicesModal(false)}
+                    >
+                        <div 
+                            className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 slide-in-from-bottom-4 duration-500 ease-out"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-chart-4/10 to-chart-3/10 dark:from-chart-4/20 dark:to-chart-3/20">
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 animate-in slide-in-from-left-4 duration-700 delay-200">
                                     <div className="p-3 rounded-xl bg-chart-4/20 dark:bg-chart-4/30">
                                         <Smartphone className="h-6 w-6 text-chart-4 dark:text-chart-4" />
                                     </div>
@@ -2055,18 +2838,17 @@ export default function Dashboard() {
                                     variant="ghost"
                                     size="lg"
                                     onClick={() => setShowDevicesModal(false)}
-                                    className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                    className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 animate-in slide-in-from-right-4 duration-700 delay-200 transition-all hover:scale-105"
                                 >
                                     <X className="h-6 w-6" />
                                 </Button>
-                            </div>
-                            
-                            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] bg-white dark:bg-gray-900">
+                            </div>                            
+                            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] bg-white dark:bg-gray-900 scroll-smooth custom-scrollbar">
                                 {lists.allDevices && lists.allDevices.length > 0 ? (
-                                    <div className="space-y-6">
-                                        {/* Device Summary Cards */}
+                                    <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-700 delay-300">
+                                        {/* Device Summary Cards con animación escalonada */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border-primary/20 dark:border-primary/30 dark:bg-gray-800/50">
+                                            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border-primary/20 dark:border-primary/30 dark:bg-gray-800/50 animate-in slide-in-from-left-2 duration-500 delay-400 hover:scale-105 transition-transform">
                                                 <CardContent className="p-4 text-center">
                                                     <Monitor className="h-8 w-8 text-primary dark:text-primary mx-auto mb-2" />
                                                     <h3 className="font-semibold text-primary dark:text-primary">Total Devices</h3>
@@ -2074,7 +2856,7 @@ export default function Dashboard() {
                                                 </CardContent>
                                             </Card>
                                             
-                                            <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 dark:from-secondary/20 dark:to-secondary/10 border-secondary/20 dark:border-secondary/30 dark:bg-gray-800/50">
+                                            <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 dark:from-secondary/20 dark:to-secondary/10 border-secondary/20 dark:border-secondary/30 dark:bg-gray-800/50 animate-in slide-in-from-bottom-2 duration-500 delay-500 hover:scale-105 transition-transform">
                                                 <CardContent className="p-4 text-center">
                                                     <Users className="h-8 w-8 text-secondary dark:text-secondary mx-auto mb-2" />
                                                     <h3 className="font-semibold text-secondary dark:text-secondary">Active Users</h3>
@@ -2084,7 +2866,7 @@ export default function Dashboard() {
                                                 </CardContent>
                                             </Card>
                                             
-                                            <Card className="bg-gradient-to-br from-accent/10 to-accent/5 dark:from-accent/20 dark:to-accent/10 border-accent/20 dark:border-accent/30 dark:bg-gray-800/50">
+                                            <Card className="bg-gradient-to-br from-accent/10 to-accent/5 dark:from-accent/20 dark:to-accent/10 border-accent/20 dark:border-accent/30 dark:bg-gray-800/50 animate-in slide-in-from-right-2 duration-500 delay-600 hover:scale-105 transition-transform">
                                                 <CardContent className="p-4 text-center">
                                                     <BarChart3 className="h-8 w-8 text-accent dark:text-accent mx-auto mb-2" />
                                                     <h3 className="font-semibold text-accent dark:text-accent">Device Types</h3>
@@ -2099,21 +2881,11 @@ export default function Dashboard() {
                                         <Card className="border-0 shadow-lg dark:bg-gray-800/50 dark:border-gray-700">
                                             <CardHeader className="pb-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:!bg-transparent">
                                                 <div className="flex items-center justify-between dark:!bg-transparent">
-                                                    <CardTitle className="text-xl text-foreground dark:text-white">Device Inventory</CardTitle>
-                                                    <Button
+                                                    <CardTitle className="text-xl text-foreground dark:text-white">Device Inventory</CardTitle>                                                    <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        onClick={() => {
-                                                            const deviceData = lists.allDevices.map(device => ({
-                                                                'Device Name': device.device_name,
-                                                                'Type': device.device_type,
-                                                                'Brand': device.brand_name,
-                                                                'System': device.system_name,
-                                                                'Active Users': device.users_count
-                                                            }));
-                                                            exportToExcel(deviceData, 'devices_inventory', 'Devices');
-                                                        }}
-                                                        className="gap-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                                                        onClick={() => exportDevicesExcel(lists.allDevices)}
+                                                        className="gap-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 hover:text-gray-700 dark:text-gray-300 hover:scale-105 transition-all duration-300"
                                                     >
                                                         <Download className="h-4 w-4" />
                                                         Export
@@ -2122,11 +2894,11 @@ export default function Dashboard() {
                                             </CardHeader>
                                             <CardContent className="p-0 bg-white dark:bg-gray-800/50">
                                                 <div className="overflow-x-auto">
-                                                    <table className="w-full">
-                                                        <thead>
+                                                    <table className="w-full">                                                        <thead>
                                                             <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70">
                                                                 <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Device</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Type</th>
+                                                               
+                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Model</th>
                                                                 <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Brand</th>
                                                                 <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">System</th>
                                                                 <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Users</th>
@@ -2134,23 +2906,23 @@ export default function Dashboard() {
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            {lists.allDevices.map((device, index) => (
-                                                                <tr key={device.id} className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${index % 2 === 0 ? 'bg-white dark:bg-gray-800/30' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
+                                                            {lists.allDevices.map((device, index) => (                                                                <tr key={device.id} className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${index % 2 === 0 ? 'bg-white dark:bg-gray-800/30' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
                                                                     <td className="py-3 px-4">
                                                                         <div className="flex items-center gap-3">
                                                                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-chart-4/20 to-chart-3/20 dark:from-chart-4/30 dark:to-chart-3/30 flex items-center justify-center">
                                                                                 <Laptop className="h-4 w-4 text-chart-4 dark:text-chart-4" />
                                                                             </div>
                                                                             <div>
-                                                                                <p className="font-semibold text-foreground dark:text-white text-sm">{device.device_name}</p>
-                                                                                <p className="text-xs text-muted-foreground dark:text-gray-400">ID: {device.id}</p>
+                                                                                <p className="font-semibold text-foreground dark:text-white text-sm">  {device.device_type || 'Unknown'}</p>
+                                                                              
                                                                             </div>
-                                                                        </div>
-                                                                    </td>
+                                                                        </div>                                                                    
+                                                                        </td>   
+                                                                       
                                                                     <td className="py-3 px-4">
-                                                                        <Badge variant="outline" className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary border-primary/20 dark:border-primary/30">
-                                                                            {device.device_type}
-                                                                        </Badge>
+                                                                        <span className="text-sm font-medium text-foreground dark:text-white">
+                                                                            {device.model_name || 'N/A'}
+                                                                        </span>
                                                                     </td>
                                                                     <td className="py-3 px-4">
                                                                         <span className="text-sm font-medium text-foreground dark:text-white">{device.brand_name}</span>
