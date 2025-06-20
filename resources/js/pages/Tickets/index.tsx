@@ -37,7 +37,6 @@ import {
     DialogTitle,
     DialogDescription,
     DialogFooter,
-    DialogClose,
 } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import KanbanBoard from "./KanbanBoard";
@@ -829,10 +828,10 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                         memberFilteredTickets.map((ticket: any) => (
                                             <Card 
                                                 key={ticket.id} 
-                                                className={`cursor-pointer transition-all hover:shadow-lg border-l-4 ${
+                                                className={`cursor-pointer transition-all hover:shadow-lg  ${
                                                     selectedTicket?.id === ticket.id 
-                                                        ? 'border-l-blue-500 bg-blue-50/50' 
-                                                        : 'border-l-slate-200 hover:border-l-blue-300'
+                                                        ? 'border-primary bg-blue-50/50' 
+                                                        : ' '
                                                 }`}
                                                 onClick={() => handleSelectTicket(ticket)}
                                             >
@@ -855,7 +854,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                         </div>
                                                         
                                                         <div className="flex items-center justify-between text-xs text-slate-500">
-                                                            <span>#{ticket.id}</span>
+                                                            <span>{ticket.code}</span>
                                                             <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
                                                         </div>
                                                         
@@ -957,7 +956,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
 
 
 
-                                                        <div className="text-xs text-slate-500 space-y-1">
+                                                        <div className="text-xs text-slate-500 space-y-1 mb-4">
                                                             <div className="flex items-center gap-1">
                                                                 <Calendar className="w-3 h-3" />
                                                                 Created:{" "}
@@ -976,7 +975,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
 
                                                         {/* Action buttons for ticket management - only show when in the "Assigned" tab */}
                                                         {(canActOnTickets || isSuperAdmin) && (
-                                                            <div className="flex flex-wrap gap-2 mt-4 mb-4">
+                                                            <div className="flex flex-wrap gap-2  mb-4">
                                                                 <Button
                                                                     size="sm"
                                                                     className="bg-sidebar-accent hover:bg-sidebar-accent text-white"
@@ -1048,7 +1047,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                     <Separator />
 
                                                     {/* History */}
-                                                    <div className="space-y-4">
+                                                    <div className="space-y-4 mt-4">
                                                         <h4 className="font-medium text-slate-900 flex items-center gap-2">
                                                             <Clock className="w-4 h-4 text-blue-500" />
                                                             History
@@ -1113,13 +1112,17 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                 open={showHistoryModal.open}
                 onOpenChange={(open) => setShowHistoryModal({ open, ticketId: showHistoryModal.ticketId })}
             >
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <MessageSquare className="w-5 h-5 text-blue-600" />
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader className="pb-6">
+                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                                <MessageSquare className="w-6 h-6 text-blue-600" />
+                            </div>
                             Add Comment
                         </DialogTitle>
-                        <DialogDescription>Add a comment or action to the ticket history.</DialogDescription>
+                        <DialogDescription className="text-base text-slate-600">
+                            Add a comment or action to the ticket history for better tracking.
+                        </DialogDescription>
                     </DialogHeader>
                     <form
                         onSubmit={async (e) => {
@@ -1149,41 +1152,65 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                 }
                             );
                         }}
-                        className="space-y-4"
+                        className="space-y-6"
                     >
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Action Type</label>
-                            <Input
-                                value={historyAction}
-                                onChange={(e) => setHistoryAction(e.target.value)}
-                                placeholder="Ex: comment, resolution, consultation"
-                                required
-                            />
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-800 mb-3">
+                                    Action Type
+                                </label>
+                                <div className="relative">
+                                    <Input
+                                        value={historyAction}
+                                        onChange={(e) => setHistoryAction(e.target.value)}
+                                        placeholder="Ex: comment, resolution, consultation"
+                                        className="pl-4 pr-4 h-12 text-base border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-800 mb-3">
+                                    Description
+                                </label>
+                                <div className="relative">
+                                    <textarea
+                                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base min-h-[120px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200 resize-none transition-all duration-200"
+                                        value={historyText}
+                                        onChange={(e) => setHistoryText(e.target.value)}
+                                        placeholder="Describe the action, update, or comment in detail..."
+                                        required
+                                    />
+                                    <div className="absolute bottom-3 right-3 text-xs text-slate-400">
+                                        {historyText.length}/500
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
-                            <textarea
-                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                value={historyText}
-                                onChange={(e) => setHistoryText(e.target.value)}
-                                placeholder="Describe the action or comment..."
-                                required
-                            />
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="outline">
-                                    Cancelar
-                                </Button>
-                            </DialogClose>
-                            <Button type="submit" disabled={addingHistory} className="bg-blue-600 hover:bg-blue-700">
+                        <DialogFooter className="pt-6 border-t border-slate-200">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => setShowHistoryModal({ open: false })}
+                                className="px-6 py-2.5"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                disabled={addingHistory} 
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
+                            >
                                 {addingHistory ? (
                                     <>
                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Guardando...
+                                        Saving...
                                     </>
                                 ) : (
-                                    "Guardar"
+                                    <>
+                                        <MessageSquare className="w-4 h-4 mr-2" />
+                                        Save Comment
+                                    </>
                                 )}
                             </Button>
                         </DialogFooter>
@@ -1196,13 +1223,17 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                 open={showAssignModal.open}
                 onOpenChange={(open) => setShowAssignModal({ open, ticketId: showAssignModal.ticketId })}
             >
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Share2 className="w-5 h-5 text-purple-600" />
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader className="pb-6">
+                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                                <Share2 className="w-6 h-6 text-purple-600" />
+                            </div>
                             Assign Technician
                         </DialogTitle>
-                        <DialogDescription>Select a technician to assign this ticket.</DialogDescription>
+                        <DialogDescription className="text-base text-slate-600">
+                            Select a technician to assign this ticket and ensure proper handling.
+                        </DialogDescription>
                     </DialogHeader>
                     <form
                         onSubmit={async (e) => {
@@ -1231,40 +1262,84 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                 }
                             );
                         }}
-                        className="space-y-4"
+                        className="space-y-6"
                     >
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Technician</label>
-                            <select
-                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                value={assignTechnicalId || ""}
-                                onChange={(e) => setAssignTechnicalId(Number(e.target.value))}
-                                required
-                            >
-                                <option value="" disabled>
-                                    Select a technician
-                                </option>
+                        <div className="space-y-3">
+                            <label className="block text-sm font-semibold text-slate-800 mb-3">
+                                Available Technicians
+                            </label>
+                            <div className="space-y-2">
                                 {technicals.map((t) => (
-                                    <option key={t.id} value={t.id}>
-                                        {t.name} ({t.email})
-                                    </option>
+                                    <div
+                                        key={t.id}
+                                        className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                                            assignTechnicalId === t.id
+                                                ? 'border-purple-500 bg-purple-50 shadow-md'
+                                                : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-25'
+                                        }`}
+                                        onClick={() => setAssignTechnicalId(t.id)}
+                                    >
+                                        <div className="relative">
+                                            {t.photo ? (
+                                                <img
+                                                    src={t.photo?.startsWith('http') ? t.photo : `/storage/${t.photo}`}
+                                                    alt={t.name}
+                                                    className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+                                                />
+                                            ) : (
+                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white text-lg font-bold shadow-md">
+                                                    {t.name?.substring(0, 1) || '?'}
+                                                </div>
+                                            )}
+                                            {assignTechnicalId === t.id && (
+                                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                                    </svg>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold text-slate-800">{t.name}</h4>
+                                            <p className="text-sm text-slate-600">{t.email}</p>
+                                        </div>
+                                        <div className={`w-4 h-4 rounded-full border-2 ${
+                                            assignTechnicalId === t.id 
+                                                ? 'border-purple-500 bg-purple-500' 
+                                                : 'border-slate-300'
+                                        }`}>
+                                            {assignTechnicalId === t.id && (
+                                                <div className="w-full h-full rounded-full bg-purple-500"></div>
+                                            )}
+                                        </div>
+                                    </div>
                                 ))}
-                            </select>
+                            </div>
                         </div>
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="outline">
-                                    Cancelar
-                                </Button>
-                            </DialogClose>
-                            <Button type="submit" disabled={assigning} className="bg-purple-600 hover:bg-purple-700">
+                        <DialogFooter className="pt-6 border-t border-slate-200">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => setShowAssignModal({ open: false })}
+                                className="px-6 py-2.5"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                disabled={assigning || !assignTechnicalId} 
+                                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
+                            >
                                 {assigning ? (
                                     <>
                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Assigning ...
+                                        Assigning...
                                     </>
                                 ) : (
-                                    "Assign technician"
+                                    <>
+                                        <Share2 className="w-4 h-4 mr-2" />
+                                        Assign Technician
+                                    </>
                                 )}
                             </Button>
                         </DialogFooter>
@@ -1274,80 +1349,130 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
 
             {/* Create Ticket Modal */}
             <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Create new ticket</DialogTitle>
+                <DialogContent className="sm:max-w-xl">
+                    <DialogHeader className="pb-6">
+                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+                            <div className="p-2 bg-green-100 rounded-lg">
+                                <AlertCircle className="w-6 h-6 text-green-600" />
+                            </div>
+                            Create New Ticket
+                        </DialogTitle>
+                        <DialogDescription className="text-base text-slate-600">
+                            Fill out the form below to create a new support ticket for your device.
+                        </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitTicket} className="space-y-4">
-                        {/* Device */}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Device</label>
-                            <select
-                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                value={data.device_id}
-                                onChange={e => setData('device_id', e.target.value)}
-                                required
+                    <form onSubmit={handleSubmitTicket} className="space-y-6">
+                        <div className="space-y-4">
+                            {/* Device */}
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-800 mb-3">Device</label>
+                                <select
+                                    className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base bg-white focus:ring-2 focus:ring-transparent focus:outline-0 transition-all duration-200"
+                                    value={data.device_id}
+                                    onChange={e => setData('device_id', e.target.value)}
+                                    required
+                                >
+                                    <option value="">Select a device</option>
+                                    {deviceOptions.length > 0 ? (
+                                        deviceOptions.map((d: any) => (
+                                            <option key={d.id} value={d.id}>
+                                                {d.name_device?.name || d.name || `Device #${d.id}`}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <option value="" disabled>No devices available</option>
+                                    )}
+                                </select>
+                                {errors.device_id && <div className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                                    <AlertCircle className="w-4 h-4" />
+                                    {errors.device_id}
+                                </div>}
+                            </div>
+                            
+                            {/* Category */}
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-800 mb-3">Category</label>
+                                <select
+                                    className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base bg-white  focus:ring-2 focus:ring-transparent focus:outline-0 transition-all duration-200"
+                                    value={data.category}
+                                    onChange={e => setData('category', e.target.value)}
+                                    required
+                                >
+                                    <option value="">Select a category</option>
+                                    {TICKET_CATEGORIES.map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </select>
+                                {errors.category && <div className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                                    <AlertCircle className="w-4 h-4" />
+                                    {errors.category}
+                                </div>}
+                            </div>
+                            
+                            {/* Title */}
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-800 mb-3">Title</label>
+                                <Input
+                                    value={data.title}
+                                    onChange={e => setData('title', e.target.value)}
+                                    className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all duration-200"
+                                    required
+                                    placeholder="Brief description of the issue"
+                                />
+                                {errors.title && <div className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                                    <AlertCircle className="w-4 h-4" />
+                                    {errors.title}
+                                </div>}
+                            </div>
+                            
+                            {/* Description */}
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-800 mb-3">Description</label>
+                                <div className="relative">
+                                    <textarea
+                                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base min-h-[120px] focus:border-green-500 focus:ring-2 focus:ring-green-200 resize-none transition-all duration-200"
+                                        value={data.description}
+                                        onChange={e => setData('description', e.target.value)}
+                                        required
+                                        placeholder="Please provide a detailed description of the issue, including any error messages, when it occurred, and steps to reproduce..."
+                                        maxLength={1000}
+                                    />
+                                    <div className="absolute bottom-3 right-3 text-xs text-slate-400">
+                                        {data.description.length}/1000
+                                    </div>
+                                </div>
+                                {errors.description && <div className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                                    <AlertCircle className="w-4 h-4" />
+                                    {errors.description}
+                                </div>}
+                            </div>
+                        </div>
+                        
+                        <DialogFooter className="pt-6 border-t border-slate-200">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => setShowCreateModal(false)}
+                                className="px-6 py-2.5"
                             >
-                                <option value="">Select a device</option>
-                                {deviceOptions.length > 0 ? (
-                                    deviceOptions.map((d: any) => (
-                                        <option key={d.id} value={d.id}>
-                                            {d.name_device?.name || d.name || `Device #${d.id}`}
-                                        </option>
-                                    ))
+                                Cancel
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                disabled={processing} 
+                                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
+                            >
+                                {processing ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Creating Ticket...
+                                    </>
                                 ) : (
-                                    <option value="" disabled>No devices available</option>
+                                    <>
+                                        <AlertCircle className="w-4 h-4 mr-2" />
+                                        Create Ticket
+                                    </>
                                 )}
-                            </select>
-                            {errors.device_id && <div className="text-red-500 text-xs mt-1">{errors.device_id}</div>}
-                        </div>
-                        {/* Category */}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
-                            <select
-                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                value={data.category}
-                                onChange={e => setData('category', e.target.value)}
-                                required
-                            >
-                                <option value="">Select a category</option>
-                                {TICKET_CATEGORIES.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
-                            {errors.category && <div className="text-red-500 text-xs mt-1">{errors.category}</div>}
-                        </div>
-                        {/* Title */}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
-                            <Input
-                                value={data.title}
-                                onChange={e => setData('title', e.target.value)}
-                                required
-                                placeholder="Ticket title"
-                            />
-                            {errors.title && <div className="text-red-500 text-xs mt-1">{errors.title}</div>}
-                        </div>
-                        {/* Description */}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
-                            <textarea
-                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm min-h-[80px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                value={data.description}
-                                onChange={e => setData('description', e.target.value)}
-                                required
-                                placeholder="Describe the issue or request..."
-                            />
-                            {errors.description && <div className="text-red-500 text-xs mt-1">{errors.description}</div>}
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                            </DialogClose>
-                            <Button type="submit" disabled={processing}>
-                                {processing ? "Creating..." : "Create Ticket"}
                             </Button>
                         </DialogFooter>
                     </form>
