@@ -158,7 +158,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                     <Button
                         variant="ghost"
                         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent hover:text-black"
+                        className="h-8 p-0 font-semibold text-left justify-start group hover:bg-transparent dark:!bg-transparent hover:text-black dark:!text-white"
                     >
                         Name
                         {column.getIsSorted() === "asc" ? (
@@ -180,15 +180,15 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                     <Button
                         variant="ghost"
                         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent hover:text-black"
+                        className="h-8 p-0 font-semibold text-left justify-start group hover:bg-transparent dark:!bg-transparent hover:text-black dark:!text-white"
                     >
                         Status
                         {column.getIsSorted() === "asc" ? (
-                            <ChevronDown className="ml-2 h-4 w-4 rotate-180" />
+                            <ChevronDown className="ml-2 h-4 w-4 rotate-180 dark:group-hover:!text-white" />
                         ) : column.getIsSorted() === "desc" ? (
-                            <ChevronDown className="ml-2 h-4 w-4" />
+                            <ChevronDown className="ml-2 h-4 w-4 dark:group-hover:!text-white" />
                         ) : (
-                            <ChevronDown className="ml-2 h-4 w-4 opacity-20" />
+                            <ChevronDown className="ml-2 h-4 w-4 opacity-20 dark:group-hover:!text-white" />
                         )}
                     </Button>
                 )
@@ -225,7 +225,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                     <Button
                         variant="ghost"
                         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent hover:text-black"
+                        className="h-8 p-0 font-semibold text-left justify-start group hover:bg-transparent dark:!bg-transparent hover:text-black dark:!text-white"
                     >
                         Created At
                         {column.getIsSorted() === "asc" ? (
@@ -257,26 +257,26 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(building)}>
-                                <Edit className="mr-2 h-4 w-4" />
+                            <DropdownMenuItem onClick={() => handleEdit(building)} className='group'>
+                                <Edit className="mr-2 h-4 w-4 group-hover:text-white dark:group-hover:text-primary-foreground" />
                                 Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => toggleStatus(building)}>
                                 {building.status ? (
                                     <>
-                                        <Archive className="mr-2 h-4 w-4" />
+                                        <Archive className="mr-2 h-4 w-4 group-hover:text-white dark:group-hover:text-primary-foreground" />
                                         Archive
                                     </>
                                 ) : (
                                     <>
-                                        <ArchiveRestore className="mr-2 h-4 w-4" />
+                                        <ArchiveRestore className="mr-2 h-4 w-4 group-hover:text-white dark:group-hover:text-primary-foreground" />
                                         Restore
                                     </>
                                 )}
                             </DropdownMenuItem>
                             {building.location_link && (
-                                <DropdownMenuItem onClick={() => showLocation(building)}>
-                                    <MapPin className="mr-2 h-4 w-4" />
+                                <DropdownMenuItem onClick={() => showLocation(building)} className='group'>
+                                    <MapPin className="mr-2 h-4 w-4 group-hover:text-white dark:group-hover:text-primary-foreground" />
                                     View Location
                                 </DropdownMenuItem>
                             )}
@@ -1206,9 +1206,9 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                         <div className="flex items-center gap-2">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm">
-                                        <Filter className="mr-2 h-4 w-4" />
-                                        Columns <ChevronDown className="ml-1 h-4 w-4" />
+                                    <Button variant="outline" size="sm" className='group hover:text-white'>
+                                        <Filter className="mr-2 h-4 w-4 dark:group-hover:text-white" />
+                                        Columns <ChevronDown className="ml-1 h-4 w-4 dark:group-hover:text-white" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
@@ -1232,18 +1232,18 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                             
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm">
-                                        <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                    <Button variant="outline" size="sm" className='group hover:text-white'>
+                                        <FileSpreadsheet className="mr-2 h-4 w-4 dark:group-hover:text-white" />
                                         Export <ChevronDown className="ml-1 h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={exportToCSV} className='group'>
-                                        <Download className="mr-2 h-4 w-4 group-hover:text-white" />
+                                        <Download className="mr-2 h-4 w-4 group-hover:text-white dark:group-hover:text-primary-foreground" />
                                         Export to CSV
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={exportToExcel} className='group '>
-                                        <Download className="mr-2 h-4 w-4 group-hover:text-white" />
+                                        <Download className="mr-2 h-4 w-4 group-hover:text-white dark:group-hover:text-primary-foreground" />
                                         Export to Excel
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
