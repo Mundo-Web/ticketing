@@ -71,22 +71,22 @@ const getStatuses = (props: any) => {
         for (const status of statuses) {
             switch (status.trim()) {
                 case 'open':
-                    filteredColumns.push({ key: "open", label: "ABIERTO", icon: AlertCircle, color: "bg-orange-500" });
+                    filteredColumns.push({ key: "open", label: "OPEN", icon: AlertCircle, color: "bg-orange-500" });
                     break;
                 case 'in_progress':
-                    filteredColumns.push({ key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" });
+                    filteredColumns.push({ key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-500" });
                     break;
                 case 'resolved':
-                    filteredColumns.push({ key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" });
+                    filteredColumns.push({ key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-green-500" });
                     break;
                 case 'closed':
-                    filteredColumns.push({ key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" });
+                    filteredColumns.push({ key: "closed", label: "CLOSED", icon: XCircle, color: "bg-gray-400" });
                     break;
                 case 'cancelled':
-                    filteredColumns.push({ key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" });
+                    filteredColumns.push({ key: "cancelled", label: "CANCELLED", icon: XCircle, color: "bg-red-500" });
                     break;
                 case 'reopened':
-                    filteredColumns.push({ key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" });
+                    filteredColumns.push({ key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-pink-500" });
                     break;
             }
         }
@@ -97,29 +97,29 @@ const getStatuses = (props: any) => {
     // Sin filtro: mostrar columnas normales según el rol
     if (isTechnicalDefault) {
         return [
-            { key: "recents", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
-            { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
-            { key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" },
-            { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
+            { key: "recents", label: "TO DO", icon: AlertCircle, color: "bg-orange-500" },
+            { key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-500" },
+            { key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-green-500" },
+            { key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-pink-500" },
         ];
     }
     
     if (isTechnical) {
         return [
-            { key: "recents", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
-            { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
-            { key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" },
-            { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
+            { key: "recents", label: "TO DO", icon: AlertCircle, color: "bg-orange-500" },
+            { key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-500" },
+            { key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-green-500" },
+            { key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-pink-500" },
         ];
     }
     
     return [
-        { key: "open", label: "POR HACER", icon: AlertCircle, color: "bg-orange-500" },
-        { key: "in_progress", label: "EN CURSO", icon: Clock, color: "bg-blue-500" },
-        { key: "resolved", label: "RESUELTO", icon: CheckCircle, color: "bg-green-500" },
-        { key: "reopened", label: "REABIERTO", icon: AlertCircle, color: "bg-pink-500" },
-        { key: "closed", label: "CERRADO", icon: XCircle, color: "bg-gray-400" },
-        { key: "cancelled", label: "CANCELADO", icon: XCircle, color: "bg-red-500" },
+        { key: "open", label: "TO DO", icon: AlertCircle, color: "bg-orange-500" },
+        { key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-500" },
+        { key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-green-500" },
+        { key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-pink-500" },
+        { key: "closed", label: "CLOSED", icon: XCircle, color: "bg-gray-400" },
+        { key: "cancelled", label: "CANCELLED", icon: XCircle, color: "bg-red-500" },
     ];
 };
 
@@ -234,7 +234,7 @@ export default function KanbanBoard(props: any) {
             <div className="bg-white border-b border-gray-300 py-3 px-4 mb-4 shadow-sm">                    <div className="flex items-center justify-start">
                 <div className="flex items-center gap-3">                      
                       <h1 className="text-xl font-bold text-gray-800">
-                    Tablero de Tickets
+                    Tickets Board
 
                 </h1>
                     {/* <div className="relative">
@@ -285,7 +285,7 @@ export default function KanbanBoard(props: any) {
                                     ))}
                                 </div>
                             </div> */}                                {/* Solo mostrar la sección de técnicos si es jefe técnico (isTechnicalDefault) */}
-                            {isTechnicalDefault && (<div>
+                            <div>
 
                                 <div className="ml-4 flex flex-wrap gap-2 items-center">
                                     {technicals.map(t => (<TooltipProvider key={t.id}>
@@ -337,18 +337,18 @@ export default function KanbanBoard(props: any) {
                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                                                         </svg>
-                                                        Limpiar filtro
+                                                        Clear filter
                                                     </button>
                                                 </TooltipTrigger>
                                                 <TooltipContent className="bg-gray-800 text-white text-xs">
-                                                    <p>Mostrar todos los técnicos</p>
+                                                    <p>Show all technicians</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
                                     )}
                                 </div>
                             </div>
-                            )}
+                            
                         </div>
                     </div>
 
@@ -480,7 +480,7 @@ export default function KanbanBoard(props: any) {
                                                                             onClick={e => { e.stopPropagation(); setMenuOpen(null); props.onAssign && props.onAssign(ticket); }}
                                                                         >
                                                                             <Share2 size={14} className="text-gray-500" />
-                                                                            Asignar
+                                                                            Assign
                                                                         </button>
                                                                     )}
                                                                     <button
@@ -488,7 +488,7 @@ export default function KanbanBoard(props: any) {
                                                                         onClick={e => { e.stopPropagation(); setMenuOpen(null); props.onComment && props.onComment(ticket); }}
                                                                     >
                                                                         <MessageSquare size={14} className="text-gray-500" />
-                                                                        Comentar
+                                                                        Comment
                                                                     </button>
                                                                 </div>
                                                             )}
@@ -565,8 +565,8 @@ export default function KanbanBoard(props: any) {
                                                                     </TooltipTrigger>
                                                                     <TooltipContent className="bg-gray-900 text-white px-3 py-2 text-xs rounded shadow-lg">
                                                                         <div className="font-semibold">{ticket.user.tenant.name}</div>
-                                                                        <div className="text-gray-300">{ticket.user.tenant.apartment?.name || 'Sin departamento'}</div>
-                                                                        <div className="text-gray-400">{ticket.user.tenant.apartment?.building?.name || 'Sin edificio'}</div>
+                                                                        <div className="text-gray-300">{ticket.user.tenant.apartment?.name || 'No apartment'}</div>
+                                                                        <div className="text-gray-400">{ticket.user.tenant.apartment?.building?.name || 'No building'}</div>
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             </TooltipProvider>
@@ -581,8 +581,8 @@ export default function KanbanBoard(props: any) {
 
                                         {columns[status.key]?.length === 0 && (
                                             <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                                                <div className="text-gray-400 mb-1">No hay tickets en esta columna</div>
-                                                <div className="text-xs text-gray-500">Arrastra tickets aquí o crea nuevos</div>
+                                                <div className="text-gray-400 mb-1">No tickets in this column</div>
+                                                <div className="text-xs text-gray-500">Drag tickets here or create new ones</div>
                                             </div>
                                         )}
 

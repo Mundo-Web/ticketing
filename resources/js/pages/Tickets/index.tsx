@@ -976,7 +976,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
 
                                                         {/* Action buttons for ticket management - only show when in the "Assigned" tab */}
                                                         {(canActOnTickets || isSuperAdmin) && (
-                                                            <div className="flex flex-wrap gap-2 mt-4">
+                                                            <div className="flex flex-wrap gap-2 mt-4 mb-4">
                                                                 <Button
                                                                     size="sm"
                                                                     className="bg-sidebar-accent hover:bg-sidebar-accent text-white"
@@ -998,7 +998,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                                         }}
                                                                     >
                                                                         <Share2 className="w-4 h-4 mr-2" />
-                                                                        Assign Technician
+                                                                       Assign technician
                                                                     </Button>
                                                                
 
