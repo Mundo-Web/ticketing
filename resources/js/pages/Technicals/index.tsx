@@ -4,7 +4,7 @@ import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     Plus, Edit, Trash2, MoreHorizontal, User,
-    List, Activity, Clock, CheckCircle, AlertCircle, Laptop, Trophy, Target
+    List, Activity, Clock, CheckCircle, AlertCircle, Laptop, Trophy, Target, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -126,6 +126,19 @@ export default function Index({ technicals }: TechnicalsPageProps) {
     const [selectedTechnical, setSelectedTechnical] = useState<Technical | null>(null);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<number | null>(null);
     const [gridColumns, setGridColumns] = useState<number>(4);
+    
+    // Estados para detección de cambios no guardados
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [showConfirmClose, setShowConfirmClose] = useState(false);
+    const [originalData, setOriginalData] = useState<{
+        id: number | null;
+        name: string;
+        email: string;
+        phone: string;
+        shift: 'morning' | 'afternoon' | 'night';
+        photo: File | null;
+    } | null>(null);
+    
     const { data, setData, delete: destroy, processing, reset } = useForm({
         id: null as number | null,
         name: '',
@@ -134,6 +147,63 @@ export default function Index({ technicals }: TechnicalsPageProps) {
         shift: 'morning' as 'morning' | 'afternoon' | 'night',
         photo: null as File | null,
     });
+
+    // Función wrapper para setData que detecta cambios
+    const setFormData = (key: keyof typeof data, value: string | number | File | null) => {
+        // Usamos switch para manejar cada tipo de campo específicamente
+        switch (key) {
+            case 'name':
+            case 'email':
+            case 'phone':
+                setData(key, value as string);
+                break;
+            case 'shift':
+                setData(key, value as 'morning' | 'afternoon' | 'night');
+                break;
+            case 'photo':
+                setData(key, value as File | null);
+                break;
+            case 'id':
+                setData(key, value as number | null);
+                break;
+        }
+        
+        if (originalData) {
+            const newData = { ...data, [key]: value };
+            const hasChanges = Object.keys(originalData).some(k => {
+                const typedKey = k as keyof typeof originalData;
+                if (typedKey === 'photo') {
+                    // Para archivos, comparamos si se seleccionó uno nuevo
+                    return newData[typedKey] !== null;
+                }
+                return originalData[typedKey] !== newData[typedKey];
+            });
+            setHasUnsavedChanges(hasChanges);
+        }
+    };
+
+    // Función para manejar el cierre del modal
+    const handleCloseModal = () => {
+        if (hasUnsavedChanges) {
+            setShowConfirmClose(true);
+        } else {
+            closeModalAndReset();
+        }
+    };
+
+    // Función para cerrar y resetear el modal
+    const closeModalAndReset = () => {
+        setOpen(false);
+        setShowConfirmClose(false);
+        setHasUnsavedChanges(false);
+        setOriginalData(null);
+        reset();
+    };
+
+    // Función para confirmar descarte de cambios
+    const confirmDiscardChanges = () => {
+        closeModalAndReset();
+    };
 
     // Columnas para tabla
     const columns: ColumnDef<Technical>[] = [
@@ -919,11 +989,18 @@ export default function Index({ technicals }: TechnicalsPageProps) {
     };
 
     const handleEdit = (technical: Technical) => {
-        setData({
-            ...technical,
-            photo: null,
-        });
+        const initialData = {
+            id: technical.id,
+            name: technical.name,
+            email: technical.email,
+            phone: technical.phone,
+            shift: technical.shift,
+            photo: null
+        };
+        setData(initialData);
+        setOriginalData(initialData);
         setSelectedTechnical(technical);
+        setHasUnsavedChanges(false);
         setOpen(true);
     };
 
@@ -952,8 +1029,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
             router.post(route('technicals.update', data.id), formData, {
                 preserveScroll: true,
                 onSuccess: () => {
-                    reset();
-                    setOpen(false);
+                    closeModalAndReset();
                     toast.success('Technical updated');
                 },
                 onError: (errors: Record<string, string>) => {
@@ -974,8 +1050,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                 preserveScroll: true,
                 forceFormData: true,
                 onSuccess: () => {
-                    reset();
-                    setOpen(false);
+                    closeModalAndReset();
                     toast.success('Technical created');
                 },
                 onError: (errors: Record<string, string>) => {
@@ -1031,7 +1106,21 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                             </select>
                         )}
                     </div>
-                    <Button onClick={() => setOpen(true)}>
+                    <Button onClick={() => {
+                        const initialData = {
+                            id: null,
+                            name: '',
+                            email: '',
+                            phone: '',
+                            shift: 'morning' as 'morning' | 'afternoon' | 'night',
+                            photo: null
+                        };
+                        setData(initialData);
+                        setOriginalData(initialData);
+                        setSelectedTechnical(null);
+                        setHasUnsavedChanges(false);
+                        setOpen(true);
+                    }}>
                         <Plus className="mr-2 h-4 w-4" />
                         New Technical
                     </Button>
@@ -1085,106 +1174,145 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                 )}
 
                 {/* Create/Edit Modal */}
-                <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogContent className="sm:max-w-[600px]">
-                        <DialogHeader>
+                <Dialog open={open} onOpenChange={handleCloseModal}>
+                    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
+                        <DialogHeader className="flex-shrink-0">
                             <DialogTitle>
                                 {selectedTechnical ? 'Edit Technical' : 'New Technical'}
                             </DialogTitle>
                         </DialogHeader>
-                        <form onSubmit={submitForm} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className=" space-y-2">
-                                    <Label>Photo</Label>
-                                    <div className="mt-2 group relative w-full aspect-square rounded-lg overflow-hidden border-2 border-dashed bg-muted/50">
-                                        <input
-                                            type="file"
-                                            onChange={e => setData('photo', e.target.files?.[0] || null)}
-                                            className="hidden"
-                                            id="photo-upload"
-                                        />
-                                        <label
-                                            htmlFor="photo-upload"
-                                            className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
-                                            {data.photo ? (
-                                                <img
-                                                    src={URL.createObjectURL(data.photo)}
-                                                    alt="Preview"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : selectedTechnical?.photo ? (
-                                                <img
-                                                    src={`/storage/${selectedTechnical.photo}`}
-                                                    alt="Current"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="text-center space-y-2">
-                                                    <User className="w-12 h-12 mx-auto text-muted-foreground" />
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Click to upload photo
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </label>
+                        
+                        {/* Scrollable content area with custom scrollbar */}
+                        <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-4 scrollbar-thin scrollbar-thumb-corporate-gold/20 scrollbar-track-transparent hover:scrollbar-thumb-corporate-gold/40 dark:scrollbar-thumb-corporate-gold-light/20 dark:hover:scrollbar-thumb-corporate-gold-light/40">
+                            <form onSubmit={submitForm} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className=" space-y-2">
+                                        <Label>Photo</Label>
+                                        <div className="mt-2 group relative w-full aspect-square rounded-lg overflow-hidden border-2 border-dashed bg-muted/50">
+                                            <input
+                                                type="file"
+                                                onChange={e => setFormData('photo', e.target.files?.[0] || null)}
+                                                className="hidden"
+                                                id="photo-upload"
+                                            />
+                                            <label
+                                                htmlFor="photo-upload"
+                                                className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                                                {data.photo ? (
+                                                    <img
+                                                        src={URL.createObjectURL(data.photo)}
+                                                        alt="Preview"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : selectedTechnical?.photo ? (
+                                                    <img
+                                                        src={`/storage/${selectedTechnical.photo}`}
+                                                        alt="Current"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="text-center space-y-2">
+                                                        <User className="w-12 h-12 mx-auto text-muted-foreground" />
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Click to upload photo
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div className='flex flex-col gap-2'>
+                                        <div className="space-y-2">
+                                            <Label>Name</Label>
+                                            <Input
+                                                value={data.name}
+                                                onChange={e => setFormData('name', e.target.value)}
+                                                required
+                                                className='h-11 mt-2'
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Email</Label>
+                                            <Input
+                                                type="email"
+                                                value={data.email}
+                                                onChange={e => setFormData('email', e.target.value)}
+                                                required
+                                                className='h-11 mt-2'
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Phone</Label>
+                                            <Input
+                                                value={data.phone}
+                                                onChange={e => setFormData('phone', e.target.value)}
+                                                required
+                                                className='h-11 mt-2'
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Shift</Label>
+                                            <Select
+                                                value={data.shift}
+                                                onValueChange={(value) => setFormData('shift', value as 'morning' | 'afternoon' | 'night')}
+                                            >
+                                                <SelectTrigger className='h-11 mt-2' >
+                                                    <SelectValue placeholder="Select shift" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="morning">Morning</SelectItem>
+                                                    <SelectItem value="afternoon">Afternoon</SelectItem>
+                                                    <SelectItem value="night">Night</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className='flex flex-col gap-2'>
-                                    <div className="space-y-2">
-                                        <Label>Name</Label>
-                                        <Input
-                                            value={data.name}
-                                            onChange={e => setData('name', e.target.value)}
-                                            required
-                                            className='h-11 mt-2'
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Email</Label>
-                                        <Input
-                                            type="email"
-                                            value={data.email}
-                                            onChange={e => setData('email', e.target.value)}
-                                            required
-                                            className='h-11 mt-2'
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Phone</Label>
-                                        <Input
-                                            value={data.phone}
-                                            onChange={e => setData('phone', e.target.value)}
-                                            required
-                                            className='h-11 mt-2'
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Shift</Label>
-                                        <Select
-                                            value={data.shift}
-                                            onValueChange={(value) => setData('shift', value as 'morning' | 'afternoon' | 'night')}
-                                        >
-                                            <SelectTrigger className='h-11 mt-2' >
-                                                <SelectValue placeholder="Select shift" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="morning">Morning</SelectItem>
-                                                <SelectItem value="afternoon">Afternoon</SelectItem>
-                                                <SelectItem value="night">Night</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                <DialogFooter className="flex-shrink-0 pt-4">
+                                    <Button type="button" variant="outline" onClick={handleCloseModal}>
+                                        Cancel
+                                    </Button>
+                                    <Button type="submit" disabled={processing}>
+                                        {processing ? 'Saving...' : 'Save'}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Confirmation dialog for unsaved changes */}
+                <Dialog open={showConfirmClose} onOpenChange={setShowConfirmClose}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
+                                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <div>
+                                    <DialogTitle>Unsaved Changes</DialogTitle>
+                                    <DialogDescription className="mt-1">
+                                        You have unsaved changes that will be lost if you close this dialog.
+                                    </DialogDescription>
                                 </div>
                             </div>
-                            <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button type="submit" disabled={processing}>
-                                    {processing ? 'Saving...' : 'Save'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
+                        </DialogHeader>
+                        <DialogFooter className="gap-2 sm:gap-0">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setShowConfirmClose(false)}
+                                className="w-full sm:w-auto"
+                            >
+                                Continue Editing
+                            </Button>
+                            <Button 
+                                variant="destructive" 
+                                onClick={confirmDiscardChanges}
+                                className="w-full sm:w-auto"
+                            >
+                                Discard Changes
+                            </Button>
+                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
 
