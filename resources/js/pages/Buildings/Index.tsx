@@ -6,7 +6,7 @@ import {
     LayoutGrid, Table as TableIcon, Plus, Edit, Trash2, UploadCloud,
     ChevronLeft, ChevronRight, Archive, MapPin, ArchiveRestore,
     ChevronDown, MoreHorizontal, Download, Building as IconBuilding,
-    User, Search, Filter, FileSpreadsheet
+    User, Search, Filter, FileSpreadsheet, X, Check, AlertCircle
 } from 'lucide-react';
 import * as XLSX from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -102,10 +102,12 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showConfirmClose, setShowConfirmClose] = useState(false);
     const [currentBuilding, setCurrentBuilding] = useState<Building | null>(null);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<number | null>(null);
     const [gridColumns, setGridColumns] = useState<number>(4);
     const [showLocationModal, setShowLocationModal] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     // Formulario
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
@@ -129,6 +131,49 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
             shift: 'morning' | 'afternoon' | 'night';
         }>,
     });
+
+    // Helper functions for unsaved changes detection
+    const checkForUnsavedChanges = () => {
+        const hasData = data.name.trim() !== '' || 
+                       data.description.trim() !== '' || 
+                       data.location_link.trim() !== '' ||
+                       data.owner.name.trim() !== '' ||
+                       data.owner.email.trim() !== '' ||
+                       data.owner.phone.trim() !== '' ||
+                       data.doormen.length > 0 ||
+                       data.image !== null ||
+                       data.owner.photo !== null;
+        
+        setHasUnsavedChanges(hasData);
+        return hasData;
+    };
+
+    // Handle modal close with confirmation
+    const handleCloseModal = () => {
+        if (checkForUnsavedChanges()) {
+            setShowConfirmClose(true);
+        } else {
+            closeModalAndReset();
+        }
+    };
+
+    const closeModalAndReset = () => {
+        setShowCreateModal(false);
+        setShowConfirmClose(false);
+        setCurrentBuilding(null);
+        setHasUnsavedChanges(false);
+        reset();
+    };
+
+    const confirmDiscardChanges = () => {
+        closeModalAndReset();
+    };
+
+    // Enhanced setData wrapper to track changes
+    const setFormData = (field: string, value: unknown) => {
+        setData(field as keyof typeof data, value);
+        setTimeout(() => checkForUnsavedChanges(), 0);
+    };
 
     // Definición de columnas para la tabla
     const columns: ColumnDef<Building>[] = [
@@ -992,68 +1037,95 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
 
                         {/* Hover Effect Border */}
                         <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-                        {/* Enhanced Doorman Modal */}
+                        {/* Enhanced Doorman Modal with Advanced Animations */}
                         {selectedDoorman && (
-                            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                                <div className="bg-background rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden border border-border/50">
-                                    {/* Header with gradient */}
-                                    <div className="relative p-6 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent"></div>
+                            <div 
+                                className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300"
+                                onClick={(e) => {
+                                    if (e.target === e.currentTarget) setSelectedDoorman(null);
+                                }}
+                            >
+                                <div className="bg-background/95 dark:bg-background/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full mx-4 overflow-hidden border border-border/50 dark:border-border/30 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                                    {/* Close Button - Outside */}
+                                    <button
+                                        onClick={() => setSelectedDoorman(null)}
+                                        className="absolute -top-2 -right-2 z-10 w-10 h-10 rounded-full bg-background dark:bg-background shadow-lg border border-border/50 dark:border-border/30 flex items-center justify-center hover:scale-110 transition-all duration-200 group"
+                                    >
+                                        <X className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                                    </button>
+
+                                    {/* Header with enhanced gradient and dark mode support */}
+                                    <div className="relative p-8 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 dark:from-primary/20 dark:via-secondary/10 dark:to-accent/20">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent dark:from-primary/10 dark:to-transparent"></div>
+                                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)] dark:bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)]"></div>
+                                        
                                         <div className="relative flex flex-col items-center">
-                                            <div className="relative">
+                                            <div className="relative group">
+                                                <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-accent/30 rounded-full blur-lg scale-110 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
                                                 <img
                                                     src={selectedDoorman.photo
                                                         ? `/storage/${selectedDoorman.photo}`
                                                         : '/placeholder-user.jpg'}
                                                     alt={selectedDoorman.name}
-                                                    className="w-24 h-24 rounded-full object-cover border-4 border-primary/30 shadow-lg"
+                                                    className="relative w-28 h-28 rounded-full object-cover border-4 border-primary/30 dark:border-primary/50 shadow-xl transition-transform duration-300 group-hover:scale-105"
                                                 />
-                                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-accent rounded-full border-4 border-background flex items-center justify-center">
-                                                    <div className="w-2 h-2 bg-background rounded-full"></div>
+                                                {/* Status indicator with pulse animation */}
+                                                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-accent rounded-full border-4 border-background dark:border-background flex items-center justify-center shadow-lg">
+                                                    <div className="w-3 h-3 bg-background dark:bg-background rounded-full animate-pulse"></div>
+                                                    <div className="absolute inset-0 bg-accent rounded-full animate-ping opacity-75"></div>
                                                 </div>
                                             </div>
-                                            <h4 className="text-2xl font-bold text-foreground mt-4">{selectedDoorman.name}</h4>
-                                            <div className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-semibold mt-2 capitalize">
+                                            
+                                            <h4 className="text-2xl font-bold text-foreground dark:text-foreground mt-6 animate-in slide-in-from-bottom-2 duration-500 delay-100">
+                                                {selectedDoorman.name}
+                                            </h4>
+                                            
+                                            <div className="px-4 py-2 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary rounded-full text-sm font-semibold mt-3 capitalize backdrop-blur-sm border border-primary/20 dark:border-primary/40 animate-in slide-in-from-bottom-2 duration-500 delay-200">
                                                 {selectedDoorman.shift === 'morning' ? '🌅 Morning' :
                                                 selectedDoorman.shift === 'afternoon' ? '☀️ Afternoon' : '🌙 Night'} Shift
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Content */}
-                                    <div className="p-6 space-y-4">
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
-                                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                                                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    {/* Content with improved spacing and dark mode */}
+                                    <div className="p-8 space-y-6">
+                                        <div className="space-y-4">
+                                            {/* Email Card */}
+                                            <div className="group flex items-center gap-4 p-4 rounded-2xl bg-muted/30 dark:bg-muted/20 border border-border/20 dark:border-border/10 hover:bg-muted/50 dark:hover:bg-muted/30 transition-all duration-300 animate-in slide-in-from-left duration-500 delay-300">
+                                                <div className="w-12 h-12 rounded-2xl bg-primary/20 dark:bg-primary/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                                    <svg className="w-5 h-5 text-primary dark:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                                                     </svg>
                                                 </div>
-                                                <div className="flex-1">
-                                                    <div className="text-xs text-muted-foreground">Email</div>
-                                                    <div className="text-sm font-medium">{selectedDoorman.email || 'Not provided'}</div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase tracking-wider">Email</div>
+                                                    <div className="text-sm font-semibold text-foreground dark:text-foreground mt-1 truncate">{selectedDoorman.email || 'Not provided'}</div>
                                                 </div>
                                             </div>
                                             
-                                            <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
-                                                <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
-                                                    <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            {/* Phone Card */}
+                                            <div className="group flex items-center gap-4 p-4 rounded-2xl bg-muted/30 dark:bg-muted/20 border border-border/20 dark:border-border/10 hover:bg-muted/50 dark:hover:bg-muted/30 transition-all duration-300 animate-in slide-in-from-right duration-500 delay-400">
+                                                <div className="w-12 h-12 rounded-2xl bg-secondary/20 dark:bg-secondary/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                                    <svg className="w-5 h-5 text-secondary dark:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                                     </svg>
                                                 </div>
-                                                <div className="flex-1">
-                                                    <div className="text-xs text-muted-foreground">Phone</div>
-                                                    <div className="text-sm font-medium">{selectedDoorman.phone || 'Not provided'}</div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase tracking-wider">Phone</div>
+                                                    <div className="text-sm font-semibold text-foreground dark:text-foreground mt-1 truncate">{selectedDoorman.phone || 'Not provided'}</div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Close Button */}
+                                        {/* Enhanced Close Button */}
                                         <Button
                                             onClick={() => setSelectedDoorman(null)}
-                                            className="w-full mt-6 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground rounded-xl py-3 font-semibold transition-all duration-300 hover:scale-105"
+                                            className="w-full mt-8 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary dark:from-primary dark:to-primary/90 text-primary-foreground rounded-2xl py-4 font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg shadow-primary/25 dark:shadow-primary/20 animate-in slide-in-from-bottom duration-500 delay-500"
                                         >
-                                            Close
+                                            <span className="flex items-center justify-center gap-2">
+                                                Close
+                                                <Check className="w-4 h-4" />
+                                            </span>
                                         </Button>
                                     </div>
                                 </div>
@@ -1143,16 +1215,16 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="flex items-center gap-4">
-                        <div className="bg-gray-100 p-1 rounded flex">
+                        <div className="bg-gray-100 dark:!bg-transparent p-1 rounded flex">
                             <button
                                 onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white shadow' : ''}`}
+                                className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white shadow dark:bg-card' : ''}`}
                             >
                                 <LayoutGrid className={`w-5 h-5 ${viewMode === 'grid' ? 'text-primary' : 'text-gray-600'}`} />
                             </button>
                             <button
                                 onClick={() => setViewMode('table')}
-                                className={`p-2 rounded ${viewMode === 'table' ? 'bg-white shadow' : ''}`}
+                                className={`p-2 rounded ${viewMode === 'table' ? 'bg-white shadow dark:bg-card' : ''}`}
                             >
                                 <TableIcon className={`w-5 h-5 ${viewMode === 'table' ? 'text-primary' : 'text-gray-600'}`} />
                             </button>
@@ -1405,14 +1477,31 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                 )}
 
                 {/* Create/Edit Building Modal */}
-                <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-                    <DialogContent className="w-full max-w-none sm:max-w-4xl mx-0 sm:mx-4 p-0 overflow-hidden bg-background">
-                        <div className="overflow-y-auto px-6 py-8" style={{ maxHeight: '90vh' }}>
+                <Dialog 
+                    open={showCreateModal} 
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            handleCloseModal();
+                        } else {
+                            setShowCreateModal(true);
+                        }
+                    }}
+                >
+                    <DialogContent className="w-full max-w-none sm:max-w-4xl mx-0 sm:mx-4 p-0 overflow-hidden bg-background dark:bg-background">
+                        {/* Enhanced scrollable container */}
+                        <div 
+                            className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800 px-6 py-8" 
+                            style={{ 
+                                maxHeight: '90vh',
+                                scrollbarWidth: 'thin',
+                                scrollbarColor: 'rgb(156 163 175) rgb(243 244 246)'
+                            }}
+                        >
                             <DialogHeader className="mb-8">
-                                <DialogTitle className="text-3xl font-semibold tracking-tight">
+                                <DialogTitle className="text-3xl font-semibold tracking-tight text-foreground dark:text-foreground">
                                     {currentBuilding ? 'Edit Building' : 'New Building'}
                                 </DialogTitle>
-                                <DialogDescription className="text-muted-foreground">
+                                <DialogDescription className="text-muted-foreground dark:text-muted-foreground">
                                     {currentBuilding ? 'Update the building information below.' : 'Fill in the building information below to create a new record.'}
                                 </DialogDescription>
                             </DialogHeader>
@@ -1487,7 +1576,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                                         <Input
                                                             id="name"
                                                             value={data.name}
-                                                            onChange={(e) => setData('name', e.target.value)}
+                                                            onChange={(e) => setFormData('name', e.target.value)}
                                                             className={`h-11 ${errors.name ? 'ring-2 ring-destructive' : ''}`}
                                                             placeholder="Enter building name"
                                                             required
@@ -1502,7 +1591,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                                         <Textarea
                                                             id="description"
                                                             value={data.description}
-                                                            onChange={(e) => setData('description', e.target.value)}
+                                                            onChange={(e) => setFormData('description', e.target.value)}
                                                             rows={4}
                                                             className="resize-none"
                                                             placeholder="Enter building description..."
@@ -1516,9 +1605,9 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                                         <Input
                                                             id="location_link"
                                                             value={data.location_link}
-                                                            onChange={(e) => setData('location_link', e.target.value)}
+                                                            onChange={(e) => setFormData('location_link', e.target.value)}
                                                             type="text"
-                                                            placeholder="https://maps.google.com/..."
+                                                            placeholder="40.77419417199397, -73.96557928650753"
                                                             className="h-11"
                                                         />
                                                     </div>
@@ -1799,8 +1888,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        className="h-11"
-                                        onClick={() => setShowCreateModal(false)}
+                                        className="h-11 dark:hover:text-white"
+                                        onClick={handleCloseModal}
                                     >
                                         Cancel
                                     </Button>
@@ -1815,6 +1904,37 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                     </Button>
                                 </div>
                             </form>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Confirmation Modal for Unsaved Changes */}
+                <Dialog open={showConfirmClose} onOpenChange={setShowConfirmClose}>
+                    <DialogContent className="sm:max-w-md bg-background dark:bg-background">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-foreground dark:text-foreground">
+                                <AlertCircle className="w-5 h-5 text-amber-500" />
+                                Unsaved Changes
+                            </DialogTitle>
+                            <DialogDescription className="text-muted-foreground dark:text-muted-foreground">
+                                You have unsaved changes that will be lost if you continue. Are you sure you want to close without saving?
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex justify-end gap-3 mt-6">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowConfirmClose(false)}
+                                className="h-10 dark:hover:text-white"
+                            >
+                                Keep Editing
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={confirmDiscardChanges}
+                                className="h-10"
+                            >
+                                Discard Changes
+                            </Button>
                         </div>
                     </DialogContent>
                 </Dialog>
@@ -1834,6 +1954,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                 type="button"
                                 variant="outline"
                                 onClick={() => setShowDeleteModal(false)}
+                                className='dark:hover:text-white'
                             >
                                 Cancel
                             </Button>

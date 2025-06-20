@@ -405,7 +405,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                     {technicals.map((technical, index) => (
                         <div 
                             key={technical.id} 
-                            className="bg-gradient-to-r from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10 rounded-xl shadow-sm hover:shadow-xl transition-all duration-500 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 overflow-hidden group"
+                            className="bg-gradient-to-r from-white to-corporate-gold/5 dark:from-transparent dark:to-corporate-gold/10 rounded-xl shadow-sm hover:shadow-xl transition-all duration-500 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 overflow-hidden group"
                             style={{
                                 animationDelay: `${index * 200}ms`,
                                 animation: 'fadeInUp 0.8s ease-out forwards'
@@ -446,7 +446,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <div className="absolute -top-1 -right-1 bg-gradient-to-r from-corporate-gold to-corporate-warm rounded-full p-2 shadow-lg animate-bounce">
-                                                            <Trophy className="w-4 h-4 text-primary-foreground" />
+                                                            <Trophy className="w-4 h-4 text-primary-foreground dark:text-white" />
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -474,7 +474,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                 </span>
                                                 
                                                 {isDefaultTechnical(technical) && (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-corporate-gold via-corporate-warm to-corporate-gold text-primary-foreground shadow-lg">
+                                                    <span className="inline-flex items-center px-3 py-1 dark:text-white rounded-full text-xs font-medium bg-gradient-to-r from-corporate-gold via-corporate-warm to-corporate-gold text-primary-foreground shadow-lg">
                                                         <Trophy className="w-3 h-3 mr-1" />
                                                         Tech Chief
                                                     </span>
@@ -485,7 +485,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                             <div className="grid grid-cols-2 gap-2 mt-3">
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-white/70 dark:bg-corporate-gold/10 p-2 rounded-lg border border-corporate-gold/20 text-center hover:bg-white/90 dark:hover:bg-corporate-gold/15 transition-colors duration-300 cursor-pointer">
+                                                        <div className="bg-white/70 dark:bg-transparent dark:bg-corporate-gold/10 p-2 rounded-lg border border-corporate-gold/20 text-center hover:bg-white/90 dark:hover:bg-corporate-gold/15 transition-colors duration-300 cursor-pointer">
                                                             <div className="text-lg font-bold text-corporate-gold animate-pulse">
                                                                 <AnimatedCounter value={technical.current_streak} />
                                                             </div>
@@ -499,7 +499,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
 
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-white/70 dark:bg-corporate-gold/10 p-2 rounded-lg border border-corporate-gold/20 text-center hover:bg-white/90 dark:hover:bg-corporate-gold/15 transition-colors duration-300 cursor-pointer">
+                                                        <div className="bg-white/70 dark:bg-transparent p-2 rounded-lg border border-corporate-gold/20 text-center hover:bg-white/90 dark:hover:bg-corporate-gold/15 transition-colors duration-300 cursor-pointer">
                                                             <div className="text-lg font-bold text-corporate-warm">
                                                                 <AnimatedCounter value={technical.avg_resolution_time} />h
                                                             </div>
@@ -514,24 +514,25 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                         </div>
 
                                         <div className="flex items-center gap-2">
+                                             <span className={`px-2 py-1 flex gap-2 items-center rounded-full text-xs font-medium transition-all duration-300 ${
+                                                technical.status 
+                                                    ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 shadow-green-200/50' 
+                                                    : 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 shadow-red-200/50'
+                                            }`}>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <Switch
                                                         checked={technical.status}
                                                         onCheckedChange={() => toggleStatus(technical)}
                                                         disabled={isUpdatingStatus === technical.id}
-                                                        className="data-[state=checked]:bg-corporate-gold"
+                                                        className="data-[state=checked]:bg-white data-[state=unchecked]:bg-gray-200"
                                                     />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>{technical.status ? 'Deactivate' : 'Activate'} technical</p>
                                                 </TooltipContent>
                                             </Tooltip>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
-                                                technical.status 
-                                                    ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 shadow-green-200/50' 
-                                                    : 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 shadow-red-200/50'
-                                            }`}>
+                                           
                                                 {technical.status ? 'Active' : 'Inactive'}
                                             </span>
                                         </div>
@@ -543,7 +544,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                         onClick={() => handleEdit(technical)}
                                                         variant="outline"
                                                         size="sm"
-                                                        className="flex-1 border-corporate-gold/30 hover:bg-corporate-gold hover:text-primary-foreground hover:border-corporate-gold transition-colors duration-300"
+                                                        className="flex-1 border-corporate-gold/30 hover:bg-corporate-gold hover:text-primary-foreground hover:border-corporate-gold dark:hover:text-white transition-colors duration-300"
                                                     >
                                                         <Edit className="w-4 h-4" />
                                                     </Button>
@@ -578,8 +579,8 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                             size="sm"
                                                             className={`flex-1 transition-colors duration-300 ${
                                                                 isDefaultTechnical(technical) 
-                                                                    ? 'bg-gradient-to-r from-corporate-gold to-corporate-warm text-primary-foreground border-corporate-gold hover:opacity-90' 
-                                                                    : 'border-corporate-gold/30 hover:bg-corporate-gold hover:text-white hover:border-corporate-gold'
+                                                                    ? 'bg-secondary text-primary-foreground border-corporate-gold hover:opacity-90' 
+                                                                    : 'border-corporate-gold/30  hover:bg-corporate-gold hover:text-white hover:border-corporate-gold'
                                                             }`}
                                                         >
                                                             <Trophy className="w-4 h-4" />
@@ -1004,10 +1005,10 @@ export default function Index({ technicals }: TechnicalsPageProps) {
             <div className="p-6 space-y-4">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                        <div className="bg-gray-100 p-1 rounded flex">
-                            <Button variant="ghost" onClick={() => setViewMode('list')}
-                                className={viewMode === 'list' ? 'bg-white shadow' : ''}>
-                                <List className="w-5 h-5" />
+                        <div className="bg-gray-100 dark:bg-transparent p-1 rounded flex">
+                            <Button  onClick={() => setViewMode('list')}
+                                className={viewMode === 'list' ? 'bg-white shadow dark:bg-card' : ''}>
+                                <List className="w-5 h-5 text-primary" />
                             </Button>
                            {/* <Button variant="ghost" onClick={() => setViewMode('grid')}
                                 className={viewMode === 'grid' ? 'bg-white shadow' : ''}>
