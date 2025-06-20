@@ -68,35 +68,35 @@ const statusConfig: Record<
     }
 > = {
     open: {
-        label: "Abierto",
+        label: "Open",
         color: "border-blue-200 bg-blue-50",
         bgColor: "bg-blue-100",
         textColor: "text-blue-800",
         icon: AlertCircle,
     },
     in_progress: {
-        label: "En progreso",
+        label: "In Progress",
         color: "border-amber-200 bg-amber-50",
         bgColor: "bg-amber-100",
         textColor: "text-amber-800",
         icon: PlayCircle,
     },
     resolved: {
-        label: "Resuelto",
+        label: "Resolved",
         color: "border-emerald-200 bg-emerald-50",
         bgColor: "bg-emerald-100",
         textColor: "text-emerald-800",
         icon: CheckCircle2,
     },
     closed: {
-        label: "Cerrado",
+        label: "Closed",
         color: "border-slate-200 bg-slate-50",
         bgColor: "bg-slate-100",
         textColor: "text-slate-700",
         icon: StopCircle,
     },
     cancelled: {
-        label: "Cancelado",
+        label: "Cancelled",
         color: "border-red-200 bg-red-50",
         bgColor: "bg-red-100",
         textColor: "text-red-800",
@@ -1012,19 +1012,19 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                                             let buttonStyle = "";
                                                                             switch (status) {
                                                                                 case "in_progress":
-                                                                                    buttonStyle = "bg-amber-600 hover:bg-amber-700";
+                                                                                    buttonStyle = "bg-amber-400 hover:bg-amber-500";
                                                                                     break;
                                                                                 case "resolved":
-                                                                                    buttonStyle = "bg-emerald-600 hover:bg-emerald-700";
+                                                                                    buttonStyle = "bg-emerald-400 hover:bg-emerald-500";
                                                                                     break;
                                                                                 case "closed":
-                                                                                    buttonStyle = "bg-slate-600 hover:bg-slate-700";
+                                                                                    buttonStyle = "bg-slate-400 hover:bg-slate-500";
                                                                                     break;
                                                                                 case "cancelled":
-                                                                                    buttonStyle = "bg-red-600 hover:bg-red-700";
+                                                                                    buttonStyle = "bg-red-400 hover:bg-red-500";
                                                                                     break;
                                                                                 default:
-                                                                                    buttonStyle = "bg-blue-600 hover:bg-blue-700";
+                                                                                    buttonStyle = "bg-blue-400 hover:bg-blue-500";
                                                                             }
                                                                             return (
                                                                                 <Button

@@ -130,9 +130,9 @@ export default function KanbanBoard(props: any) {
     const [showRecents, setShowRecents] = useState(isManager);
     const [searchQuery, setSearchQuery] = useState("");
     const [technicals, setTechnicals] = useState<any[]>([]);
-    const [selectedTechnicalId, setSelectedTechnicalId] = useState<number | null>(null);
+    const [selectedTechnicalIds, setSelectedTechnicalIds] = useState<number[]>([]);
     const [buildings, setBuildings] = useState<any[]>([]);
-    const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
+    const [selectedBuildingIds, setSelectedBuildingIds] = useState<number[]>([]);
     const [showFilters, setShowFilters] = useState(false); useEffect(() => {
         // Cargar técnicos siempre, no solo para jefe técnico
         fetch('/api/technicals')
@@ -160,13 +160,13 @@ export default function KanbanBoard(props: any) {
     // Memoizamos filteredTickets para evitar recálculos innecesarios
     const filteredTickets = useMemo(() => {
         return tickets.filter((t: any) => {
-            // Filtro por técnico (solo se aplica si es jefe técnico o super-admin y ha seleccionado un técnico)
-            if (isManager && selectedTechnicalId && t.technical_id !== selectedTechnicalId) {
+            // Filtro por técnicos (solo se aplica si es manager y ha seleccionado técnicos)
+            if (isManager && selectedTechnicalIds.length > 0 && !selectedTechnicalIds.includes(t.technical_id)) {
                 return false;
             }
 
-            // Filtro por edificio (solo se aplica si es manager y ha seleccionado un edificio)
-            if (isManager && selectedBuildingId && t.user?.tenant?.apartment?.building?.id !== selectedBuildingId) {
+            // Filtro por edificios (solo se aplica si es manager y ha seleccionado edificios)
+            if (isManager && selectedBuildingIds.length > 0 && !selectedBuildingIds.includes(t.user?.tenant?.apartment?.building?.id)) {
                 return false;
             }
 
@@ -182,7 +182,32 @@ export default function KanbanBoard(props: any) {
 
             return true;
         });
-    }, [tickets, isManager, selectedTechnicalId, selectedBuildingId, searchQuery]);    // Memoizamos los estados para evitar recálculos innecesarios
+    }, [tickets, isManager, selectedTechnicalIds, selectedBuildingIds, searchQuery]);
+
+    // Funciones helper para manejar selección múltiple
+    const toggleTechnicalSelection = (technicalId: number) => {
+        setSelectedTechnicalIds(prev => 
+            prev.includes(technicalId) 
+                ? prev.filter(id => id !== technicalId)
+                : [...prev, technicalId]
+        );
+    };
+
+    const toggleBuildingSelection = (buildingId: number) => {
+        setSelectedBuildingIds(prev => 
+            prev.includes(buildingId) 
+                ? prev.filter(id => id !== buildingId)
+                : [...prev, buildingId]
+        );
+    };
+
+    const clearTechnicalFilters = () => {
+        setSelectedTechnicalIds([]);
+    };
+
+    const clearBuildingFilters = () => {
+        setSelectedBuildingIds([]);
+    };    // Memoizamos los estados para evitar recálculos innecesarios
     const statuses = useMemo(() => {
         return getStatuses({ isTechnicalDefault: isManager, isTechnical, isSuperAdmin, isMember, statusFilter });
     }, [isManager, isTechnical, isSuperAdmin, isMember, statusFilter]);
@@ -319,11 +344,11 @@ export default function KanbanBoard(props: any) {
                                                     <Tooltip delayDuration={300}>
                                                         <TooltipTrigger asChild>
                                                             <div
-                                                                className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedTechnicalId === t.id
+                                                                className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedTechnicalIds.includes(t.id)
                                                                     ? 'bg-blue-500 ring-2 ring-blue-300 scale-110'
                                                                     : 'hover:bg-gray-100'
                                                                     }`}
-                                                                onClick={() => setSelectedTechnicalId(selectedTechnicalId === t.id ? null : t.id)}
+                                                                onClick={() => toggleTechnicalSelection(t.id)}
                                                             >
                                                                 {t.photo ? (
                                                                     <img
@@ -337,7 +362,7 @@ export default function KanbanBoard(props: any) {
                                                                     </div>
                                                                 )}
                                                                
-                                                                {selectedTechnicalId === t.id && (
+                                                                {selectedTechnicalIds.includes(t.id) && (
                                                                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
                                                                         <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
@@ -353,22 +378,22 @@ export default function KanbanBoard(props: any) {
                                                 </TooltipProvider>
                                             ))}
 
-                                            {selectedTechnicalId && (
+                                            {selectedTechnicalIds.length > 0 && (
                                                 <TooltipProvider>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <button
-                                                                onClick={() => setSelectedTechnicalId(null)}
+                                                                onClick={clearTechnicalFilters}
                                                                 className="ml-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-blue-200 transition-all duration-200"
                                                             >
                                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                                                                 </svg>
-                                                                Clear filter
+                                                                Clear ({selectedTechnicalIds.length})
                                                             </button>
                                                         </TooltipTrigger>
                                                         <TooltipContent className="bg-gray-800 text-white text-xs">
-                                                            <p>Show all technicians</p>
+                                                            <p>Clear all technician filters</p>
                                                         </TooltipContent>
                                                     </Tooltip>
                                                 </TooltipProvider>
@@ -387,16 +412,16 @@ export default function KanbanBoard(props: any) {
                                                     <Tooltip delayDuration={300}>
                                                         <TooltipTrigger asChild>
                                                             <div
-                                                                className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedBuildingId === b.id
+                                                                className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedBuildingIds.includes(b.id)
                                                                     ? 'bg-green-500 ring-2 ring-green-300 scale-110'
                                                                     : 'hover:bg-gray-100'
                                                                     }`}
-                                                                onClick={() => setSelectedBuildingId(selectedBuildingId === b.id ? null : b.id)}
+                                                                onClick={() => toggleBuildingSelection(b.id)}
                                                             >
-                                                                {b.photo ? (
+                                                                {b.image ? (
                                                                     <img
-                                                                        src={b.photo?.startsWith('http') ? b.photo : `/storage/${b.photo}`}
-                                                                        alt={b.name}
+                                                                        src={b.image?.startsWith('http') ? b.image : `/storage/${b.image}`}
+                                                                        alt={b.description}
                                                                         className="w-8 h-8 rounded-full object-cover border border-gray-200"
                                                                     />
                                                                 ) : (
@@ -405,7 +430,7 @@ export default function KanbanBoard(props: any) {
                                                                     </div>
                                                                 )}
                                                                
-                                                                {selectedBuildingId === b.id && (
+                                                                {selectedBuildingIds.includes(b.id) && (
                                                                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                                                                         <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
@@ -415,28 +440,28 @@ export default function KanbanBoard(props: any) {
                                                             </div>
                                                         </TooltipTrigger>
                                                         <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
-                                                            <p className="font-medium">{b.name}</p>
+                                                            <p className="font-medium">{b.description}</p>
                                                         </TooltipContent>
                                                     </Tooltip>
                                                 </TooltipProvider>
                                             ))}
 
-                                            {selectedBuildingId && (
+                                            {selectedBuildingIds.length > 0 && (
                                                 <TooltipProvider>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <button
-                                                                onClick={() => setSelectedBuildingId(null)}
+                                                                onClick={clearBuildingFilters}
                                                                 className="ml-2 flex items-center gap-1 text-xs text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-green-200 transition-all duration-200"
                                                             >
                                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                                                                 </svg>
-                                                                Clear filter
+                                                                Clear ({selectedBuildingIds.length})
                                                             </button>
                                                         </TooltipTrigger>
                                                         <TooltipContent className="bg-gray-800 text-white text-xs">
-                                                            <p>Show all buildings</p>
+                                                            <p>Clear all building filters</p>
                                                         </TooltipContent>
                                                     </Tooltip>
                                                 </TooltipProvider>
