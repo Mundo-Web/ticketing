@@ -382,4 +382,19 @@ class BuildingController extends Controller
 
         return back()->with('success', 'Estado actualizado');
     }
+
+    /**
+     * API method to get buildings for dropdown/filter purposes
+     */
+    public function apiIndex()
+    {
+        $buildings = Building::select('id', 'name', 'description', 'image as photo', 'location_link')
+            ->where('status', true)
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'buildings' => $buildings
+        ]);
+    }
 }

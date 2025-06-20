@@ -131,6 +131,8 @@ export default function KanbanBoard(props: any) {
     const [searchQuery, setSearchQuery] = useState("");
     const [technicals, setTechnicals] = useState<any[]>([]);
     const [selectedTechnicalId, setSelectedTechnicalId] = useState<number | null>(null);
+    const [buildings, setBuildings] = useState<any[]>([]);
+    const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
     const [showFilters, setShowFilters] = useState(false); useEffect(() => {
         // Cargar técnicos siempre, no solo para jefe técnico
         fetch('/api/technicals')
@@ -142,6 +144,17 @@ export default function KanbanBoard(props: any) {
             .catch(error => {
                 console.error("Error al cargar técnicos en KanbanBoard:", error);
             });
+
+        // Cargar edificios
+        fetch('/api/buildings')
+            .then(res => res.json())
+            .then(data => {
+                console.log("Edificios cargados en KanbanBoard:", data.buildings);
+                setBuildings(data.buildings || []);
+            })
+            .catch(error => {
+                console.error("Error al cargar edificios en KanbanBoard:", error);
+            });
     }, []);
 
     // Memoizamos filteredTickets para evitar recálculos innecesarios
@@ -149,6 +162,11 @@ export default function KanbanBoard(props: any) {
         return tickets.filter((t: any) => {
             // Filtro por técnico (solo se aplica si es jefe técnico o super-admin y ha seleccionado un técnico)
             if (isManager && selectedTechnicalId && t.technical_id !== selectedTechnicalId) {
+                return false;
+            }
+
+            // Filtro por edificio (solo se aplica si es manager y ha seleccionado un edificio)
+            if (isManager && selectedBuildingId && t.user?.tenant?.apartment?.building?.id !== selectedBuildingId) {
                 return false;
             }
 
@@ -164,7 +182,7 @@ export default function KanbanBoard(props: any) {
 
             return true;
         });
-    }, [tickets, isManager, selectedTechnicalId, searchQuery]);    // Memoizamos los estados para evitar recálculos innecesarios
+    }, [tickets, isManager, selectedTechnicalId, selectedBuildingId, searchQuery]);    // Memoizamos los estados para evitar recálculos innecesarios
     const statuses = useMemo(() => {
         return getStatuses({ isTechnicalDefault: isManager, isTechnical, isSuperAdmin, isMember, statusFilter });
     }, [isManager, isTechnical, isSuperAdmin, isMember, statusFilter]);
@@ -284,70 +302,149 @@ export default function KanbanBoard(props: any) {
                                         </div>
                                     ))}
                                 </div>
-                            </div> */}                                {/* Solo mostrar la sección de técnicos si es jefe técnico (isTechnicalDefault) */}
-                            <div>
+                            </div> */}
 
-                                <div className="ml-4 flex flex-wrap gap-2 items-center">
-                                    {technicals.map(t => (<TooltipProvider key={t.id}>
-                                        <Tooltip delayDuration={300}>
-                                            <TooltipTrigger asChild>
-                                                <div
-                                                    className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedTechnicalId === t.id
-                                                        ? 'bg-blue-500 ring-2 ring-blue-300 scale-110'
-                                                        : 'hover:bg-gray-100'
-                                                        }`}
-                                                    onClick={() => setSelectedTechnicalId(selectedTechnicalId === t.id ? null : t.id)}
-                                                >
-                                                    {t.photo  ? (
- <img
-                                                        src={t.photo?.startsWith('http') ? t.photo : `/storage/${t.photo}`}
-                                                        alt={t.name}
-                                                        className="w-8 h-8 rounded-full object-cover border border-gray-200"
-                                                    />
-                                                    ):(
-                                                         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-base font-bold">
-                                                                                                    {t.name?.substring(0, 1) || '?'}
-                                                                                                </div>
-                                                    )}
-                                                   
-                                                    {selectedTechnicalId === t.id && (
-                                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                                                            </svg>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
-                                                <p className="font-medium">{t.name}</p>
-                                                {/** <p className="text-gray-300 text-[10px]">{t.email}</p> */}
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
+                            {/* Solo mostrar las secciones de filtros si es jefe técnico (isTechnicalDefault) */}
+                          
+                                <div className="flex w-full justify-between gap-8">
+                                    {/* Filtro por técnicos */}
+                                  <div className="ml-6 flex gap-2 items-center justify-center h-full">
+                                      <label className=" text-xs font-semibold text-gray-700  uppercase tracking-wider">
+                                          Technicals
+                                      </label>
+                                       
+                                        <div className="flex flex-wrap gap-2 items-center">
+                                            {technicals.map(t => (
+                                                <TooltipProvider key={t.id}>
+                                                    <Tooltip delayDuration={300}>
+                                                        <TooltipTrigger asChild>
+                                                            <div
+                                                                className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedTechnicalId === t.id
+                                                                    ? 'bg-blue-500 ring-2 ring-blue-300 scale-110'
+                                                                    : 'hover:bg-gray-100'
+                                                                    }`}
+                                                                onClick={() => setSelectedTechnicalId(selectedTechnicalId === t.id ? null : t.id)}
+                                                            >
+                                                                {t.photo ? (
+                                                                    <img
+                                                                        src={t.photo?.startsWith('http') ? t.photo : `/storage/${t.photo}`}
+                                                                        alt={t.name}
+                                                                        className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-base font-bold">
+                                                                        {t.name?.substring(0, 1) || '?'}
+                                                                    </div>
+                                                                )}
+                                                               
+                                                                {selectedTechnicalId === t.id && (
+                                                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                                                        </svg>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
+                                                            <p className="font-medium">{t.name}</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            ))}
 
-                                    ))}                                        {isTechnicalDefault && selectedTechnicalId && (
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <button
-                                                        onClick={() => setSelectedTechnicalId(null)}
-                                                        className="ml-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-blue-200 transition-all duration-200"
-                                                    >
-                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                        </svg>
-                                                        Clear filter
-                                                    </button>
-                                                </TooltipTrigger>
-                                                <TooltipContent className="bg-gray-800 text-white text-xs">
-                                                    <p>Show all technicians</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    )}
+                                            {selectedTechnicalId && (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <button
+                                                                onClick={() => setSelectedTechnicalId(null)}
+                                                                className="ml-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-blue-200 transition-all duration-200"
+                                                            >
+                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                                </svg>
+                                                                Clear filter
+                                                            </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="bg-gray-800 text-white text-xs">
+                                                            <p>Show all technicians</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Filtro por edificios */}
+                                    <div className="flex gap-2 items-center justify-center h-full">
+                                      <label className=" text-xs font-semibold text-gray-700  uppercase tracking-wider">
+                                          Buildings
+                                      </label>
+                                        <div className="flex flex-wrap gap-2 items-center">
+                                            {buildings.map(b => (
+                                                <TooltipProvider key={b.id}>
+                                                    <Tooltip delayDuration={300}>
+                                                        <TooltipTrigger asChild>
+                                                            <div
+                                                                className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedBuildingId === b.id
+                                                                    ? 'bg-green-500 ring-2 ring-green-300 scale-110'
+                                                                    : 'hover:bg-gray-100'
+                                                                    }`}
+                                                                onClick={() => setSelectedBuildingId(selectedBuildingId === b.id ? null : b.id)}
+                                                            >
+                                                                {b.photo ? (
+                                                                    <img
+                                                                        src={b.photo?.startsWith('http') ? b.photo : `/storage/${b.photo}`}
+                                                                        alt={b.name}
+                                                                        className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-400 to-emerald-400 flex items-center justify-center text-white text-base font-bold">
+                                                                        <Building className="w-4 h-4" />
+                                                                    </div>
+                                                                )}
+                                                               
+                                                                {selectedBuildingId === b.id && (
+                                                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                                                        </svg>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
+                                                            <p className="font-medium">{b.name}</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            ))}
+
+                                            {selectedBuildingId && (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <button
+                                                                onClick={() => setSelectedBuildingId(null)}
+                                                                className="ml-2 flex items-center gap-1 text-xs text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-green-200 transition-all duration-200"
+                                                            >
+                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                                </svg>
+                                                                Clear filter
+                                                            </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="bg-gray-800 text-white text-xs">
+                                                            <p>Show all buildings</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            
                             
                         </div>
                     </div>

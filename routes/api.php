@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\TechnicalController;
+use App\Http\Controllers\BuildingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -21,3 +22,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // Technical API routes
 Route::get('/technicals', [TechnicalController::class, 'index']);
+
+// Building API routes
+Route::get('/buildings', [BuildingController::class, 'apiIndex']);
