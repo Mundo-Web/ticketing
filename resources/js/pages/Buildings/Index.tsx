@@ -393,80 +393,223 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
 
     const exportToExcel = async () => {
         try {
-            // Create a new workbook
             const workbook = new XLSX.Workbook();
-            const worksheet = workbook.addWorksheet('Buildings');
-            
-            // Get visible columns
-            const visibleColumns = table.getAllColumns()
-                .filter(column => column.getIsVisible() && column.id !== 'actions')
-                .map(column => ({
-                    id: column.id,
-                    header: typeof column.columnDef.header === 'string' 
-                        ? column.columnDef.header 
-                        : column.id.charAt(0).toUpperCase() + column.id.slice(1)
-                }));
+            const sheet = workbook.addWorksheet('Buildings Report');
 
-            // Add headers
-            const headerRow = worksheet.addRow(visibleColumns.map(col => col.header));
-            headerRow.font = { bold: true };
-            headerRow.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FFE0E0E0' }
+            // Corporate colors matching your design system
+            const colors = {
+                primary: 'FF0F172A',      // slate-900
+                secondary: 'FF64748B',    // slate-500
+                accent: 'FF06B6D4',       // cyan-500
+                success: 'FF10B981',      // emerald-500
+                warning: 'FFF59E0B',      // amber-500
+                danger: 'FFEF4444',       // red-500
+                info: 'FF3B82F6',         // blue-500
+                dark: 'FF1E293B',         // slate-800
+                light: 'FFF8FAFC'         // slate-50
             };
 
-            // Add data rows
-            table.getFilteredRowModel().rows.forEach(row => {
-                const rowData = visibleColumns.map(column => {
-                    const value = row.getValue(column.id);
-                    // Format values for Excel
-                    if (column.id === 'status') {
-                        return row.original.status ? 'Active' : 'Inactive';
-                    }
-                    if (column.id === 'created_at') {
-                        return new Date(row.original.created_at);
-                    }
-                    if (column.id === 'image') {
-                        return row.original.image ? 'Yes' : 'No';
-                    }
-                    return value || '';
-                });
-                worksheet.addRow(rowData);
-            });
+            // Calculate statistics
+            const totalBuildings = buildings.data.length;
+            const activeBuildings = buildings.data.filter(b => b.status).length;
+            const archivedBuildings = totalBuildings - activeBuildings;
+            const totalApartments = buildings.data.reduce((sum, b) => sum + (b.apartments?.length || 0), 0);
+            const totalDoormen = buildings.data.reduce((sum, b) => sum + (b.doormen?.length || 0), 0);
+            const avgApartmentsPerBuilding = totalBuildings > 0 ? (totalApartments / totalBuildings).toFixed(1) : '0';
 
-            // Auto-fit columns
-            worksheet.columns.forEach(column => {
-                if (column.header) {
-                    column.width = Math.max(
-                        column.header.toString().length,
-                        ...worksheet.getColumn(column.number!).values
-                            .slice(1)
-                            .map(v => v?.toString().length || 0)
-                    ) + 2;
+            // Company header
+            sheet.mergeCells('A1:H1');
+            const titleCell = sheet.getCell('A1');
+            titleCell.value = 'BUILDINGS MANAGEMENT REPORT';
+            titleCell.style = {
+                font: { name: 'Segoe UI', size: 18, bold: true, color: { argb: 'FFFFFFFF' } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
+                alignment: { horizontal: 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'medium', color: { argb: colors.primary } },
+                    left: { style: 'medium', color: { argb: colors.primary } },
+                    bottom: { style: 'medium', color: { argb: colors.primary } },
+                    right: { style: 'medium', color: { argb: colors.primary } }
                 }
+            };
+            sheet.getRow(1).height = 40;
+
+            // Report metadata
+            sheet.mergeCells('A2:H2');
+            const metaCell = sheet.getCell('A2');
+            metaCell.value = `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`;
+            metaCell.style = {
+                font: { name: 'Segoe UI', size: 10, italic: true, color: { argb: colors.secondary } },
+                alignment: { horizontal: 'center', vertical: 'middle' },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } }
+            };
+            sheet.getRow(2).height = 20;
+
+            // Statistics section
+            const stats = [
+                ['📊 BUILDINGS OVERVIEW', '', '', '', '', ''],
+                ['Total Buildings', totalBuildings, 'Active Buildings', activeBuildings, 'Archived Buildings', archivedBuildings],
+                ['Total Apartments', totalApartments, 'Total Doormen', totalDoormen, 'Avg Apartments/Building', avgApartmentsPerBuilding]
+            ];
+
+            let currentRow = 4;
+            stats.forEach((statRow, index) => {
+                if (index === 0) {
+                    // Header row
+                    sheet.mergeCells(`A${currentRow}:H${currentRow}`);
+                    const headerCell = sheet.getCell(`A${currentRow}`);
+                    headerCell.value = statRow[0];
+                    headerCell.style = {
+                        font: { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FFFFFFFF' } },
+                        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.info } },
+                        alignment: { horizontal: 'center', vertical: 'middle' }
+                    };
+                } else {
+                    // Data rows
+                    statRow.forEach((value, colIndex) => {
+                        const cell = sheet.getCell(currentRow, colIndex + 1);
+                        cell.value = value;
+                        cell.style = {
+                            font: { name: 'Segoe UI', size: 10, bold: colIndex % 2 === 0, color: { argb: colIndex % 2 === 0 ? colors.dark : colors.info } },
+                            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colIndex % 2 === 0 ? 'FFF1F5F9' : 'FFFFFFFF' } },
+                            alignment: { horizontal: colIndex % 2 === 0 ? 'left' : 'center', vertical: 'middle' },
+                            border: {
+                                top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                                left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                                bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                                right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                            }
+                        };
+                    });
+                }
+                currentRow++;
             });
 
-            // Add borders to all cells
-            worksheet.eachRow({ includeEmpty: false }, (row) => {
-                row.eachCell({ includeEmpty: false }, (cell) => {
-                    cell.border = {
-                        top: { style: 'thin' },
-                        left: { style: 'thin' },
-                        bottom: { style: 'thin' },
-                        right: { style: 'thin' }
+            currentRow += 2; // Space before data table
+
+            // Data headers
+            const headers = ['ID', 'Building Name', 'Description', 'Status', 'Apartments', 'Doormen', 'Owner', 'Created Date'];
+            
+            headers.forEach((header, index) => {
+                const cell = sheet.getCell(currentRow, index + 1);
+                cell.value = header;
+                cell.style = {
+                    font: { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FFFFFFFF' } },
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.dark } },
+                    alignment: { horizontal: 'center', vertical: 'middle' },
+                    border: {
+                        top: { style: 'medium', color: { argb: colors.dark } },
+                        left: { style: 'thin', color: { argb: colors.dark } },
+                        bottom: { style: 'medium', color: { argb: colors.dark } },
+                        right: { style: 'thin', color: { argb: colors.dark } }
+                    }
+                };
+            });
+            sheet.getRow(currentRow).height = 30;
+            currentRow++;
+
+            // Data rows
+            buildings.data.forEach((building, index) => {
+                const status = building.status ? 'Active' : 'Archived';
+                const apartmentCount = building.apartments?.length || 0;
+                const doormenCount = building.doormen?.length || 0;
+                const ownerName = building.owner?.name || 'N/A';
+                const createdDate = new Date(building.created_at).toLocaleDateString();
+
+                const rowData = [
+                    building.id,
+                    building.name || 'N/A',
+                    building.description || 'N/A',
+                    status,
+                    apartmentCount,
+                    doormenCount,
+                    ownerName,
+                    createdDate
+                ];
+
+                rowData.forEach((value, colIndex) => {
+                    const cell = sheet.getCell(currentRow, colIndex + 1);
+                    cell.value = value;
+                    
+                    let fillColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
+                    let fontColor = colors.dark;
+
+                    // Status column styling
+                    if (colIndex === 3) {
+                        if (value === 'Active') {
+                            fillColor = colors.success;
+                            fontColor = 'FFFFFFFF';
+                        } else {
+                            fillColor = colors.warning;
+                            fontColor = 'FFFFFFFF';
+                        }
+                    }
+
+                    // Apartment count styling
+                    if (colIndex === 4) {
+                        if (apartmentCount > 10) {
+                            fillColor = 'FF10B981'; // Verde sólido
+                            fontColor = 'FFFFFFFF';
+                        } else if (apartmentCount > 5) {
+                            fillColor = 'FFF59E0B'; // Amarillo sólido
+                            fontColor = 'FFFFFFFF';
+                        } else if (apartmentCount > 0) {
+                            fillColor = 'FF3B82F6'; // Azul sólido
+                            fontColor = 'FFFFFFFF';
+                        } else {
+                            fillColor = 'FFEF4444'; // Rojo sólido
+                            fontColor = 'FFFFFFFF';
+                        }
+                    }
+
+                    cell.style = {
+                        font: { name: 'Segoe UI', size: 10, color: { argb: fontColor } },
+                        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
+                        alignment: { horizontal: colIndex === 1 || colIndex === 2 || colIndex === 6 ? 'left' : 'center', vertical: 'middle' },
+                        border: {
+                            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                            right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                        }
                     };
                 });
+                sheet.getRow(currentRow).height = 25;
+                currentRow++;
             });
 
-            // Generate buffer and save
+            // Set column widths
+            sheet.columns = [
+                { width: 8 }, { width: 25 }, { width: 30 }, { width: 12 }, 
+                { width: 12 }, { width: 12 }, { width: 20 }, { width: 15 }
+            ];
+
+            // Summary row
+            currentRow += 1;
+            sheet.mergeCells(`A${currentRow}:H${currentRow}`);
+            const summaryCell = sheet.getCell(`A${currentRow}`);
+            summaryCell.value = `📋 Summary: ${totalBuildings} buildings total (${activeBuildings} active, ${archivedBuildings} archived) with ${totalApartments} apartments managed by ${totalDoormen} doormen`;
+            summaryCell.style = {
+                font: { name: 'Segoe UI', size: 10, italic: true, color: { argb: colors.secondary } },
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } },
+                alignment: { horizontal: 'center', vertical: 'middle' },
+                border: {
+                    top: { style: 'medium', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'medium', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'medium', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'medium', color: { argb: 'FFE2E8F0' } }
+                }
+            };
+
+            // Generate and save file
             const buffer = await workbook.xlsx.writeBuffer();
             const blob = new Blob([buffer], { 
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
             });
             
-            saveAs(blob, `buildings_${new Date().toISOString().split('T')[0]}.xlsx`);
-            toast.success('Excel file exported successfully!');
+            const timestamp = new Date().toISOString().split('T')[0];
+            saveAs(blob, `buildings_management_report_${timestamp}.xlsx`);
+            toast.success('📊 Buildings report exported successfully!');
         } catch (error) {
             console.error('Error exporting to Excel:', error);
             toast.error('Error exporting to Excel. Please try again.');
@@ -1095,12 +1238,12 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={exportToCSV}>
-                                        <Download className="mr-2 h-4 w-4" />
+                                    <DropdownMenuItem onClick={exportToCSV} className='group'>
+                                        <Download className="mr-2 h-4 w-4 group-hover:text-white" />
                                         Export to CSV
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={exportToExcel}>
-                                        <Download className="mr-2 h-4 w-4" />
+                                    <DropdownMenuItem onClick={exportToExcel} className='group '>
+                                        <Download className="mr-2 h-4 w-4 group-hover:text-white" />
                                         Export to Excel
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
