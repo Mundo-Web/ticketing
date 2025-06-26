@@ -13,6 +13,7 @@ use App\Models\System;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use SoDe\Extend\Crypto;
@@ -85,6 +86,27 @@ class BuildingController extends Controller
 
     public function update(Request $request, Building $building)
     {
+        // Verificar si es una acción específica de doorman
+        $action = $request->input('action');
+        
+        if ($action === 'create_doorman') {
+            return $this->createDoorman($request, $building);
+        }
+        
+        if ($action === 'update_doorman') {
+            return $this->updateDoorman($request, $building);
+        }
+        
+        if ($action === 'delete_doorman') {
+            return $this->deleteDoorman($request, $building);
+        }
+        
+        // Si hay datos de doorman sin acción específica, es crear (fallback)
+        if ($request->has('doorman') && !$action) {
+            return $this->createDoorman($request, $building);
+        }
+
+        // Lógica normal de actualización del building
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -257,6 +279,122 @@ class BuildingController extends Controller
         }
     }
 
+    /**
+     * Crear un nuevo doorman
+     */
+    private function createDoorman(Request $request, Building $building)
+    {
+        $request->validate([
+            'doorman.name' => 'required|string|max:255',
+            'doorman.email' => 'required|email|unique:doormen,email',
+            'doorman.phone' => 'nullable|string',
+            'doorman.shift' => 'required|in:morning,afternoon,night',
+        ]);
+
+        $doormanData = $request->input('doorman');
+        
+        // Log para debugging
+        Log::info('Creating doorman with data:', $doormanData);
+        Log::info('Full request data:', $request->all());
+        
+        $data = [
+            'name' => $doormanData['name'],
+            'email' => $doormanData['email'],
+            'phone' => $doormanData['phone'] ?? null,
+            'shift' => $doormanData['shift'],
+            'photo' => 'images/default-user.png' // Foto por defecto
+        ];
+
+        // Crear el doorman
+        $doorman = $building->doormen()->create($data);
+
+        // Crear usuario asociado
+        $user = User::updateOrCreate(
+            ['email' => $doorman->email],
+            [
+                'name' => $doorman->name,
+                'password' => Hash::make($doorman->email),
+            ]
+        );
+
+        if (!$user->hasRole('doorman')) {
+            $user->assignRole('doorman');
+        }
+
+        return back()->with('success', 'Doorman created successfully');
+    }
+
+    /**
+     * Actualizar un doorman existente
+     */
+    private function updateDoorman(Request $request, Building $building)
+    {
+        $doormanData = $request->input('doorman');
+        
+        $request->validate([
+            'doorman.id' => 'required|exists:doormen,id',
+            'doorman.name' => 'required|string|max:255',
+            'doorman.email' => 'required|email|unique:doormen,email,' . $doormanData['id'],
+            'doorman.phone' => 'nullable|string',
+            'doorman.shift' => 'required|in:morning,afternoon,night',
+        ]);
+        
+        // Verificar que el doorman pertenezca al building
+        $doorman = $building->doormen()->findOrFail($doormanData['id']);
+        
+        $data = [
+            'name' => $doormanData['name'],
+            'email' => $doormanData['email'],
+            'phone' => $doormanData['phone'] ?? null,
+            'shift' => $doormanData['shift']
+        ];
+
+        // Actualizar el doorman
+        $doorman->update($data);
+
+        // Actualizar usuario asociado
+        $user = User::where('email', $doorman->email)->first();
+        if ($user) {
+            $user->update([
+                'name' => $doorman->name,
+                'email' => $doorman->email,
+            ]);
+        }
+
+        return back()->with('success', 'Doorman updated successfully');
+    }
+
+    /**
+     * Eliminar un doorman
+     */
+    private function deleteDoorman(Request $request, Building $building)
+    {
+        $request->validate([
+            'doorman.id' => 'required|exists:doormen,id',
+        ]);
+
+        $doormanId = $request->input('doorman.id');
+        
+        // Verificar que el doorman pertenezca al building
+        $doorman = $building->doormen()->findOrFail($doormanId);
+
+        // Eliminar foto si existe
+        if ($doorman->photo && $doorman->photo !== 'images/default-user.png') {
+            Storage::disk('public')->delete($doorman->photo);
+        }
+
+        // Eliminar usuario asociado
+        $user = User::where('email', $doorman->email)->first();
+        if ($user) {
+            $user->delete();
+        }
+
+        // Eliminar doorman
+        $doorman->delete();
+
+        return back()->with('success', 'Doorman deleted successfully');
+    }
+
     private function storeImage($file, $folder): string
     {
         $path = $file->store("images/{$folder}", 'public');
@@ -321,7 +459,7 @@ class BuildingController extends Controller
         $building = Building::with(['owner', 'doormen'])->find($building->id);
         
         // Debug temporal - quitar después
-        \Log::info('Building data:', [
+        Log::info('Building data:', [
             'id' => $building->id,
             'name' => $building->name,
             'location_link' => $building->location_link,
@@ -389,8 +527,8 @@ class BuildingController extends Controller
 
     public function updateStatus(Request $request, Building $building)
     {
-        \Log::info('Payload recibido:', $request->all());
-        \Log::info('Estado antes:', ['status' => $building->status]);
+        Log::info('Payload recibido:', $request->all());
+        Log::info('Estado antes:', ['status' => $building->status]);
 
         $validated = $request->validate([
             'status' => 'required|boolean'
@@ -398,7 +536,7 @@ class BuildingController extends Controller
 
         $building->update($validated);
 
-        \Log::info('Estado después:', ['status' => $building->fresh()->status]);
+        Log::info('Estado después:', ['status' => $building->fresh()->status]);
 
         return back()->with('success', 'Estado actualizado');
     }

@@ -4,9 +4,9 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-    LayoutGrid, Plus, Edit, Trash2, ChevronRight, Laptop, UploadCloud, 
+    Plus, Edit, Trash2, ChevronRight, Laptop, UploadCloud, 
     ChevronDown, ChevronLeft, Search, Filter, FileSpreadsheet, 
-    Download, Users, MapPin, Mail, Phone, Crown, Shield, MapPinIcon
+    Download, Users, Mail, Phone, Crown, Shield, MapPinIcon
 } from 'lucide-react';
 import * as XLSX from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -63,6 +63,16 @@ import _ from 'lodash';
 interface ExtendedTenant extends Tenant {
     devices?: Array<{ id: number; name: string }>;
     shared_devices?: Array<{ id: number; name: string }>;
+}
+
+// Doorman type for building doormen
+interface Doorman {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    photo?: string;
+    shift: string;
 }
 
 // Add CSS animations for enhanced UX
@@ -911,9 +921,9 @@ export default function Index({ apartments, brands, models, systems, name_device
 
     // Handlers para acciones de Superintendent
     const [showEditSuperintendent, setShowEditSuperintendent] = useState(false);
-    const [superintendentData, setSuperintendentData] = useState<any>(null);
+    const [superintendentData, setSuperintendentData] = useState<{ id: number; name: string; email: string; phone: string } | null>(null);
 
-    const handleEditSuperintendent = (owner: any) => {
+    const handleEditSuperintendent = (owner: { id: number; name: string; email: string; phone: string }) => {
         setSuperintendentData(owner);
         setShowEditSuperintendent(true);
     };
@@ -922,10 +932,10 @@ export default function Index({ apartments, brands, models, systems, name_device
         e.preventDefault();
         const formData = new FormData();
         formData.append('_method', 'PUT');
-        formData.append('owner[id]', superintendentData.id);
-        formData.append('owner[name]', superintendentData.name);
-        formData.append('owner[email]', superintendentData.email);
-        formData.append('owner[phone]', superintendentData.phone);
+        formData.append('owner[id]', superintendentData!.id.toString());
+        formData.append('owner[name]', superintendentData!.name);
+        formData.append('owner[email]', superintendentData!.email);
+        formData.append('owner[phone]', superintendentData!.phone);
 
         router.post(route('buildings.update-owner', building.id), formData, {
             forceFormData: true,
@@ -934,24 +944,138 @@ export default function Index({ apartments, brands, models, systems, name_device
                 setShowEditSuperintendent(false);
                 toast.success('Superintendent updated!');
             },
-            onError: (errors) => {
+            onError: () => {
                 toast.error('Error updating superintendent');
             }
         });
     };
 
     // Handlers para acciones de Doormen
+    const [showCreateDoorman, setShowCreateDoorman] = useState(false);
+    const [showEditDoorman, setShowEditDoorman] = useState(false);
+    const [showDeleteDoorman, setShowDeleteDoorman] = useState(false);
+    const [doormanData, setDoormanData] = useState<Doorman | null>(null);
+    const [isDoormanProcessing, setIsDoormanProcessing] = useState(false);
+
     const handleAddDoorman = () => {
-        // Aquí puedes abrir un modal de agregar
-        console.log('Agregar Doorman');
+        setDoormanData({
+            id: 0,
+            name: '',
+            email: '',
+            phone: '',
+            shift: ''
+        });
+        setShowCreateDoorman(true);
     };
-    const handleEditDoorman = (doorman: any) => {
-        // Aquí puedes abrir un modal de edición
-        console.log('Editar Doorman', doorman);
+
+    const handleEditDoorman = (doorman: Doorman) => {
+        setDoormanData(doorman);
+        setShowEditDoorman(true);
     };
-    const handleDeleteDoorman = (doorman: any) => {
-        // Aquí puedes abrir un modal de confirmación de borrado
-        console.log('Borrar Doorman', doorman);
+
+    const handleDeleteDoorman = (doorman: Doorman) => {
+        setDoormanData(doorman);
+        setShowDeleteDoorman(true);
+    };
+
+    const handleCreateDoorman = (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsDoormanProcessing(true);
+        
+        // Debug: Check if doormanData has the expected values
+        console.log('=== DOORMAN CREATION DEBUG ===');
+        console.log('doormanData:', doormanData);
+        console.log('Building ID:', building.id);
+        
+        // Try using regular object instead of FormData
+        const postData = {
+            _method: 'PUT',
+            action: 'create_doorman',
+            doorman: {
+                name: doormanData!.name,
+                email: doormanData!.email,
+                phone: doormanData!.phone || '',
+                shift: doormanData!.shift
+            }
+        };
+        
+        // Debug: Log what we're sending
+        console.log('Post data:', postData);
+        console.log('=== END DEBUG ===');
+
+        // Usando ruta genérica del building para crear doorman con método PUT
+        router.post(route('buildings.update', building.id), postData, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowCreateDoorman(false);
+                setDoormanData(null);
+                toast.success('Doorman created successfully!');
+            },
+            onError: (errors) => {
+                console.error('Doorman creation errors:', errors);
+                toast.error('Error creating doorman');
+            },
+            onFinish: () => {
+                setIsDoormanProcessing(false);
+            }
+        });
+    };
+
+    const handleUpdateDoorman = (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsDoormanProcessing(true);
+        
+        const formData = new FormData();
+        formData.append('_method', 'PUT');
+        formData.append('doorman.id', doormanData!.id.toString());
+        formData.append('doorman.name', doormanData!.name);
+        formData.append('doorman.email', doormanData!.email);
+        formData.append('doorman.phone', doormanData!.phone || '');
+        formData.append('doorman.shift', doormanData!.shift);
+        formData.append('action', 'update_doorman');
+
+        // Usando ruta genérica del building para actualizar doorman
+        router.post(route('buildings.update', building.id), formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowEditDoorman(false);
+                setDoormanData(null);
+                toast.success('Doorman updated successfully!');
+            },
+            onError: () => {
+                toast.error('Error updating doorman');
+            },
+            onFinish: () => {
+                setIsDoormanProcessing(false);
+            }
+        });
+    };
+
+    const confirmDeleteDoorman = () => {
+        setIsDoormanProcessing(true);
+        
+        const formData = new FormData();
+        formData.append('_method', 'PUT');
+        formData.append('doorman.id', doormanData!.id.toString());
+        formData.append('action', 'delete_doorman');
+        
+        // Usando ruta genérica del building para eliminar doorman
+        router.post(route('buildings.update', building.id), formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowDeleteDoorman(false);
+                setDoormanData(null);
+                toast.success('Doorman deleted successfully!');
+            },
+            onError: () => {
+                toast.error('Error deleting doorman');
+            },
+            onFinish: () => {
+                setIsDoormanProcessing(false);
+            }
+        });
     };
 
     return (
@@ -1254,7 +1378,12 @@ export default function Index({ apartments, brands, models, systems, name_device
                                             <span className="font-bold text-sm">Superintendent</span>
                                         </div>
                                         <div className="flex gap-2">
-                                            <Button size="icon" variant="ghost" onClick={() => handleEditSuperintendent(building.owner)}><Edit className="w-4 h-4" /></Button>
+                                            <Button size="icon" variant="ghost" onClick={() => building.owner && handleEditSuperintendent({
+                                                id: 1, // El owner no tiene ID en la estructura actual
+                                                name: building.owner.name,
+                                                email: building.owner.email,
+                                                phone: building.owner.phone
+                                            })}><Edit className="w-4 h-4" /></Button>
                                         </div>
                                     </div>
                                     
@@ -1290,18 +1419,18 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                 </div>
                                                 
                                                 <div className="space-y-3">
-                                                    <div className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
-                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 flex items-center justify-center group-hover/item:from-corporate-gold/30 group-hover/item:to-corporate-warm/30 transition-all duration-300 group-hover/item:scale-110">
+                                                    <a href={`mailto:${building.owner.email}`}  className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
+                                                        <a href={`mailto:${building.owner.email}`} className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 flex items-center justify-center group-hover/item:from-corporate-gold/30 group-hover/item:to-corporate-warm/30 transition-all duration-300 group-hover/item:scale-110">
                                                             <Mail className="w-4 h-4 text-corporate-gold dark:text-corporate-gold-light" />
-                                                        </div>
+                                                        </a>
                                                         <span className="text-muted-foreground group-hover/item:text-foreground font-medium flex-1">{building.owner.email}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
-                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-warm/20 to-corporate-gold/20 flex items-center justify-center group-hover/item:from-corporate-warm/30 group-hover/item:to-corporate-gold/30 transition-all duration-300 group-hover/item:scale-110">
+                                                    </a>
+                                                    <a href={`tel:${building.owner.phone}`} className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
+                                                        <a href={`tel:${building.owner.phone}`} className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-warm/20 to-corporate-gold/20 flex items-center justify-center group-hover/item:from-corporate-warm/30 group-hover/item:to-corporate-gold/30 transition-all duration-300 group-hover/item:scale-110">
                                                             <Phone className="w-4 h-4 text-corporate-warm dark:text-corporate-gold-light" />
-                                                        </div>
+                                                        </a>
                                                         <span className="text-muted-foreground group-hover/item:text-foreground font-medium flex-1">{building.owner.phone}</span>
-                                                    </div>
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
@@ -1321,7 +1450,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         <Label>Name</Label>
                                         <Input
                                             value={superintendentData?.name || ''}
-                                            onChange={e => setSuperintendentData({ ...superintendentData, name: e.target.value })}
+                                            onChange={e => setSuperintendentData(prev => prev ? { ...prev, name: e.target.value } : null)}
                                             placeholder="Name"
                                         />
                                     </div>
@@ -1329,7 +1458,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         <Label>Email</Label>
                                         <Input
                                             value={superintendentData?.email || ''}
-                                            onChange={e => setSuperintendentData({ ...superintendentData, email: e.target.value })}
+                                            onChange={e => setSuperintendentData(prev => prev ? { ...prev, email: e.target.value } : null)}
                                             placeholder="Email"
                                         />
                                     </div>
@@ -1337,7 +1466,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         <Label>Phone</Label>
                                         <Input
                                             value={superintendentData?.phone || ''}
-                                            onChange={e => setSuperintendentData({ ...superintendentData, phone: e.target.value })}
+                                            onChange={e => setSuperintendentData(prev => prev ? { ...prev, phone: e.target.value } : null)}
                                             placeholder="Phone"
                                         />
                                     </div>
@@ -1349,71 +1478,312 @@ export default function Index({ apartments, brands, models, systems, name_device
                             </DialogContent>
                         </Dialog>
 
-                        {building.doormen && building.doormen.length > 0 && (
-                            <div className="space-y-4 w-full">
-                                {/* Header mejorado */}
-                                <div className="flex items-center gap-3 px-2">
-                                    <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light">
-                                        <Shield className="w-5 h-5" />
-                                        <h3 className="text-lg font-bold">Doormen</h3>
+                        {/* Modal para crear Doorman */}
+                        <Dialog open={showCreateDoorman} onOpenChange={setShowCreateDoorman}>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Add New Doorman</DialogTitle>
+                                    <DialogDescription>
+                                        Fill in the information for the new doorman
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <form onSubmit={handleCreateDoorman} className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="doorman-name">
+                                            Name <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="doorman-name"
+                                            value={doormanData?.name || ''}
+                                            onChange={e => setDoormanData(prev => prev ? { ...prev, name: e.target.value } : null)}
+                                            placeholder="Enter doorman's name"
+                                            required
+                                        />
                                     </div>
-                                    <div className="flex-1 h-px bg-gradient-to-r from-corporate-gold/30 to-transparent"></div>
-                                    <span className="text-xs text-muted-foreground bg-corporate-gold/10 border border-corporate-gold/20 px-2 py-1 rounded-full font-medium">
-                                        {building.doormen.length} {building.doormen.length === 1 ? 'Guard' : 'Guards'}
-                                    </span>
-                                    <Button size="sm" variant="outline" onClick={handleAddDoorman} className="ml-2"><Plus className="w-4 h-4" /> Add Doorman</Button>
+                                    <div>
+                                        <Label htmlFor="doorman-email">
+                                            Email <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="doorman-email"
+                                            type="email"
+                                            value={doormanData?.email || ''}
+                                            onChange={e => setDoormanData(prev => prev ? { ...prev, email: e.target.value } : null)}
+                                            placeholder="Enter doorman's email"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="doorman-phone">Phone</Label>
+                                        <Input
+                                            id="doorman-phone"
+                                            value={doormanData?.phone || ''}
+                                            onChange={e => setDoormanData(prev => prev ? { ...prev, phone: e.target.value } : null)}
+                                            placeholder="Enter doorman's phone"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="doorman-shift">
+                                            Shift <span className="text-red-500">*</span>
+                                        </Label>
+                                        <select
+                                            id="doorman-shift"
+                                            value={doormanData?.shift || ''}
+                                            onChange={e => setDoormanData(prev => prev ? { ...prev, shift: e.target.value } : null)}
+                                            className="w-full h-11 px-3 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                            required
+                                        >
+                                            <option value="">Select shift</option>
+                                            <option value="morning">Morning</option>
+                                            <option value="afternoon">Afternoon</option>
+                                            <option value="night">Night</option>
+                                        </select>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            onClick={() => setShowCreateDoorman(false)}
+                                            disabled={isDoormanProcessing}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button 
+                                            type="submit"
+                                            disabled={isDoormanProcessing}
+                                        >
+                                            {isDoormanProcessing ? 'Creating...' : 'Create Doorman'}
+                                        </Button>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Modal para editar Doorman */}
+                        <Dialog open={showEditDoorman} onOpenChange={setShowEditDoorman}>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Edit Doorman</DialogTitle>
+                                    <DialogDescription>
+                                        Update the doorman's information
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <form onSubmit={handleUpdateDoorman} className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="edit-doorman-name">
+                                            Name <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="edit-doorman-name"
+                                            value={doormanData?.name || ''}
+                                            onChange={e => setDoormanData(prev => prev ? { ...prev, name: e.target.value } : null)}
+                                            placeholder="Enter doorman's name"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit-doorman-email">
+                                            Email <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="edit-doorman-email"
+                                            type="email"
+                                            value={doormanData?.email || ''}
+                                            onChange={e => setDoormanData(prev => prev ? { ...prev, email: e.target.value } : null)}
+                                            placeholder="Enter doorman's email"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit-doorman-phone">Phone</Label>
+                                        <Input
+                                            id="edit-doorman-phone"
+                                            value={doormanData?.phone || ''}
+                                            onChange={e => setDoormanData(prev => prev ? { ...prev, phone: e.target.value } : null)}
+                                            placeholder="Enter doorman's phone"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit-doorman-shift">
+                                            Shift <span className="text-red-500">*</span>
+                                        </Label>
+                                        <select
+                                            id="edit-doorman-shift"
+                                            value={doormanData?.shift || ''}
+                                            onChange={e => setDoormanData(prev => prev ? { ...prev, shift: e.target.value } : null)}
+                                            className="w-full h-11 px-3 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                            required
+                                        >
+                                            <option value="">Select shift</option>
+                                            <option value="morning">Morning</option>
+                                            <option value="afternoon">Afternoon</option>
+                                            <option value="night">Night</option>
+                                        </select>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            onClick={() => setShowEditDoorman(false)}
+                                            disabled={isDoormanProcessing}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button 
+                                            type="submit"
+                                            disabled={isDoormanProcessing}
+                                        >
+                                            {isDoormanProcessing ? 'Updating...' : 'Update Doorman'}
+                                        </Button>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Modal para eliminar Doorman */}
+                        <Dialog open={showDeleteDoorman} onOpenChange={setShowDeleteDoorman}>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Delete Doorman</DialogTitle>
+                                    <DialogDescription>
+                                        Are you sure you want to delete <strong>{doormanData?.name}</strong>? 
+                                        This action cannot be undone.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter>
+                                    <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        onClick={() => setShowDeleteDoorman(false)}
+                                        disabled={isDoormanProcessing}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button 
+                                        type="button" 
+                                        variant="destructive" 
+                                        onClick={confirmDeleteDoorman}
+                                        disabled={isDoormanProcessing}
+                                    >
+                                        {isDoormanProcessing ? 'Deleting...' : 'Delete Doorman'}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Doormen Section - Always show header with Add button */}
+                        <div className="space-y-4 w-full">
+                            {/* Header mejorado */}
+                            <div className="flex items-center gap-3 px-2">
+                                <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light">
+                                    <Shield className="w-5 h-5" />
+                                    <h3 className="text-lg font-bold">Doormen</h3>
                                 </div>
-                                
-                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {building.doormen.map((doorman, index) => (
+                                <div className="flex-1 h-px bg-gradient-to-r from-corporate-gold/30 to-transparent"></div>
+                                <span className="text-xs text-muted-foreground bg-corporate-gold/10 border border-corporate-gold/20 px-2 py-1 rounded-full font-medium">
+                                    {building.doormen?.length || 0} {(building.doormen?.length || 0) === 1 ? 'Guard' : 'Guards'}
+                                </span>
+                                <Button size="sm" variant="outline" onClick={handleAddDoorman} className="ml-2">
+                                    <Plus className="w-4 h-4" /> Add Doorman
+                                </Button>
+                            </div>
+                            
+                            {building.doormen && building.doormen.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {building.doormen.map((doorman: Doorman, index: number) => (
                                         <Card 
                                             key={doorman.id} 
-                                            className="group !p-0 overflow-hidden border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:-translate-y-2 bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10"
+                                            className="group !p-0 overflow-hidden border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10 relative"
                                             style={{ animationDelay: `${index * 150}ms` }}
                                         >
+                                            {/* Action buttons - Always visible on mobile, hover on desktop */}
+                                            <div className="absolute top-3 right-3 z-10 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+                                                <Button 
+                                                    size="sm" 
+                                                    variant="ghost" 
+                                                    className="h-8 w-8 p-0 bg-white/80 hover:bg-white hover:text-primary-foreground shadow-sm border border-corporate-gold/20 hover:border-corporate-gold/40"
+                                                    onClick={() => handleEditDoorman(doorman)}
+                                                >
+                                                    <Edit className="w-3.5 h-3.5 text-corporate-gold" />
+                                                </Button>
+                                                <Button 
+                                                    size="sm" 
+                                                    variant="ghost" 
+                                                    className="h-8 w-8 p-0 bg-white/80 hover:bg-red-50 shadow-sm border border-red-200 hover:border-red-300"
+                                                    onClick={() => handleDeleteDoorman(doorman)}
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                                                </Button>
+                                            </div>
+                                            
                                             <CardContent className="p-4">
-                                                {/* Avatar con badge de estado */}
+                                                {/* Avatar with status badge */}
                                                 <div className="relative mb-4">
-                                                    <div className="relative">
+                                                    <div className="relative mx-auto w-20 h-20">
                                                         <img
                                                             src={`/storage/${doorman.photo}`}
                                                             alt={doorman.name}
-                                                            className="w-full aspect-square rounded-full object-cover border-3 border-corporate-gold/20 group-hover:border-corporate-gold/50 transition-all duration-300 shadow-lg group-hover:shadow-xl"
+                                                            className="w-full h-full rounded-full object-cover border-3 border-corporate-gold/20 group-hover:border-corporate-gold/50 transition-all duration-300 shadow-lg group-hover:shadow-xl"
                                                             onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                                                                 e.currentTarget.src = '/images/default-user.png';
                                                             }}
                                                         />
                                                         {/* Ring animado en hover */}
                                                         <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/30 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"></div>
+                                                        
+                                                        {/* Shift indicator badge */}
+                                                        <div className="absolute -bottom-1 -right-1">
+                                                            <div className={`w-5 h-5 rounded-full border-2 border-white shadow-sm ${
+                                                                doorman.shift.toLowerCase().includes('morning') ? 'bg-yellow-400' :
+                                                                doorman.shift.toLowerCase().includes('night') ? 'bg-blue-900' :
+                                                                'bg-orange-500'
+                                                            }`}></div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 
-                                                {/* Información del portero */}
-                                                <div className="flex justify-between items-center">
-                                                    <div>
-                                                        <h4 className="text-sm font-bold text-corporate-gold dark:text-corporate-gold-light line-clamp-1 group-hover:text-corporate-warm transition-colors">
-                                                            {doorman.name}
-                                                        </h4>
-                                                        <div className="flex items-center justify-start gap-2">
-                                                            <div className={`w-3 h-3 rounded-full ${
-                                                                doorman.shift.toLowerCase().includes('morning') ? 'bg-corporate-gold' :
-                                                                doorman.shift.toLowerCase().includes('night') ? 'bg-corporate-dark-brown' :
-                                                                'bg-corporate-warm'}
-                                                            `}></div>
-                                                            <p className="text-xs font-semibold text-muted-foreground">{doorman.shift}</p>
+                                                {/* Doorman information */}
+                                                <div className="text-center space-y-2">
+                                                    <h4 className="text-sm font-bold text-corporate-gold dark:text-corporate-gold-light line-clamp-1 group-hover:text-corporate-warm transition-colors">
+                                                        {doorman.name}
+                                                    </h4>
+                                                    
+                                                    {/* Shift info with better styling */}
+                                                    <div className="flex items-center justify-center gap-2">
+                                                       
+                                                        <span className="text-xs font-medium text-muted-foreground capitalize">
+                                                            {doorman.shift} Shift
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    {/* Email with icon */}
+                                                    {doorman.email && (
+                                                        <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                                                            <Mail className="w-3 h-3" />
+                                                            <span className="truncate max-w-[120px]">{doorman.email}</span>
                                                         </div>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <Button size="icon" variant="ghost" onClick={() => handleEditDoorman(doorman)}><Edit className="w-4 h-4" /></Button>
-                                                        <Button size="icon" variant="ghost" onClick={() => handleDeleteDoorman(doorman)}><Trash2 className="w-4 h-4" /></Button>
-                                                    </div>
+                                                    )}
+                                                    
+                                                    {/* Phone with icon */}
+                                                    {doorman.phone && (
+                                                        <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                                                            <Phone className="w-3 h-3" />
+                                                            <span>{doorman.phone}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </CardContent>
                                         </Card>
                                     ))}
                                 </div>
-                            </div>
-                        )}
+                            ) : (
+                                <div className="text-center py-8 px-4 bg-corporate-gold/5 border border-corporate-gold/20 rounded-lg">
+                                    <Shield className="w-12 h-12 mx-auto text-corporate-gold/40 mb-3" />
+                                    <p className="text-muted-foreground mb-2">No doormen assigned to this building</p>
+                                    <p className="text-sm text-muted-foreground">Click "Add Doorman" to assign security personnel</p>
+                                </div>
+                            )}
+                        </div>
 
                         {building.location_link && (
                             <Card className="overflow-hidden !p-0 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:shadow-xl group bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10">
