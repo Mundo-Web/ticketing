@@ -21,6 +21,7 @@ class ApartmentController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'ubicacion' => 'nullable|string|max:255',
+            'order' => 'nullable|integer|min:0',
             'tenants' => 'required|array',
             'tenants.*.name' => 'required|string|max:255',
             'tenants.*.email' => 'required|email|max:255',
@@ -34,6 +35,7 @@ class ApartmentController extends Controller
             $apartment = $building->apartments()->create([
                 'name' => $request->name,
                 'ubicacion' => $request->ubicacion ?? '',
+                'order' => $request->order ?? 0,
                 'status' => true
             ]);
 
@@ -55,6 +57,7 @@ class ApartmentController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'ubicacion' => 'nullable|string|max:255',
+            'order' => 'nullable|integer|min:0',
             'tenants' => 'required|array',
             'tenants.*.name' => 'required|string|max:255',
             'tenants.*.email' => 'required|email|max:255',
@@ -69,6 +72,7 @@ class ApartmentController extends Controller
             $apartment->update([
                 'name' => $request->name,
                 'ubicacion' => $request->ubicacion ?? '',
+                'order' => $request->order ?? 0,
             ]);
 
             $this->saveTenants($request, $apartment);
@@ -283,13 +287,22 @@ class ApartmentController extends Controller
             $groupedData = collect($data)->groupBy('apartment');
 
             foreach ($groupedData as $apartmentName => $members) {
+                // Obtener el valor de order del primer miembro del grupo (si existe)
+                $orderValue = $members->first()['order'] ?? 0;
+                
                 // Crear o buscar el apartamento
                 $apartment = $building->apartments()->firstOrCreate([
                     'name' => $apartmentName
                 ], [
                     'status' => true,
-                    'ubicacion' => ''
+                    'ubicacion' => '',
+                    'order' => $orderValue
                 ]);
+
+                // Si el apartamento ya existe, actualizar el order si se proporciona uno nuevo
+                if (!$apartment->wasRecentlyCreated && isset($members->first()['order'])) {
+                    $apartment->update(['order' => $orderValue]);
+                }
 
                 $isNewApartment = $apartment->wasRecentlyCreated;
                 if ($isNewApartment) {
@@ -419,6 +432,7 @@ class ApartmentController extends Controller
                     $headers = array_map('strtolower', $rowData);
                     // Validate required headers
                     $requiredHeaders = ['apartment', 'name', 'email', 'phone'];
+                    $optionalHeaders = ['order'];
                     foreach ($requiredHeaders as $required) {
                         if (!in_array($required, $headers)) {
                             throw new \Exception("Header '{$required}' is missing in Excel file");

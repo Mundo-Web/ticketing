@@ -17,8 +17,6 @@ import {
     VisibilityState,
     flexRender,
     getCoreRowModel,
-    getFilteredRowModel,
-    getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
 import {
@@ -174,6 +172,8 @@ interface Props {
     filters?: {
         search: string;
         per_page: number;
+        sort_by?: string;
+        sort_dir?: string;
     };
 }
 
@@ -188,12 +188,32 @@ export default function Index({ apartments, brands, models, systems, name_device
     console.log('=== END COMPONENT DEBUG ===');
 
     // Estados para la tabla
-    const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [rowSelection, setRowSelection] = useState({});
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
     const [isSearching, setIsSearching] = useState(false);
+
+    // Inicializar sorting state desde URL parameters
+    const [sorting, setSorting] = useState<SortingState>(() => {
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sortBy = urlParams.get('sort_by');
+            const sortDir = urlParams.get('sort_dir');
+            
+            if (sortBy && sortDir) {
+                return [{
+                    id: sortBy,
+                    desc: sortDir === 'desc'
+                }];
+            }
+        }
+        // Default: ordenar por order ascendente
+        return [{
+            id: 'order',
+            desc: false
+        }];
+    });
   
     // Removing unused viewMode
     // const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
@@ -243,6 +263,7 @@ export default function Index({ apartments, brands, models, systems, name_device
         id: null as number | null,
         name: '',
         ubicacion: '',
+        order: 0,
         tenants: [] as Array<{
             id?: number;
             name: string;
@@ -319,6 +340,7 @@ export default function Index({ apartments, brands, models, systems, name_device
 
         formData.append('name', data.name);
         formData.append('ubicacion', data.ubicacion);
+        formData.append('order', data.order.toString());
 
         data.tenants.forEach((tenant, index) => {
             formData.append(`tenants[${index}][name]`, tenant.name);
@@ -353,6 +375,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             id: apartment.id,
             name: apartment.name,
             ubicacion: apartment.ubicacion,
+            order: apartment.order || 0,
             tenants: apartment.tenants?.map(t => ({
                 id: t.id,
                 name: t.name || '',
@@ -377,6 +400,7 @@ export default function Index({ apartments, brands, models, systems, name_device
         formData.append('_method', 'PUT');
         formData.append('name', data.name);
         formData.append('ubicacion', data.ubicacion);
+        formData.append('order', data.order.toString());
 
         data.tenants.forEach((tenant, index) => {
             if (tenant.id) {
@@ -411,6 +435,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             id: null,
             name: '',
             ubicacion: '',
+            order: 0,
             tenants: []
         };
 
@@ -666,6 +691,37 @@ export default function Index({ apartments, brands, models, systems, name_device
 
     // Definición de columnas para la tabla
     const columns: ColumnDef<Apartment>[] = [
+           {
+            accessorKey: "order",
+            header: ({ column }) => {
+                return (
+                    <Button
+                        variant="ghost"
+                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent hover:text-primary-foreground"
+                    >
+                        Order
+                        {column.getIsSorted() === "asc" ? (
+                            <ChevronDown className="ml-2 h-4 w-4 rotate-180" />
+                        ) : column.getIsSorted() === "desc" ? (
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                        ) : (
+                            <ChevronDown className="ml-2 h-4 w-4 opacity-20" />
+                        )}
+                    </Button>
+                )
+            },
+            cell: ({ row }) => {
+                const order = row.getValue("order") as number;
+                return (
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full  text-primary-foreground font-semibold text-xs font-medium">
+                            {order || 0}
+                        </div>
+                    </div>
+                );
+            },
+        },
         {
             accessorKey: "name",
             header: ({ column }) => {
@@ -688,6 +744,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             },
             cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
         },
+     
         {
             id: "tenants_count",
             accessorFn: (row) => row.tenants?.length || 0,
@@ -723,33 +780,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                 );
             },
         },
-        {
-            accessorKey: "ubicacion",
-            header: ({ column }) => {
-                return (
-                    <Button
-                        variant="ghost"
-                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                        className="h-8 p-0 font-semibold text-left justify-start hover:bg-transparent  hover:text-primary-foreground"
-                    >
-                        
-                        Location
-                        {column.getIsSorted() === "asc" ? (
-                            <ChevronDown className="ml-2 h-4 w-4 rotate-180" />
-                        ) : column.getIsSorted() === "desc" ? (
-                            <ChevronDown className="ml-2 h-4 w-4" />
-                        ) : (
-                            <ChevronDown className="ml-2 h-4 w-4 opacity-20" />
-                        )}
-                    </Button>
-                )
-            },
-            cell: ({ row }) => (
-                <div className="max-w-[200px] truncate">
-                    {row.getValue("ubicacion") || "No location specified"}
-                </div>
-            ),
-        },
+      
         {
             accessorKey: "status",
             header: ({ column }) => {
@@ -812,15 +843,42 @@ export default function Index({ apartments, brands, models, systems, name_device
         });
     };
 
+    // Función para manejar ordenamiento del servidor
+    const handleSortingChange = (updaterOrValue: SortingState | ((old: SortingState) => SortingState)) => {
+        const newSorting = typeof updaterOrValue === 'function' ? updaterOrValue(sorting) : updaterOrValue;
+        setSorting(newSorting);
+        
+        const currentUrl = window.location.pathname + window.location.search;
+        const url = new URL(currentUrl, window.location.origin);
+        
+        if (newSorting.length > 0) {
+            const sort = newSorting[0];
+            url.searchParams.set('sort_by', sort.id);
+            url.searchParams.set('sort_dir', sort.desc ? 'desc' : 'asc');
+        } else {
+            // Si no hay ordenamiento, usar orden por defecto (order asc)
+            url.searchParams.set('sort_by', 'order');
+            url.searchParams.set('sort_dir', 'asc');
+        }
+        
+        // Resetear a la primera página cuando se cambia el ordenamiento
+        url.searchParams.set('page', '1');
+        
+        router.visit(url.toString(), {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
     // Configuración de la tabla
     const table = useReactTable({
         data: apartments.data,
         columns,
-        onSortingChange: setSorting,
+        onSortingChange: handleSortingChange,
         onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
+        // Deshabilitar ordenamiento del lado del cliente
+        manualSorting: true,
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
         manualPagination: true,
@@ -1264,6 +1322,25 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                 className='mt-2'
                                             />
                                         </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="order">
+                                                Order <span className="text-muted-foreground">(optional)</span>
+                                            </Label>
+                                            <Input
+                                                id="order"
+                                                type="number"
+                                                min="0"
+                                                value={data.order}
+                                                onChange={(e) => setData('order', parseInt(e.target.value) || 0)}
+                                                className="h-11 mt-2"
+                                                placeholder="Enter display order (0 = first)"
+                                            />
+                                            <p className="text-sm text-muted-foreground">
+                                                Use this to control the order in which apartments are displayed. Lower numbers appear first.
+                                            </p>
+                                            {errors.order && <p className="text-sm text-red-500">{errors.order}</p>}
+                                        </div>
                                     </TabsContent>
 
                                     <TabsContent value="tenant" className="space-y-6">
@@ -1411,6 +1488,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 <h4 className="font-medium text-corporate-gold dark:text-corporate-gold-light mb-2">Excel Format Required:</h4>
                                 <ul className="text-sm text-corporate-dark-brown dark:text-corporate-gold-light/80 space-y-1">
                                     <li>• <strong>apartment:</strong> Apartment name</li>
+                                    <li>• <strong>order:</strong> Apartment order (optional, default: 0)</li>
                                     <li>• <strong>name:</strong> Member name</li>
                                     <li>• <strong>email:</strong> Member email</li>
                                     <li>• <strong>phone:</strong> Member phone</li>

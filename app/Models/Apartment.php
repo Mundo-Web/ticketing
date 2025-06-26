@@ -16,12 +16,11 @@ class Apartment extends Model
         'ubicacion',
         'buildings_id',
         'status',
-       
-
+        'order',
     ];
     protected $casts = [
         'status' => 'boolean',
-
+        'order' => 'integer',
     ];
 
     public function building(): BelongsTo

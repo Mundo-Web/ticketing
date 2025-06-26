@@ -476,9 +476,11 @@ class BuildingController extends Controller
             'location_link_format_detected' => $this->detectLocationFormat($building->location_link)
         ]);
         
-        // Obtener parámetros de búsqueda y paginación
+        // Obtener parámetros de búsqueda, paginación y ordenamiento
         $search = $request->input('search', '');
         $perPage = $request->input('per_page', 6);
+        $sortBy = $request->input('sort_by', 'order'); // Campo por el cual ordenar
+        $sortDir = $request->input('sort_dir', 'asc'); // Dirección del ordenamiento
         
         $apartments = Apartment::with([
             'tenants.devices' => function ($query) {
@@ -501,9 +503,27 @@ class BuildingController extends Controller
                                      ->orWhere('phone', 'like', "%{$search}%");
                       });
                 });
-            })
-            ->latest()
-            ->paginate($perPage);
+            });
+
+        // Aplicar ordenamiento
+        if ($sortBy === 'tenants_count') {
+            // Para ordenar por cantidad de inquilinos, necesitamos usar withCount
+            $apartments = $apartments->withCount('tenants')
+                                   ->orderBy('tenants_count', $sortDir);
+        } else {
+            // Para otros campos, ordenamiento normal
+            $apartments = $apartments->orderBy($sortBy, $sortDir);
+        }
+        
+        // Si no se está ordenando por 'order', agregar order como ordenamiento secundario
+        if ($sortBy !== 'order') {
+            $apartments = $apartments->orderBy('order', 'asc')->orderBy('name', 'asc');
+        } elseif ($sortBy === 'order') {
+            // Si se ordena por order, agregar name como secundario
+            $apartments = $apartments->orderBy('name', 'asc');
+        }
+
+        $apartments = $apartments->paginate($perPage);
 
         $data = $apartments->toArray();
         
@@ -530,7 +550,9 @@ class BuildingController extends Controller
             'name_devices' => NameDevice::all(),
             'filters' => [
                 'search' => $search,
-                'per_page' => $perPage
+                'per_page' => $perPage,
+                'sort_by' => $sortBy,
+                'sort_dir' => $sortDir
             ]
         ]);
     }
