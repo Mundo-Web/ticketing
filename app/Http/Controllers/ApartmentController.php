@@ -163,17 +163,29 @@ class ApartmentController extends Controller
 
     public function destroy(Apartment $apartment)
     {
+        // Agregar logging para debugging
+        Log::info('=== APARTMENT DESTROY METHOD CALLED ===');
+        Log::info('Apartment ID: ' . $apartment->id);
+        Log::info('Apartment Name: ' . $apartment->name);
+        Log::info('Request method: ' . request()->method());
+        Log::info('Full request data: ', request()->all());
+        Log::info('=== END APARTMENT DESTROY DEBUG ===');
+        
         DB::beginTransaction();
 
         try {
             // Eliminar fotos de inquilinos
             $photosToDelete = $apartment->tenants()->pluck('photo')->filter()->toArray();
 
+            Log::info('Photos to delete: ', $photosToDelete);
+
             // Eliminar inquilinos
             $apartment->tenants()->delete();
+            Log::info('Tenants deleted for apartment ID: ' . $apartment->id);
 
             // Eliminar apartamento
             $apartment->delete();
+            Log::info('Apartment deleted: ' . $apartment->id);
 
             // Eliminar fotos
             foreach ($photosToDelete as $photo) {
@@ -181,10 +193,13 @@ class ApartmentController extends Controller
             }
 
             DB::commit();
+            Log::info('Transaction committed successfully');
 
             return redirect()->back()->with('success', 'Apartamento eliminado exitosamente');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error deleting apartment: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return redirect()->back()
                 ->withErrors(['error' => 'Error al eliminar el apartamento: ' . $e->getMessage()]);
         }

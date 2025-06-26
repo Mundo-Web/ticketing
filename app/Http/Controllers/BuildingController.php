@@ -369,14 +369,21 @@ class BuildingController extends Controller
      */
     private function deleteDoorman(Request $request, Building $building)
     {
+        // Log para debugging
+        Log::info('Delete doorman request received:', $request->all());
+        
         $request->validate([
             'doorman.id' => 'required|exists:doormen,id',
         ]);
 
         $doormanId = $request->input('doorman.id');
         
+        Log::info('Attempting to delete doorman with ID:', ['id' => $doormanId]);
+        
         // Verificar que el doorman pertenezca al building
         $doorman = $building->doormen()->findOrFail($doormanId);
+        
+        Log::info('Found doorman to delete:', ['doorman' => $doorman->toArray()]);
 
         // Eliminar foto si existe
         if ($doorman->photo && $doorman->photo !== 'images/default-user.png') {
@@ -386,11 +393,14 @@ class BuildingController extends Controller
         // Eliminar usuario asociado
         $user = User::where('email', $doorman->email)->first();
         if ($user) {
+            Log::info('Deleting associated user:', ['user_id' => $user->id]);
             $user->delete();
         }
 
         // Eliminar doorman
         $doorman->delete();
+        
+        Log::info('Doorman deleted successfully');
 
         return back()->with('success', 'Doorman deleted successfully');
     }

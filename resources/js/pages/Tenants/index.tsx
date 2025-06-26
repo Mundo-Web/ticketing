@@ -426,17 +426,65 @@ export default function Index({ apartments, brands, models, systems, name_device
     };
 
     const confirmDelete = () => {
-        if (!currentApartment) return;
+        if (!currentApartment) {
+            toast.error('No apartment selected for deletion');
+            return;
+        }
+
+        console.log('=== APARTMENT DELETE DEBUG ===');
+        console.log('Attempting to delete apartment:', currentApartment);
+        console.log('Route:', route('apartments.destroy', currentApartment.id));
+        console.log('=== END APARTMENT DELETE DEBUG ===');
 
         destroy(route('apartments.destroy', currentApartment.id), {
             preserveScroll: true,
-            onSuccess: () => {
+            onSuccess: (page) => {
+                console.log('Apartment delete success:', page);
                 setShowDeleteModal(false);
                 setCurrentApartment(null);
                 toast.success('Apartment deleted successfully');
             },
-            onError: () => {
-                toast.error('Error deleting apartment');
+            onError: (errors) => {
+                console.error('=== APARTMENT DELETION ERROR DETAILS ===');
+                console.error('Full error object:', errors);
+                console.error('Error type:', typeof errors);
+                console.error('Error keys:', Object.keys(errors || {}));
+                
+                // Check for Laravel validation errors
+                if (errors && typeof errors === 'object') {
+                    const errorMessages = [];
+                    
+                    // Handle different error structures
+                    if (errors.error) {
+                        errorMessages.push(errors.error);
+                    }
+                    if (errors.message) {
+                        errorMessages.push(errors.message);
+                    }
+                    if (errors.errors) {
+                        Object.values(errors.errors).forEach((fieldErrors: any) => {
+                            if (Array.isArray(fieldErrors)) {
+                                errorMessages.push(...fieldErrors);
+                            } else {
+                                errorMessages.push(fieldErrors);
+                            }
+                        });
+                    }
+                    
+                    if (errorMessages.length > 0) {
+                        toast.error(`Error deleting apartment: ${errorMessages.join(', ')}`);
+                    } else {
+                        toast.error('Error deleting apartment. Unknown error format.');
+                    }
+                } else if (typeof errors === 'string') {
+                    toast.error(`Error deleting apartment: ${errors}`);
+                } else {
+                    toast.error('Error deleting apartment. Check console for details.');
+                }
+                console.error('=== END APARTMENT DELETION ERROR ===');
+            },
+            onFinish: () => {
+                console.log('Apartment deletion request finished');
             }
         });
     };
@@ -1066,6 +1114,11 @@ export default function Index({ apartments, brands, models, systems, name_device
     };
 
     const confirmDeleteDoorman = () => {
+        if (!doormanData) {
+            toast.error('No doorman selected for deletion');
+            return;
+        }
+        
         setIsDoormanProcessing(true);
         
         // Debug: Check if doormanData has the expected values
@@ -1078,25 +1131,37 @@ export default function Index({ apartments, brands, models, systems, name_device
             _method: 'PUT',
             action: 'delete_doorman',
             doorman: {
-                id: doormanData!.id
+                id: doormanData.id
             }
         };
         
         // Debug: Log what we're sending
         console.log('Delete data:', postData);
+        console.log('Route:', route('buildings.update', building.id));
         console.log('=== END DELETE DEBUG ===');
         
         // Usando ruta genérica del building para eliminar doorman
         router.post(route('buildings.update', building.id), postData, {
             preserveScroll: true,
-            onSuccess: () => {
+            onSuccess: (page) => {
+                console.log('Delete success response:', page);
                 setShowDeleteDoorman(false);
                 setDoormanData(null);
                 toast.success('Doorman deleted successfully!');
             },
             onError: (errors) => {
                 console.error('Doorman deletion errors:', errors);
-                toast.error('Error deleting doorman');
+                
+                // More specific error handling
+                if (errors.message) {
+                    toast.error(`Error deleting doorman: ${errors.message}`);
+                } else if (errors['doorman.id']) {
+                    toast.error(`Validation error: ${errors['doorman.id']}`);
+                } else if (typeof errors === 'string') {
+                    toast.error(`Error deleting doorman: ${errors}`);
+                } else {
+                    toast.error('Error deleting doorman. Check console for details.');
+                }
             },
             onFinish: () => {
                 setIsDoormanProcessing(false);
