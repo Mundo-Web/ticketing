@@ -1025,25 +1025,38 @@ export default function Index({ apartments, brands, models, systems, name_device
         e.preventDefault();
         setIsDoormanProcessing(true);
         
-        const formData = new FormData();
-        formData.append('_method', 'PUT');
-        formData.append('doorman.id', doormanData!.id.toString());
-        formData.append('doorman.name', doormanData!.name);
-        formData.append('doorman.email', doormanData!.email);
-        formData.append('doorman.phone', doormanData!.phone || '');
-        formData.append('doorman.shift', doormanData!.shift);
-        formData.append('action', 'update_doorman');
+        // Debug: Check if doormanData has the expected values
+        console.log('=== DOORMAN UPDATE DEBUG ===');
+        console.log('doormanData:', doormanData);
+        console.log('Building ID:', building.id);
+        
+        // Use regular object instead of FormData (matching create method)
+        const postData = {
+            _method: 'PUT',
+            action: 'update_doorman',
+            doorman: {
+                id: doormanData!.id,
+                name: doormanData!.name,
+                email: doormanData!.email,
+                phone: doormanData!.phone || '',
+                shift: doormanData!.shift
+            }
+        };
+        
+        // Debug: Log what we're sending
+        console.log('Update data:', postData);
+        console.log('=== END UPDATE DEBUG ===');
 
         // Usando ruta genérica del building para actualizar doorman
-        router.post(route('buildings.update', building.id), formData, {
-            forceFormData: true,
+        router.post(route('buildings.update', building.id), postData, {
             preserveScroll: true,
             onSuccess: () => {
                 setShowEditDoorman(false);
                 setDoormanData(null);
                 toast.success('Doorman updated successfully!');
             },
-            onError: () => {
+            onError: (errors) => {
+                console.error('Doorman update errors:', errors);
                 toast.error('Error updating doorman');
             },
             onFinish: () => {
@@ -1055,21 +1068,34 @@ export default function Index({ apartments, brands, models, systems, name_device
     const confirmDeleteDoorman = () => {
         setIsDoormanProcessing(true);
         
-        const formData = new FormData();
-        formData.append('_method', 'PUT');
-        formData.append('doorman.id', doormanData!.id.toString());
-        formData.append('action', 'delete_doorman');
+        // Debug: Check if doormanData has the expected values
+        console.log('=== DOORMAN DELETE DEBUG ===');
+        console.log('doormanData:', doormanData);
+        console.log('Building ID:', building.id);
+        
+        // Use regular object instead of FormData (matching create method)
+        const postData = {
+            _method: 'PUT',
+            action: 'delete_doorman',
+            doorman: {
+                id: doormanData!.id
+            }
+        };
+        
+        // Debug: Log what we're sending
+        console.log('Delete data:', postData);
+        console.log('=== END DELETE DEBUG ===');
         
         // Usando ruta genérica del building para eliminar doorman
-        router.post(route('buildings.update', building.id), formData, {
-            forceFormData: true,
+        router.post(route('buildings.update', building.id), postData, {
             preserveScroll: true,
             onSuccess: () => {
                 setShowDeleteDoorman(false);
                 setDoormanData(null);
                 toast.success('Doorman deleted successfully!');
             },
-            onError: () => {
+            onError: (errors) => {
+                console.error('Doorman deletion errors:', errors);
                 toast.error('Error deleting doorman');
             },
             onFinish: () => {
@@ -1418,14 +1444,14 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="space-y-3">
-                                                    <a href={`mailto:${building.owner.email}`}  className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
+                                                <div className="space-y-2">
+                                                    <a href={`mailto:${building.owner.email}`}  className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 px-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
                                                         <a href={`mailto:${building.owner.email}`} className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 flex items-center justify-center group-hover/item:from-corporate-gold/30 group-hover/item:to-corporate-warm/30 transition-all duration-300 group-hover/item:scale-110">
                                                             <Mail className="w-4 h-4 text-corporate-gold dark:text-corporate-gold-light" />
                                                         </a>
                                                         <span className="text-muted-foreground group-hover/item:text-foreground font-medium flex-1">{building.owner.email}</span>
                                                     </a>
-                                                    <a href={`tel:${building.owner.phone}`} className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
+                                                    <a href={`tel:${building.owner.phone}`} className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 px-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
                                                         <a href={`tel:${building.owner.phone}`} className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-warm/20 to-corporate-gold/20 flex items-center justify-center group-hover/item:from-corporate-warm/30 group-hover/item:to-corporate-gold/30 transition-all duration-300 group-hover/item:scale-110">
                                                             <Phone className="w-4 h-4 text-corporate-warm dark:text-corporate-gold-light" />
                                                         </a>
