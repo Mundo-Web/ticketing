@@ -325,6 +325,7 @@ export default function Index({ apartments, brands, models, systems, name_device
         post(route('buildings.apartments.store', building.id), {
             forceFormData: true,
             preserveScroll: true,
+            preserveState: false,
             onSuccess: () => {
                 reset();
                 setInitialFormData(undefined);
@@ -908,6 +909,51 @@ export default function Index({ apartments, brands, models, systems, name_device
         }
     };
 
+    // Handlers para acciones de Superintendent
+    const [showEditSuperintendent, setShowEditSuperintendent] = useState(false);
+    const [superintendentData, setSuperintendentData] = useState<any>(null);
+
+    const handleEditSuperintendent = (owner: any) => {
+        setSuperintendentData(owner);
+        setShowEditSuperintendent(true);
+    };
+
+    const handleSuperintendentUpdate = (e: React.FormEvent) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('_method', 'PUT');
+        formData.append('owner[id]', superintendentData.id);
+        formData.append('owner[name]', superintendentData.name);
+        formData.append('owner[email]', superintendentData.email);
+        formData.append('owner[phone]', superintendentData.phone);
+
+        router.post(route('buildings.update-owner', building.id), formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowEditSuperintendent(false);
+                toast.success('Superintendent updated!');
+            },
+            onError: (errors) => {
+                toast.error('Error updating superintendent');
+            }
+        });
+    };
+
+    // Handlers para acciones de Doormen
+    const handleAddDoorman = () => {
+        // Aquí puedes abrir un modal de agregar
+        console.log('Agregar Doorman');
+    };
+    const handleEditDoorman = (doorman: any) => {
+        // Aquí puedes abrir un modal de edición
+        console.log('Editar Doorman', doorman);
+    };
+    const handleDeleteDoorman = (doorman: any) => {
+        // Aquí puedes abrir un modal de confirmación de borrado
+        console.log('Borrar Doorman', doorman);
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Apartments" />
@@ -1202,15 +1248,14 @@ export default function Index({ apartments, brands, models, systems, name_device
                             <Card className="overflow-hidden !p-0 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:shadow-xl group bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown to-corporate-gold/10">
                                 <CardContent className="p-0">
                                     {/* Header con gradiente mejorado */}
-                                    <div className="bg-gradient-to-r from-corporate-gold/15 via-corporate-gold/10 to-corporate-gold/5 dark:from-corporate-gold/25 dark:via-corporate-gold/15 dark:to-corporate-gold/10 p-4 border-b border-corporate-gold/20 relative overflow-hidden">
+                                    <div className="bg-gradient-to-r from-corporate-gold/15 via-corporate-gold/10 to-corporate-gold/5 dark:from-corporate-gold/25 dark:via-corporate-gold/15 dark:to-corporate-gold/10 p-4 border-b border-corporate-gold/20 relative overflow-hidden flex items-center justify-between">
                                         <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light relative z-10">
-                                            <div className="p-2 bg-corporate-gold/10 rounded-full group-hover:bg-corporate-gold/20 transition-colors duration-300">
-                                                <Crown className="w-4 h-4" />
-                                            </div>
-                                            <span className="font-bold text-sm">Building Owner</span>
+                                            <Shield className="w-4 h-4" />
+                                            <span className="font-bold text-sm">Superintendent</span>
                                         </div>
-                                        {/* Decorative gradient overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-corporate-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                        <div className="flex gap-2">
+                                            <Button size="icon" variant="ghost" onClick={() => handleEditSuperintendent(building.owner)}><Edit className="w-4 h-4" /></Button>
+                                        </div>
                                     </div>
                                     
                                     {/* Contenido principal mejorado */}
@@ -1265,6 +1310,45 @@ export default function Index({ apartments, brands, models, systems, name_device
                             </Card>
                         )}
 
+                        {/* Modal de edición para Superintendent */}
+                        <Dialog open={showEditSuperintendent} onOpenChange={setShowEditSuperintendent}>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Edit Superintendent</DialogTitle>
+                                </DialogHeader>
+                                <form onSubmit={handleSuperintendentUpdate} className="space-y-4">
+                                    <div>
+                                        <Label>Name</Label>
+                                        <Input
+                                            value={superintendentData?.name || ''}
+                                            onChange={e => setSuperintendentData({ ...superintendentData, name: e.target.value })}
+                                            placeholder="Name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Email</Label>
+                                        <Input
+                                            value={superintendentData?.email || ''}
+                                            onChange={e => setSuperintendentData({ ...superintendentData, email: e.target.value })}
+                                            placeholder="Email"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Phone</Label>
+                                        <Input
+                                            value={superintendentData?.phone || ''}
+                                            onChange={e => setSuperintendentData({ ...superintendentData, phone: e.target.value })}
+                                            placeholder="Phone"
+                                        />
+                                    </div>
+                                    <DialogFooter>
+                                        <Button type="button" variant="outline" onClick={() => setShowEditSuperintendent(false)}>Cancel</Button>
+                                        <Button type="submit">Save</Button>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
+
                         {building.doormen && building.doormen.length > 0 && (
                             <div className="space-y-4 w-full">
                                 {/* Header mejorado */}
@@ -1277,6 +1361,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                     <span className="text-xs text-muted-foreground bg-corporate-gold/10 border border-corporate-gold/20 px-2 py-1 rounded-full font-medium">
                                         {building.doormen.length} {building.doormen.length === 1 ? 'Guard' : 'Guards'}
                                     </span>
+                                    <Button size="sm" variant="outline" onClick={handleAddDoorman} className="ml-2"><Plus className="w-4 h-4" /> Add Doorman</Button>
                                 </div>
                                 
                                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1284,9 +1369,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         <Card 
                                             key={doorman.id} 
                                             className="group !p-0 overflow-hidden border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:-translate-y-2 bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10"
-                                            style={{
-                                                animationDelay: `${index * 150}ms`,
-                                            }}
+                                            style={{ animationDelay: `${index * 150}ms` }}
                                         >
                                             <CardContent className="p-4">
                                                 {/* Avatar con badge de estado */}
@@ -1306,22 +1389,24 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                 </div>
                                                 
                                                 {/* Información del portero */}
-                                                <div className="text-center space-y-2">
-                                                    <h4 className="text-sm font-bold text-corporate-gold dark:text-corporate-gold-light line-clamp-1 group-hover:text-corporate-warm transition-colors">
-                                                        {doorman.name}
-                                                    </h4>
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <div className={`w-3 h-3 rounded-full ${
-                                                            doorman.shift.toLowerCase().includes('morning') || doorman.shift.toLowerCase().includes('day') 
-                                                                ? 'bg-corporate-gold shadow-lg shadow-corporate-gold/30' 
-                                                                : doorman.shift.toLowerCase().includes('night') 
-                                                                ? 'bg-corporate-dark-brown shadow-lg shadow-corporate-dark-brown/30'
-                                                                : 'bg-corporate-warm shadow-lg shadow-corporate-warm/30'
-                                                        }`}></div>
-                                                        <p className="text-xs font-semibold text-muted-foreground">{doorman.shift}</p>
+                                                <div className="flex justify-between items-center">
+                                                    <div>
+                                                        <h4 className="text-sm font-bold text-corporate-gold dark:text-corporate-gold-light line-clamp-1 group-hover:text-corporate-warm transition-colors">
+                                                            {doorman.name}
+                                                        </h4>
+                                                        <div className="flex items-center justify-start gap-2">
+                                                            <div className={`w-3 h-3 rounded-full ${
+                                                                doorman.shift.toLowerCase().includes('morning') ? 'bg-corporate-gold' :
+                                                                doorman.shift.toLowerCase().includes('night') ? 'bg-corporate-dark-brown' :
+                                                                'bg-corporate-warm'}
+                                                            `}></div>
+                                                            <p className="text-xs font-semibold text-muted-foreground">{doorman.shift}</p>
+                                                        </div>
                                                     </div>
-                                                    
-                                                    
+                                                    <div className="flex gap-2">
+                                                        <Button size="icon" variant="ghost" onClick={() => handleEditDoorman(doorman)}><Edit className="w-4 h-4" /></Button>
+                                                        <Button size="icon" variant="ghost" onClick={() => handleDeleteDoorman(doorman)}><Trash2 className="w-4 h-4" /></Button>
+                                                    </div>
                                                 </div>
                                             </CardContent>
                                         </Card>

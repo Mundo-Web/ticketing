@@ -1,6 +1,3 @@
-
-
-
 <?php
 
 use App\Http\Controllers\ApartmentController;
@@ -62,6 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('buildings/{building}/apartments', [BuildingController::class, 'apartments'])->name('buildings.apartments');
     Route::post('/buildings/{building}/apartments', [ApartmentController::class, 'storeApartment'])->name('buildings.apartments.store');
     Route::post('/buildings/{building}/apartments/bulk-upload', [ApartmentController::class, 'bulkUpload'])->name('buildings.apartments.bulk-upload');
+    Route::put('buildings/{building}/owner', [BuildingController::class, 'updateOwner'])->name('buildings.update-owner');
 
     Route::resource('technicals', TechnicalController::class);
     Route::put('technicals/{technical}/update-status', [TechnicalController::class, 'updateStatus'])

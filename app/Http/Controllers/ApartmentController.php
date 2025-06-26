@@ -33,7 +33,7 @@ class ApartmentController extends Controller
         try {
             $apartment = $building->apartments()->create([
                 'name' => $request->name,
-                'ubicacion' => $request->ubicacion,
+                'ubicacion' => $request->ubicacion ?? '',
                 'status' => true
             ]);
 
@@ -68,7 +68,7 @@ class ApartmentController extends Controller
         try {
             $apartment->update([
                 'name' => $request->name,
-                'ubicacion' => $request->ubicacion,
+                'ubicacion' => $request->ubicacion ?? '',
             ]);
 
             $this->saveTenants($request, $apartment);

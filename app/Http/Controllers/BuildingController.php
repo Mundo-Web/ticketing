@@ -417,4 +417,18 @@ class BuildingController extends Controller
             'buildings' => $buildings
         ]);
     }
+
+    public function updateOwner(Request $request, Building $building)
+    {
+        $request->validate([
+            'owner.id' => 'required|exists:owners,id',
+            'owner.name' => 'required|string|max:255',
+            'owner.email' => 'required|email',
+            'owner.phone' => 'nullable|string',
+        ]);
+
+        $this->saveOwner($request, $building);
+
+        return back()->with('success', 'Superintendent updated successfully');
+    }
 }
