@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
     LayoutGrid, Plus, Edit, Trash2, ChevronRight, Laptop, UploadCloud, 
     ChevronDown, ChevronLeft, Search, Filter, FileSpreadsheet, 
@@ -161,10 +161,13 @@ interface Props {
     models: { id: number; name: string }[];
     systems: { id: number; name: string }[];
     name_devices: { id: number; name: string }[];
-
+    filters?: {
+        search: string;
+        per_page: number;
+    };
 }
 
-export default function Index({ apartments, brands, models, systems, name_devices }: Props) {
+export default function Index({ apartments, brands, models, systems, name_devices, filters }: Props) {
     // Removing unused auth
     // const { auth } = usePage<SharedData>().props;
   
@@ -179,7 +182,8 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [rowSelection, setRowSelection] = useState({});
-    const [globalFilter, setGlobalFilter] = useState('');
+    const [searchTerm, setSearchTerm] = useState(filters?.search || '');
+    const [isSearching, setIsSearching] = useState(false);
   
     // Removing unused viewMode
     // const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
@@ -239,6 +243,8 @@ export default function Index({ apartments, brands, models, systems, name_device
         }>,
     });
 
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
     // Efecto para forzar re-render del mapa cuando cambie el building
     useEffect(() => {
         console.log('=== BUILDING CHANGED IN USEEFFECT ===');
@@ -252,6 +258,46 @@ export default function Index({ apartments, brands, models, systems, name_device
         });
         console.log('=== END BUILDING CHANGE ===');
     }, [building]);
+
+    // Función de búsqueda con debounce
+    const debouncedSearch = useCallback(
+        _.debounce((searchValue: string) => {
+            setIsSearching(true);
+            const currentUrl = window.location.pathname + window.location.search;
+            const url = new URL(currentUrl, window.location.origin);
+            
+            // Detecta si el input tenía el foco
+            const wasFocused = document.activeElement === searchInputRef.current;
+
+            if (searchValue.trim()) {
+                url.searchParams.set('search', searchValue.trim());
+            } else {
+                url.searchParams.delete('search');
+            }
+            
+            // Resetear a la primera página cuando se busca
+            url.searchParams.set('page', '1');
+            
+            router.visit(url.toString(), {
+                preserveState: true,
+                preserveScroll: true,
+                onFinish: () => {
+                    setIsSearching(false);
+                    // Restaura el foco si el usuario estaba escribiendo
+                    if (wasFocused && searchInputRef.current) {
+                        searchInputRef.current.focus();
+                    }
+                }
+            });
+        }, 500),
+        []
+    );
+
+    // Manejar cambio en el término de búsqueda
+    const handleSearchChange = (value: string) => {
+        setSearchTerm(value);
+        debouncedSearch(value);
+    };
 
     const hasUnsavedChanges = () => {
         return !_.isEqual(data, initialFormData);
@@ -276,7 +322,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             }
         });
 
-        post(route('buildings.apartments.store', building.id), formData, {
+        post(route('buildings.apartments.store', building.id), {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -718,9 +764,6 @@ export default function Index({ apartments, brands, models, systems, name_device
         getFilteredRowModel: getFilteredRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
-        onGlobalFilterChange: setGlobalFilter,
-        globalFilterFn: 'includesString',
-        // No usar paginación de React Table ya que usamos la del servidor
         manualPagination: true,
         pageCount: apartments.meta.last_page,
         state: {
@@ -728,9 +771,8 @@ export default function Index({ apartments, brands, models, systems, name_device
             columnFilters,
             columnVisibility,
             rowSelection,
-            globalFilter,
             pagination: {
-                pageIndex: apartments.meta.current_page - 1, // React Table usa 0-based indexing
+                pageIndex: apartments.meta.current_page - 1,
                 pageSize: apartments.meta.per_page,
             },
         },
@@ -749,17 +791,22 @@ export default function Index({ apartments, brands, models, systems, name_device
 
         const headers = visibleColumns.map(col => col.header).join(',') + '\n';
 
-        const rows = table.getFilteredRowModel().rows.map(row => {
+        const rows = apartments.data.map(apartment => {
             return visibleColumns.map(column => {
-                const value = row.getValue(column.id);
                 // Formatear valores para CSV
                 if (column.id === 'status') {
-                    return row.original.status ? 'Active' : 'Inactive';
+                    return apartment.status ? 'Active' : 'Inactive';
                 }
                 if (column.id === 'tenants_count') {
-                    return row.original.tenants?.length || 0;
+                    return apartment.tenants?.length || 0;
                 }
-                return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value || '';
+                if (column.id === 'name') {
+                    return apartment.name;
+                }
+                if (column.id === 'ubicacion') {
+                    return apartment.ubicacion || '';
+                }
+                return '';
             })
             .join(',');
         }).join('\n');
@@ -769,7 +816,7 @@ export default function Index({ apartments, brands, models, systems, name_device
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `apartments_${new Date().toISOString().split('T')[0]}.csv`;
+        link.download = `apartments_${new Date().toISOString().split('T')[0]}${filters?.search ? `_${filters.search}` : ''}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -803,17 +850,22 @@ export default function Index({ apartments, brands, models, systems, name_device
             };
 
             // Add data rows
-            table.getFilteredRowModel().rows.forEach(row => {
+            apartments.data.forEach(apartment => {
                 const rowData = visibleColumns.map(column => {
-                    const value = row.getValue(column.id);
                     // Format values for Excel
                     if (column.id === 'status') {
-                        return row.original.status ? 'Active' : 'Inactive';
+                        return apartment.status ? 'Active' : 'Inactive';
                     }
                     if (column.id === 'tenants_count') {
-                        return row.original.tenants?.length || 0;
+                        return apartment.tenants?.length || 0;
                     }
-                    return value || '';
+                    if (column.id === 'name') {
+                        return apartment.name;
+                    }
+                    if (column.id === 'ubicacion') {
+                        return apartment.ubicacion || '';
+                    }
+                    return '';
                 });
                 worksheet.addRow(rowData);
             });
@@ -848,7 +900,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
             });
             
-            saveAs(blob, `apartments_${new Date().toISOString().split('T')[0]}.xlsx`);
+            saveAs(blob, `apartments_${new Date().toISOString().split('T')[0]}${filters?.search ? `_${filters.search}` : ''}.xlsx`);
             toast.success('Excel file exported successfully!');
         } catch (error) {
             console.error('Error exporting to Excel:', error);
@@ -1144,338 +1196,339 @@ export default function Index({ apartments, brands, models, systems, name_device
                     </DialogContent>
                 </Dialog>
 
-                {apartments.data.length === 0 ? (
-                    <div className="bg-corporate-gold/10 dark:bg-corporate-gold/20 border-2 border-dashed border-corporate-gold/20 p-8 rounded-xl text-center">
-                        <div className="text-corporate-gold dark:text-corporate-gold-light mb-4 flex justify-center">
-                            <LayoutGrid className="w-12 h-12" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-corporate-gold dark:text-corporate-gold-light mb-2">No apartments registered</h3>
-                        <p className="text-corporate-gold/70 dark:text-corporate-gold-light/70 mb-4">Start by adding your first apartment</p>
-                        <Button
-                            onClick={handleShowCreate}
-                            className="inline-flex items-center gap-2 bg-gradient-to-r from-corporate-gold to-corporate-warm hover:from-corporate-warm hover:to-corporate-gold text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                        >
-                            <Plus className="w-5 h-5" />
-                            Create First Apartment
-                        </Button>
-                    </div>
-                ) : (
-                    <div className='flex flex-col lg:flex-row gap-4'>
-                        <div className="w-full lg:w-4/12 space-y-6">
-                            {building.owner && (
-                                <Card className="overflow-hidden !p-0 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:shadow-xl group bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown to-corporate-gold/10">
-                                    <CardContent className="p-0">
-                                        {/* Header con gradiente mejorado */}
-                                        <div className="bg-gradient-to-r from-corporate-gold/15 via-corporate-gold/10 to-corporate-gold/5 dark:from-corporate-gold/25 dark:via-corporate-gold/15 dark:to-corporate-gold/10 p-4 border-b border-corporate-gold/20 relative overflow-hidden">
-                                            <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light relative z-10">
-                                                <div className="p-2 bg-corporate-gold/10 rounded-full group-hover:bg-corporate-gold/20 transition-colors duration-300">
-                                                    <Crown className="w-4 h-4" />
-                                                </div>
-                                                <span className="font-bold text-sm">Building Owner</span>
+                <div className='flex flex-col lg:flex-row gap-4'>
+                    <div className="w-full lg:w-4/12 space-y-6">
+                        {building.owner && (
+                            <Card className="overflow-hidden !p-0 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:shadow-xl group bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown to-corporate-gold/10">
+                                <CardContent className="p-0">
+                                    {/* Header con gradiente mejorado */}
+                                    <div className="bg-gradient-to-r from-corporate-gold/15 via-corporate-gold/10 to-corporate-gold/5 dark:from-corporate-gold/25 dark:via-corporate-gold/15 dark:to-corporate-gold/10 p-4 border-b border-corporate-gold/20 relative overflow-hidden">
+                                        <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light relative z-10">
+                                            <div className="p-2 bg-corporate-gold/10 rounded-full group-hover:bg-corporate-gold/20 transition-colors duration-300">
+                                                <Crown className="w-4 h-4" />
                                             </div>
-                                            {/* Decorative gradient overlay */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-corporate-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                            <span className="font-bold text-sm">Building Owner</span>
                                         </div>
-                                        
-                                        {/* Contenido principal mejorado */}
-                                        <div className="p-6">
-                                            <div className="flex items-start gap-5">
+                                        {/* Decorative gradient overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-corporate-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                    </div>
+                                    
+                                    {/* Contenido principal mejorado */}
+                                    <div className="p-6">
+                                        <div className="flex items-start gap-5">
+                                            <div className="relative">
                                                 <div className="relative">
+                                                    <img
+                                                        src={`/storage/${building.owner.photo}`}
+                                                        alt={building.owner.name}
+                                                        className="w-20 h-20 rounded-full object-cover border-3 border-corporate-gold/30 shadow-lg group-hover:border-corporate-gold/50 transition-all duration-300 group-hover:shadow-xl"
+                                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                            e.currentTarget.src = '/images/default-user.png';
+                                                        }}
+                                                    />
+                                                    {/* Ring animado */}
+                                                    <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/40 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"></div>
+                                                </div>
+                                                
+                                                <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-gradient-to-br from-corporate-warm via-corporate-gold to-corporate-dark-brown rounded-full border-3 border-background shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                                    <Crown className="w-4 h-4 text-white" />
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex-1 space-y-4">
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-foreground group-hover:text-corporate-gold transition-colors">{building.owner.name}</h3>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <div className="w-2 h-2 bg-corporate-gold rounded-full animate-pulse"></div>
+                                                        <p className="text-sm text-muted-foreground font-semibold">Property Owner</p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
+                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 flex items-center justify-center group-hover/item:from-corporate-gold/30 group-hover/item:to-corporate-warm/30 transition-all duration-300 group-hover/item:scale-110">
+                                                            <Mail className="w-4 h-4 text-corporate-gold dark:text-corporate-gold-light" />
+                                                        </div>
+                                                        <span className="text-muted-foreground group-hover/item:text-foreground font-medium flex-1">{building.owner.email}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
+                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-warm/20 to-corporate-gold/20 flex items-center justify-center group-hover/item:from-corporate-warm/30 group-hover/item:to-corporate-gold/30 transition-all duration-300 group-hover/item:scale-110">
+                                                            <Phone className="w-4 h-4 text-corporate-warm dark:text-corporate-gold-light" />
+                                                        </div>
+                                                        <span className="text-muted-foreground group-hover/item:text-foreground font-medium flex-1">{building.owner.phone}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {building.doormen && building.doormen.length > 0 && (
+                            <div className="space-y-4 w-full">
+                                {/* Header mejorado */}
+                                <div className="flex items-center gap-3 px-2">
+                                    <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light">
+                                        <Shield className="w-5 h-5" />
+                                        <h3 className="text-lg font-bold">Doormen</h3>
+                                    </div>
+                                    <div className="flex-1 h-px bg-gradient-to-r from-corporate-gold/30 to-transparent"></div>
+                                    <span className="text-xs text-muted-foreground bg-corporate-gold/10 border border-corporate-gold/20 px-2 py-1 rounded-full font-medium">
+                                        {building.doormen.length} {building.doormen.length === 1 ? 'Guard' : 'Guards'}
+                                    </span>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {building.doormen.map((doorman, index) => (
+                                        <Card 
+                                            key={doorman.id} 
+                                            className="group !p-0 overflow-hidden border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:-translate-y-2 bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10"
+                                            style={{
+                                                animationDelay: `${index * 150}ms`,
+                                            }}
+                                        >
+                                            <CardContent className="p-4">
+                                                {/* Avatar con badge de estado */}
+                                                <div className="relative mb-4">
                                                     <div className="relative">
                                                         <img
-                                                            src={`/storage/${building.owner.photo}`}
-                                                            alt={building.owner.name}
-                                                            className="w-20 h-20 rounded-full object-cover border-3 border-corporate-gold/30 shadow-lg group-hover:border-corporate-gold/50 transition-all duration-300 group-hover:shadow-xl"
+                                                            src={`/storage/${doorman.photo}`}
+                                                            alt={doorman.name}
+                                                            className="w-full aspect-square rounded-full object-cover border-3 border-corporate-gold/20 group-hover:border-corporate-gold/50 transition-all duration-300 shadow-lg group-hover:shadow-xl"
                                                             onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                                                                 e.currentTarget.src = '/images/default-user.png';
                                                             }}
                                                         />
-                                                        {/* Ring animado */}
-                                                        <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/40 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"></div>
-                                                    </div>
-                                                    
-                                                    <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-gradient-to-br from-corporate-warm via-corporate-gold to-corporate-dark-brown rounded-full border-3 border-background shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                                        <Crown className="w-4 h-4 text-white" />
+                                                        {/* Ring animado en hover */}
+                                                        <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/30 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"></div>
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="flex-1 space-y-4">
-                                                    <div>
-                                                        <h3 className="text-xl font-bold text-foreground group-hover:text-corporate-gold transition-colors">{building.owner.name}</h3>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <div className="w-2 h-2 bg-corporate-gold rounded-full animate-pulse"></div>
-                                                            <p className="text-sm text-muted-foreground font-semibold">Property Owner</p>
-                                                        </div>
+                                                {/* Información del portero */}
+                                                <div className="text-center space-y-2">
+                                                    <h4 className="text-sm font-bold text-corporate-gold dark:text-corporate-gold-light line-clamp-1 group-hover:text-corporate-warm transition-colors">
+                                                        {doorman.name}
+                                                    </h4>
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <div className={`w-3 h-3 rounded-full ${
+                                                            doorman.shift.toLowerCase().includes('morning') || doorman.shift.toLowerCase().includes('day') 
+                                                                ? 'bg-corporate-gold shadow-lg shadow-corporate-gold/30' 
+                                                                : doorman.shift.toLowerCase().includes('night') 
+                                                                ? 'bg-corporate-dark-brown shadow-lg shadow-corporate-dark-brown/30'
+                                                                : 'bg-corporate-warm shadow-lg shadow-corporate-warm/30'
+                                                        }`}></div>
+                                                        <p className="text-xs font-semibold text-muted-foreground">{doorman.shift}</p>
                                                     </div>
                                                     
-                                                    <div className="space-y-3">
-                                                        <div className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
-                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 flex items-center justify-center group-hover/item:from-corporate-gold/30 group-hover/item:to-corporate-warm/30 transition-all duration-300 group-hover/item:scale-110">
-                                                                <Mail className="w-4 h-4 text-corporate-gold dark:text-corporate-gold-light" />
-                                                            </div>
-                                                            <span className="text-muted-foreground group-hover/item:text-foreground font-medium flex-1">{building.owner.email}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 p-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
-                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-warm/20 to-corporate-gold/20 flex items-center justify-center group-hover/item:from-corporate-warm/30 group-hover/item:to-corporate-gold/30 transition-all duration-300 group-hover/item:scale-110">
-                                                                <Phone className="w-4 h-4 text-corporate-warm dark:text-corporate-gold-light" />
-                                                            </div>
-                                                            <span className="text-muted-foreground group-hover/item:text-foreground font-medium flex-1">{building.owner.phone}</span>
-                                                        </div>
-                                                    </div>
+                                                    
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )}
-
-                            {building.doormen && building.doormen.length > 0 && (
-                                <div className="space-y-4 w-full">
-                                    {/* Header mejorado */}
-                                    <div className="flex items-center gap-3 px-2">
-                                        <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light">
-                                            <Shield className="w-5 h-5" />
-                                            <h3 className="text-lg font-bold">Doormen</h3>
-                                        </div>
-                                        <div className="flex-1 h-px bg-gradient-to-r from-corporate-gold/30 to-transparent"></div>
-                                        <span className="text-xs text-muted-foreground bg-corporate-gold/10 border border-corporate-gold/20 px-2 py-1 rounded-full font-medium">
-                                            {building.doormen.length} {building.doormen.length === 1 ? 'Guard' : 'Guards'}
-                                        </span>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {building.doormen.map((doorman, index) => (
-                                            <Card 
-                                                key={doorman.id} 
-                                                className="group !p-0 overflow-hidden border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10"
-                                                style={{
-                                                    animationDelay: `${index * 150}ms`,
-                                                }}
-                                            >
-                                                <CardContent className="p-4">
-                                                    {/* Avatar con badge de estado */}
-                                                    <div className="relative mb-4">
-                                                        <div className="relative">
-                                                            <img
-                                                                src={`/storage/${doorman.photo}`}
-                                                                alt={doorman.name}
-                                                                className="w-full aspect-square rounded-full object-cover border-3 border-corporate-gold/20 group-hover:border-corporate-gold/50 transition-all duration-300 shadow-lg group-hover:shadow-xl"
-                                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                    e.currentTarget.src = '/images/default-user.png';
-                                                                }}
-                                                            />
-                                                            {/* Ring animado en hover */}
-                                                            <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/30 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"></div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    {/* Información del portero */}
-                                                    <div className="text-center space-y-2">
-                                                        <h4 className="text-sm font-bold text-corporate-gold dark:text-corporate-gold-light line-clamp-1 group-hover:text-corporate-warm transition-colors">
-                                                            {doorman.name}
-                                                        </h4>
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            <div className={`w-3 h-3 rounded-full ${
-                                                                doorman.shift.toLowerCase().includes('morning') || doorman.shift.toLowerCase().includes('day') 
-                                                                    ? 'bg-corporate-gold shadow-lg shadow-corporate-gold/30' 
-                                                                    : doorman.shift.toLowerCase().includes('night') 
-                                                                    ? 'bg-corporate-dark-brown shadow-lg shadow-corporate-dark-brown/30'
-                                                                    : 'bg-corporate-warm shadow-lg shadow-corporate-warm/30'
-                                                            }`}></div>
-                                                            <p className="text-xs font-semibold text-muted-foreground">{doorman.shift}</p>
-                                                        </div>
-                                                        
-                                                        
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
                                 </div>
-                            )}
+                            </div>
+                        )}
 
-                            {building.location_link && (
-                                <Card className="overflow-hidden !p-0 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:shadow-xl group bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10">
-                                    {/* Header del mapa mejorado */}
-                                    <div className="bg-gradient-to-r from-corporate-gold/10 via-corporate-gold/15 to-corporate-gold/10 dark:from-corporate-gold/20 dark:via-corporate-gold/25 dark:to-corporate-gold/20 p-4 border-b border-corporate-gold/20 relative overflow-hidden">
-                                        <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light relative z-10">
-                                            <div className="p-2 bg-corporate-gold/10 rounded-full group-hover:bg-corporate-gold/20 transition-colors duration-300">
-                                                <MapPinIcon className="w-4 h-4" />
-                                            </div>
-                                            <span className="font-bold text-sm">Building Location</span>
+                        {building.location_link && (
+                            <Card className="overflow-hidden !p-0 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:shadow-xl group bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10">
+                                {/* Header del mapa mejorado */}
+                                <div className="bg-gradient-to-r from-corporate-gold/10 via-corporate-gold/15 to-corporate-gold/10 dark:from-corporate-gold/20 dark:via-corporate-gold/25 dark:to-corporate-gold/20 p-4 border-b border-corporate-gold/20 relative overflow-hidden">
+                                    <div className="flex items-center gap-2 text-corporate-gold dark:text-corporate-gold-light relative z-10">
+                                        <div className="p-2 bg-corporate-gold/10 rounded-full group-hover:bg-corporate-gold/20 transition-colors duration-300">
+                                            <MapPinIcon className="w-4 h-4" />
                                         </div>
-                                        {/* Decorative moving gradient */}
-                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-corporate-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -translate-x-full group-hover:translate-x-full duration-1000"></div>
+                                        <span className="font-bold text-sm">Building Location</span>
                                     </div>
-                                    
-                                    {/* Contenedor del mapa mejorado */}
-                                    <div className="relative overflow-hidden">
-                                        <div className="aspect-video relative">
-                                            {(() => {
-                                                console.log('=== RENDERING IFRAME ===');
-                                                console.log('Building location_link:', building.location_link);
-                                                console.log('Generated iframe src:', getEmbedUrl(building?.location_link || ''));
-                                                console.log('Iframe key:', `map-${building.id}-${mapKey}`);
-                                                console.log('=== END IFRAME RENDER ===');
-                                                return null;
-                                            })()}
-                                            <iframe
-                                                key={`map-${building.id}-${mapKey}`}
-                                                src={getEmbedUrl(building?.location_link || '')}
-                                                width="100%"
-                                                height="100%"
-                                                style={{ border: 0 }}
-                                                allowFullScreen
-                                                loading="lazy"
-                                                referrerPolicy="no-referrer-when-downgrade"
-                                                className="group-hover:scale-105 transition-transform duration-700 ease-out"
-                                                onLoad={() => console.log('Iframe loaded successfully')}
-                                                onError={() => console.log('Iframe failed to load')}
-                                            />
-                                        </div>
-                                        
-                                        {/* Overlay con efectos mejorados */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                        
-                                        {/* Corner accent */}
-                                        <div className="absolute top-3 right-3 w-3 h-3 bg-corporate-gold/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-150"></div>
-                                        <div className="absolute bottom-3 left-3 w-2 h-2 bg-corporate-warm/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:scale-125"></div>
-                                    </div>
-                                </Card>
-                            )}
-
-                        </div>
-                        <div className='lg:w-8/12 flex flex-col'>
-                            {/* Advanced Table Controls */}
-                            <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-corporate-gold/5 dark:bg-corporate-gold/10 border border-corporate-gold/20 rounded-lg">
-                                <div className="flex items-center gap-4 flex-1">
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-corporate-gold/60 w-4 h-4" />
-                                        <Input
-                                            placeholder="Search apartments, members, locations..."
-                                            value={globalFilter ?? ""}
-                                            onChange={(event) => setGlobalFilter(event.target.value)}
-                                            className="pl-10 w-80 border-corporate-gold/20 focus:border-corporate-gold focus:ring-corporate-gold/20"
+                                    {/* Decorative moving gradient */}
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-corporate-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -translate-x-full group-hover:translate-x-full duration-1000"></div>
+                                </div>
+                                
+                                {/* Contenedor del mapa mejorado */}
+                                <div className="relative overflow-hidden">
+                                    <div className="aspect-video relative">
+                                        {(() => {
+                                            console.log('=== RENDERING IFRAME ===');
+                                            console.log('Building location_link:', building.location_link);
+                                            console.log('Generated iframe src:', getEmbedUrl(building?.location_link || ''));
+                                            console.log('Iframe key:', `map-${building.id}-${mapKey}`);
+                                            console.log('=== END IFRAME RENDER ===');
+                                            return null;
+                                        })()}
+                                        <iframe
+                                            key={`map-${building.id}-${mapKey}`}
+                                            src={getEmbedUrl(building?.location_link || '')}
+                                            width="100%"
+                                            height="100%"
+                                            style={{ border: 0 }}
+                                            allowFullScreen
+                                            loading="lazy"
+                                            referrerPolicy="no-referrer-when-downgrade"
+                                            className="group-hover:scale-105 transition-transform duration-700 ease-out"
+                                            onLoad={() => console.log('Iframe loaded successfully')}
+                                            onError={() => console.log('Iframe failed to load')}
                                         />
                                     </div>
-                                    <div className="hidden sm:block text-sm text-muted-foreground">
-                                        {table.getFilteredRowModel().rows.length} of {table.getCoreRowModel().rows.length} entries
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" size="sm" className="border-corporate-gold/20 hover:bg-corporate-gold/10 hover:border-corporate-gold">
-                                                <Filter className="mr-2 h-4 w-4" />
-                                                Columns <ChevronDown className="ml-1 h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-48">
-                                            {table
-                                                .getAllColumns()
-                                                .filter((column) => column.getCanHide())
-                                                .map((column) => (
-                                                    <DropdownMenuCheckboxItem
-                                                        key={column.id}
-                                                        className="capitalize"
-                                                        checked={column.getIsVisible()}
-                                                        onCheckedChange={(value) =>
-                                                            column.toggleVisibility(!!value)
-                                                        }
-                                                    >
-                                                        {column.id.replace(/_/g, ' ')}
-                                                    </DropdownMenuCheckboxItem>
-                                                ))}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
                                     
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" size="sm" className="border-corporate-gold/20 hover:bg-corporate-gold/10 hover:border-corporate-gold">
-                                                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                                                Export <ChevronDown className="ml-1 h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={exportToCSV}>
-                                                <Download className="mr-2 h-4 w-4" />
-                                                Export to CSV
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={exportToExcel}>
-                                                <Download className="mr-2 h-4 w-4" />
-                                                Export to Excel
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                    {/* Overlay con efectos mejorados */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                    
+                                    {/* Corner accent */}
+                                    <div className="absolute top-3 right-3 w-3 h-3 bg-corporate-gold/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-150"></div>
+                                    <div className="absolute bottom-3 left-3 w-2 h-2 bg-corporate-warm/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:scale-125"></div>
                                 </div>
-                            </div>
+                            </Card>
+                        )}
 
-                            {/* Advanced Data Table */}
-                            <div className="rounded-md border">
-                                <TableComponent>
-                                    <TableHeader>
-                                        {table.getHeaderGroups().map((headerGroup) => (
-                                            <TableRow key={headerGroup.id}>
-                                                {headerGroup.headers.map((header) => (
-                                                    <TableHead key={header.id}>
-                                                        {flexRender(
-                                                            header.column.columnDef.header,
-                                                            header.getContext()
-                                                        )}
-                                                    </TableHead>
-                                                ))}
-                                            </TableRow>
-                                        ))}
-                                    </TableHeader>
-                                    <TableBody>
-                                        {table.getRowModel().rows?.length ? (
-                                            table.getRowModel().rows.map((row) => (
-                                                <ApartmentRowExpanded
-                                                    key={row.id}
-                                                    row={row}
-                                                    handleShowDevices={handleShowDevices}
-                                                />
-                                            ))
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell
-                                                    colSpan={columns.length}
-                                                    className="h-24 text-center"
-                                                >
-                                                    No results found.
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </TableComponent>
-                            </div>
-
-                            {/* Enhanced Pagination */}
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-corporate-gold/20 bg-corporate-gold/5 dark:bg-corporate-gold/10">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <span>
-                                        Showing {((apartments.meta.current_page - 1) * apartments.meta.per_page) + 1} to{' '}
-                                        {Math.min(apartments.meta.current_page * apartments.meta.per_page, apartments.meta.total)}{' '}
-                                        of {apartments.meta.total} entries
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                   {/* <div className="flex items-center gap-2">
-                                        <span className="text-sm text-muted-foreground">Rows per page:</span>
-                                        <select
-                                            value={apartments.meta.per_page}
-                                            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                                            className="border rounded px-2 py-1 text-sm bg-background"
+                    </div>
+                    <div className='lg:w-8/12 flex flex-col'>
+                        {/* Advanced Table Controls */}
+                        <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-corporate-gold/5 dark:bg-corporate-gold/10 border border-corporate-gold/20 rounded-lg">
+                            <div className="flex items-center gap-4 flex-1">
+                                <div className="relative">
+                                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
+                                        isSearching ? 'text-corporate-gold animate-pulse' : 'text-corporate-gold/60'
+                                    }`} />
+                                    <Input
+                                        ref={searchInputRef}
+                                        placeholder="Search apartments, members, locations..."
+                                        value={searchTerm}
+                                        onChange={(event) => handleSearchChange(event.target.value)}
+                                        className="pl-10 w-80 border-corporate-gold/20 focus:border-corporate-gold focus:ring-corporate-gold/20"
+                                        disabled={isSearching}
+                                    />
+                                    {isSearching && (
+                                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-corporate-gold"></div>
+                                        </div>
+                                    )}
+                                    {searchTerm && !isSearching && (
+                                        <button
+                                            onClick={() => handleSearchChange('')}
+                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-corporate-gold/60 hover:text-corporate-gold transition-colors"
                                         >
-                                            {[10, 20, 30, 40, 50].map(pageSize => (
-                                                <option key={pageSize} value={pageSize}>
-                                                    {pageSize}
-                                                </option>
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                               
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="border-corporate-gold/20 hover:bg-corporate-gold/10 hover:border-corporate-gold">
+                                            <Filter className="mr-2 h-4 w-4" />
+                                            Columns <ChevronDown className="ml-1 h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                        {table
+                                            .getAllColumns()
+                                            .filter((column) => column.getCanHide())
+                                            .map((column) => (
+                                                <DropdownMenuCheckboxItem
+                                                    key={column.id}
+                                                    className="capitalize"
+                                                    checked={column.getIsVisible()}
+                                                    onCheckedChange={(value) =>
+                                                        column.toggleVisibility(!!value)
+                                                    }
+                                                >
+                                                    {column.id.replace(/_/g, ' ')}
+                                                </DropdownMenuCheckboxItem>
                                             ))}
-                                        </select>
-                                    </div> */}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="border-corporate-gold/20 hover:bg-corporate-gold/10 hover:border-corporate-gold">
+                                            <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                            Export <ChevronDown className="ml-1 h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={exportToCSV}>
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Export to CSV
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={exportToExcel}>
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Export to Excel
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+
+                        {/* Advanced Data Table */}
+                        <div className="rounded-md border">
+                            <TableComponent>
+                                <TableHeader>
+                                    {table.getHeaderGroups().map((headerGroup) => (
+                                        <TableRow key={headerGroup.id}>
+                                            {headerGroup.headers.map((header) => (
+                                                <TableHead key={header.id}>
+                                                    {flexRender(
+                                                        header.column.columnDef.header,
+                                                        header.getContext()
+                                                    )}
+                                                </TableHead>
+                                            ))}
+                                        </TableRow>
+                                    ))}
+                                </TableHeader>
+                                <TableBody>
+                                    {table.getRowModel().rows?.length ? (
+                                        table.getRowModel().rows.map((row) => (
+                                            <ApartmentRowExpanded
+                                                key={row.id}
+                                                row={row}
+                                                handleShowDevices={handleShowDevices}
+                                            />
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell
+                                                colSpan={columns.length}
+                                                className="h-24 text-center"
+                                            >
+                                                No results found.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </TableComponent>
+                        </div>
+
+                        {/* Enhanced Pagination */}
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-corporate-gold/20 bg-corporate-gold/5 dark:bg-corporate-gold/10">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>
+                                    Showing {((apartments.meta.current_page - 1) * apartments.meta.per_page) + 1} to{' '}
+                                    {Math.min(apartments.meta.current_page * apartments.meta.per_page, apartments.meta.total)}{' '}
+                                    of {apartments.meta.total} entries
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                               {/* <div className="flex items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">Rows per page:</span>
+                                    <select
+                                        value={apartments.meta.per_page}
+                                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                                        className="border rounded px-2 py-1 text-sm bg-background"
+                                    >
+                                        {[10, 20, 30, 40, 50].map(pageSize => (
+                                            <option key={pageSize} value={pageSize}>
+                                                {pageSize}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div> */}
 
                                     <div className="flex items-center gap-1">
                                         <Button
@@ -1540,8 +1593,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+           
         </AppLayout>
     );
 }

@@ -315,7 +315,7 @@ class BuildingController extends Controller
             ->with('success', 'Building deleted successfully');
     }
 
-    public function apartments(Building $building)
+    public function apartments(Building $building, Request $request)
     {
         // Asegurar que el building tenga todos los datos necesarios
         $building = Building::with(['owner', 'doormen'])->find($building->id);
@@ -328,18 +328,34 @@ class BuildingController extends Controller
             'location_link_format_detected' => $this->detectLocationFormat($building->location_link)
         ]);
         
+        // Obtener parámetros de búsqueda y paginación
+        $search = $request->input('search', '');
+        $perPage = $request->input('per_page', 6);
+        
         $apartments = Apartment::with([
             'tenants.devices' => function ($query) {
                 $query->with(['tenants', 'brand', 'system', 'model', 'name_device', 'sharedWith']);
             },
-
             'tenants.sharedDevices' => function ($q) { // Dispositivos compartidos
                 $q->with(['brand', 'system', 'model', 'name_device', 'owner']);
             }
-
         ])->where('buildings_id', $building->id)
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    // Buscar en nombre del apartamento
+                    $q->where('name', 'like', "%{$search}%")
+                      // Buscar en ubicación del apartamento
+                      ->orWhere('ubicacion', 'like', "%{$search}%")
+                      // Buscar en inquilinos (nombre, email, teléfono)
+                      ->orWhereHas('tenants', function ($tenantQuery) use ($search) {
+                          $tenantQuery->where('name', 'like', "%{$search}%")
+                                     ->orWhere('email', 'like', "%{$search}%")
+                                     ->orWhere('phone', 'like', "%{$search}%");
+                      });
+                });
+            })
             ->latest()
-            ->paginate(6);
+            ->paginate($perPage);
 
         $data = $apartments->toArray();
         
@@ -363,7 +379,11 @@ class BuildingController extends Controller
             'brands' => Brand::all(),
             'systems' => System::all(),
             'models' => DeviceModel::all(),
-            'name_devices' => NameDevice::all()
+            'name_devices' => NameDevice::all(),
+            'filters' => [
+                'search' => $search,
+                'per_page' => $perPage
+            ]
         ]);
     }
 
