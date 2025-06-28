@@ -5,6 +5,8 @@ import { Owner } from "./Owner";
 export interface Building {
     id: number;
     name: string;
+    managing_company?: string;
+    address?: string;
     image: string;
     description: string;
     location_link: string;

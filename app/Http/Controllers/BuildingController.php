@@ -57,6 +57,8 @@ class BuildingController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'managing_company' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
             'description' => 'nullable|string',
             'location_link' => 'nullable|string',
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -109,6 +111,8 @@ class BuildingController extends Controller
         // Lógica normal de actualización del building
         $request->validate([
             'name' => 'required|string|max:255',
+            'managing_company' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
             'description' => 'nullable|string',
             'location_link' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -141,6 +145,8 @@ class BuildingController extends Controller
     {
         $data = [
             'name' => $request->name,
+            'managing_company' => $request->managing_company,
+            'address' => $request->address,
             'description' => $request->description,
             'location_link' => $request->location_link,
             'status' => true

@@ -13,6 +13,8 @@ class Building extends Model
 
     protected $fillable = [
         'name',
+        'managing_company',
+        'address',
         'image',
         'description',
         'location_link',

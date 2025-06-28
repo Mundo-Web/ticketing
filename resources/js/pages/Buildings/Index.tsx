@@ -113,6 +113,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         id: null as number | null,
         name: '',
+        managing_company: '',
+        address: '',
         image: null as File | null,
         description: '',
         location_link: '',
@@ -135,6 +137,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
     // Helper functions for unsaved changes detection
     const checkForUnsavedChanges = () => {
         const hasData = data.name.trim() !== '' || 
+                       data.managing_company.trim() !== '' ||
+                       data.address.trim() !== '' ||
                        data.description.trim() !== '' || 
                        data.location_link.trim() !== '' ||
                        data.owner.name.trim() !== '' ||
@@ -252,6 +256,26 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                     </div>
                 );
             },
+        },
+        {
+            accessorKey: "managing_company",
+            header: "Managing Company",
+            enableSorting: false,
+            cell: ({ row }) => (
+                <div className="max-w-[150px] truncate">
+                    {row.getValue("managing_company") || "N/A"}
+                </div>
+            ),
+        },
+        {
+            accessorKey: "address",
+            header: "Address",
+            enableSorting: false,
+            cell: ({ row }) => (
+                <div className="max-w-[200px] truncate">
+                    {row.getValue("address") || "No address"}
+                </div>
+            ),
         },
         {
             accessorKey: "description",
@@ -463,7 +487,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
             const avgApartmentsPerBuilding = totalBuildings > 0 ? (totalApartments / totalBuildings).toFixed(1) : '0';
 
             // Company header
-            sheet.mergeCells('A1:H1');
+            sheet.mergeCells('A1:J1');
             const titleCell = sheet.getCell('A1');
             titleCell.value = 'BUILDINGS MANAGEMENT REPORT';
             titleCell.style = {
@@ -480,7 +504,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
             sheet.getRow(1).height = 40;
 
             // Report metadata
-            sheet.mergeCells('A2:H2');
+            sheet.mergeCells('A2:J2');
             const metaCell = sheet.getCell('A2');
             metaCell.value = `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`;
             metaCell.style = {
@@ -501,7 +525,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
             stats.forEach((statRow, index) => {
                 if (index === 0) {
                     // Header row
-                    sheet.mergeCells(`A${currentRow}:H${currentRow}`);
+                    sheet.mergeCells(`A${currentRow}:J${currentRow}`);
                     const headerCell = sheet.getCell(`A${currentRow}`);
                     headerCell.value = statRow[0];
                     headerCell.style = {
@@ -533,7 +557,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
             currentRow += 2; // Space before data table
 
             // Data headers
-            const headers = ['ID', 'Building Name', 'Description', 'Status', 'Apartments', 'Doormen', 'Owner', 'Created Date'];
+            const headers = ['ID', 'Building Name', 'Managing Company', 'Address', 'Description', 'Status', 'Apartments', 'Doormen', 'Owner', 'Created Date'];
             
             headers.forEach((header, index) => {
                 const cell = sheet.getCell(currentRow, index + 1);
@@ -564,6 +588,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                 const rowData = [
                     building.id,
                     building.name || 'N/A',
+                    building.managing_company || 'N/A',
+                    building.address || 'N/A',
                     building.description || 'N/A',
                     status,
                     apartmentCount,
@@ -625,13 +651,13 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
 
             // Set column widths
             sheet.columns = [
-                { width: 8 }, { width: 25 }, { width: 30 }, { width: 12 }, 
+                { width: 8 }, { width: 25 }, { width: 20 }, { width: 25 }, { width: 30 }, { width: 12 }, 
                 { width: 12 }, { width: 12 }, { width: 20 }, { width: 15 }
             ];
 
             // Summary row
             currentRow += 1;
-            sheet.mergeCells(`A${currentRow}:H${currentRow}`);
+            sheet.mergeCells(`A${currentRow}:J${currentRow}`);
             const summaryCell = sheet.getCell(`A${currentRow}`);
             summaryCell.value = `📋 Summary: ${totalBuildings} buildings total (${activeBuildings} active, ${archivedBuildings} archived) with ${totalApartments} apartments managed by ${totalDoormen} doormen`;
             summaryCell.style = {
@@ -685,6 +711,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         const formData = new FormData();
         // Building data
         formData.append('name', data.name);
+        formData.append('managing_company', data.managing_company);
+        formData.append('address', data.address);
         if (data.image) formData.append('image', data.image);
         formData.append('description', data.description);
         formData.append('location_link', data.location_link);
@@ -705,18 +733,17 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
             if (doorman.photo) formData.append(`doormen[${index}][photo]`, doorman.photo);
         });
 
-        post(route('buildings.store'), {
-            data: formData,
-            forceFormData: true,
+        // Use router.post for FormData
+        router.post(route('buildings.store'), formData, {
             preserveScroll: true,
             onSuccess: () => {
                 reset();
                 setShowCreateModal(false);
                 toast.success('Building created successfully');
             },
-            onError: (errors) => {
+            onError: (errors: Record<string, string>) => {
                 console.error('Errors:', errors);
-                Object.values(errors).forEach(error => toast.error(error));
+                Object.values(errors).forEach((error: string) => toast.error(error));
             }
         });
     };
@@ -725,6 +752,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         setData({
             id: building.id,
             name: building.name,
+            managing_company: building.managing_company || '',
+            address: building.address || '',
             image: null,
             description: building.description,
             location_link: building.location_link,
@@ -754,6 +783,8 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         const formData = new FormData();
         formData.append('_method', 'PUT');
         formData.append('name', data.name);
+        formData.append('managing_company', data.managing_company);
+        formData.append('address', data.address);
         if (data.image) formData.append('image', data.image);
         formData.append('description', data.description);
         formData.append('location_link', data.location_link);
@@ -1582,6 +1613,35 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                                             required
                                                         />
                                                         {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                                                    </div>
+
+                                                    <div className="space-y-4">
+                                                        <Label htmlFor="managing_company" className="text-base">
+                                                            Managing Company
+                                                        </Label>
+                                                        <Input
+                                                            id="managing_company"
+                                                            value={data.managing_company}
+                                                            onChange={(e) => setFormData('managing_company', e.target.value)}
+                                                            className={`h-11 ${errors.managing_company ? 'ring-2 ring-destructive' : ''}`}
+                                                            placeholder="Enter managing company name"
+                                                        />
+                                                        {errors.managing_company && <p className="text-sm text-destructive">{errors.managing_company}</p>}
+                                                    </div>
+
+                                                    <div className="space-y-4">
+                                                        <Label htmlFor="address" className="text-base">
+                                                            Address
+                                                        </Label>
+                                                        <Textarea
+                                                            id="address"
+                                                            value={data.address}
+                                                            onChange={(e) => setFormData('address', e.target.value)}
+                                                            rows={3}
+                                                            className="resize-none"
+                                                            placeholder="Enter building address..."
+                                                        />
+                                                        {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
                                                     </div>
 
                                                     <div className="space-y-4">
