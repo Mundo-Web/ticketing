@@ -7,7 +7,7 @@ import {
     List, CheckCircle, AlertCircle, Laptop, Trophy, Target, AlertTriangle,
     TrendingUp, Eye, FileText, Users, Star, Grid3X3,
     TableIcon, RefreshCw, ChevronRight, MapPin,
-    ExternalLink, History, MessageSquare, Phone, Mail, Timer, ChevronLeft
+    ExternalLink, History, MessageSquare, Phone, Mail, Timer, ChevronLeft, Tag
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -62,9 +62,18 @@ interface TicketDetail {
     description: string;
     status: 'open' | 'in_progress' | 'resolved' | 'closed';
     priority: 'low' | 'medium' | 'high' | 'urgent';
+    category: string;
     created_at: string;
     updated_at: string;
     resolved_at?: string;
+    user?: {
+        tenant?: {
+            name: string;
+            email?: string;
+            phone?: string;
+            photo?: string;
+        };
+    };
     device?: {
         id: number;
         name: string;
@@ -394,6 +403,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                     description: "This is a sample ticket description with technical details...",
                     status: 'in_progress',
                     priority: 'high',
+                    category: 'Hardware',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                     history: [
@@ -1408,15 +1418,15 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                                 variant="outline"
                                                                 size="sm"
                                                                 onClick={() => handleViewTickets(technical, 'recent')}
-                                                                className="text-xs border-corporate-gold/30 hover:bg-corporate-gold hover:text-white"
+                                                                className="text-xs border-corporate-gold/30 hover:bg-primary hover:text-white"
                                                             >
                                                                 <Eye className="w-3 h-3 mr-1" />
                                                                 View All Recent
                                                             </Button>
                                                         </TooltipTrigger>
                                                         <TooltipContent>
-                                                            <p>View all completed tickets from last 7 days</p>
-                                                            <p className="text-blue-500">Excludes active tickets</p>
+                                                            <p>View tickets from last 7 days</p>
+                                                           
                                                         </TooltipContent>
                                                     </Tooltip>
                                                 </div>
@@ -2394,10 +2404,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    navigateToTicket(ticket.id);
-                                                                }}
+                                                                onClick={() => handleViewTicketDetail(ticket.id)}
                                                                 className="border-corporate-gold/30 hover:bg-primary hover:text-white"
                                                             >
                                                                 <ExternalLink className="w-4 h-4" />
@@ -2449,166 +2456,216 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                     </DialogContent>
                 </Dialog>
 
-                {/* Enhanced Ticket Detail Modal */}
+                {/* Enhanced Ticket Detail Modal - Matching Tickets Index Style */}
                 <Dialog open={showTicketDetailModal} onOpenChange={setShowTicketDetailModal}>
                     <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                        <DialogHeader className="flex-shrink-0">
-                            <DialogTitle className="flex items-center gap-2">
-                                <History className="w-5 h-5 text-corporate-gold" />
-                                {selectedTicketDetail ? `Ticket #${selectedTicketDetail.id} - ${selectedTicketDetail.title}` : 'Loading...'}
+                        <DialogHeader className="flex-shrink-0 pb-6 border-b border-corporate-gold/20">
+                            <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+                                <div className="p-2 bg-gradient-to-r from-corporate-gold to-corporate-warm rounded-lg">
+                                    <FileText className="w-6 h-6 text-white" />
+                                </div>
+                                Ticket Details
                             </DialogTitle>
                         </DialogHeader>
                         
-                        <TooltipProvider>
-                            <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-corporate-gold/20 scrollbar-track-transparent hover:scrollbar-thumb-corporate-gold/40">
+                        <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-corporate-gold/20 scrollbar-track-transparent hover:scrollbar-thumb-corporate-gold/40">
                             {loadingTicketDetail ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-corporate-gold"></div>
-                                    <span className="ml-2 text-corporate-gold">Loading ticket details...</span>
+                                <div className="flex items-center justify-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-corporate-gold mb-4"></div>
+                                    <p className="text-lg font-medium text-corporate-gold">Loading ticket details...</p>
                                 </div>
                             ) : selectedTicketDetail ? (
-                                <div className="space-y-6">
-                                    {/* Ticket Header */}
-                                    <div className="bg-gradient-to-r from-corporate-gold/10 to-corporate-warm/10 p-4 rounded-lg border border-corporate-gold/20">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <h3 className="font-semibold text-lg text-corporate-gold mb-2">{selectedTicketDetail.title}</h3>
-                                                <p className="text-sm text-muted-foreground">{selectedTicketDetail.description}</p>
+                                <div className="px-6 pb-6">
+                                    {/* Member Card - Creator of the ticket */}
+                                    {selectedTicketDetail.user && selectedTicketDetail.user.tenant && (
+                                        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-3 mb-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="flex-shrink-0">
+                                                    {selectedTicketDetail.user.tenant.photo ? (
+                                                        <img
+                                                            src={selectedTicketDetail.user.tenant.photo.startsWith('http')
+                                                                ? selectedTicketDetail.user.tenant.photo
+                                                                : `/storage/${selectedTicketDetail.user.tenant.photo}`}
+                                                            alt={selectedTicketDetail.user.tenant.name}
+                                                            className="w-12 h-12 rounded-full border-2 border-purple-300 shadow-md object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-sm font-bold">
+                                                            {selectedTicketDetail.user.tenant.name?.substring(0, 1) || '?'}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1 mb-1">
+                                                        <User className="w-3 h-3 text-purple-600" />
+                                                        <p className="text-sm font-semibold text-purple-900 truncate">
+                                                            {selectedTicketDetail.user.tenant.name}
+                                                        </p>
+                                                    </div>
+                                                    {selectedTicketDetail.user.tenant.email && (
+                                                        <div className="flex items-center gap-1 mb-1">
+                                                            <Mail className="w-3 h-3 text-green-600" />
+                                                            <p className="text-xs text-green-800 truncate">
+                                                                {selectedTicketDetail.user.tenant.email}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {selectedTicketDetail.user.tenant.phone && (
+                                                        <div className="flex items-center gap-1 mb-1">
+                                                            <Phone className="w-3 h-3 text-orange-600" />
+                                                            <p className="text-xs text-orange-800 truncate">
+                                                                {selectedTicketDetail.user.tenant.phone}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="space-y-2 text-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium">Status:</span>
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedTicketDetail.status)}`}>
-                                                        {selectedTicketDetail.status.replace('_', ' ')}
-                                                    </span>
+                                        </div>
+                                    )}
+
+                                    {/* Ticket Info */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="font-semibold text-slate-900">{selectedTicketDetail.title}</h3>
+                                            <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${getStatusColor(selectedTicketDetail.status)}`}>
+                                                {selectedTicketDetail.status.replace('_', ' ')}
+                                            </span>
+                                        </div>
+
+                                        <p className="text-slate-600 text-sm leading-relaxed">{selectedTicketDetail.description}</p>
+
+                                        <div className="grid grid-cols-2 gap-3 text-sm">
+                                            <div>
+                                                <span className="text-slate-500">ID:</span>
+                                                <span className="ml-2 font-medium">#{selectedTicketDetail.id}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-slate-500">Category:</span>
+                                                <span className="ml-2 font-medium">{selectedTicketDetail.category}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Device and Category Badges */}
+                                        <div className="space-y-2">
+                                            <div className="flex flex-wrap gap-2 items-center">
+                                                {selectedTicketDetail.device && (
+                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-100 text-sky-700 text-xs font-medium">
+                                                        <Laptop className="w-3 h-3" />
+                                                        {selectedTicketDetail.device.name || "Device"}
+                                                    </div>
+                                                )}
+                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-100 text-purple-700 text-xs font-medium">
+                                                    <Tag className="w-3 h-3" />
+                                                    {selectedTicketDetail.category}
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium">Priority:</span>
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                        selectedTicketDetail.priority === 'urgent' ? 'bg-red-100 text-red-800' :
-                                                        selectedTicketDetail.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                                                        selectedTicketDetail.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                                                    }`}>
-                                                        {selectedTicketDetail.priority}
-                                                    </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Timestamps */}
+                                        <div className="text-xs text-slate-500 space-y-1 mb-4">
+                                            <div className="flex items-center gap-1">
+                                                <Calendar className="w-3 h-3" />
+                                                Created: {formatDate(selectedTicketDetail.created_at)}
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                Updated: {formatDate(selectedTicketDetail.updated_at)}
+                                            </div>
+                                            {selectedTicketDetail.resolved_at && (
+                                                <div className="flex items-center gap-1">
+                                                    <CheckCircle className="w-3 h-3" />
+                                                    Resolved: {formatDate(selectedTicketDetail.resolved_at)}
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium">Created:</span>
-                                                    <span>{formatDate(selectedTicketDetail.created_at)}</span>
-                                                </div>
-                                                {selectedTicketDetail.resolved_at && (
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-medium">Resolved:</span>
-                                                        <span>{formatDate(selectedTicketDetail.resolved_at)}</span>
+                                            )}
+                                        </div>
+
+                                        {/* Building, Device, and Additional Details */}
+                                        {(selectedTicketDetail.building || selectedTicketDetail.device) && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                {selectedTicketDetail.building && (
+                                                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-lg border">
+                                                        <h4 className="font-medium text-sm text-corporate-gold mb-1 flex items-center gap-1">
+                                                            <MapPin className="w-3 h-3" />
+                                                            Building
+                                                        </h4>
+                                                        <p className="text-sm">{selectedTicketDetail.building.name}</p>
+                                                        {selectedTicketDetail.building.address && (
+                                                            <p className="text-xs text-muted-foreground">{selectedTicketDetail.building.address}</p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                
+                                                {selectedTicketDetail.device && (
+                                                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-lg border">
+                                                        <h4 className="font-medium text-sm text-corporate-gold mb-1 flex items-center gap-1">
+                                                            <Laptop className="w-3 h-3" />
+                                                            Device Details
+                                                        </h4>
+                                                        <p className="text-sm">{selectedTicketDetail.device.name}</p>
+                                                        {selectedTicketDetail.device.brand && (
+                                                            <p className="text-xs text-muted-foreground">{selectedTicketDetail.device.brand.name}</p>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
 
-                                    {/* Additional Details */}
-                                    {(selectedTicketDetail.building || selectedTicketDetail.device || selectedTicketDetail.tenant) && (
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            {selectedTicketDetail.building && (
-                                                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg">
-                                                    <h4 className="font-medium text-sm text-corporate-gold mb-1 flex items-center gap-1">
-                                                        <MapPin className="w-3 h-3" />
-                                                        Building
-                                                    </h4>
-                                                    <p className="text-sm">{selectedTicketDetail.building.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{selectedTicketDetail.building.address}</p>
-                                                </div>
-                                            )}
-                                            
-                                            {selectedTicketDetail.device && (
-                                                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg">
-                                                    <h4 className="font-medium text-sm text-corporate-gold mb-1 flex items-center gap-1">
-                                                        <Laptop className="w-3 h-3" />
-                                                        Device
-                                                    </h4>
-                                                    <p className="text-sm">{selectedTicketDetail.device.name}</p>
-                                                    {selectedTicketDetail.device.brand && (
-                                                        <p className="text-xs text-muted-foreground">{selectedTicketDetail.device.brand.name}</p>
-                                                    )}
-                                                </div>
-                                            )}
-                                            
-                                            {selectedTicketDetail.tenant && (
-                                                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg">
-                                                    <h4 className="font-medium text-sm text-corporate-gold mb-1 flex items-center gap-1">
-                                                        <User className="w-3 h-3" />
-                                                        Tenant
-                                                    </h4>
-                                                    <p className="text-sm">{selectedTicketDetail.tenant.name}</p>
-                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                                        <Mail className="w-3 h-3" />
-                                                        <span>{selectedTicketDetail.tenant.email}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                        <Phone className="w-3 h-3" />
-                                                        <span>{selectedTicketDetail.tenant.phone}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                    <div className="border-t border-slate-200 my-4"></div>
 
-                                    {/* Ticket History */}
-                                    <div>
-                                        <h3 className="font-semibold text-lg text-corporate-gold mb-4 flex items-center gap-2">
-                                            <History className="w-5 h-5" />
-                                            Ticket History
-                                        </h3>
-                                        <div className="space-y-4">
-                                            {selectedTicketDetail.history.map((historyItem) => (
-                                                <div key={historyItem.id} className="flex gap-4">
-                                                    <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-corporate-gold to-corporate-warm rounded-full flex items-center justify-center">
-                                                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg border border-corporate-gold/20">
-                                                            <div className="flex items-center justify-between mb-2">
-                                                                <h4 className="font-medium text-sm text-corporate-gold">{historyItem.action}</h4>
-                                                                <span className="text-xs text-muted-foreground">{formatDate(historyItem.created_at)}</span>
-                                                            </div>
-                                                            <p className="text-sm text-muted-foreground">{historyItem.description}</p>
-                                                            {historyItem.user && (
-                                                                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                                                                    <User className="w-3 h-3" />
-                                                                    <span>{historyItem.user.name} ({historyItem.user.role})</span>
-                                                                </div>
+                                    {/* History */}
+                                    <div className="space-y-4">
+                                        <h4 className="font-medium text-slate-900 flex items-center gap-2">
+                                            <Clock className="w-4 h-4 text-blue-500" />
+                                            History
+                                        </h4>
+
+                                        <div className="space-y-3">
+                                            {!selectedTicketDetail.history || selectedTicketDetail.history.length === 0 ? (
+                                                <div className="text-center py-6 text-slate-500">
+                                                    <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                                    <p className="text-sm">No history available</p>
+                                                </div>
+                                            ) : (
+                                                [...selectedTicketDetail.history]
+                                                    .slice()
+                                                    .reverse()
+                                                    .map((h: {id: number, action: string, description: string, created_at: string, user?: {name: string}}, idx: number, arr: {id: number, action: string, description: string, created_at: string, user?: {name: string}}[]) => (
+                                                        <div key={h.id} className="relative pl-6 pb-4 last:pb-0">
+                                                            <div className="absolute left-0 top-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow"></div>
+                                                            {idx !== arr.length - 1 && (
+                                                                <div className="absolute left-1.5 top-4 w-0.5 h-full bg-slate-200"></div>
                                                             )}
+
+                                                            <div className="bg-slate-50 rounded-lg p-3 ml-4 shadow-sm">
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <span className="text-xs font-medium text-blue-600 uppercase tracking-wide">
+                                                                        {h.action.replace("_", " ")}
+                                                                    </span>
+                                                                    {idx === 0 && (
+                                                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                                                            Recent
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-sm text-slate-700 mb-2">{h.description}</p>
+                                                                <div className="flex items-center justify-between text-xs text-slate-500">
+                                                                    <span className="flex items-center gap-1">
+                                                                        <User className="w-3 h-3" />
+                                                                        {h.user ? h.user.name : "System"}
+                                                                    </span>
+                                                                    <span>{formatDate(h.created_at)}</span>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                    ))
+                                            )}
                                         </div>
                                     </div>
-
-                                    {/* Comments Section */}
-                                    {selectedTicketDetail.comments && selectedTicketDetail.comments.length > 0 && (
-                                        <div>
-                                            <h3 className="font-semibold text-lg text-corporate-gold mb-4 flex items-center gap-2">
-                                                <MessageSquare className="w-5 h-5" />
-                                                Comments
-                                            </h3>
-                                            <div className="space-y-3">
-                                                {selectedTicketDetail.comments.map((comment) => (
-                                                    <div key={comment.id} className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg border border-corporate-gold/20">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="font-medium text-sm text-corporate-gold">{comment.user.name}</span>
-                                                            <span className="text-xs text-muted-foreground">{formatDate(comment.created_at)}</span>
-                                                        </div>
-                                                        <p className="text-sm text-muted-foreground">{comment.content}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
 
                                     {/* Performance Metrics */}
                                     {selectedTicketDetail.resolution_time && (
-                                        <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-lg border border-green-200">
+                                        <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200 mt-6">
                                             <h3 className="font-semibold text-lg text-green-600 mb-2 flex items-center gap-2">
                                                 <Timer className="w-5 h-5" />
                                                 Resolution Metrics
@@ -2640,16 +2697,15 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                     )}
                                 </div>
                             ) : (
-                                <div className="text-center py-8">
+                                <div className="text-center py-12">
                                     <AlertTriangle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                                     <p className="text-lg font-medium text-muted-foreground">Error loading ticket details</p>
                                     <p className="text-sm text-muted-foreground">Please try again later</p>
                                 </div>
                             )}
-                            </div>
-                        </TooltipProvider>
+                        </div>
                         
-                        <DialogFooter className="flex-shrink-0 pt-4">
+                        <DialogFooter className="flex-shrink-0 pt-4 border-t border-corporate-gold/20">
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button 
@@ -2658,32 +2714,16 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                             setShowTicketDetailModal(false);
                                             setSelectedTicketDetail(null);
                                         }}
+                                        className="px-6 py-2.5"
                                     >
                                         <ChevronLeft className="w-4 h-4 mr-1" />
-                                        Back
+                                        Back to List
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                     <p>Return to ticket list</p>
                                 </TooltipContent>
                             </Tooltip>
-                            {selectedTicketDetail && (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button 
-                                            onClick={() => navigateToTicket(selectedTicketDetail.id)}
-                                            className="bg-gradient-to-r from-corporate-gold to-corporate-warm hover:from-corporate-warm hover:to-corporate-gold"
-                                        >
-                                            <ExternalLink className="w-4 h-4 mr-1" />
-                                            Open Full Ticket
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Navigate to full ticket page</p>
-                                        <p>Edit ticket, add comments, and more</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
