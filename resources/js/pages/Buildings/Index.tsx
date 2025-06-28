@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     LayoutGrid, Table as TableIcon, Plus, Edit, Trash2, UploadCloud,
     ChevronLeft, ChevronRight, Archive, MapPin, ArchiveRestore,
@@ -870,6 +870,34 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
         return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(locationLink)}`;
     };
 
+    // Estados para doormen (movidos fuera de GridView)
+    const [selectedDoorman, setSelectedDoorman] = useState<Doorman | null>(null);
+    const [openBuildingId, setOpenBuildingId] = useState<number | null>(null);
+
+    // Effect para cerrar la lista de doormen al hacer clic fuera
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            // Si hay una lista abierta y el clic no es en el botón de doormen o en la lista
+            if (openBuildingId !== null) {
+                const target = event.target as Element;
+                const isClickOnDoormenButton = target.closest('[data-doormen-button]');
+                const isClickOnDoormenList = target.closest('[data-doormen-list]');
+                
+                if (!isClickOnDoormenButton && !isClickOnDoormenList) {
+                    setOpenBuildingId(null);
+                }
+            }
+        };
+
+        if (openBuildingId !== null) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [openBuildingId]);
+
     // Vista de cuadrícula
     const GridView = ({ buildings, onEdit, onDelete, onToggleStatus, isUpdatingStatus, gridColumns, onShowLocation }: {
         buildings: Building[],
@@ -890,13 +918,13 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                 default: return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4';
             }
         };
-        const [selectedDoorman, setSelectedDoorman] = useState<Doorman | null>(null);
-        const [openBuildingId, setOpenBuildingId] = useState<number | null>(null);
 
         return (
             <div className={`grid ${getGridClass()} gap-8`}>
                 {buildings.map((building) => (
-                    <div key={building.id} className="group relative bg-gradient-to-br from-background via-muted/20 to-background rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-border/50 hover:border-primary/30 overflow-hidden backdrop-blur-sm">
+                    <div key={building.id} className="group relative bg-gradient-to-br from-background via-muted/20 to-background rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-border/50 hover:border-primary/30 backdrop-blur-sm"
+                        style={{ overflow: 'visible' }}
+                    >
                         {/* Status Indicator */}
                         <div className={`absolute text-primary-foreground top-4 left-4 z-10 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md ${
                             building.status 
@@ -928,7 +956,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                 <img
                                     src={`/storage/${building.image}`}
                                     alt={building.name}
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                    className="w-full !rounded-t-2xl h-full object-cover transition-transform duration-700  "
                                     onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                                         e.currentTarget.src = '/images/default-builder-square.png';
                                     }}
@@ -958,6 +986,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                     <button
                                         onClick={() => setOpenBuildingId(openBuildingId === building.id ? null : building.id)}
                                         className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all duration-300 hover:scale-105"
+                                        data-doormen-button
                                     >
                                         <span className="text-sm font-semibold text-primary">{building.doormen.length}</span>
                                         <User className="w-4 h-4 text-primary" />
@@ -965,7 +994,10 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
 
                                     {/* Doormen List */}
                                     {openBuildingId === building.id && (
-                                        <div className="absolute right-0 top-full mt-3 z-30 space-y-3 animate-in slide-in-from-top-2">
+                                        <div 
+                                            className="fixed top-20 right-4 z-40 space-y-3 animate-in slide-in-from-top-2 min-w-max shadow-2xl"
+                                            data-doormen-list
+                                        >
                                             {building.doormen.map((doorman, index) => (
                                                 <div
                                                     key={doorman.id}
@@ -983,9 +1015,12 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                                     </div>
 
                                                     <img
-                                                        src={doorman.photo ? `/storage/${doorman.photo}` : '/placeholder-user.jpg'}
+                                                        src={`/storage/${doorman.photo}`}
                                                         alt={doorman.name}
                                                         className="w-10 h-10 rounded-full object-cover border-2 border-primary/30"
+                                                           onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                            e.currentTarget.src = '/images/default-user.png';
+                                                        }}
                                                     />
                                                     <div className="w-2 h-2 rounded-full bg-accent absolute -bottom-1 -right-1 border-2 border-background"></div>
                                                 </div>
@@ -1012,7 +1047,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                             <div className="flex gap-3 pt-2">
                                 {/* Admin Button */}
                                 <Link
-                                    href={route('buildings.apartments', building)}
+                                    href={route('buildings.apartments', building.id)}
                                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg group/admin"
                                 >
                                     <span>Admin</span>
@@ -1068,100 +1103,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
 
                         {/* Hover Effect Border */}
                         <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-                        {/* Enhanced Doorman Modal with Advanced Animations */}
-                        {selectedDoorman && (
-                            <div 
-                                className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300"
-                                onClick={(e) => {
-                                    if (e.target === e.currentTarget) setSelectedDoorman(null);
-                                }}
-                            >
-                                <div className="bg-background/95 dark:bg-background/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full mx-4 overflow-hidden border border-border/50 dark:border-border/30 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-                                    {/* Close Button - Outside */}
-                                    <button
-                                        onClick={() => setSelectedDoorman(null)}
-                                        className="absolute -top-2 -right-2 z-10 w-10 h-10 rounded-full bg-background dark:bg-background shadow-lg border border-border/50 dark:border-border/30 flex items-center justify-center hover:scale-110 transition-all duration-200 group"
-                                    >
-                                        <X className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                                    </button>
 
-                                    {/* Header with enhanced gradient and dark mode support */}
-                                    <div className="relative p-8 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 dark:from-primary/20 dark:via-secondary/10 dark:to-accent/20">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent dark:from-primary/10 dark:to-transparent"></div>
-                                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)] dark:bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)]"></div>
-                                        
-                                        <div className="relative flex flex-col items-center">
-                                            <div className="relative group">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-accent/30 rounded-full blur-lg scale-110 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                                                <img
-                                                    src={selectedDoorman.photo
-                                                        ? `/storage/${selectedDoorman.photo}`
-                                                        : '/placeholder-user.jpg'}
-                                                    alt={selectedDoorman.name}
-                                                    className="relative w-28 h-28 rounded-full object-cover border-4 border-primary/30 dark:border-primary/50 shadow-xl transition-transform duration-300 group-hover:scale-105"
-                                                />
-                                                {/* Status indicator with pulse animation */}
-                                                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-accent rounded-full border-4 border-background dark:border-background flex items-center justify-center shadow-lg">
-                                                    <div className="w-3 h-3 bg-background dark:bg-background rounded-full animate-pulse"></div>
-                                                    <div className="absolute inset-0 bg-accent rounded-full animate-ping opacity-75"></div>
-                                                </div>
-                                            </div>
-                                            
-                                            <h4 className="text-2xl font-bold text-foreground dark:text-foreground mt-6 animate-in slide-in-from-bottom-2 duration-500 delay-100">
-                                                {selectedDoorman.name}
-                                            </h4>
-                                            
-                                            <div className="px-4 py-2 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary rounded-full text-sm font-semibold mt-3 capitalize backdrop-blur-sm border border-primary/20 dark:border-primary/40 animate-in slide-in-from-bottom-2 duration-500 delay-200">
-                                                {selectedDoorman.shift === 'morning' ? '🌅 Morning' :
-                                                selectedDoorman.shift === 'afternoon' ? '☀️ Afternoon' : '🌙 Night'} Shift
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Content with improved spacing and dark mode */}
-                                    <div className="p-8 space-y-6">
-                                        <div className="space-y-4">
-                                            {/* Email Card */}
-                                            <div className="group flex items-center gap-4 p-4 rounded-2xl bg-muted/30 dark:bg-muted/20 border border-border/20 dark:border-border/10 hover:bg-muted/50 dark:hover:bg-muted/30 transition-all duration-300 animate-in slide-in-from-left duration-500 delay-300">
-                                                <div className="w-12 h-12 rounded-2xl bg-primary/20 dark:bg-primary/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                                    <svg className="w-5 h-5 text-primary dark:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                                                    </svg>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase tracking-wider">Email</div>
-                                                    <div className="text-sm font-semibold text-foreground dark:text-foreground mt-1 truncate">{selectedDoorman.email || 'Not provided'}</div>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Phone Card */}
-                                            <div className="group flex items-center gap-4 p-4 rounded-2xl bg-muted/30 dark:bg-muted/20 border border-border/20 dark:border-border/10 hover:bg-muted/50 dark:hover:bg-muted/30 transition-all duration-300 animate-in slide-in-from-right duration-500 delay-400">
-                                                <div className="w-12 h-12 rounded-2xl bg-secondary/20 dark:bg-secondary/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                                    <svg className="w-5 h-5 text-secondary dark:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                                    </svg>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase tracking-wider">Phone</div>
-                                                    <div className="text-sm font-semibold text-foreground dark:text-foreground mt-1 truncate">{selectedDoorman.phone || 'Not provided'}</div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Enhanced Close Button */}
-                                        <Button
-                                            onClick={() => setSelectedDoorman(null)}
-                                            className="w-full mt-8 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary dark:from-primary dark:to-primary/90 text-primary-foreground rounded-2xl py-4 font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg shadow-primary/25 dark:shadow-primary/20 animate-in slide-in-from-bottom duration-500 delay-500"
-                                        >
-                                            <span className="flex items-center justify-center gap-2">
-                                                Close
-                                                <Check className="w-4 h-4" />
-                                            </span>
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 ))}
             </div>
@@ -1359,15 +1301,17 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                 {buildings.data.length === 0 ? (
                     <EmptyState onAddNew={() => setShowCreateModal(true)} />
                 ) : viewMode === 'grid' ? (
-                    <GridView
-                        buildings={buildings.data}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onToggleStatus={toggleStatus}
-                        isUpdatingStatus={isUpdatingStatus}
-                        onShowLocation={showLocation}
-                        gridColumns={gridColumns}
-                    />
+                    <div style={{ overflow: 'visible' }}>
+                        <GridView
+                            buildings={buildings.data}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            onToggleStatus={toggleStatus}
+                            isUpdatingStatus={isUpdatingStatus}
+                            onShowLocation={showLocation}
+                            gridColumns={gridColumns}
+                        />
+                    </div>
                 ) : (
                     <>
                         <div className="rounded-md border">
@@ -1575,6 +1519,7 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                                                         : `/storage/${currentBuilding?.image}`}
                                                                     alt="Building preview"
                                                                     className="w-full h-full object-cover"
+                                                                    
                                                                 />
                                                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2">
                                                                     <UploadCloud className="w-8 h-8 text-white" />
@@ -1709,6 +1654,9 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                                                         : `/storage/${currentBuilding?.owner.photo}`}
                                                                     alt="Owner preview"
                                                                     className="w-full h-full object-cover"
+                                                                       onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                            e.currentTarget.src = '/images/default-user.png';
+                                                        }}
                                                                 />
                                                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2">
                                                                     <UploadCloud className="w-8 h-8 text-white" />
@@ -1865,6 +1813,9 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                                                                                 : `/storage/${currentBuilding?.doormen[index]?.photo}`}
                                                                             alt="Preview"
                                                                             className="w-full h-full object-cover rounded-md"
+                                                                               onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                            e.currentTarget.src = '/images/default-user.png';
+                                                        }}
                                                                         />
                                                                     ) : (
                                                                         <div className="text-center space-y-2">
@@ -2054,6 +2005,95 @@ export default function Index({ buildings, googleMapsApiKey }: Props) {
                     <Pagination links={buildings.links} meta={buildings.meta} />
                 )}
             </div>
+
+            {/* Enhanced Doorman Modal with Advanced Animations */}
+            {selectedDoorman && (
+                <div 
+                    className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setSelectedDoorman(null);
+                    }}
+                >
+                    <div className="bg-background/95 dark:bg-background/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full mx-4 overflow-hidden border border-border/50 dark:border-border/30 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                        {/* Close Button - Outside */}
+                        <button
+                            onClick={() => setSelectedDoorman(null)}
+                            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-background dark:bg-background shadow-lg border border-border/50 dark:border-border/30 flex items-center justify-center hover:scale-110 transition-all duration-200 group"
+                        >
+                            <X className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        </button>
+
+                        {/* Header with enhanced gradient and dark mode support */}
+                        <div className="relative p-8 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 dark:from-primary/20 dark:via-secondary/10 dark:to-accent/20">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent dark:from-primary/10 dark:to-transparent"></div>
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)] dark:bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)]"></div>
+                            
+                            <div className="relative flex flex-col items-center">
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-accent/30 rounded-full blur-lg scale-110 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                                    <img
+                                        src={selectedDoorman.photo
+                                            ? `/storage/${selectedDoorman.photo}`
+                                            : '/placeholder-user.jpg'}
+                                        alt={selectedDoorman.name}
+                                        className="relative w-28 h-28 rounded-full object-cover border-4 border-primary/30 dark:border-primary/50 shadow-xl transition-transform duration-300 group-hover:scale-105"
+                                       onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                            e.currentTarget.src = '/images/default-user.png';
+                                                        }}
+                                    />
+                                    {/* Status indicator with pulse animation */}
+                                    <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-accent rounded-full border-4 border-background dark:border-background flex items-center justify-center shadow-lg">
+                                        <div className="w-3 h-3 bg-background dark:bg-background rounded-full animate-pulse"></div>
+                                        <div className="absolute inset-0 bg-accent rounded-full animate-ping opacity-75"></div>
+                                    </div>
+                                </div>
+                                
+                                <h4 className="text-2xl font-bold text-foreground dark:text-foreground mt-6 animate-in slide-in-from-bottom-2 duration-500 delay-100">
+                                    {selectedDoorman.name}
+                                </h4>
+                                
+                                <div className="px-4 py-2 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary rounded-full text-sm font-semibold mt-3 capitalize backdrop-blur-sm border border-primary/20 dark:border-primary/40 animate-in slide-in-from-bottom-2 duration-500 delay-200">
+                                    {selectedDoorman.shift === 'morning' ? '🌅 Morning' :
+                                    selectedDoorman.shift === 'afternoon' ? '☀️ Afternoon' : '🌙 Night'} Shift
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Content with improved spacing and dark mode */}
+                        <div className="p-8 space-y-6">
+                            <div className="space-y-4">
+                                {/* Email Card */}
+                                <div className="group flex items-center gap-4 p-4 rounded-2xl bg-muted/30 dark:bg-muted/20 border border-border/20 dark:border-border/10 hover:bg-muted/50 dark:hover:bg-muted/30 transition-all duration-300 animate-in slide-in-from-left duration-500 delay-300">
+                                    <div className="w-12 h-12 rounded-2xl bg-primary/20 dark:bg-primary/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                        <svg className="w-5 h-5 text-primary dark:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase tracking-wider">Email</div>
+                                        <div className="text-sm font-semibold text-foreground dark:text-foreground mt-1 truncate">{selectedDoorman.email || 'Not provided'}</div>
+                                    </div>
+                                </div>
+                                
+                                {/* Phone Card */}
+                                <div className="group flex items-center gap-4 p-4 rounded-2xl bg-muted/30 dark:bg-muted/20 border border-border/20 dark:border-border/10 hover:bg-muted/50 dark:hover:bg-muted/30 transition-all duration-300 animate-in slide-in-from-right duration-500 delay-400">
+                                    <div className="w-12 h-12 rounded-2xl bg-secondary/20 dark:bg-secondary/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                        <svg className="w-5 h-5 text-secondary dark:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase tracking-wider">Phone</div>
+                                        <div className="text-sm font-semibold text-foreground dark:text-foreground mt-1 truncate">{selectedDoorman.phone || 'Not provided'}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                          
+                        </div>
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }
