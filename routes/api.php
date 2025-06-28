@@ -22,6 +22,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // Technical API routes
 Route::get('/technicals', [TechnicalController::class, 'index']);
+Route::get('/technicals/{technical}/tickets', [TechnicalController::class, 'getTickets']);
+Route::get('/tickets/{ticket}/detail', [TechnicalController::class, 'getTicketDetail']);
 
 // Building API routes
 Route::get('/buildings', [BuildingController::class, 'apiIndex']);

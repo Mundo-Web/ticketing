@@ -3,8 +3,11 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
-    Plus, Edit, Trash2, MoreHorizontal, User,
-    List, Activity, Clock, CheckCircle, AlertCircle, Laptop, Trophy, Target, AlertTriangle
+    Plus, Edit, Trash2, MoreHorizontal, User, Search, Filter, Calendar, Clock,
+    List, CheckCircle, AlertCircle, Laptop, Trophy, Target, AlertTriangle,
+    TrendingUp, Eye, FileText, Users, Star, Grid3X3,
+    TableIcon, RefreshCw, ChevronRight, MapPin,
+    ExternalLink, History, MessageSquare, Phone, Mail, Timer, ChevronLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -17,6 +20,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 
 // Componente para contador animado
 const AnimatedCounter = ({ value, duration = 1000 }: { value: number; duration?: number }) => {
@@ -51,6 +56,60 @@ const AnimatedCounter = ({ value, duration = 1000 }: { value: number; duration?:
     return <span>{displayValue}</span>;
 };
 
+interface TicketDetail {
+    id: number;
+    title: string;
+    description: string;
+    status: 'open' | 'in_progress' | 'resolved' | 'closed';
+    priority: 'low' | 'medium' | 'high' | 'urgent';
+    created_at: string;
+    updated_at: string;
+    resolved_at?: string;
+    device?: {
+        id: number;
+        name: string;
+        brand?: { name: string };
+        model?: { name: string };
+    };
+    building?: {
+        id: number;
+        name: string;
+        address: string;
+    };
+    apartment?: {
+        id: number;
+        number: string;
+    };
+    tenant?: {
+        id: number;
+        name: string;
+        email: string;
+        phone: string;
+    };
+    history: Array<{
+        id: number;
+        action: string;
+        description: string;
+        created_at: string;
+        user?: {
+            name: string;
+            role: string;
+        };
+    }>;
+    comments: Array<{
+        id: number;
+        content: string;
+        created_at: string;
+        user: {
+            name: string;
+            role: string;
+        };
+    }>;
+    resolution_time?: number;
+    rating?: number;
+    feedback?: string;
+}
+
 interface Device {
     id: number;
     name: string;
@@ -69,7 +128,14 @@ interface Ticket {
     id: number;
     title: string;
     status: string;
+    priority?: string;
     created_at: string;
+    building?: {
+        name: string;
+    };
+    device?: {
+        name: string;
+    };
 }
 
 interface Technical {
@@ -119,13 +185,284 @@ export default function Index({ technicals }: TechnicalsPageProps) {
     const isDefaultTechnical = (technical: Technical): boolean => {
         return Boolean(technical.is_default);
     };
-    
+
+    // Helper functions for formatting and status
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'open': return 'bg-red-100 text-red-800';
+            case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+            case 'resolved': return 'bg-green-100 text-green-800';
+            case 'closed': return 'bg-gray-100 text-gray-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    };
+
+    // Enhanced ticket handling functions with better filtering and API calls
+    const handleViewTickets = async (technical: Technical, type: 'all' | 'today' | 'week' | 'month' | 'recent' | 'open' | 'in_progress' | 'resolved' | 'closed') => {
+        const typeDisplayNames = {
+            'all': 'All Tickets',
+            'today': 'Today\'s Tickets', 
+            'week': 'This Week\'s Tickets',
+            'month': 'This Month\'s Tickets',
+            'recent': 'Recent Completed Tickets (Last 7 days)',
+            'open': 'Open Tickets',
+            'in_progress': 'In Progress Tickets',
+            'resolved': 'Resolved Tickets',
+            'closed': 'Closed Tickets'
+        };
+        
+        setTicketModalTitle(`${technical.name} - ${typeDisplayNames[type]}`);
+        setLoadingTickets(true);
+        setShowTicketModal(true);
+        
+        try {
+            const response = await fetch(`/api/technicals/${technical.id}/tickets?type=${type}`);
+            if (response.ok) {
+                const tickets = await response.json();
+                setSelectedTickets(tickets);
+            } else {
+                // Enhanced filtering logic for different ticket types
+                let filteredTickets = technical.tickets || [];
+                
+                switch (type) {
+                    case 'open': {
+                        filteredTickets = filteredTickets.filter(t => t.status === 'open');
+                        break;
+                    }
+                    case 'in_progress': {
+                        filteredTickets = filteredTickets.filter(t => t.status === 'in_progress');
+                        break;
+                    }
+                    case 'resolved': {
+                        filteredTickets = filteredTickets.filter(t => t.status === 'resolved');
+                        break;
+                    }
+                    case 'closed': {
+                        filteredTickets = filteredTickets.filter(t => t.status === 'closed');
+                        break;
+                    }
+                    case 'today': {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const tomorrow = new Date(today);
+                        tomorrow.setDate(today.getDate() + 1);
+                        
+                        filteredTickets = filteredTickets.filter(t => {
+                            const ticketDate = new Date(t.created_at);
+                            return ticketDate >= today && ticketDate < tomorrow;
+                        });
+                        break;
+                    }
+                    case 'week': {
+                        const now = new Date();
+                        const weekStart = new Date(now);
+                        weekStart.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+                        weekStart.setHours(0, 0, 0, 0);
+                        
+                        filteredTickets = filteredTickets.filter(t => {
+                            const ticketDate = new Date(t.created_at);
+                            return ticketDate >= weekStart;
+                        });
+                        break;
+                    }
+                    case 'month': {
+                        const now = new Date();
+                        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                        
+                        filteredTickets = filteredTickets.filter(t => {
+                            const ticketDate = new Date(t.created_at);
+                            return ticketDate >= monthStart;
+                        });
+                        break;
+                    }
+                    case 'recent': {
+                        // Recent tickets: last 7 days that are COMPLETED (resolved/closed) - no active tickets
+                        const sevenDaysAgo = new Date();
+                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                        sevenDaysAgo.setHours(0, 0, 0, 0);
+                        
+                        filteredTickets = filteredTickets.filter(t => {
+                            const ticketDate = new Date(t.created_at);
+                            return ticketDate >= sevenDaysAgo && 
+                                   ['resolved', 'closed'].includes(t.status); // Only completed tickets
+                        });
+                        break;
+                    }
+                    default:
+                        // 'all' - no filtering
+                        break;
+                }
+                
+                setSelectedTickets(filteredTickets);
+            }
+        } catch (error) {
+            console.log('Using local tickets data:', error);
+            toast.error('Could not fetch latest ticket data, showing local data');
+            
+            // Apply same filtering logic as above in case of API failure
+            let filteredTickets = technical.tickets || [];
+            
+            switch (type) {
+                case 'open':
+                    filteredTickets = filteredTickets.filter(t => t.status === 'open');
+                    break;
+                case 'in_progress':
+                    filteredTickets = filteredTickets.filter(t => t.status === 'in_progress');
+                    break;
+                case 'resolved':
+                    filteredTickets = filteredTickets.filter(t => t.status === 'resolved');
+                    break;
+                case 'closed':
+                    filteredTickets = filteredTickets.filter(t => t.status === 'closed');
+                    break;
+                case 'today': {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(today.getDate() + 1);
+                    
+                    filteredTickets = filteredTickets.filter(t => {
+                        const ticketDate = new Date(t.created_at);
+                        return ticketDate >= today && ticketDate < tomorrow;
+                    });
+                    break;
+                }
+                case 'week': {
+                    const now = new Date();
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - now.getDay());
+                    weekStart.setHours(0, 0, 0, 0);
+                    
+                    filteredTickets = filteredTickets.filter(t => {
+                        const ticketDate = new Date(t.created_at);
+                        return ticketDate >= weekStart;
+                    });
+                    break;
+                }
+                case 'month': {
+                    const now = new Date();
+                    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                    
+                    filteredTickets = filteredTickets.filter(t => {
+                        const ticketDate = new Date(t.created_at);
+                        return ticketDate >= monthStart;
+                    });
+                    break;
+                }
+                case 'recent': {
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    sevenDaysAgo.setHours(0, 0, 0, 0);
+                    
+                    filteredTickets = filteredTickets.filter(t => {
+                        const ticketDate = new Date(t.created_at);
+                        return ticketDate >= sevenDaysAgo && 
+                               ['resolved', 'closed'].includes(t.status);
+                    });
+                    break;
+                }
+            }
+            
+            setSelectedTickets(filteredTickets);
+        } finally {
+            setLoadingTickets(false);
+        }
+    };
+
+    const handleViewTicketDetail = async (ticketId: number) => {
+        setLoadingTicketDetail(true);
+        setShowTicketDetailModal(true);
+        
+        try {
+            const response = await fetch(`/api/tickets/${ticketId}/detail`);
+            if (response.ok) {
+                const ticketDetail = await response.json();
+                setSelectedTicketDetail(ticketDetail);
+            } else {
+                // Mock data si no hay endpoint
+                const mockDetail: TicketDetail = {
+                    id: ticketId,
+                    title: "Sample Ticket",
+                    description: "This is a sample ticket description with technical details...",
+                    status: 'in_progress',
+                    priority: 'high',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    history: [
+                        {
+                            id: 1,
+                            action: "Ticket Created",
+                            description: "Ticket was created by tenant",
+                            created_at: new Date().toISOString(),
+                            user: { name: "System", role: "system" }
+                        }
+                    ],
+                    comments: []
+                };
+                setSelectedTicketDetail(mockDetail);
+            }
+        } catch {
+            toast.error('Error loading ticket details');
+        } finally {
+            setLoadingTicketDetail(false);
+        }
+    };
+
+    const navigateToTicket = (ticketId: number) => {
+        router.visit(`/tickets/${ticketId}`);
+    };
+
+    // State declarations first
     const [viewMode, setViewMode] = useState<'grid' | 'table' | 'list'>('list');
     const [open, setOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [selectedTechnical, setSelectedTechnical] = useState<Technical | null>(null);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<number | null>(null);
     const [gridColumns, setGridColumns] = useState<number>(4);
+    
+    // Nuevos estados para modales de tickets y detalles
+    const [showTicketModal, setShowTicketModal] = useState(false);
+    const [showTicketDetailModal, setShowTicketDetailModal] = useState(false);
+    const [selectedTickets, setSelectedTickets] = useState<Ticket[]>([]);
+    const [selectedTicketDetail, setSelectedTicketDetail] = useState<TicketDetail | null>(null);
+    const [ticketModalTitle, setTicketModalTitle] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [filterShift, setFilterShift] = useState<string>('all');
+    const [showFilters, setShowFilters] = useState(false);
+    const [loadingTicketDetail, setLoadingTicketDetail] = useState(false);
+    const [loadingTickets, setLoadingTickets] = useState(false);
+
+    // Helper function to get safe image URL
+    const getPhotoUrl = (photo: string | null | undefined) => {
+        if (!photo || photo === 'null' || photo.trim() === '') {
+            return null;
+        }
+        return `/storage/${photo}`;
+    };
+
+    // Now we can use the state variables
+    const filteredTechnicals = technicals.data.filter(technical => {
+        const matchesSearch = technical.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            technical.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            technical.phone.includes(searchTerm);
+        
+        const matchesStatus = filterStatus === 'all' || 
+                            (filterStatus === 'active' && technical.status) ||
+                            (filterStatus === 'inactive' && !technical.status);
+        
+        const matchesShift = filterShift === 'all' || technical.shift === filterShift;
+        
+        return matchesSearch && matchesStatus && matchesShift;
+    });
     
     // Estados para detección de cambios no guardados
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -212,10 +549,15 @@ export default function Index({ technicals }: TechnicalsPageProps) {
             header: "Photo",
             cell: ({ row }) => (
                 <div className="w-10 h-10 rounded-full overflow-hidden">
-                    {row.original.photo ? (
-                        <img src={`/storage/${row.original.photo}`}
+                    {getPhotoUrl(row.original.photo) ? (
+                        <img src={getPhotoUrl(row.original.photo)!}
                             alt={row.original.name}
-                            className="w-full h-full object-cover" />
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.parentElement!.innerHTML = `<div class="w-full h-full bg-gray-200 flex items-center justify-center"><User size={16} class="text-gray-500" /></div>`;
+                            }} />
                     ) : (
                         <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                             <User className="w-5 h-5 text-gray-400" />
@@ -247,21 +589,29 @@ export default function Index({ technicals }: TechnicalsPageProps) {
             cell: ({ row }) => (
                 <div className="flex items-center gap-2">
                     {isSuperAdmin ? (
-                        <Button
-                            variant={isDefaultTechnical(row.original) ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => toggleDefaultTechnical(row.original)}
-                            className="h-6 px-2 text-xs"
-                        >
-                            {isDefaultTechnical(row.original) ? "Remove Chief" : "Set as Chief"}
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant={isDefaultTechnical(row.original) ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => toggleDefaultTechnical(row.original)}
+                                    className="h-6 px-2 text-xs"
+                                >
+                                    {isDefaultTechnical(row.original) ? "Remove Chief" : "Set as Chief"}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{isDefaultTechnical(row.original) ? 'Remove as' : 'Set as'} Tech Default</p>
+                                <p>Tech Defaults have additional permissions</p>
+                            </TooltipContent>
+                        </Tooltip>
                     ) : (
                         <span className={`px-2 py-1 rounded-full text-xs ${
                             isDefaultTechnical(row.original) 
                                 ? 'bg-blue-100 text-blue-800' 
                                 : 'bg-gray-100 text-gray-600'
                         }`}>
-                            {isDefaultTechnical(row.original) ? "Tech Chief" : "Technical"}
+                            {isDefaultTechnical(row.original) ? "Tech Default" : "Technical"}
                         </span>
                     )}
                 </div>
@@ -272,24 +622,39 @@ export default function Index({ technicals }: TechnicalsPageProps) {
             header: "Status",
             cell: ({ row }) => (
                 <div className="flex items-center gap-2">
-                    <Switch
-                        checked={row.original.status}
-                        onCheckedChange={() => toggleStatus(row.original)}
-                        disabled={isUpdatingStatus === row.original.id}
-                    />
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Switch
+                                checked={row.original.status}
+                                onCheckedChange={() => toggleStatus(row.original)}
+                                disabled={isUpdatingStatus === row.original.id}
+                            />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{row.original.status ? 'Deactivate' : 'Activate'} technical</p>
+                        </TooltipContent>
+                    </Tooltip>
                     <StatusBadge status={row.original.status ? "active" : "inactive"} />
                 </div>
             ),
         },
         {
             id: "actions",
+            header: "Actions",
             cell: ({ row }) => (
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>More actions</p>
+                        </TooltipContent>
+                    </Tooltip>
                     <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleEdit(row.original)}>
                             <Edit className="mr-2 h-4 w-4" />
@@ -306,13 +671,13 @@ export default function Index({ technicals }: TechnicalsPageProps) {
     ];
 
     const table = useReactTable({
-        data: technicals.data,
+        data: filteredTechnicals,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
     });
 
-    // Vista de cuadrícula
+    // Vista de cuadrícula con tooltips mejorados
     const GridView = ({ technicals, gridColumns }: { technicals: Technical[], gridColumns: number }) => {
         const getGridClass = () => {
             switch (gridColumns) {
@@ -326,163 +691,238 @@ export default function Index({ technicals }: TechnicalsPageProps) {
         };
 
         return (
-            <div className={`grid ${getGridClass()} gap-6`}>
-                {technicals.map((technical, index) => (
-                    <div 
-                        key={technical.id} 
-                        className="bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10 group p-4 rounded-xl shadow-sm hover:shadow-xl transition-all duration-500 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 relative overflow-hidden"
-                        style={{
-                            animationDelay: `${index * 150}ms`,
-                            animation: 'fadeInUp 0.6s ease-out forwards'
-                        }}
-                    >
-                        {/* Decorative corner gradient */}
-                        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-corporate-gold/20 to-transparent rounded-bl-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        
-                        {/* Imagen cuadrada arriba */}
-                        <div className="w-full aspect-square rounded-lg overflow-hidden mb-4 border-2 border-corporate-gold/30 group-hover:border-corporate-gold/50 transition-all duration-300 relative">
-                            {technical.photo ? (
-                                <img
-                                    src={`/storage/${technical.photo}`}
-                                    alt={technical.name}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                    e.currentTarget.src = '/images/default-user.png';
-                                }}
-                                />
-                            ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-corporate-gold/10 to-corporate-warm/10 flex items-center justify-center">
-                                    <User className="w-16 h-16 text-corporate-gold/60" />
-                                </div>
-                            )}
-                            {/* Animated border ring */}
-                            <div className="absolute inset-0 rounded-lg border-2 border-corporate-gold/0 group-hover:border-corporate-gold/30 transition-all duration-300 group-hover:scale-105"></div>
-                        </div>
-
-                        {/* Contenido debajo de la imagen */}
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-semibold text-xl truncate text-corporate-gold dark:text-corporate-gold-light group-hover:text-corporate-warm transition-colors duration-300">{technical.name}</h3>
-                                <Switch
-                                    checked={technical.status}
-                                    onCheckedChange={() => toggleStatus(technical)}
-                                    disabled={isUpdatingStatus === technical.id}
-                                    className="scale-90 data-[state=checked]:bg-corporate-gold"
-                                />
+            <TooltipProvider>
+                <div className={`grid ${getGridClass()} gap-6`}>
+                    {technicals.map((technical, index) => (
+                        <div 
+                            key={technical.id} 
+                            className="bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10 p-4 rounded-xl shadow-sm transition-all duration-500 border-2 border-corporate-gold/20 relative overflow-hidden"
+                            style={{
+                                animationDelay: `${index * 150}ms`,
+                                animation: 'fadeInUp 0.6s ease-out forwards'
+                            }}
+                        >
+                            {/* Decorative corner gradient */}
+                            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-corporate-gold/20 to-transparent rounded-bl-2xl opacity-50"></div>
+                            
+                            {/* Imagen cuadrada arriba */}
+                            <div className="w-full aspect-square rounded-lg overflow-hidden mb-4 border-2 border-corporate-gold/30 transition-all duration-300 relative">
+                                {getPhotoUrl(technical.photo) ? (
+                                    <img
+                                        src={getPhotoUrl(technical.photo)!}
+                                        alt={technical.name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                            e.currentTarget.src = '/images/default-user.png';
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-corporate-gold/10 to-corporate-warm/10 flex items-center justify-center">
+                                        <User className="w-16 h-16 text-corporate-gold/60" />
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="space-y-1 text-sm">
-                                <p className="text-muted-foreground truncate">{technical.email}</p>
-                                <p className="font-medium text-corporate-dark-brown dark:text-corporate-gold-light">{technical.phone}</p>
-                                <div className="flex items-center gap-2">
-                                    <span className={`capitalize text-white px-3 py-1 rounded-md font-medium transition-all duration-300 ${
-                                        technical.shift === 'morning' 
-                                            ? 'bg-gradient-to-r from-corporate-gold to-corporate-warm shadow-lg shadow-corporate-gold/30' 
-                                            : technical.shift === 'afternoon'
-                                            ? 'bg-gradient-to-r from-corporate-warm to-corporate-gold shadow-lg shadow-corporate-warm/30'
-                                            : 'bg-gradient-to-r from-corporate-dark-brown to-corporate-brown shadow-lg shadow-corporate-dark-brown/30'
-                                    }`}>
-                                        {technical.shift}
-                                    </span>
-                                    {isDefaultTechnical(technical) && (
-                                        <span className="bg-gradient-to-r from-corporate-gold via-corporate-warm to-corporate-gold text-white px-2 py-1 rounded-md text-xs font-medium animate-pulse shadow-lg">
-                                            Tech Chief
+                            {/* Contenido debajo de la imagen */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <h3 className="font-semibold text-xl truncate text-corporate-gold dark:text-corporate-gold-light transition-colors duration-300 cursor-help">{technical.name}</h3>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Technical: {technical.name}</p>
+                                            <p>Email: {technical.email}</p>
+                                            <p>Phone: {technical.phone}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Switch
+                                                checked={technical.status}
+                                                onCheckedChange={() => toggleStatus(technical)}
+                                                disabled={isUpdatingStatus === technical.id}
+                                                className="scale-90 data-[state=checked]:bg-corporate-gold"
+                                            />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{technical.status ? 'Deactivate' : 'Activate'} technical</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+
+                                <div className="space-y-2 text-sm">
+                                    <p className="text-muted-foreground truncate">{technical.email}</p>
+                                    <p className="font-medium text-corporate-dark-brown dark:text-corporate-gold-light">{technical.phone}</p>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`capitalize text-white px-3 py-1 rounded-md font-medium transition-all duration-300 ${
+                                            technical.shift === 'morning' 
+                                                ? 'bg-gradient-to-r from-corporate-gold to-corporate-warm shadow-lg shadow-corporate-gold/30' 
+                                                : technical.shift === 'afternoon'
+                                                ? 'bg-gradient-to-r from-corporate-warm to-corporate-gold shadow-lg shadow-corporate-warm/30'
+                                                : 'bg-gradient-to-r from-corporate-dark-brown to-corporate-brown shadow-lg shadow-corporate-dark-brown/30'
+                                        }`}>
+                                            {technical.shift}
                                         </span>
+                                        {isDefaultTechnical(technical) && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="bg-gradient-to-r from-corporate-gold via-corporate-warm to-corporate-gold text-white px-2 py-1 rounded-md text-xs font-medium animate-pulse shadow-lg cursor-help">
+                                                        Tech Default
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Technical Chief - Team Leader</p>
+                                                    <p>Has special permissions and responsibilities</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Ticket Statistics - CLICKABLE */}
+                                <div className="grid grid-cols-3 gap-2 mt-3">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div 
+                                                onClick={() => handleViewTickets(technical, 'month')}
+                                                className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-2 rounded-lg border border-purple-200 text-center transition-all duration-300 cursor-pointer hover:scale-105 transform"
+                                            >
+                                                <div className="text-lg font-bold text-purple-600">
+                                                    <AnimatedCounter value={technical.monthly_tickets} />
+                                                </div>
+                                                <div className="text-xs text-purple-600">Month</div>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Click to view this month's tickets</p>
+                                            <p>{technical.monthly_tickets} tickets this month</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div 
+                                                onClick={() => handleViewTickets(technical, 'week')}
+                                                className="bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 p-2 rounded-lg border border-corporate-gold/30 text-center transition-all duration-300 cursor-pointer hover:scale-105 transform"
+                                            >
+                                                <div className="text-lg font-bold text-corporate-gold">
+                                                    <AnimatedCounter value={technical.weekly_tickets} />
+                                                </div>
+                                                <div className="text-xs text-corporate-gold">Week</div>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Click to view this week's tickets</p>
+                                            <p>{technical.weekly_tickets} tickets this week</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div 
+                                                onClick={() => handleViewTickets(technical, 'today')}
+                                                className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-2 rounded-lg border border-green-200 text-center transition-all duration-300 cursor-pointer hover:scale-105 transform"
+                                            >
+                                                <div className="text-lg font-bold text-green-600">
+                                                    <AnimatedCounter value={technical.today_tickets} />
+                                                </div>
+                                                <div className="text-xs text-green-600">Today</div>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Click to view today's tickets</p>
+                                            <p>{technical.today_tickets} tickets today</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+
+                                {/* Botones en la parte inferior con tooltips */}
+                                <div className="flex justify-between items-center mt-4">
+                                    <div className="flex gap-2">
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    onClick={() => handleEdit(technical)}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-2 px-4 border-corporate-gold/30 transition-all duration-300"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Edit technical information</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    onClick={() => handleDelete(technical)}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-2 px-4 border-red-300 transition-all duration-300"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Delete technical permanently</p>
+                                                <p className="text-red-500">This action cannot be undone</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                    
+                                    {isSuperAdmin && (
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    onClick={() => toggleDefaultTechnical(technical)}
+                                                    variant={isDefaultTechnical(technical) ? "default" : "outline"}
+                                                    size="sm"
+                                                    className={`text-xs transition-all duration-300 ${
+                                                        isDefaultTechnical(technical) 
+                                                            ? 'bg-gradient-to-r from-corporate-gold to-corporate-warm text-white shadow-lg' 
+                                                            : 'border-corporate-gold/30'
+                                                    }`}
+                                                >
+                                                    <Trophy className="w-4 h-4 mr-1" />
+                                                    {isDefaultTechnical(technical) ? "Remove Chief" : "Set as Chief"}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{isDefaultTechnical(technical) ? 'Remove as' : 'Set as'} Tech Default</p>
+                                                <p>Tech Defaults have additional permissions</p>
+                                            </TooltipContent>
+                                        </Tooltip>
                                     )}
                                 </div>
                             </div>
-
-                            {/* Botones en la parte inferior */}
-                            <div className="flex justify-between items-center mt-4">
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={() => handleEdit(technical)}
-                                        variant="outline"
-                                        size="sm"
-                                        className="gap-2 px-4 border-corporate-gold/30 hover:bg-corporate-gold hover:text-white hover:border-corporate-gold transition-all duration-300 group-hover:scale-105"
-                                    >
-                                        <Edit className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                        onClick={() => handleDelete(technical)}
-                                        variant="outline"
-                                        size="sm"
-                                        className="gap-2 px-4 border-red-300 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-300 group-hover:scale-105"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                                
-                                {isSuperAdmin && (
-                                    <Button
-                                        onClick={() => toggleDefaultTechnical(technical)}
-                                        variant={isDefaultTechnical(technical) ? "default" : "outline"}
-                                        size="sm"
-                                        className={`text-xs transition-all duration-300 group-hover:scale-105 ${
-                                            isDefaultTechnical(technical) 
-                                                ? 'bg-gradient-to-r from-corporate-gold to-corporate-warm text-white shadow-lg hover:shadow-xl' 
-                                                : 'border-corporate-gold/30 hover:bg-corporate-gold hover:text-white'
-                                        }`}
-                                    >
-                                        {isDefaultTechnical(technical) ? "Remove Chief" : "Set as Chief"}
-                                    </Button>
-                                )}
-                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            </TooltipProvider>
         )
     };
 
     // Nueva vista de lista con cards detallados
     const ListView = ({ technicals }: { technicals: Technical[] }) => {
-        const getStatusColor = (status: string) => {
-            switch (status) {
-                case 'open': return 'bg-red-100 text-red-800';
-                case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-                case 'resolved': return 'bg-green-100 text-green-800';
-                case 'closed': return 'bg-gray-100 text-gray-800';
-                default: return 'bg-gray-100 text-gray-800';
-            }
-        };
-
-        const formatDate = (dateString: string) => {
-            return new Date(dateString).toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-            });
-        };
-
-        const getTimeAgo = (dateString?: string) => {
-            if (!dateString) return 'Never';
-            const now = new Date();
-            const date = new Date(dateString);
-            const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-            
-            if (diffInHours < 1) return 'Just now';
-            if (diffInHours < 24) return `${diffInHours}h ago`;
-            const diffInDays = Math.floor(diffInHours / 24);
-            if (diffInDays < 7) return `${diffInDays}d ago`;
-            const diffInWeeks = Math.floor(diffInDays / 7);
-            return `${diffInWeeks}w ago`;
-        };
-
         return (
             <TooltipProvider>
                 <div className="space-y-6">
                     {technicals.map((technical, index) => (
                         <div 
                             key={technical.id} 
-                            className="bg-gradient-to-r from-white to-corporate-gold/5 dark:from-transparent dark:to-corporate-gold/10 rounded-xl shadow-sm hover:shadow-xl transition-all duration-500 border-2 border-corporate-gold/20 hover:border-corporate-gold/40 overflow-hidden group"
+                            className="bg-gradient-to-r from-white to-corporate-gold/5 dark:from-transparent dark:to-corporate-gold/10 rounded-xl shadow-sm transition-all duration-500 border-2 border-corporate-gold/20 overflow-hidden group"
                             style={{
                                 animationDelay: `${index * 200}ms`,
                                 animation: 'fadeInUp 0.8s ease-out forwards'
                             }}
                         >
                             {/* Animated gradient overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-corporate-gold/0 via-corporate-gold/5 to-corporate-gold/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-corporate-gold/0 via-corporate-gold/5 to-corporate-gold/0 opacity-0 transition-opacity duration-700 pointer-events-none"></div>
                             
                             <div className="flex relative z-10">
                                 {/* Card pequeño izquierdo - Info básica */}
@@ -493,10 +933,10 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                     
                                     <div className="flex flex-col items-center text-center space-y-4 relative z-10">
                                         <div className="relative">
-                                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-corporate-gold/30 shadow-xl relative group-hover:scale-110 transition-transform duration-500">
-                                                {technical.photo ? (
+                                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-corporate-gold/30 shadow-xl relative transition-transform duration-500">
+                                                {getPhotoUrl(technical.photo) ? (
                                                     <img
-                                                        src={`/storage/${technical.photo}`}
+                                                        src={getPhotoUrl(technical.photo)!}
                                                         alt={technical.name}
                                                         className="w-full h-full object-cover"
                                                         onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -510,7 +950,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                 )}
                                             </div>
                                             {/* Animated ring */}
-                                            <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/0 group-hover:border-corporate-gold/50 transition-all duration-500 group-hover:scale-125"></div>
+                                            <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/0 transition-all duration-500"></div>
                                             
                                             {isDefaultTechnical(technical) && (
                                                 <Tooltip>
@@ -527,7 +967,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <h3 className="font-bold text-xl text-corporate-gold dark:text-corporate-gold-light group-hover:text-corporate-warm transition-colors duration-300">{technical.name}</h3>
+                                            <h3 className="font-bold text-xl text-corporate-gold dark:text-corporate-gold-light transition-colors duration-300">{technical.name}</h3>
                                             <p className="text-sm text-muted-foreground">{technical.email}</p>
                                             <p className="font-medium text-corporate-dark-brown dark:text-corporate-gold-light">{technical.phone}</p>
                                             
@@ -546,7 +986,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                 {isDefaultTechnical(technical) && (
                                                     <span className="inline-flex items-center px-3 py-1 dark:text-white rounded-full text-xs font-medium bg-gradient-to-r from-corporate-gold via-corporate-warm to-corporate-gold text-primary-foreground shadow-lg">
                                                         <Trophy className="w-3 h-3 mr-1" />
-                                                        Tech Chief
+                                                        Tech Default
                                                     </span>
                                                 )}
                                             </div>
@@ -555,7 +995,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                             <div className="grid grid-cols-2 gap-2 mt-3">
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-white/70 dark:bg-transparent dark:bg-corporate-gold/10 p-2 rounded-lg border border-corporate-gold/20 text-center hover:bg-white/90 dark:hover:bg-corporate-gold/15 transition-colors duration-300 cursor-pointer">
+                                                        <div className="bg-white/70 dark:bg-transparent dark:bg-corporate-gold/10 p-2 rounded-lg border border-corporate-gold/20 text-center transition-colors duration-300 cursor-pointer">
                                                             <div className="text-lg font-bold text-corporate-gold animate-pulse">
                                                                 <AnimatedCounter value={technical.current_streak} />
                                                             </div>
@@ -569,7 +1009,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
 
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-white/70 dark:bg-transparent p-2 rounded-lg border border-corporate-gold/20 text-center hover:bg-white/90 dark:hover:bg-corporate-gold/15 transition-colors duration-300 cursor-pointer">
+                                                        <div className="bg-white/70 dark:bg-transparent p-2 rounded-lg border border-corporate-gold/20 text-center transition-colors duration-300 cursor-pointer">
                                                             <div className="text-lg font-bold text-corporate-warm">
                                                                 <AnimatedCounter value={technical.avg_resolution_time} />h
                                                             </div>
@@ -614,7 +1054,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                         onClick={() => handleEdit(technical)}
                                                         variant="outline"
                                                         size="sm"
-                                                        className="flex-1 border-corporate-gold/30 hover:bg-corporate-gold hover:text-primary-foreground hover:border-corporate-gold dark:hover:text-white transition-colors duration-300"
+                                                        className="flex-1 border-corporate-gold/30 transition-colors duration-300"
                                                     >
                                                         <Edit className="w-4 h-4" />
                                                     </Button>
@@ -630,7 +1070,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                         onClick={() => handleDelete(technical)}
                                                         variant="outline"
                                                         size="sm"
-                                                        className="flex-1 border-red-300 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors duration-300"
+                                                        className="flex-1 border-red-300 transition-colors duration-300"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </Button>
@@ -649,15 +1089,15 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                             size="sm"
                                                             className={`flex-1 transition-colors duration-300 ${
                                                                 isDefaultTechnical(technical) 
-                                                                    ? 'bg-secondary text-primary-foreground border-corporate-gold hover:opacity-90' 
-                                                                    : 'border-corporate-gold/30  hover:bg-corporate-gold hover:text-white hover:border-corporate-gold'
+                                                                    ? 'bg-secondary text-primary-foreground border-corporate-gold' 
+                                                                    : 'border-corporate-gold/30'
                                                             }`}
                                                         >
                                                             <Trophy className="w-4 h-4" />
                                                         </Button>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p>{isDefaultTechnical(technical) ? 'Remove as' : 'Set as'} Tech Chief</p>
+                                                        <p>{isDefaultTechnical(technical) ? 'Remove as' : 'Set as'} Tech Default</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             )}
@@ -671,15 +1111,18 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                         {/* Estadísticas de tickets */}
                                         <div className="space-y-4">
                                             <div className="flex items-center gap-2 mb-4">
-                                                <Activity className="w-5 h-5 text-corporate-gold" />
+                                                <Target className="w-5 h-5 text-corporate-gold" />
                                                 <h4 className="font-semibold text-lg text-corporate-gold dark:text-corporate-gold-light">Performance Metrics</h4>
                                             </div>
 
-                                            {/* Estadísticas principales con animación */}
+                                            {/* Estadísticas principales con animación - CLICKABLES */}
                                             <div className="grid grid-cols-3 gap-3">
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 rounded-lg border border-green-200 text-center hover:bg-gradient-to-br hover:from-green-100 hover:to-green-150 transition-colors duration-300 cursor-pointer">
+                                                        <div 
+                                                            onClick={() => handleViewTickets(technical, 'today')}
+                                                            className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 rounded-lg border border-green-200 text-center transition-all duration-300 cursor-pointer hover:scale-105 transform"
+                                                        >
                                                             <div className="text-xl font-bold text-green-600">
                                                                 <AnimatedCounter value={technical.today_tickets} />
                                                             </div>
@@ -687,13 +1130,17 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p>Tickets assigned today</p>
+                                                        <p>Click to view today's tickets</p>
+                                                        <p>{technical.today_tickets} tickets created today</p>
                                                     </TooltipContent>
                                                 </Tooltip>
 
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 p-3 rounded-lg border border-corporate-gold/30 text-center hover:bg-gradient-to-br hover:from-corporate-gold/30 hover:to-corporate-warm/30 transition-colors duration-300 cursor-pointer">
+                                                        <div 
+                                                            onClick={() => handleViewTickets(technical, 'week')}
+                                                            className="bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 p-3 rounded-lg border border-corporate-gold/30 text-center transition-all duration-300 cursor-pointer hover:scale-105 transform"
+                                                        >
                                                             <div className="text-xl font-bold text-corporate-gold">
                                                                 <AnimatedCounter value={technical.weekly_tickets} />
                                                             </div>
@@ -701,13 +1148,17 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p>Tickets assigned this week</p>
+                                                        <p>Click to view this week's tickets</p>
+                                                        <p>{technical.weekly_tickets} tickets this week</p>
                                                     </TooltipContent>
                                                 </Tooltip>
 
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-3 rounded-lg border border-purple-200 text-center hover:bg-gradient-to-br hover:from-purple-100 hover:to-purple-150 transition-colors duration-300 cursor-pointer">
+                                                        <div 
+                                                            onClick={() => handleViewTickets(technical, 'month')}
+                                                            className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-3 rounded-lg border border-purple-200 text-center transition-all duration-300 cursor-pointer hover:scale-105 transform"
+                                                        >
                                                             <div className="text-xl font-bold text-purple-600">
                                                                 <AnimatedCounter value={technical.monthly_tickets} />
                                                             </div>
@@ -715,93 +1166,127 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p>Tickets assigned this month</p>
+                                                        <p>Click to view this month's tickets</p>
+                                                        <p>{technical.monthly_tickets} tickets this month</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </div>
 
-                                            {/* Estados de tickets con barras animadas */}
+                                            {/* Estados de tickets con información detallada - CLICKABLES */}
                                             <div className="space-y-3">
-                                                <div className="flex items-center justify-between group">
-                                                    <div className="flex items-center gap-2">
-                                                        <AlertCircle className="w-4 h-4 text-red-500" />
-                                                        <span className="text-sm">Open</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-16 h-2 bg-red-100 rounded-full overflow-hidden">
-                                                            <div 
-                                                                className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full transition-all duration-1000 ease-out"
-                                                                style={{ 
-                                                                    width: `${technical.total_tickets > 0 ? (technical.open_tickets / technical.total_tickets) * 100 : 0}%`,
-                                                                    animationDelay: `${index * 200}ms`
-                                                                }}
-                                                            />
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div 
+                                                            onClick={() => handleViewTickets(technical, 'open')}
+                                                            className="flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 transition-all duration-300 cursor-pointer hover:scale-105 transform"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <AlertCircle className="w-5 h-5 text-red-500" />
+                                                                <div>
+                                                                    <div className="text-sm font-medium text-red-700 dark:text-red-300">Open Tickets</div>
+                                                                    <div className="text-xs text-red-600 dark:text-red-400">Require immediate attention</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-2xl font-bold text-red-600">
+                                                                    <AnimatedCounter value={technical.open_tickets} />
+                                                                </span>
+                                                                <ChevronRight className="w-4 h-4 text-red-500" />
+                                                            </div>
                                                         </div>
-                                                        <span className="font-medium text-red-600">
-                                                            <AnimatedCounter value={technical.open_tickets} />
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center justify-between group">
-                                                    <div className="flex items-center gap-2">
-                                                        <Clock className="w-4 h-4 text-yellow-500" />
-                                                        <span className="text-sm">In Progress</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-16 h-2 bg-yellow-100 rounded-full overflow-hidden">
-                                                            <div 
-                                                                className="h-full bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full transition-all duration-1000 ease-out"
-                                                                style={{ 
-                                                                    width: `${technical.total_tickets > 0 ? (technical.in_progress_tickets / technical.total_tickets) * 100 : 0}%`,
-                                                                    animationDelay: `${index * 200 + 100}ms`
-                                                                }}
-                                                            />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Click to view all open tickets</p>
+                                                        <p>{technical.open_tickets} tickets waiting for work to begin</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div 
+                                                            onClick={() => handleViewTickets(technical, 'in_progress')}
+                                                            className="flex items-center justify-between p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 transition-all duration-300 cursor-pointer hover:scale-105 transform"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <Clock className="w-5 h-5 text-yellow-500" />
+                                                                <div>
+                                                                    <div className="text-sm font-medium text-yellow-700 dark:text-yellow-300">In Progress</div>
+                                                                    <div className="text-xs text-yellow-600 dark:text-yellow-400">Currently being worked on</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-2xl font-bold text-yellow-600">
+                                                                    <AnimatedCounter value={technical.in_progress_tickets} />
+                                                                </span>
+                                                                <ChevronRight className="w-4 h-4 text-yellow-500" />
+                                                            </div>
                                                         </div>
-                                                        <span className="font-medium text-yellow-600">
-                                                            <AnimatedCounter value={technical.in_progress_tickets} />
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center justify-between group">
-                                                    <div className="flex items-center gap-2">
-                                                        <CheckCircle className="w-4 h-4 text-green-500" />
-                                                        <span className="text-sm">Resolved</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-16 h-2 bg-green-100 rounded-full overflow-hidden">
-                                                            <div 
-                                                                className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-1000 ease-out"
-                                                                style={{ 
-                                                                    width: `${technical.total_tickets > 0 ? (technical.resolved_tickets / technical.total_tickets) * 100 : 0}%`,
-                                                                    animationDelay: `${index * 200 + 200}ms`
-                                                                }}
-                                                            />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Click to view all tickets in progress</p>
+                                                        <p>{technical.in_progress_tickets} tickets actively being resolved</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div 
+                                                            onClick={() => handleViewTickets(technical, 'resolved')}
+                                                            className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 transition-all duration-300 cursor-pointer hover:scale-105 transform"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <CheckCircle className="w-5 h-5 text-green-500" />
+                                                                <div>
+                                                                    <div className="text-sm font-medium text-green-700 dark:text-green-300">Resolved</div>
+                                                                    <div className="text-xs text-green-600 dark:text-green-400">Successfully completed</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-2xl font-bold text-green-600">
+                                                                    <AnimatedCounter value={technical.resolved_tickets} />
+                                                                </span>
+                                                                <ChevronRight className="w-4 h-4 text-green-500" />
+                                                            </div>
                                                         </div>
-                                                        <span className="font-medium text-green-600">
-                                                            <AnimatedCounter value={technical.resolved_tickets} />
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center justify-between group">
-                                                    <div className="flex items-center gap-2">
-                                                        <Target className="w-4 h-4 text-gray-500" />
-                                                        <span className="text-sm">Closed</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                            <div 
-                                                                className="h-full bg-gradient-to-r from-gray-400 to-gray-600 rounded-full transition-all duration-1000 ease-out"
-                                                                style={{ 
-                                                                    width: `${technical.total_tickets > 0 ? (technical.closed_tickets / technical.total_tickets) * 100 : 0}%`,
-                                                                    animationDelay: `${index * 200 + 300}ms`
-                                                                }}
-                                                            />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Click to view all resolved tickets</p>
+                                                        <p>{technical.resolved_tickets} tickets successfully completed</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div 
+                                                            onClick={() => handleViewTickets(technical, 'recent')}
+                                                            className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 transition-all duration-300 cursor-pointer hover:scale-105 transform"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <History className="w-5 h-5 text-blue-500" />
+                                                                <div>
+                                                                    <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Recent Completed</div>
+                                                                    <div className="text-xs text-blue-600 dark:text-blue-400">Last 7 days (resolved/closed only)</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-2xl font-bold text-blue-600">
+                                                                    <AnimatedCounter value={technical.tickets?.filter(t => {
+                                                                        const sevenDaysAgo = new Date();
+                                                                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                                                        return new Date(t.created_at) >= sevenDaysAgo && 
+                                                                               ['resolved', 'closed'].includes(t.status);
+                                                                    }).length || 0} />
+                                                                </span>
+                                                                <ChevronRight className="w-4 h-4 text-blue-500" />
+                                                            </div>
                                                         </div>
-                                                        <span className="font-medium text-gray-600">
-                                                            <AnimatedCounter value={technical.closed_tickets} />
-                                                        </span>
-                                                    </div>
-                                                </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Click to view recent completed tickets</p>
+                                                        <p>Shows only resolved/closed tickets from last 7 days</p>
+                                                        <p className="text-blue-500">Excludes active (open/in progress) tickets</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
                                             </div>
 
                                             {/* Progress bar de eficiencia con animación */}
@@ -828,11 +1313,11 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                 </div>
                                             )}
 
-                                            {/* Información adicional */}
+                                            {/* Performance Summary */}
                                             <div className="grid grid-cols-2 gap-3 pt-3 border-t border-corporate-gold/20">
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="text-center p-2 rounded-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 hover:bg-gradient-to-br hover:from-green-100 hover:to-green-150 transition-colors duration-300 cursor-pointer">
+                                                        <div className="text-center p-2 rounded-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 transition-colors duration-300 cursor-pointer hover:bg-gradient-to-br hover:from-green-100 hover:to-green-150">
                                                             <div className="text-sm font-medium text-green-600">Resolved Today</div>
                                                             <div className="text-lg font-bold text-green-600">
                                                                 <AnimatedCounter value={technical.resolved_today} />
@@ -841,18 +1326,22 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                     </TooltipTrigger>
                                                     <TooltipContent>
                                                         <p>Tickets resolved today</p>
+                                                        <p>Shows completion performance for today</p>
                                                     </TooltipContent>
                                                 </Tooltip>
 
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="text-center p-2 rounded-lg bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 border border-corporate-gold/30 hover:bg-gradient-to-br hover:from-corporate-gold/30 hover:to-corporate-warm/30 transition-colors duration-300 cursor-pointer">
-                                                            <div className="text-sm font-medium text-corporate-gold">Last Activity</div>
-                                                            <div className="text-lg font-bold text-corporate-gold">{getTimeAgo(technical.last_activity)}</div>
+                                                        <div className="text-center p-2 rounded-lg bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 border border-corporate-gold/30 transition-colors duration-300 cursor-pointer hover:bg-gradient-to-br hover:from-corporate-gold/30 hover:to-corporate-warm/30">
+                                                            <div className="text-sm font-medium text-corporate-gold">Avg Resolution</div>
+                                                            <div className="text-lg font-bold text-corporate-gold">
+                                                                <AnimatedCounter value={technical.avg_resolution_time} />h
+                                                            </div>
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p>Time since last ticket assignment</p>
+                                                        <p>Average time to resolve tickets</p>
+                                                        <p>Lower is better for efficiency</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </div>
@@ -906,40 +1395,99 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                 </div>
                                             </div>
 
-                                            {/* Tickets recientes */}
+                                            {/* Recent Completed Tickets - ENHANCED */}
                                             <div>
-                                                <h4 className="font-semibold text-lg mb-3 text-corporate-gold dark:text-corporate-gold-light">Recent Tickets</h4>
-                                                <div className="space-y-2 max-h-44 overflow-y-auto overflow-x-hidden">
-                                                    {technical.tickets?.length > 0 ? (
-                                                        technical.tickets.map((ticket, ticketIndex) => (
-                                                            <Tooltip key={ticket.id}>
-                                                                <TooltipTrigger asChild>
-                                                                    <div 
-                                                                        className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg border border-corporate-gold/20 hover:bg-gradient-to-r hover:from-corporate-gold/10 hover:to-corporate-warm/10 hover:border-corporate-gold/40 transition-colors duration-300 cursor-pointer"
-                                                                        style={{
-                                                                            animationDelay: `${index * 100 + ticketIndex * 50}ms`,
-                                                                            animation: 'fadeInUp 0.6s ease-out forwards'
-                                                                        }}
-                                                                    >
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div className="font-medium text-sm truncate pr-2 text-corporate-gold">{ticket.title}</div>
-                                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 flex-shrink-0 ${getStatusColor(ticket.status)}`}>
-                                                                                {ticket.status.replace('_', ' ')}
-                                                                            </span>
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <History className="w-5 h-5 text-corporate-gold" />
+                                                        <h4 className="font-semibold text-lg text-corporate-gold dark:text-corporate-gold-light">Recent Completed Tickets</h4>
+                                                    </div>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => handleViewTickets(technical, 'recent')}
+                                                                className="text-xs border-corporate-gold/30 hover:bg-corporate-gold hover:text-white"
+                                                            >
+                                                                <Eye className="w-3 h-3 mr-1" />
+                                                                View All Recent
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>View all completed tickets from last 7 days</p>
+                                                            <p className="text-blue-500">Excludes active tickets</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </div>
+
+                                                <div className="space-y-2 max-h-44 overflow-y-auto scrollbar-thin">
+                                                    {technical.tickets?.filter(t => {
+                                                        // Filter for completed tickets from last 7 days only
+                                                        const sevenDaysAgo = new Date();
+                                                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                                        sevenDaysAgo.setHours(0, 0, 0, 0);
+                                                        
+                                                        const ticketDate = new Date(t.created_at);
+                                                        return ticketDate >= sevenDaysAgo && 
+                                                               ['resolved', 'closed'].includes(t.status); // Only completed tickets
+                                                    }).length > 0 ? (
+                                                        technical.tickets
+                                                            .filter(t => {
+                                                                const sevenDaysAgo = new Date();
+                                                                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                                                sevenDaysAgo.setHours(0, 0, 0, 0);
+                                                                
+                                                                const ticketDate = new Date(t.created_at);
+                                                                return ticketDate >= sevenDaysAgo && 
+                                                                       ['resolved', 'closed'].includes(t.status);
+                                                            })
+                                                            .slice(0, 5) // Show only first 5
+                                                            .map((ticket, ticketIndex) => (
+                                                                <Tooltip key={ticket.id}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <div 
+                                                                            onClick={() => handleViewTicketDetail(ticket.id)}
+                                                                            className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg border border-corporate-gold/20 hover:bg-gradient-to-r hover:from-corporate-gold/10 hover:to-corporate-warm/10 hover:border-corporate-gold/40 transition-all duration-300 cursor-pointer hover:scale-105 transform group"
+                                                                            style={{
+                                                                                animationDelay: `${index * 100 + ticketIndex * 50}ms`,
+                                                                                animation: 'fadeInUp 0.6s ease-out forwards'
+                                                                            }}
+                                                                        >
+                                                                            <div className="flex items-center justify-between">
+                                                                                <div className="font-medium text-sm truncate pr-2 text-corporate-gold group-hover:text-corporate-warm">{ticket.title}</div>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 flex-shrink-0 ${getStatusColor(ticket.status)}`}>
+                                                                                        {ticket.status.replace('_', ' ')}
+                                                                                    </span>
+                                                                                    <ExternalLink className="w-3 h-3 text-corporate-gold opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="text-xs text-muted-foreground mt-1 truncate">
+                                                                                {formatDate(ticket.created_at)}
+                                                                                {ticket.building && (
+                                                                                    <span className="ml-2 text-corporate-warm">• {ticket.building.name}</span>
+                                                                                )}
+                                                                            </div>
+                                                                            {ticket.device && (
+                                                                                <div className="text-xs text-corporate-gold mt-1 truncate">
+                                                                                    Device: {ticket.device.name}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                        <div className="text-xs text-muted-foreground mt-1 truncate">
-                                                                            {formatDate(ticket.created_at)}
-                                                                        </div>
-                                                                    </div>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>Click to view ticket details</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        ))
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Click to view ticket details and history</p>
+                                                                        <p className="text-green-500">✓ Completed ticket</p>
+                                                                        <p>Status: {ticket.status}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            ))
                                                     ) : (
                                                         <div className="text-sm text-muted-foreground italic p-3 text-center bg-corporate-gold/5 rounded-lg border border-corporate-gold/20">
-                                                            No recent tickets
+                                                            <History className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                                                            <p>No recent completed tickets</p>
+                                                            <p className="text-xs mt-1">Last 7 days show no resolved/closed tickets</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -970,7 +1518,7 @@ export default function Index({ technicals }: TechnicalsPageProps) {
 
     const toggleDefaultTechnical = async (technical: Technical) => {
         if (!isSuperAdmin) {
-            toast.error('Only super-admin can manage Tech Chiefs');
+            toast.error('Only super-admin can manage Tech Defaults');
             return;
         }
 
@@ -979,9 +1527,9 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                 preserveScroll: true,
                 onSuccess: () => {
                     const action = isDefaultTechnical(technical) ? 'removed from' : 'assigned as';
-                    toast.success(`Technical ${action} Tech Chief successfully`);
+                    toast.success(`Technical ${action} Tech Default successfully`);
                 },
-                onError: () => toast.error('Error updating Tech Chief status')
+                onError: () => toast.error('Error updating Tech Default status')
             });
         } catch {
             toast.error('Connection error');
@@ -1076,101 +1624,523 @@ export default function Index({ technicals }: TechnicalsPageProps) {
 
     return (
         <AppLayout>
-            <Head title="Technicals" />
-            <div className="p-6 space-y-4">
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <div className="bg-gray-100 dark:bg-transparent p-1 rounded flex">
-                            <Button  onClick={() => setViewMode('list')}
-                                className={viewMode === 'list' ? 'bg-white shadow dark:bg-card' : ''}>
-                                <List className="w-5 h-5 text-primary" />
-                            </Button>
-                           {/* <Button variant="ghost" onClick={() => setViewMode('grid')}
-                                className={viewMode === 'grid' ? 'bg-white shadow' : ''}>
-                                <LayoutGrid className="w-5 h-5" />
-                            </Button>
-                            <Button variant="ghost" onClick={() => setViewMode('table')}
-                                className={viewMode === 'table' ? 'bg-white shadow' : ''}>
-                                <TableIcon className="w-5 h-5" />
-                            </Button> */}
+            <Head title="Technicals Management" />
+            
+            {/* Add custom CSS animations */}
+            <style dangerouslySetInnerHTML={{__html: `
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                @keyframes bounceIn {
+                    0% {
+                        opacity: 0;
+                        transform: scale(0.3);
+                    }
+                    50% {
+                        opacity: 1;
+                        transform: scale(1.05);
+                    }
+                    70% {
+                        transform: scale(0.9);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+                
+                @keyframes shimmer {
+                    0% {
+                        background-position: -200px 0;
+                    }
+                    100% {
+                        background-position: calc(200px + 100%) 0;
+                    }
+                }
+                
+                .animate-fadeInUp {
+                    animation: fadeInUp 0.6s ease-out;
+                }
+                
+                .animate-bounceIn {
+                    animation: bounceIn 0.8s ease-out;
+                }
+                
+                .animate-shimmer {
+                    background: linear-gradient(
+                        90deg,
+                        transparent,
+                        rgba(255, 255, 255, 0.2),
+                        transparent
+                    );
+                    background-size: 200px 100%;
+                    animation: shimmer 2s infinite;
+                }
+                
+                .scrollbar-thin {
+                    scrollbar-width: thin;
+                }
+                
+                .scrollbar-thin::-webkit-scrollbar {
+                    width: 4px;
+                    height: 4px;
+                }
+                
+                .scrollbar-thin::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                
+                .scrollbar-thin::-webkit-scrollbar-thumb {
+                    background-color: rgba(156, 163, 175, 0.2);
+                    border-radius: 2px;
+                }
+                
+                .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+                    background-color: rgba(156, 163, 175, 0.3);
+                }
+            `}} />
+
+            {/* Enhanced Header Section */}
+            <div className="bg-gradient-to-br from-corporate-gold/10 via-corporate-warm/10 to-corporate-gold/5 dark:from-corporate-gold/20 dark:via-corporate-warm/20 dark:to-corporate-gold/10 p-6 border-b border-corporate-gold/20">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-gradient-to-r from-primary to-accent rounded-xl shadow-lg">
+                                <Users className="w-8 h-8 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold text-corporate-gold dark:text-corporate-gold-light">
+                                    Technical Team Management
+                                </h1>
+                                <p className="text-muted-foreground">
+                                    Manage technical staff, track performance, and monitor ticket assignments
+                                </p>
+                            </div>
                         </div>
-                        {viewMode === 'grid' && (
-                            <select
-                                value={gridColumns}
-                                onChange={(e) => setGridColumns(Number(e.target.value))}
-                                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                            >
-                                {[2, 3, 4, 5, 6].map(num => (
-                                    <option key={num} value={num}>{num} Cards</option>
-                                ))}
-                            </select>
-                        )}
+                        
+                        {/* Stats Overview with Enhanced Tooltips */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200">
+                                <CardContent className="p-3">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-2 cursor-help">
+                                                <CheckCircle className="w-5 h-5 text-green-600" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-green-600">Active Technicals</p>
+                                                    <p className="text-xl font-bold text-green-700">
+                                                        <AnimatedCounter value={technicals.data.filter(t => t.status).length} />
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Currently active technicals</p>
+                                            <p>Ready to handle tickets and assignments</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </CardContent>
+                            </Card>
+                            
+                            <Card className="bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 border-corporate-gold/30">
+                                <CardContent className="p-3">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-2 cursor-help">
+                                                <Trophy className="w-5 h-5 text-corporate-gold" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-corporate-gold">Tech Defaults</p>
+                                                    <p className="text-xl font-bold text-corporate-gold">
+                                                        <AnimatedCounter value={technicals.data.filter(t => t.is_default).length} />
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Technical Chiefs - Team Leaders</p>
+                                            <p>Have additional permissions and responsibilities</p>
+                                            <p className="text-corporate-gold">Only super-admin can assign this role</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </CardContent>
+                            </Card>
+                            
+                            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200">
+                                <CardContent className="p-3">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-2 cursor-help">
+                                                <FileText className="w-5 h-5 text-blue-600" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-blue-600">Total Tickets</p>
+                                                    <p className="text-xl font-bold text-blue-700">
+                                                        <AnimatedCounter value={technicals.data.reduce((sum, t) => sum + t.total_tickets, 0)} />
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Total tickets handled by all technicals</p>
+                                            <p>Includes all statuses across the team</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </CardContent>
+                            </Card>
+                            
+                            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200">
+                                <CardContent className="p-3">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-2 cursor-help">
+                                                <TrendingUp className="w-5 h-5 text-purple-600" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-purple-600">Avg Resolution</p>
+                                                    <p className="text-xl font-bold text-purple-700">
+                                                        <AnimatedCounter value={Math.round(technicals.data.reduce((sum, t) => sum + t.avg_resolution_time, 0) / technicals.data.length) || 0} />h
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Average resolution time across all technicals</p>
+                                            <p>Time from ticket creation to resolution</p>
+                                            <p className="text-purple-500">Lower values indicate better efficiency</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
-                    <Button onClick={() => {
-                        const initialData = {
-                            id: null,
-                            name: '',
-                            email: '',
-                            phone: '',
-                            shift: 'morning' as 'morning' | 'afternoon' | 'night',
-                            photo: null
-                        };
-                        setData(initialData);
-                        setOriginalData(initialData);
-                        setSelectedTechnical(null);
-                        setHasUnsavedChanges(false);
-                        setOpen(true);
-                    }}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        New Technical
-                    </Button>
+                    
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className="border-corporate-gold/30 hover:bg-corporate-gold hover:text-primary-foreground transition-all duration-300"
+                                >
+                                    <Filter className="w-4 h-4 mr-2" />
+                                    Advanced Filters
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Advanced search and filtering options</p>
+                                <p>Filter by status, shift, and search terms</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    onClick={() => {
+                                        const initialData = {
+                                            id: null,
+                                            name: '',
+                                            email: '',
+                                            phone: '',
+                                            shift: 'morning' as 'morning' | 'afternoon' | 'night',
+                                            photo: null
+                                        };
+                                        setData(initialData);
+                                        setOriginalData(initialData);
+                                        setSelectedTechnical(null);
+                                        setHasUnsavedChanges(false);
+                                        setOpen(true);
+                                    }}
+                                    className="text-primary-foreground bg-primary hover:from-corporate-warm hover:to-corporate-gold  shadow-lg hover:shadow-xl transition-all duration-300"
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add New Technical
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Add a new technical staff member</p>
+                               
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
                 </div>
 
-                {viewMode === 'list' ? (
-                    <ListView technicals={technicals.data} />
+                {/* Advanced Filters Panel */}
+                {showFilters && (
+                    <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-xl border border-corporate-gold/20 shadow-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="search" className="text-sm font-medium text-corporate-gold">Search</Label>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                    <Input
+                                        id="search"
+                                        placeholder="Search by name, email, or phone..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="pl-10 border-corporate-gold/20 focus:border-corporate-gold"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium text-corporate-gold">Status</Label>
+                                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                                    <SelectTrigger className="border-corporate-gold/20 focus:border-corporate-gold">
+                                        <SelectValue placeholder="All Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Status</SelectItem>
+                                        <SelectItem value="active">Active Only</SelectItem>
+                                        <SelectItem value="inactive">Inactive Only</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium text-corporate-gold">Shift</Label>
+                                <Select value={filterShift} onValueChange={setFilterShift}>
+                                    <SelectTrigger className="border-corporate-gold/20 focus:border-corporate-gold">
+                                        <SelectValue placeholder="All Shifts" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Shifts</SelectItem>
+                                        <SelectItem value="morning">Morning</SelectItem>
+                                        <SelectItem value="afternoon">Afternoon</SelectItem>
+                                        <SelectItem value="night">Night</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium text-corporate-gold">View Mode</Label>
+                                <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setViewMode('list')}
+                                                className={`flex-1 ${viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+                                            >
+                                                <List className="w-4 h-4 mr-1" />
+                                              
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Detailed List View - Comprehensive View</p>
+                                          
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setViewMode('grid')}
+                                                className={`flex-1 ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+                                            >
+                                                <Grid3X3 className="w-4 h-4 mr-1" />
+                                               
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Grid Cards View - Quick Overview</p>
+                                           
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setViewMode('table')}
+                                                className={`flex-1 ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+                                            >
+                                                <TableIcon className="w-4 h-4 mr-1" />
+                                             
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Data Table View - Traditional Layout</p>
+                                           
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {(searchTerm || filterStatus !== 'all' || filterShift !== 'all') && (
+                            <div className="mt-4 flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">Active filters:</span>
+                                {searchTerm && (
+                                    <Badge variant="secondary" className="bg-corporate-gold/10 text-corporate-gold">
+                                        Search: {searchTerm}
+                                    </Badge>
+                                )}
+                                {filterStatus !== 'all' && (
+                                    <Badge variant="secondary" className="bg-corporate-gold/10 text-corporate-gold">
+                                        Status: {filterStatus}
+                                    </Badge>
+                                )}
+                                {filterShift !== 'all' && (
+                                    <Badge variant="secondary" className="bg-corporate-gold/10 text-corporate-gold">
+                                        Shift: {filterShift}
+                                    </Badge>
+                                )}
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setFilterStatus('all');
+                                        setFilterShift('all');
+                                    }}
+                                    className="h-6 px-2 text-xs text-muted-foreground hover:text-corporate-gold"
+                                >
+                                    Clear all
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            <div className="p-6 space-y-6">
+                {/* View Options for Grid */}
+                {viewMode === 'grid' && (
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Grid columns:</span>
+                            <Select
+                                value={gridColumns.toString()}
+                                onValueChange={(value) => setGridColumns(Number(value))}
+                            >
+                                <SelectTrigger className="w-24 h-8">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {[2, 3, 4, 5, 6].map(num => (
+                                        <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div className="text-sm text-muted-foreground">
+                            Showing {filteredTechnicals.length} of {technicals.data.length} technicals
+                        </div>
+                    </div>
+                )}
+
+                {/* Content Area */}
+                {filteredTechnicals.length === 0 ? (
+                    <div className="text-center py-16">
+                        <div className="animate-bounceIn">
+                            <div className="w-32 h-32 bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-corporate-gold/30">
+                                <Users className="w-16 h-16 text-corporate-gold" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-corporate-gold mb-4">
+                                {technicals.data.length === 0 ? 'No Technicals Yet' : 'No Results Found'}
+                            </h3>
+                            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                                {technicals.data.length === 0 
+                                    ? 'Start building your technical team by adding your first technical staff member.'
+                                    : 'Try adjusting your search criteria or filters to find the technicals you\'re looking for.'
+                                }
+                            </p>
+                            {technicals.data.length === 0 ? (
+                                <Button
+                                    onClick={() => {
+                                        const initialData = {
+                                            id: null,
+                                            name: '',
+                                            email: '',
+                                            phone: '',
+                                            shift: 'morning' as 'morning' | 'afternoon' | 'night',
+                                            photo: null
+                                        };
+                                        setData(initialData);
+                                        setOriginalData(initialData);
+                                        setSelectedTechnical(null);
+                                        setHasUnsavedChanges(false);
+                                        setOpen(true);
+                                    }}
+                                    className="bg-gradient-to-r from-corporate-gold to-corporate-warm hover:from-corporate-warm hover:to-corporate-gold text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add Your First Technical
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setFilterStatus('all');
+                                        setFilterShift('all');
+                                    }}
+                                    className="border-corporate-gold/30 hover:bg-corporate-gold hover:text-white"
+                                >
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    Clear All Filters
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                ) : viewMode === 'list' ? (
+                    <ListView technicals={filteredTechnicals} />
                 ) : viewMode === 'grid' ? (
-                    <GridView technicals={technicals.data} gridColumns={gridColumns} />
+                    <GridView technicals={filteredTechnicals} gridColumns={gridColumns} />
                 ) : (
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                {table.getHeaderGroups().map(headerGroup => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map(header => (
-                                            <TableHead key={header.id}>
-                                                {flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
-                                            </TableHead>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableHeader>
-                            <TableBody>
-                                {table.getRowModel().rows?.length ? (
-                                    table.getRowModel().rows.map(row => (
-                                        <TableRow key={row.id}>
-                                            {row.getVisibleCells().map(cell => (
-                                                <TableCell key={cell.id}>
+                    <TooltipProvider>
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    {table.getHeaderGroups().map(headerGroup => (
+                                        <TableRow key={headerGroup.id}>
+                                            {headerGroup.headers.map(header => (
+                                                <TableHead key={header.id}>
                                                     {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
+                                                        header.column.columnDef.header,
+                                                        header.getContext()
                                                     )}
-                                                </TableCell>
+                                                </TableHead>
                                             ))}
                                         </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="h-24 text-center">
-                                            No results.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                    ))}
+                                </TableHeader>
+                                <TableBody>
+                                    {table.getRowModel().rows?.length ? (
+                                        table.getRowModel().rows.map(row => (
+                                            <TableRow key={row.id}>
+                                                {row.getVisibleCells().map(cell => (
+                                                    <TableCell key={cell.id}>
+                                                        {flexRender(
+                                                            cell.column.columnDef.cell,
+                                                            cell.getContext()
+                                                        )}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={columns.length} className="h-24 text-center">
+                                                No results.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </TooltipProvider>
                 )}
 
                 {/* Create/Edit Modal */}
@@ -1204,9 +2174,9 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                         alt="Preview"
                                                         className="w-full h-full object-cover"
                                                     />
-                                                ) : selectedTechnical?.photo ? (
+                                                ) : selectedTechnical && getPhotoUrl(selectedTechnical.photo) ? (
                                                     <img
-                                                        src={`/storage/${selectedTechnical.photo}`}
+                                                        src={getPhotoUrl(selectedTechnical.photo)!}
                                                         alt="Current"
                                                         className="w-full h-full object-cover"
                                                     />
@@ -1332,6 +2302,388 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                             <Button variant="destructive" onClick={confirmDelete}>
                                 Delete
                             </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Enhanced Tickets List Modal */}
+                <Dialog open={showTicketModal} onOpenChange={setShowTicketModal}>
+                    <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+                        <DialogHeader className="flex-shrink-0 pb-4 border-b border-corporate-gold/20">
+                            <DialogTitle className="flex items-center gap-3">
+                                <div className="p-2 bg-gradient-to-r from-corporate-gold to-corporate-warm rounded-lg">
+                                    <FileText className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-corporate-gold">{ticketModalTitle}</h2>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        {loadingTickets ? 'Loading tickets...' : `${selectedTickets.length} tickets found`}
+                                    </p>
+                                </div>
+                                <div className="ml-auto">
+                                    <Badge variant="secondary" className="bg-corporate-gold/10 text-corporate-gold border-corporate-gold/30">
+                                        {selectedTickets.length} total
+                                    </Badge>
+                                </div>
+                            </DialogTitle>
+                        </DialogHeader>
+                        
+                        <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-corporate-gold/20 scrollbar-track-transparent hover:scrollbar-thumb-corporate-gold/40">
+                            {loadingTickets ? (
+                                <div className="flex flex-col items-center justify-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-corporate-gold mb-4"></div>
+                                    <p className="text-lg font-medium text-corporate-gold">Loading tickets...</p>
+                                    <p className="text-sm text-muted-foreground">Please wait while we fetch the latest data</p>
+                                </div>
+                            ) : selectedTickets.length > 0 ? (
+                                <div className="space-y-3">
+                                    {selectedTickets.map((ticket, index) => (
+                                        <div 
+                                            key={ticket.id}
+                                            onClick={() => handleViewTicketDetail(ticket.id)}
+                                            className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-4 rounded-lg border border-corporate-gold/20 hover:bg-gradient-to-r hover:from-corporate-gold/10 hover:to-corporate-warm/10 hover:border-corporate-gold/40 transition-all duration-300 cursor-pointer  transform group"
+                                            style={{
+                                                animationDelay: `${index * 100}ms`,
+                                                animation: 'fadeInUp 0.6s ease-out forwards'
+                                            }}
+                                        >
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <h3 className="font-semibold text-lg text-corporate-gold group-hover:text-corporate-warm transition-colors duration-300 truncate">
+                                                            #{ticket.id} - {ticket.title}
+                                                        </h3>
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}>
+                                                            {ticket.status.replace('_', ' ')}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                                                        <div className="flex items-center gap-2">
+                                                            <Calendar className="w-4 h-4 text-corporate-gold" />
+                                                            <span>Created: {formatDate(ticket.created_at)}</span>
+                                                        </div>
+                                                        {ticket.building && (
+                                                            <div className="flex items-center gap-2">
+                                                                <MapPin className="w-4 h-4 text-corporate-warm" />
+                                                                <span>{ticket.building.name}</span>
+                                                            </div>
+                                                        )}
+                                                        {ticket.device && (
+                                                            <div className="flex items-center gap-2">
+                                                                <Laptop className="w-4 h-4 text-corporate-gold" />
+                                                                <span>{ticket.device.name}</span>
+                                                            </div>
+                                                        )}
+                                                        {ticket.priority && (
+                                                            <div className="flex items-center gap-2">
+                                                                <AlertTriangle className={`w-4 h-4 ${
+                                                                    ticket.priority === 'urgent' ? 'text-red-500' :
+                                                                    ticket.priority === 'high' ? 'text-orange-500' :
+                                                                    ticket.priority === 'medium' ? 'text-yellow-500' : 'text-green-500'
+                                                                }`} />
+                                                                <span className="capitalize">{ticket.priority} Priority</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex items-center gap-2 ml-4">
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    navigateToTicket(ticket.id);
+                                                                }}
+                                                                className="border-corporate-gold/30 hover:bg-primary hover:text-white"
+                                                            >
+                                                                <ExternalLink className="w-4 h-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Open full ticket detail</p>
+                                                          
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <div className="w-24 h-24 bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <FileText className="w-12 h-12 text-corporate-gold" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-corporate-gold mb-2">No tickets found</h3>
+                                    <p className="text-muted-foreground max-w-md mx-auto">
+                                        This technical has no tickets for the selected filter. Try a different filter or check back later.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <DialogFooter className="flex-shrink-0 pt-4">
+                            <div className="flex justify-between w-full">
+                                <div className="text-sm text-muted-foreground">
+                                    {selectedTickets.length > 0 && (
+                                        <span>Showing {selectedTickets.length} ticket{selectedTickets.length !== 1 ? 's' : ''}</span>
+                                    )}
+                                </div>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="outline" onClick={() => setShowTicketModal(false)}>
+                                            <ChevronLeft className="w-4 h-4 mr-1" />
+                                            Close
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Close ticket list modal</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Enhanced Ticket Detail Modal */}
+                <Dialog open={showTicketDetailModal} onOpenChange={setShowTicketDetailModal}>
+                    <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                        <DialogHeader className="flex-shrink-0">
+                            <DialogTitle className="flex items-center gap-2">
+                                <History className="w-5 h-5 text-corporate-gold" />
+                                {selectedTicketDetail ? `Ticket #${selectedTicketDetail.id} - ${selectedTicketDetail.title}` : 'Loading...'}
+                            </DialogTitle>
+                        </DialogHeader>
+                        
+                        <TooltipProvider>
+                            <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-corporate-gold/20 scrollbar-track-transparent hover:scrollbar-thumb-corporate-gold/40">
+                            {loadingTicketDetail ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-corporate-gold"></div>
+                                    <span className="ml-2 text-corporate-gold">Loading ticket details...</span>
+                                </div>
+                            ) : selectedTicketDetail ? (
+                                <div className="space-y-6">
+                                    {/* Ticket Header */}
+                                    <div className="bg-gradient-to-r from-corporate-gold/10 to-corporate-warm/10 p-4 rounded-lg border border-corporate-gold/20">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <h3 className="font-semibold text-lg text-corporate-gold mb-2">{selectedTicketDetail.title}</h3>
+                                                <p className="text-sm text-muted-foreground">{selectedTicketDetail.description}</p>
+                                            </div>
+                                            <div className="space-y-2 text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">Status:</span>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedTicketDetail.status)}`}>
+                                                        {selectedTicketDetail.status.replace('_', ' ')}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">Priority:</span>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                        selectedTicketDetail.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                                                        selectedTicketDetail.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                                                        selectedTicketDetail.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                                                    }`}>
+                                                        {selectedTicketDetail.priority}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">Created:</span>
+                                                    <span>{formatDate(selectedTicketDetail.created_at)}</span>
+                                                </div>
+                                                {selectedTicketDetail.resolved_at && (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium">Resolved:</span>
+                                                        <span>{formatDate(selectedTicketDetail.resolved_at)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Additional Details */}
+                                    {(selectedTicketDetail.building || selectedTicketDetail.device || selectedTicketDetail.tenant) && (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {selectedTicketDetail.building && (
+                                                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg">
+                                                    <h4 className="font-medium text-sm text-corporate-gold mb-1 flex items-center gap-1">
+                                                        <MapPin className="w-3 h-3" />
+                                                        Building
+                                                    </h4>
+                                                    <p className="text-sm">{selectedTicketDetail.building.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{selectedTicketDetail.building.address}</p>
+                                                </div>
+                                            )}
+                                            
+                                            {selectedTicketDetail.device && (
+                                                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg">
+                                                    <h4 className="font-medium text-sm text-corporate-gold mb-1 flex items-center gap-1">
+                                                        <Laptop className="w-3 h-3" />
+                                                        Device
+                                                    </h4>
+                                                    <p className="text-sm">{selectedTicketDetail.device.name}</p>
+                                                    {selectedTicketDetail.device.brand && (
+                                                        <p className="text-xs text-muted-foreground">{selectedTicketDetail.device.brand.name}</p>
+                                                    )}
+                                                </div>
+                                            )}
+                                            
+                                            {selectedTicketDetail.tenant && (
+                                                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg">
+                                                    <h4 className="font-medium text-sm text-corporate-gold mb-1 flex items-center gap-1">
+                                                        <User className="w-3 h-3" />
+                                                        Tenant
+                                                    </h4>
+                                                    <p className="text-sm">{selectedTicketDetail.tenant.name}</p>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                                        <Mail className="w-3 h-3" />
+                                                        <span>{selectedTicketDetail.tenant.email}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                        <Phone className="w-3 h-3" />
+                                                        <span>{selectedTicketDetail.tenant.phone}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Ticket History */}
+                                    <div>
+                                        <h3 className="font-semibold text-lg text-corporate-gold mb-4 flex items-center gap-2">
+                                            <History className="w-5 h-5" />
+                                            Ticket History
+                                        </h3>
+                                        <div className="space-y-4">
+                                            {selectedTicketDetail.history.map((historyItem) => (
+                                                <div key={historyItem.id} className="flex gap-4">
+                                                    <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-corporate-gold to-corporate-warm rounded-full flex items-center justify-center">
+                                                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg border border-corporate-gold/20">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <h4 className="font-medium text-sm text-corporate-gold">{historyItem.action}</h4>
+                                                                <span className="text-xs text-muted-foreground">{formatDate(historyItem.created_at)}</span>
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground">{historyItem.description}</p>
+                                                            {historyItem.user && (
+                                                                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                                                                    <User className="w-3 h-3" />
+                                                                    <span>{historyItem.user.name} ({historyItem.user.role})</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Comments Section */}
+                                    {selectedTicketDetail.comments && selectedTicketDetail.comments.length > 0 && (
+                                        <div>
+                                            <h3 className="font-semibold text-lg text-corporate-gold mb-4 flex items-center gap-2">
+                                                <MessageSquare className="w-5 h-5" />
+                                                Comments
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {selectedTicketDetail.comments.map((comment) => (
+                                                    <div key={comment.id} className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-3 rounded-lg border border-corporate-gold/20">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="font-medium text-sm text-corporate-gold">{comment.user.name}</span>
+                                                            <span className="text-xs text-muted-foreground">{formatDate(comment.created_at)}</span>
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground">{comment.content}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Performance Metrics */}
+                                    {selectedTicketDetail.resolution_time && (
+                                        <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-lg border border-green-200">
+                                            <h3 className="font-semibold text-lg text-green-600 mb-2 flex items-center gap-2">
+                                                <Timer className="w-5 h-5" />
+                                                Resolution Metrics
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                                <div>
+                                                    <span className="font-medium">Resolution Time:</span>
+                                                    <p className="text-lg font-bold text-green-600">{selectedTicketDetail.resolution_time}h</p>
+                                                </div>
+                                                {selectedTicketDetail.rating && (
+                                                    <div>
+                                                        <span className="font-medium">Rating:</span>
+                                                        <div className="flex items-center gap-1">
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <Star key={i} className={`w-4 h-4 ${i < selectedTicketDetail.rating! ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                                                            ))}
+                                                            <span className="ml-1 font-bold text-yellow-600">({selectedTicketDetail.rating}/5)</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {selectedTicketDetail.feedback && (
+                                                    <div>
+                                                        <span className="font-medium">Feedback:</span>
+                                                        <p className="text-sm text-muted-foreground italic">"{selectedTicketDetail.feedback}"</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <AlertTriangle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                                    <p className="text-lg font-medium text-muted-foreground">Error loading ticket details</p>
+                                    <p className="text-sm text-muted-foreground">Please try again later</p>
+                                </div>
+                            )}
+                            </div>
+                        </TooltipProvider>
+                        
+                        <DialogFooter className="flex-shrink-0 pt-4">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={() => {
+                                            setShowTicketDetailModal(false);
+                                            setSelectedTicketDetail(null);
+                                        }}
+                                    >
+                                        <ChevronLeft className="w-4 h-4 mr-1" />
+                                        Back
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Return to ticket list</p>
+                                </TooltipContent>
+                            </Tooltip>
+                            {selectedTicketDetail && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button 
+                                            onClick={() => navigateToTicket(selectedTicketDetail.id)}
+                                            className="bg-gradient-to-r from-corporate-gold to-corporate-warm hover:from-corporate-warm hover:to-corporate-gold"
+                                        >
+                                            <ExternalLink className="w-4 h-4 mr-1" />
+                                            Open Full Ticket
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Navigate to full ticket page</p>
+                                        <p>Edit ticket, add comments, and more</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

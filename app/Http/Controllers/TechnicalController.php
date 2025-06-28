@@ -137,14 +137,9 @@ class TechnicalController extends Controller
             $validated['photo'] = $request->file('photo')->store('images/technicals', 'public');
         }
 
-        // Verifica si es el primero en la tabla
-        $isFirstTechnical = Technical::count() === 0;
-        $validated['is_default'] = $isFirstTechnical;
-        
-        // Si no es el primero pero no hay ningún default, este será el default
-        if (!$isFirstTechnical && !Technical::where('is_default', true)->exists()) {
-            $validated['is_default'] = true;
-        }
+        // New technicals are NOT set as Tech Chief by default
+        // Only super-admin can manually assign Tech Chief role
+        $validated['is_default'] = false;
 
         $technical = Technical::create($validated);
 
