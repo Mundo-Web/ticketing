@@ -5,4 +5,5 @@ export interface Tenant {
     phone: string;
     photo: File|string|null;
     photoPreview: string;
+    tickets_count?: number;
 };

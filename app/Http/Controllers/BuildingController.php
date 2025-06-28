@@ -488,6 +488,12 @@ class BuildingController extends Controller
             },
             'tenants.sharedDevices' => function ($q) { // Dispositivos compartidos
                 $q->with(['brand', 'system', 'model', 'name_device', 'owner']);
+            },
+            'tenants' => function ($query) {
+                $query->select('tenants.*')
+                    ->selectRaw('(SELECT COUNT(*) FROM tickets 
+                                  JOIN users ON tickets.user_id = users.id 
+                                  WHERE users.email = tenants.email) as tickets_count');
             }
         ])->where('buildings_id', $building->id)
             ->when($search, function ($query) use ($search) {
@@ -600,5 +606,35 @@ class BuildingController extends Controller
         $this->saveOwner($request, $building);
 
         return back()->with('success', 'Superintendent updated successfully');
+    }
+
+    public function tenantTickets(Request $request, $tenantId)
+    {
+        try {
+            $tenant = \App\Models\Tenant::findOrFail($tenantId);
+            $status = $request->input('status', 'all');
+            
+            $ticketsQuery = \App\Models\Ticket::with(['device.brand', 'device.system', 'device.model', 'device.name_device', 'technical', 'histories'])
+                ->whereHas('user', function ($userQuery) use ($tenant) {
+                    $userQuery->where('email', $tenant->email);
+                });
+                
+            if ($status !== 'all') {
+                $ticketsQuery->where('status', $status);
+            }
+            
+            $tickets = $ticketsQuery->orderBy('created_at', 'desc')->get();
+            
+            return response()->json([
+                'tickets' => $tickets,
+                'tenant' => $tenant
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in tenantTickets: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to fetch tickets',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -36,4 +36,17 @@ class Tenant extends Model
             ->withPivot('owner_tenant_id');
     }
 
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class, 'user_id')
+            ->join('users', 'tickets.user_id', '=', 'users.id')
+            ->where('users.email', $this->email)
+            ->select('tickets.*');
+    }
+
+    public function ticketsCount()
+    {
+        return $this->tickets()->count();
+    }
+
 }

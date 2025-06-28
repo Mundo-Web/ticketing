@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
     Plus, Edit, Trash2, ChevronRight, Laptop, UploadCloud, 
     ChevronDown, ChevronLeft, Search, Filter, FileSpreadsheet, 
-    Download, Users, Mail, Phone, Crown, Shield, MapPinIcon
+    Download, Users, Mail, Phone, Crown, Shield, MapPinIcon, Ticket
 } from 'lucide-react';
 import * as XLSX from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -55,6 +55,7 @@ import { BuildingCombobox } from './ComboBox';
 import { Tenant } from '@/types/models/Tenant';
 import { TenantForm } from './TenantForm';
 import { Apartment } from '@/types/models/Apartment';
+import TicketHistoryModal from '@/components/TicketHistoryModal';
 import _ from 'lodash';
 
 // Extend Tenant type to include additional properties used in this component
@@ -227,6 +228,8 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [selectedShareDevices, setSelectedShareDevices] = useState<Device[]>([]);
 
     const [showDevicesModal, setShowDevicesModal] = useState(false);
+    const [showTicketHistoryModal, setShowTicketHistoryModal] = useState(false);
+    const [selectedTenantForTickets, setSelectedTenantForTickets] = useState<Tenant | null>(null);
     const [initialFormData, setInitialFormData] = useState<typeof data | undefined>();
     const [showConfirmClose, setShowConfirmClose] = useState(false);
     const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
@@ -520,6 +523,11 @@ export default function Index({ apartments, brands, models, systems, name_device
         setSelectedDevices(tenant.devices || []);
         setSelectedShareDevices(tenant.shared_devices || []);
         setShowDevicesModal(true);
+    };
+
+    const handleShowTicketHistory = (tenant: Tenant) => {
+        setSelectedTenantForTickets(tenant);
+        setShowTicketHistoryModal(true);
     };
 
     const getEmbedUrl = (locationLink: string): string => {
@@ -1456,6 +1464,16 @@ export default function Index({ apartments, brands, models, systems, name_device
                     </DialogContent>
                 </Dialog>
 
+                {/* Ticket History Modal */}
+                <TicketHistoryModal
+                    isOpen={showTicketHistoryModal}
+                    onClose={() => {
+                        setShowTicketHistoryModal(false);
+                        setSelectedTenantForTickets(null);
+                    }}
+                    tenant={selectedTenantForTickets}
+                />
+
                 {/* Bulk Upload Modal */}
                 <Dialog open={showBulkUploadModal} onOpenChange={setShowBulkUploadModal}>
                     <DialogContent className="w-full max-w-md">
@@ -2112,6 +2130,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                 key={row.id}
                                                 row={row}
                                                 handleShowDevices={handleShowDevices}
+                                                handleShowTicketHistory={handleShowTicketHistory}
                                             />
                                         ))
                                     ) : (
@@ -2249,10 +2268,11 @@ interface ApartmentRowExpandedProps {
         }>;
     };
     handleShowDevices: (apartment: Apartment, tenant: ExtendedTenant) => void;
+    handleShowTicketHistory: (tenant: Tenant) => void;
 }
 
 // Componente de fila expandible para la tabla avanzada
-const ApartmentRowExpanded = ({ row, handleShowDevices }: ApartmentRowExpandedProps) => {
+const ApartmentRowExpanded = ({ row, handleShowDevices, handleShowTicketHistory }: ApartmentRowExpandedProps) => {
     const [expanded, setExpanded] = useState(false);
     const apartment = row.original;
 
@@ -2394,6 +2414,18 @@ const ApartmentRowExpanded = ({ row, handleShowDevices }: ApartmentRowExpandedPr
                                                     {Number(tenant.devices?.length || 0) + Number(tenant.shared_devices?.length || 0)}
                                                 </span>
                                                 <span className="hidden sm:inline font-medium ">Devices</span>
+                                            </Button>
+                                            <Button
+                                               
+                                                size="sm"
+                                               
+                                                onClick={() => handleShowTicketHistory(tenant)}
+                                            >
+                                                <Ticket className="w-4 h-4" />
+                                                <span className="font-bold text-base">
+                                                    {tenant.tickets_count || 0}
+                                                </span>
+                                                <span className="hidden sm:inline font-medium">Tickets</span>
                                             </Button>
                                         </div>
                                     </div>
