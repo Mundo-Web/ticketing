@@ -1230,10 +1230,18 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             <div className="p-2 bg-purple-100 rounded-lg">
                                 <Share2 className="w-6 h-6 text-purple-600" />
                             </div>
-                            Assign Technician
+                            {(() => {
+                                const currentTicket = selectedTicket || allTickets.find(ticket => ticket.id === showAssignModal.ticketId);
+                                return currentTicket?.technical ? 'Reassign Technician' : 'Assign Technician';
+                            })()}
                         </DialogTitle>
                         <DialogDescription className="text-base text-slate-600">
-                            Select a technician to assign this ticket and ensure proper handling.
+                            {(() => {
+                                const currentTicket = selectedTicket || allTickets.find(ticket => ticket.id === showAssignModal.ticketId);
+                                return currentTicket?.technical 
+                                    ? `Currently assigned to ${currentTicket.technical.name}. Select a different technician to reassign this ticket.`
+                                    : 'Select a technician to assign this ticket and ensure proper handling.';
+                            })()}
                         </DialogDescription>
                     </DialogHeader>
                     <form
@@ -1270,7 +1278,13 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                 Available Technicians
                             </label>
                             <div className="space-y-2">
-                                {technicals.map((t) => (
+                                {technicals
+                                    .filter((t) => {
+                                        // Filtrar el técnico que ya está asignado al ticket
+                                        const currentTicket = selectedTicket || allTickets.find(ticket => ticket.id === showAssignModal.ticketId);
+                                        return !currentTicket?.technical || currentTicket.technical.id !== t.id;
+                                    })
+                                    .map((t) => (
                                     <div
                                         key={t.id}
                                         className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
@@ -1303,6 +1317,9 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                         <div className="flex-1">
                                             <h4 className="font-semibold text-slate-800">{t.name}</h4>
                                             <p className="text-sm text-slate-600">{t.email}</p>
+                                            {t.shift && (
+                                                <p className="text-xs text-slate-500">Shift: {t.shift}</p>
+                                            )}
                                         </div>
                                         <div className={`w-4 h-4 rounded-full border-2 ${
                                             assignTechnicalId === t.id 
@@ -1315,6 +1332,18 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                         </div>
                                     </div>
                                 ))}
+                                
+                                {/* Mostrar mensaje si no hay técnicos disponibles */}
+                                {technicals.filter((t) => {
+                                    const currentTicket = selectedTicket || allTickets.find(ticket => ticket.id === showAssignModal.ticketId);
+                                    return !currentTicket?.technical || currentTicket.technical.id !== t.id;
+                                }).length === 0 && (
+                                    <div className="flex flex-col items-center justify-center py-8 text-slate-500">
+                                        <UserCheck className="w-12 h-12 mb-3 text-slate-400" />
+                                        <p className="text-sm font-medium">No other technicians available</p>
+                                        <p className="text-xs text-center">All technicians are either assigned or unavailable</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <DialogFooter className="pt-6 border-t border-slate-200">
