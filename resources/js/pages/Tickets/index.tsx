@@ -17,7 +17,6 @@ import {
     Monitor,
     Tag,
     UserIcon,
-    Calendar,
     MessageSquare,
     AlertCircle,
     CheckCircle2,
@@ -27,6 +26,15 @@ import {
     User,
     Building,
     Home,
+    Zap,
+    Mail,
+    Phone,
+    UserPlus,
+    UserMinus,
+    UserCheck,
+    Settings,
+    Cpu,
+    Smartphone,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -42,7 +50,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import KanbanBoard from "./KanbanBoard";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+
 import { Device } from "@/types/models/Device"
 import { Tenant } from "@/types/models/Tenant";
 
@@ -189,7 +197,7 @@ interface TicketsProps {
 
 function CategoryBadge({ category }: { category: string }) {
     return (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-100 text-purple-700 text-xs font-medium">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/20 text-secondary-foreground text-xs font-medium border border-secondary/30">
             <Tag className="w-3 h-3" />
             {category}
         </div>
@@ -198,117 +206,14 @@ function CategoryBadge({ category }: { category: string }) {
 
 function DeviceBadge({ device }: { device: any }) {
     return (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-100 text-sky-700 text-xs font-medium">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/20 text-primary-foreground text-xs font-medium border border-primary/30">
             <Monitor className="w-3 h-3" />
             {device?.name_device?.name || device?.name || "Sin dispositivo"}
         </div>
     )
 }
 
-// Componente MemberCard para mostrar información del member de forma consistente
-function MemberCard({ ticket, showContactInfo = false }: { ticket: any, showContactInfo?: boolean }) {
-    if (!ticket.user || !ticket.user.tenant) return null;
-
-    const tenant = ticket.user.tenant;
-    
-    return (
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-3 mb-3">
-            <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                    {tenant.photo ? (
-                        <img
-                            src={tenant.photo.startsWith('http')
-                                ? tenant.photo
-                                : `/storage/${tenant.photo}`}
-                            alt={tenant.name}
-                            className="w-12 h-12 rounded-full border-2 border-purple-300 shadow-md object-cover"
-                        />
-                    ) : (
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-sm font-bold">
-                            {tenant.name?.substring(0, 1) || '?'}
-                        </div>
-                    )}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1 mb-1">
-                        <User className="w-3 h-3 text-purple-600" />
-                        <p className="text-sm font-semibold text-purple-900 truncate">
-                            {tenant.name}
-                        </p>
-                    </div>
-                    
-                    {showContactInfo && tenant.email && (
-                        <div className="flex items-center gap-1 mb-1">
-                            <MessageSquare className="w-3 h-3 text-green-600" />
-                            <p className="text-xs text-green-800 truncate">
-                                {tenant.email}
-                            </p>
-                        </div>
-                    )}
-                    
-                    {showContactInfo && tenant.phone && (
-                        <div className="flex items-center gap-1 mb-1">
-                            <UserIcon className="w-3 h-3 text-orange-600" />
-                            <p className="text-xs text-orange-800 truncate">
-                                {tenant.phone}
-                            </p>
-                        </div>
-                    )}
-                    
-                    {tenant.apartment && (
-                        <div className="flex items-center gap-1 mb-1">
-                            <Home className="w-3 h-3 text-blue-600" />
-                            <p className="text-xs text-blue-800 truncate">
-                                {tenant.apartment.name}
-                            </p>
-                        </div>
-                    )}
-                    
-                    {tenant.apartment?.building && (
-                        <div className="flex items-center gap-1">
-                            <Building className="w-3 h-3 text-gray-600" />
-                            <p className="text-xs text-gray-700 truncate">
-                                {tenant.apartment.building.name}
-                            </p>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function SkeletonCard() {
-    return (
-        <Card className="animate-pulse">
-            <CardContent className="p-6">
-                <div className="space-y-4">
-                    <div className="flex justify-between items-start">
-                        <div className="h-5 bg-slate-200 rounded w-2/3"></div>
-                        <div className="h-6 w-20 bg-slate-200 rounded-full"></div>
-                    </div>
-                    <div className="space-y-2">
-                        <div className="h-4 bg-slate-100 rounded w-full"></div>
-                        <div className="h-4 bg-slate-100 rounded w-3/4"></div>
-                    </div>
-                    <div className="flex gap-2">
-                        <div className="h-6 w-16 bg-slate-200 rounded-md"></div>
-                        <div className="h-6 w-20 bg-slate-200 rounded-md"></div>
-                    </div>
-                    <div className="flex justify-between items-center pt-2">
-                        <div className="h-4 w-24 bg-slate-200 rounded"></div>
-                        <div className="flex gap-1">
-                            <div className="h-8 w-8 bg-slate-200 rounded"></div>
-                            <div className="h-8 w-8 bg-slate-200 rounded"></div>
-                        </div>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    )
-}
-
+// Elegant Corporate Device Information Component
 export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered, devicesOwn, devicesShared, memberData, apartmentData, buildingData, statusFilter }: TicketsProps) {
     // Dynamic breadcrumbs based on status filter
     const breadcrumbs: BreadcrumbItem[] = statusFilter 
@@ -341,31 +246,19 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
     const [assigning, setAssigning] = useState(false)
     const [addingHistory, setAddingHistory] = useState(false)
     const [technicals, setTechnicals] = useState<any[]>([])
-    const [deletingId, setDeletingId] = useState<number | null>(null)
-    const [viewTicket, setViewTicket] = useState<any | null>(null)
-    const [viewLoading, setViewLoading] = useState(false)
     const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null)
     const [tab, setTab] = useState<"all" | "assigned" | "approved">("all")
     const [selectedTicket, setSelectedTicket] = useState<any | null>(null)
     const [selectedTicketLoading, setSelectedTicketLoading] = useState(false)
-    const [searchQuery, setSearchQuery] = useState("")
     const [showCreateModal, setShowCreateModal] = useState(false);
     const { auth, isTechnicalDefault } = usePage<SharedData & { isTechnicalDefault?: boolean }>().props;
-    const isMember = auth.user?.roles.includes("member");
-    const isSuperAdmin = auth.user?.roles.includes("super-admin");
-    const isTechnical = auth.user?.roles.includes("technical");
+    const isMember = (auth.user as any)?.roles?.includes("member");
+    const isSuperAdmin = (auth.user as any)?.roles?.includes("super-admin");
+    const isTechnical = (auth.user as any)?.roles?.includes("technical");
     // isTechnicalDefault ahora viene del backend correctamente
 
     // Tab labels in English
-    const allStatuses = [
-        { value: "all", label: "All", icon: Eye },
-        { value: "open", label: "Open", icon: AlertCircle },
-        { value: "in_progress", label: "In Progress", icon: PlayCircle },
-        { value: "resolved", label: "Resolved", icon: CheckCircle2 },
-        { value: "closed", label: "Closed", icon: StopCircle },
-        { value: "cancelled", label: "Cancelled", icon: XCircle },
-    ];
-    const [superTab, setSuperTab] = useState<string>("all");
+    const [searchQuery] = useState("")
 
     const deviceOptions = [...devicesOwn, ...devicesShared].map(device => ({
         ...device,
@@ -397,10 +290,8 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
 
     const handleDelete = (ticket: any) => {
         if (!window.confirm("¿Estás seguro de que deseas eliminar este ticket?")) return
-        setDeletingId(ticket.id)
         router.delete(`/tickets/${ticket.id}`, {
             preserveScroll: true,
-            onFinish: () => setDeletingId(null),
         })
     }
 
@@ -515,9 +406,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
     // Super admin filtered tickets by current tab
     const superAdminFilteredTickets = statusFilter
         ? allTickets  // Si hay filtro del backend, usar todos los tickets filtrados
-        : (superTab === "all"
-            ? allTickets
-            : allTickets.filter((ticket: any) => ticket.status === superTab));
+        : allTickets;
 
     // Apply search filter
     const filteredTickets = isSuperAdmin
@@ -874,16 +763,35 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                         </div>
                         {/* Sidebar - Ticket Details */}
                         <div className={`${isMember ? "xl:col-span-4" : "xl:col-span-4"}`}>
-                            <div className="sticky top-8">
-                                <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
-                                    <CardHeader className=" text-black rounded-t-lg shadow pb-4">
-                                        <div className="flex items-center gap-2">
-                                            <h2 className="text-lg font-semibold">Ticket Details</h2>
+                            <div className="sticky top-8 border-2 border-primary rounded-lg shadow-2xl">
+                                <Card className="shadow-2xl border-0 bg-gradient-to-br from-background via-sidebar to-muted overflow-hidden">
+                                    <CardHeader className="border-b-2 border-primary text-primary-foreground pb-6 relative overflow-hidden">
+                                        {/* Elegant Background Pattern */}
+                                        <div className="absolute inset-0 "></div>
+                                        <div className="absolute top-0 right-0 w-32 h-32  rounded-full transform translate-x-16 -translate-y-16"></div>
+                                        
+                                        <div className="relative z-10 flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-xl backdrop-blur-sm border border-primary-foreground/20 flex items-center justify-center">
+                                                    <Eye className="w-6 h-6 text-primary-foreground" />
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-xl font-black">Ticket Details</h2>
+                                                    <p className="text-primary-foreground/80 text-sm font-medium">Complete ticket information</p>
+                                                </div>
+                                            </div>
+                                            {/*selectedTicket && (
+                                                <div className="text-right">
+                                                    <span className="text-sm bg-primary-foreground/10 backdrop-blur-sm px-4 py-2 rounded-xl border border-primary-foreground/20 font-mono text-primary-foreground/90">
+                                                        ID #{selectedTicket.id}
+                                                    </span>
+                                                </div>
+                                            )*/}
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-0">
                                         <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
-                                            {(selectedTicketLoading || viewLoading) && (
+                                            {selectedTicketLoading && (
                                                 <div className="flex items-center justify-center h-64">
                                                     <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                                                 </div>
@@ -900,198 +808,291 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                             )}
 
                                             {selectedTicket && !selectedTicketLoading && (
-                                                <div className="px-6 pb-6">
-                                                    {/* Member Card - Creador del ticket - Movido arriba */}
-                                                    <MemberCard ticket={selectedTicket} showContactInfo={true} />
-
-                                                    {/* Ticket Info */}
-                                                    <div className="space-y-4">
-                                                        {/* Botones de acción para técnicos/jefe, SIEMPRE antes de history */}
-                                                        {(isTechnical || isTechnicalDefault) && !isSuperAdmin && (
-                                                            <div className="flex flex-wrap gap-2 mb-4">
-                                                                {isTechnicalDefault && (
-                                                                    <Button
-                                                                        size="sm"
-                                                                        className="bg-purple-600 hover:bg-purple-700 text-white"
-                                                                        onClick={() => setShowAssignModal({ open: true, ticketId: selectedTicket.id })}
-                                                                    >
-                                                                        <Share2 className="w-4 h-4 mr-2" />
-                                                                        Assign technician
-                                                                    </Button>
-                                                                )}
-                                                                <Button
-                                                                    size="sm"
-                                                                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                                                                    onClick={() => setShowHistoryModal({ open: true, ticketId: selectedTicket.id })}
-                                                                >
-                                                                    <MessageSquare className="w-4 h-4 mr-2" />
-                                                                    Comment
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                        <div className="flex items-center justify-between">
-                                                            <h3 className="font-semibold text-slate-900">{selectedTicket.title}</h3>
+                                                <div className="space-y-6">
+                                                    {/* Ticket Title & Status */}
+                                                    <div className="p-6 border-b border-border">
+                                                        <div className="flex items-start justify-between mb-3">
+                                                            <h3 className="text-lg font-bold text-foreground leading-tight pr-4">
+                                                                {selectedTicket.title}
+                                                            </h3>
                                                             <StatusBadge status={selectedTicket.status} />
                                                         </div>
-
-                                                        <p className="text-slate-600 text-sm leading-relaxed">{selectedTicket.description}</p>
-
-                                                        <div className="grid grid-cols-2 gap-3 text-sm">
-                                                            <div>
-                                                                <span className="text-slate-500">ID:</span>
-                                                                <span className="ml-2 font-medium">#{selectedTicket.id}</span>
-                                                            </div>
-                                                            <div>
-                                                                <span className="text-slate-500">Code:</span>
-                                                                <span className="ml-2 font-medium">{selectedTicket.code}</span>
-                                                            </div>
+                                                        <p className="text-sm text-muted-foreground line-clamp-3">
+                                                            {selectedTicket.description}
+                                                        </p>
+                                                        <div className="flex items-center gap-2 mt-3">
+                                                            <CategoryBadge category={selectedTicket.category} />
+                                                            <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
+                                                                {selectedTicket.code}
+                                                            </span>
                                                         </div>
+                                                    </div>
 
-                                                        <div className="space-y-2">
-                                                            <div className="flex flex-wrap gap-2 items-center">
-                                                                <DeviceBadge device={selectedTicket.device} />
-                                                                <CategoryBadge category={selectedTicket.category} />
-                                                            </div>
-                                                        </div>
-
-
-
-                                                        <div className="text-xs text-slate-500 space-y-1 mb-4">
-                                                            <div className="flex items-center gap-1">
-                                                                <Calendar className="w-3 h-3" />
-                                                                Created:{" "}
-                                                                {selectedTicket.created_at
-                                                                    ? new Date(selectedTicket.created_at).toLocaleString("en-US")
-                                                                    : "-"}
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <Clock className="w-3 h-3" />
-                                                                Updated:{" "}
-                                                                {selectedTicket.updated_at
-                                                                    ? new Date(selectedTicket.updated_at).toLocaleString("en-US")
-                                                                    : "-"}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Action buttons for ticket management - only show when in the "Assigned" tab */}
-                                                        {(canActOnTickets || isSuperAdmin) && (
-                                                            <div className="flex flex-wrap gap-2  mb-4">
-                                                                <Button
-                                                                    size="sm"
-                                                                    className="bg-sidebar-accent hover:bg-sidebar-accent text-white"
-                                                                    onClick={() => {
-                                                                        setShowHistoryModal({ open: true, ticketId: selectedTicket.id });
-                                                                    }}
-                                                                >
-                                                                    <MessageSquare className="w-4 h-4 mr-2" />
-                                                                    Comment
-                                                                </Button>
-                                                             
-                                                                    <Button
-                                                                        variant={"ghost"}
-                                                                        size="sm"
-                                                                        className=" "
-                                                                        onClick={() => {
-                                                                            loadTechnicals();
-                                                                            setShowAssignModal({ open: true, ticketId: selectedTicket.id });
-                                                                        }}
-                                                                    >
-                                                                        <Share2 className="w-4 h-4 mr-2" />
-                                                                       Assign technician
-                                                                    </Button>
-                                                               
-
-
-                                                                {/* Status update buttons */}
-                                                                {getNextStatuses(selectedTicket.status).length > 0 && (
-                                                                    <div className="flex flex-wrap gap-2 mt-2 mb-4">
-                                                                        <p className="w-full text-sm text-slate-500 mb-1">Update Status:</p>
-                                                                        {getNextStatuses(selectedTicket.status).map((status) => {
-                                                                            const statusInfo = statusConfig[status];
-                                                                            let buttonStyle = "";
-                                                                            switch (status) {
-                                                                                case "in_progress":
-                                                                                    buttonStyle = "bg-amber-400 hover:bg-amber-500";
-                                                                                    break;
-                                                                                case "resolved":
-                                                                                    buttonStyle = "bg-emerald-400 hover:bg-emerald-500";
-                                                                                    break;
-                                                                                case "closed":
-                                                                                    buttonStyle = "bg-slate-400 hover:bg-slate-500";
-                                                                                    break;
-                                                                                case "cancelled":
-                                                                                    buttonStyle = "bg-red-400 hover:bg-red-500";
-                                                                                    break;
-                                                                                default:
-                                                                                    buttonStyle = "bg-blue-400 hover:bg-blue-500";
-                                                                            }
-                                                                            return (
-                                                                                <Button
-                                                                                    key={status}
-                                                                                    size="sm"
-                                                                                    className={`${buttonStyle} text-white`}
-                                                                                    onClick={() => handleStatusChange(selectedTicket, status)}
-                                                                                    disabled={statusLoadingId === selectedTicket.id}
-                                                                                >
-                                                                                    <statusInfo.icon className="w-4 h-4 mr-1" />
-                                                                                    {statusInfo.label}
-                                                                                </Button>
-                                                                            );
-                                                                        })}
+                                                    {/* Device Information - Compact Badges Row */}
+                                                    {selectedTicket.device && (
+                                                        <div className="px-6">
+                                                            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                                                <Monitor className="w-4 h-4 text-primary" />
+                                                                Device Information
+                                                            </h4>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-medium border border-primary/20">
+                                                                    <Cpu className="w-3 h-3" />
+                                                                    {selectedTicket.device.name_device?.name || selectedTicket.device.name || 'Unknown Device'}
+                                                                </div>
+                                                                {selectedTicket.device.brand && (
+                                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary/10 text-secondary-foreground rounded-full text-xs font-medium border border-secondary/20">
+                                                                        <Tag className="w-3 h-3" />
+                                                                        {selectedTicket.device.brand.name}
                                                                     </div>
+                                                                )}
+                                                                {selectedTicket.device.model && (
+                                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 text-primary-foreground rounded-full text-xs font-medium border border-accent/20">
+                                                                        <Smartphone className="w-3 h-3" />
+                                                                        {selectedTicket.device.model.name}
+                                                                    </div>
+                                                                )}
+                                                                {selectedTicket.device.system && (
+                                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted text-primary-foreground rounded-full text-xs font-medium border border-border">
+                                                                        <Settings className="w-3 h-3" />
+                                                                        {selectedTicket.device.system.name}
+                                                                    </div>
+                                                                )}
+                                                                {selectedTicket.device.apartment && (
+                                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-200">
+                                                                        <Home className="w-3 h-3" />
+                                                                        {selectedTicket.device.apartment.building?.name} - {selectedTicket.device.apartment.name}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Creator Information */}
+                                                    {selectedTicket.user?.tenant && (
+                                                        <div className="px-6">
+                                                            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                                                <User className="w-4 h-4 text-secondary" />
+                                                                Created by
+                                                            </h4>
+                                                            <div className="flex items-center justify-between p-3 bg-secondary/5 rounded-lg border border-secondary/20">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
+                                                                        <User className="w-5 h-5 text-secondary" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-medium text-foreground text-sm">{selectedTicket.user.tenant.name}</p>
+                                                                        <p className="text-xs text-muted-foreground">
+                                                                            {selectedTicket.user.tenant.apartment?.name} - {selectedTicket.user.tenant.apartment?.building?.name}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    {selectedTicket.user.tenant.email && (
+                                                                        <a
+                                                                            href={`mailto:${selectedTicket.user.tenant.email}`}
+                                                                            className="p-2 bg-secondary/10 hover:bg-secondary/20 rounded-full transition-colors"
+                                                                            title={`Send email to ${selectedTicket.user.tenant.name}`}
+                                                                        >
+                                                                            <Mail className="w-4 h-4 text-secondary" />
+                                                                        </a>
+                                                                    )}
+                                                                    {selectedTicket.user.tenant.phone && (
+                                                                        <a
+                                                                            href={`tel:${selectedTicket.user.tenant.phone}`}
+                                                                            className="p-2 bg-secondary/10 hover:bg-secondary/20 rounded-full transition-colors"
+                                                                            title={`Call ${selectedTicket.user.tenant.name}`}
+                                                                        >
+                                                                            <Phone className="w-4 h-4 text-secondary" />
+                                                                        </a>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Technical Assignment */}
+                                                    <div className="px-6">
+                                                        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                                            <UserCheck className="w-4 h-4 text-accent" />
+                                                            Technical Assignment
+                                                        </h4>
+                                                        
+                                                        {selectedTicket.technical ? (
+                                                            <div className="flex items-center justify-between p-3 bg-accent/5 rounded-lg border border-accent/20">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
+                                                                        <UserCheck className="w-5 h-5 text-accent" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-medium text-foreground text-sm">{selectedTicket.technical.name}</p>
+                                                                        <p className="text-xs text-muted-foreground">
+                                                                            {selectedTicket.technical.shift && `Shift: ${selectedTicket.technical.shift}`}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    {selectedTicket.technical.email && (
+                                                                        <a
+                                                                            href={`mailto:${selectedTicket.technical.email}`}
+                                                                            className="p-2 bg-accent/10 hover:bg-accent/20 rounded-full transition-colors"
+                                                                            title={`Send email to ${selectedTicket.technical.name}`}
+                                                                        >
+                                                                            <Mail className="w-4 h-4 text-accent" />
+                                                                        </a>
+                                                                    )}
+                                                                    {selectedTicket.technical.phone && (
+                                                                        <a
+                                                                            href={`tel:${selectedTicket.technical.phone}`}
+                                                                            className="p-2 bg-accent/10 hover:bg-accent/20 rounded-full transition-colors"
+                                                                            title={`Call ${selectedTicket.technical.name}`}
+                                                                        >
+                                                                            <Phone className="w-4 h-4 text-accent" />
+                                                                        </a>
+                                                                    )}
+                                                                    {(isTechnicalDefault || isSuperAdmin) && (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={() => setShowAssignModal({ open: true, ticketId: selectedTicket.id })}
+                                                                                className="p-2 bg-primary/10 hover:bg-primary/20 rounded-full transition-colors"
+                                                                                title="Change technical assignment"
+                                                                            >
+                                                                                <UserPlus className="w-4 h-4 text-primary" />
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={async () => {
+                                                                                    router.post(`/tickets/${selectedTicket.id}/unassign`, {}, {
+                                                                                        preserveScroll: true,
+                                                                                        onSuccess: () => refreshSelectedTicket(selectedTicket.id)
+                                                                                    });
+                                                                                }}
+                                                                                className="p-2 bg-destructive/10 hover:bg-destructive/20 rounded-full transition-colors"
+                                                                                title="Unassign technical"
+                                                                            >
+                                                                                <UserMinus className="w-4 h-4 text-destructive" />
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-dashed border-muted-foreground/30">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                                                                        <UserMinus className="w-5 h-5 text-muted-foreground" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-medium text-muted-foreground text-sm">Unassigned</p>
+                                                                        <p className="text-xs text-muted-foreground/70">No technical assigned yet</p>
+                                                                    </div>
+                                                                </div>
+                                                                {(isTechnicalDefault || isSuperAdmin) && (
+                                                                    <button
+                                                                        onClick={() => setShowAssignModal({ open: true, ticketId: selectedTicket.id })}
+                                                                        className="p-2 bg-primary/10 hover:bg-primary/20 rounded-full transition-colors"
+                                                                        title="Assign technical"
+                                                                    >
+                                                                        <UserPlus className="w-4 h-4 text-primary" />
+                                                                    </button>
                                                                 )}
                                                             </div>
                                                         )}
                                                     </div>
 
-                                                    <Separator />
+                                                    {/* Quick Actions */}
+                                                    {(isTechnicalDefault || isSuperAdmin || selectedTicket.technical_id === auth.user?.id) && (
+                                                        <div className="px-6">
+                                                            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                                                <Zap className="w-4 h-4 text-primary" />
+                                                                Quick Actions
+                                                            </h4>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                <button
+                                                                    onClick={() => setShowHistoryModal({ open: true, ticketId: selectedTicket.id })}
+                                                                    className="inline-flex items-center gap-2 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/20"
+                                                                >
+                                                                    <MessageSquare className="w-4 h-4" />
+                                                                    Add Comment
+                                                                </button>
+                                                                {getNextStatuses(selectedTicket.status).map((status) => (
+                                                                    <button
+                                                                        key={status}
+                                                                        onClick={() => handleStatusChange(selectedTicket, status)}
+                                                                        disabled={statusLoadingId === selectedTicket.id}
+                                                                        className="inline-flex items-center gap-2 px-3 py-2 bg-secondary/10 hover:bg-secondary/20 text-secondary-foreground rounded-lg text-sm font-medium transition-colors border border-secondary/20 disabled:opacity-50"
+                                                                    >
+                                                                        {statusLoadingId === selectedTicket.id ? (
+                                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                                        ) : (
+                                                                            <CheckCircle className="w-4 h-4" />
+                                                                        )}
+                                                                        Mark as {statusConfig[status]?.label || status}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
 
-                                                    {/* History */}
-                                                    <div className="space-y-4 mt-4">
-                                                        <h4 className="font-medium text-slate-900 flex items-center gap-2">
-                                                            <Clock className="w-4 h-4 text-blue-500" />
-                                                            History
+                                                    {/* Ticket History */}
+                                                    <div className="px-6 pb-6">
+                                                        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                                            <Clock className="w-4 h-4 text-muted-foreground" />
+                                                            Recent Activity
                                                         </h4>
-
-                                                        <div className="space-y-3">
-                                                            {!selectedTicket.histories || selectedTicket.histories.length === 0 ? (
-                                                                <div className="text-center py-6 text-slate-500">
-                                                                    <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                                                    <p className="text-sm">No history available</p>
-                                                                </div>
-                                                            ) : (
-                                                                [...selectedTicket.histories]
-                                                                    .slice()
-                                                                    .reverse()
-                                                                    .map((h: any, idx: number, arr: any[]) => (
-                                                                        <div key={h.id} className="relative pl-6 pb-4 last:pb-0">
-                                                                            <div className="absolute left-0 top-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow"></div>
-                                                                            {idx !== arr.length - 1 && (
-                                                                                <div className="absolute left-1.5 top-4 w-0.5 h-full bg-slate-200"></div>
-                                                                            )}
-
-                                                                            <div className="bg-slate-50 rounded-lg p-3 ml-4 shadow-sm">
-                                                                                <div className="flex items-center justify-between mb-1">
-                                                                                    <span className="text-xs font-medium text-blue-600 uppercase tracking-wide">
-                                                                                        {h.action.replace("_", " ")}
-                                                                                    </span>
-                                                                                    {idx === 0 && (
-                                                                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                                                                                            Recent
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                                <p className="text-sm text-slate-700 mb-2">{h.description}</p>
-                                                                                <div className="flex items-center justify-between text-xs text-slate-500">
-                                                                                    <span className="flex items-center gap-1">
-                                                                                        <UserIcon className="w-3 h-3" />
-                                                                                        {h.user ? h.user.name : "Sistema"}
-                                                                                    </span>
-                                                                                    <span>{new Date(h.created_at).toLocaleString("es-ES")}</span>
-                                                                                </div>
-                                                                            </div>
+                                                        <div className="space-y-3 max-h-48 overflow-y-auto">
+                                                            {selectedTicket.history && selectedTicket.history.length > 0 ? (
+                                                                selectedTicket.history.slice(0, 5).map((entry: any, index: number) => (
+                                                                    <div key={index} className="flex gap-3 p-3 bg-muted/30 rounded-lg">
+                                                                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                                                            <MessageSquare className="w-4 h-4 text-muted-foreground" />
                                                                         </div>
-                                                                    ))
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                <span className="text-xs font-medium text-foreground">
+                                                                                    {entry.user?.name || 'System'}
+                                                                                </span>
+                                                                                <span className="text-xs text-muted-foreground">
+                                                                                    {new Date(entry.created_at).toLocaleString()}
+                                                                                </span>
+                                                                            </div>
+                                                                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                                {entry.description}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))
+                                                            ) : selectedTicket.histories && selectedTicket.histories.length > 0 ? (
+                                                                selectedTicket.histories.slice(0, 5).map((entry: any, index: number) => (
+                                                                    <div key={index} className="flex gap-3 p-3 bg-muted/30 rounded-lg">
+                                                                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                                                            <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                <span className="text-xs font-medium text-foreground">
+                                                                                    {entry.user?.name || entry.technical?.name || 'System'}
+                                                                                </span>
+                                                                                <span className="text-xs text-muted-foreground">
+                                                                                    {new Date(entry.created_at).toLocaleString()}
+                                                                                </span>
+                                                                            </div>
+                                                                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                                {entry.description}
+                                                                            </p>
+                                                                            {entry.action && (
+                                                                                <span className="inline-block mt-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
+                                                                                    {entry.action.replace('_', ' ')}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))
+                                                            ) : (
+                                                                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                                                                    <MessageSquare className="w-12 h-12 mb-3 text-muted-foreground/50" />
+                                                                    <p className="text-sm font-medium">No activity yet</p>
+                                                                    <p className="text-xs text-center">Comments and updates will appear here</p>
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </div>

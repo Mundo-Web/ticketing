@@ -22,6 +22,9 @@ class TicketController extends Controller
             'technical',
             'device',
             'device.name_device',
+            'device.brand',
+            'device.model', 
+            'device.system',
             'histories.technical',
             'user.tenant.apartment.building', // Para saber quién creó el ticket y su info
         ];
@@ -181,9 +184,20 @@ class TicketController extends Controller
         ]);
         
         // Add initial history entry
+        $user = auth()->user();
+        $userName = 'System';
+        
+        // Try to get the user's name from tenant relationship if it's a member
+        if ($user->hasRole('member')) {
+            $tenant = \App\Models\Tenant::where('email', $user->email)->first();
+            $userName = $tenant ? $tenant->name : $user->name;
+        } else {
+            $userName = $user->name;
+        }
+        
         $ticket->addHistory(
             'created',
-            'Ticket creado por el usuario',
+            "Ticket created by {$userName}",
             null,
             null
         );
@@ -200,6 +214,9 @@ class TicketController extends Controller
             'technical',
             'device',
             'device.name_device',
+            'device.brand',
+            'device.model',
+            'device.system',
             'histories.technical',
             'user.tenant.apartment.building', // Para saber quién creó el ticket y su info
         ])->findOrFail($id);
@@ -238,15 +255,17 @@ class TicketController extends Controller
             $ticket->closed_at = now();
         }
         $ticket->save();
-        // Obtener el usuario autenticado
+        // Agregar al historial
         $user = auth()->user();
-        // Buscar el técnico correspondiente al usuario autenticado por email
         $technical = Technical::where('email', $user->email)->first();
         $technicalId = $technical ? $technical->id : null;
-        // Agregar al historial
+        
+        // Get the technical's name for the description
+        $actorName = $technical ? $technical->name : $user->name;
+        
         $ticket->addHistory(
             'status_updated',
-            'Estado del ticket actualizado a ' . $ticket->status,
+            "Status updated to {$ticket->status} by {$actorName}",
             null,
             $technicalId
         );
@@ -279,11 +298,20 @@ class TicketController extends Controller
             'comment' => 'nullable|string|max:1000',
         ]);
         $oldTechnical = $ticket->technical_id;
+        $newTechnical = Technical::findOrFail($validated['technical_id']);
         $ticket->technical_id = $validated['technical_id'];
         $ticket->save();
+
+        // Get who is performing the assignment
+        $user = auth()->user();
+        $assignerTechnical = Technical::where('email', $user->email)->first();
+        $assignerName = $assignerTechnical ? $assignerTechnical->name : $user->name;
+
+        $description = $validated['comment'] ?? "Ticket assigned to {$newTechnical->name} by {$assignerName}";
+        
         $ticket->addHistory(
             'assigned_technical',
-            $validated['comment'] ?? 'Ticket asignado a técnico',
+            $description,
             [
                 'from' => $oldTechnical,
                 'to' => $validated['technical_id']
@@ -312,9 +340,13 @@ class TicketController extends Controller
         $technical = Technical::where('email', $user->email)->first();
         $technicalId = $technical ? $technical->id : null;
 
+        // Get actor name for better history description
+        $actorName = $technical ? $technical->name : $user->name;
+        $description = $validated['description'] ?? "Action performed by {$actorName}";
+
         $ticket->addHistory(
             $validated['action'],
-            $validated['description'] ?? null,
+            $description,
             $validated['meta'] ?? null,
             $technicalId
         );
@@ -334,12 +366,17 @@ class TicketController extends Controller
         $ticket->status = $validated['status'];
         $ticket->save();
 
+        // Get user info for better history
+        $user = auth()->user();
+        $technical = Technical::where('email', $user->email)->first();
+        $actorName = $technical ? $technical->name : $user->name;
+
         // Opcional: agrega historial de cambio de estado
         $ticket->addHistory(
             'status_updated',
-            'Estado del ticket actualizado a ' . $validated['status'],
+            "Status updated to {$validated['status']} by {$actorName}",
             null,
-            auth()->user()->technical->id ?? null
+            $technical ? $technical->id : null
         );
 
         // Para peticiones AJAX/JSON
@@ -385,10 +422,17 @@ class TicketController extends Controller
             'status' => 'in_progress'
         ]);
         
+        // Get who is performing the assignment
+        $assignerName = $user->name;
+        if ($user->hasRole('technical')) {
+            $assignerTechnical = Technical::where('email', $user->email)->first();
+            $assignerName = $assignerTechnical ? $assignerTechnical->name : $user->name;
+        }
+        
         // Agregar entrada al historial
         $ticket->addHistory(
             'assigned_technical',
-            "Ticket assigned to {$technical->name}",
+            "Ticket assigned to {$technical->name} by {$assignerName}",
             ['to' => $technical->id],
             $user->hasRole('technical') ? Technical::where('email', $user->email)->first()?->id : null
         );
