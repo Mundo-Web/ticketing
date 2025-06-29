@@ -33,6 +33,23 @@ import {
     Settings,
     Cpu,
     Smartphone,
+    Upload,
+    Camera,
+    Video,
+    FileText,
+    Star,
+    ThumbsUp,
+    PhoneCall,
+    Monitor as MonitorIcon,
+    RefreshCw,
+    Calendar,
+    Award,
+    TrendingUp,
+    Shield,
+    Wifi,
+    HelpCircle,
+    BookOpen,
+    LightbulbIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -214,11 +231,11 @@ function DeviceBadge({ device }: { device: any }) {
 // Elegant Corporate Device Information Component
 export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered, devicesOwn, devicesShared, memberData, apartmentData, buildingData, statusFilter }: TicketsProps) {
     // Dynamic breadcrumbs based on status filter
-    const breadcrumbs: BreadcrumbItem[] = statusFilter 
+    const breadcrumbs: BreadcrumbItem[] = statusFilter
         ? [
             { title: "Tickets", href: "/tickets" },
             { title: statusFilter === 'closed,cancelled' ? "Closed & Cancelled" : statusFilter, href: "#" }
-          ]
+        ]
         : [{ title: "Tickets", href: "/tickets" }];
     // Refresca el ticket seleccionado desde el backend
     const refreshSelectedTicket = async (ticketId?: number) => {
@@ -252,6 +269,13 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
     const [selectedTicket, setSelectedTicket] = useState<any | null>(null)
     const [selectedTicketLoading, setSelectedTicketLoading] = useState(false)
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showQuickActionsModal, setShowQuickActionsModal] = useState<{ open: boolean; ticketId?: number }>({ open: false });
+    const [showRatingModal, setShowRatingModal] = useState<{ open: boolean; ticketId?: number }>({ open: false });
+    const [showHelpModal, setShowHelpModal] = useState(false);
+    const [ticketRating, setTicketRating] = useState(0);
+    const [ratingComment, setRatingComment] = useState("");
+    const [submittingRating, setSubmittingRating] = useState(false);
+    const [showDeviceStats, setShowDeviceStats] = useState(false);
     const { auth, isTechnicalDefault } = usePage<SharedData & { isTechnicalDefault?: boolean }>().props;
     const isMember = (auth.user as any)?.roles?.includes("member");
     const isSuperAdmin = (auth.user as any)?.roles?.includes("super-admin");
@@ -299,7 +323,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
     const handleStatusChange = (ticket: any, newStatus: string) => {
         // Estados que requieren comentario obligatorio
         const statusesRequiringComment = ['resolved', 'closed', 'cancelled'];
-        
+
         if (statusesRequiringComment.includes(newStatus)) {
             // Abrir modal para pedir comentario obligatorio
             setShowStatusChangeModal({
@@ -398,16 +422,16 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
     // Filter tickets for members by tab (status) and then by search
     // Si hay statusFilter del backend, allTickets ya viene filtrado y solo contiene tickets del usuario
     // Si no hay statusFilter, necesitamos filtrar por user_id y luego por tab local
-    const memberTickets = statusFilter 
+    const memberTickets = statusFilter
         ? allTickets  // Si hay filtro del backend, allTickets ya está filtrado por usuario y estado
         : allTickets.filter((ticket: any) => ticket.user_id === userId);
-    
-    const memberTabFilteredTickets = statusFilter 
+
+    const memberTabFilteredTickets = statusFilter
         ? memberTickets  // Si hay filtro del backend, usar todos los tickets filtrados
         : (memberTab === "all"
             ? memberTickets
             : memberTickets.filter((ticket: any) => ticket.status === memberTab));
-    
+
     const memberFilteredTickets = memberTabFilteredTickets.filter(
         (ticket: any) =>
             ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -457,14 +481,14 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
             <Head title="Ticket Management" />
 
             <div className="flex flex-col gap-6 p-6">
-                
+
 
                 {/* Header Section */}
                 {isMember && (
-                    <div className="border-b bg-background border-slate-200 sticky top-0 z-20">
+                    <><div className="border-b bg-background border-slate-200 sticky top-0 z-20">
                         <div className="px-6 py-6">
                             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                                <div>
+                                <div className="min-w-max">
                                     <h1 className="text-3xl font-extrabold text-accent flex items-center gap-2">
                                         <CheckCircle className="w-7 h-7 text-accent" />
                                         Ticket Management
@@ -472,8 +496,141 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                     <p className="text-slate-600 mt-1 mb-4">
                                         Select a device to report an issue or search tickets.
                                     </p>
-                                    <div className="flex flex-wrap gap-4">
+                             
+
+                                </div>
+                                {/* Panel Personal del Tenant Mejorado */}
+                                <div className="flex w-full  gap-4 items-center justify-end">
+                                      {/* Dashboard Rápido */}
+                                    <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
+                                        {/* Último Ticket */}
+                                        <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer"
+                                            onClick={() => setShowDeviceStats(true)}>
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                    <Clock className="w-4 h-4 text-blue-600" />
+                                                </div>
+                                                <span className="text-xs text-slate-600">Último Ticket</span>
+                                                <span className="text-lg font-bold text-blue-600">
+                                                    {memberTickets.length > 0 ? memberTickets[0]?.code?.slice(-3) || '000' : '---'}
+                                                </span>
+                                            </div>
+                                        </Card>
+
+                                        {/* Estado de Dispositivos */}
+                                        <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer"
+                                            onClick={() => setShowDeviceStats(true)}>
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                                    <Monitor className="w-4 h-4 text-green-600" />
+                                                </div>
+                                                <span className="text-xs text-slate-600">Dispositivos</span>
+                                                <span className="text-lg font-bold text-green-600">
+                                                    {deviceOptions.length}
+                                                </span>
+                                            </div>
+                                        </Card>
+
+                                        {/* Tickets Activos */}
+                                        <Card className="p-3 text-center hover:shadow-md transition-shadow">
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                                                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                                                </div>
+                                                <span className="text-xs text-slate-600">Activos</span>
+                                                <span className="text-lg font-bold text-amber-600">
+                                                    {memberTickets.filter((t: any) => t.status === 'open' || t.status === 'in_progress').length}
+                                                </span>
+                                            </div>
+                                        </Card>
+                                    </div>
+                                    {/* Información del Usuario */}
+                                    <div className="flex items-center gap-3 min-w-max">
+                                        <div className="relative">
+                                            <img
+                                                src={`/storage/${memberData?.photo}`}
+                                                alt={memberData?.name}
+                                                className="w-16 h-16 rounded-full border-2 border-primary object-cover shadow-lg"
+                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                    e.currentTarget.src = '/images/default-user.png';
+                                                }}
+                                            />
+                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                                                <Shield className="w-3 h-3 text-white" />
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <h1 className="text-2xl font-bold text-accent">
+                                                {memberData?.name}
+                                            </h1>
+                                            <p className="text-slate-600 text-sm flex items-center gap-1">
+                                                <Home className="w-3 h-3" />
+                                                {apartmentData?.name} | {buildingData?.name}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                  
+
+                                    {/* Acciones Rápidas  <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setShowHelpModal(true)}
+                                            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                                        >
+                                            <HelpCircle className="w-4 h-4 mr-1" />
+                                            Ayuda
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => window.open('tel:+1234567890', '_self')}
+                                            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                        >
+                                            <PhoneCall className="w-4 h-4 mr-1" />
+                                            Llamar
+                                        </Button>
+                                    </div>*/}
+                                   
+
+                                    {/* Consejo del Mes */}
+                                    {memberTickets.filter((t: any) => new Date(t.created_at).getMonth() === new Date().getMonth()).length === 0 && (
+                                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 max-w-md">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Award className="w-4 h-4 text-green-600" />
+                                                <span className="text-sm font-semibold text-green-800">¡Felicitaciones!</span>
+                                            </div>
+                                            <p className="text-xs text-green-700">
+                                                Este mes no has reportado incidencias. ¡Excelente trabajo!
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Sugerencia de Mantenimiento 
+                                     <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 max-w-md">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <LightbulbIcon className="w-4 h-4 text-blue-600" />
+                                            <span className="text-sm font-semibold text-blue-800">Consejo del mes</span>
+                                        </div>
+                                        <p className="text-xs text-blue-700">
+                                            Reinicia tu router cada 2 semanas para mantener una conexión óptima.
+                                        </p>
+                                    </div> */}
+                                   
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                         {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
+                                            // Determinar el estado del dispositivo basado en tickets activos
+                                            const activeTickets = memberTickets.filter((ticket: any) => 
+                                                ticket.device_id === device.id && 
+                                                (ticket.status === 'open' || ticket.status === 'in_progress')
+                                            );
+                                            const hasActiveIssues = activeTickets.length > 0;
 
                                             return (
                                                 <button
@@ -483,101 +640,162 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                         setData('device_id', device.id.toString());
                                                         setShowCreateModal(true);
                                                     }}
-                                                    className="flex flex-col items-center bg-white border border-slate-200 rounded-lg shadow hover:shadow-lg px-4 py-3 min-w-[140px] transition group"
+                                                    className={`relative flex flex-row items-center bg-white border-2 rounded-xl shadow-md hover:shadow-xl p-5 w-full transition-all duration-300 group ${
+                                                        hasActiveIssues 
+                                                            ? 'border-amber-300 bg-amber-50/30 hover:border-amber-400 hover:bg-amber-50/50' 
+                                                            : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/30'
+                                                    }`}
                                                 >
-                                                    <Monitor className="w-4 h-4 text-sky-500 mb-1" />
-                                                    <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]">{device.name_device?.name || device.name || `Device #${device.id}`}</span>
-                                                    {/* Mostrar con quién se comparte o el dueño */}
-                                                    <div className="flex items-center gap-1 mt-2">
-                                                        {/* Dueño */}
-                                                        {device.owner && (
-                                                            <TooltipProvider key={device.owner[0].id}>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger>
-                                                                        <img
-                                                                            src={`/storage/${device.owner[0].photo}`}
-                                                                            alt={device.owner[0].name}
-                                                                            title={`Dueño: ${device.owner[0].name}`}
-                                                                            className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-yellow-400"
-                                                                        />
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{device.owner[0].name}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                        )}
-                                                        {/* Compartido con */}
-                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.map((tenant: any) => (
+                                                    {/* Estado del dispositivo */}
+                                                    <div className={`absolute top-4 right-4 w-3 h-3 rounded-full shadow-sm ${
+                                                        hasActiveIssues ? 'bg-amber-400' : 'bg-green-400'
+                                                    }`}></div>
 
-                                                            <TooltipProvider key={tenant.id}>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger>
-                                                                        <img
-                                                                            key={tenant.id}
-                                                                            src={`/storage/${tenant.photo}`}
-                                                                            alt={tenant.name}
-                                                                            title={`Compartido con: ${tenant.name}`}
-                                                                            className="min-w-6 min-h-6 max-w-6 max-h-6 object-cover rounded-full border-2 border-blue-400 -ml-2"
-                                                                        />
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>{tenant.name}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-
-                                                        ))}
+                                                    {/* Icono principal */}
+                                                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center mr-5 flex-shrink-0 transition-colors duration-300 ${
+                                                        hasActiveIssues 
+                                                            ? 'bg-amber-100 text-amber-600 group-hover:bg-amber-200' 
+                                                            : 'bg-blue-100 text-blue-600 group-hover:bg-blue-200'
+                                                    }`}>
+                                                        <Monitor className="w-8 h-8" />
                                                     </div>
+
+                                                    {/* Información principal del dispositivo */}
+                                                    <div className="flex-1 min-w-0 space-y-3">
+                                                        {/* Encabezado con nombre */}
+                                                        <div className="flex items-start justify-between">
+                                                            <h3 className="font-bold text-slate-800 text-lg truncate pr-2 leading-tight">
+                                                                {device.name_device?.name || device.name || `Device #${device.id}`}
+                                                            </h3>
+                                                        </div>
+
+                                                        {/* Fila 1: Marca, Modelo y Sistema */}
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {device.brand && (
+                                                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                                                    <Tag className="w-3 h-3 mr-1" />
+                                                                    {device.brand.name}
+                                                                </span>
+                                                            )}
+                                                            {device.model && (
+                                                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                                                    <Smartphone className="w-3 h-3 mr-1" />
+                                                                    {device.model.name}
+                                                                </span>
+                                                            )}
+                                                            {device.system && (
+                                                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                                                                    <Settings className="w-3 h-3 mr-1" />
+                                                                    {device.system.name}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Fila 2: Ubicación */}
+                                                        {device.apartment && (
+                                                            <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                                                                <Home className="w-4 h-4 mr-2 text-slate-500" />
+                                                                <span className="truncate font-medium">
+                                                                    {device.apartment.building?.name} - {device.apartment.name}
+                                                                </span>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Fila 3: Estado del dispositivo y usuarios */}
+                                                        <div className="flex items-center justify-between">
+                                                            {/* Estado */}
+                                                            <div className="flex-1 mr-4">
+                                                                {hasActiveIssues ? (
+                                                                    <div className="flex items-center text-sm text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200">
+                                                                        <AlertCircle className="w-4 h-4 mr-2" />
+                                                                        <span className="font-medium">{activeTickets.length} issue{activeTickets.length !== 1 ? 's' : ''}</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center text-sm text-green-700 bg-green-100 px-3 py-1.5 rounded-lg border border-green-200">
+                                                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                                                        <span className="font-medium">Working</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Usuarios y botón de acción */}
+                                                            <div className="flex items-center gap-3">
+                                                                {/* Usuarios */}
+                                                                <div className="flex items-center -space-x-1">
+                                                                    {/* Dueño */}
+                                                                    {device.owner && (
+                                                                        <TooltipProvider key={device.owner[0].id}>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger>
+                                                                                    <img
+                                                                                        src={`/storage/${device.owner[0].photo}`}
+                                                                                        alt={device.owner[0].name}
+                                                                                        title={`Owner: ${device.owner[0].name}`}
+                                                                                        className="w-7 h-7 object-cover rounded-full border-2 border-yellow-400 hover:border-yellow-500 transition-colors"
+                                                                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                            e.currentTarget.src = '/images/default-user.png';
+                                                                                        }}
+                                                                                    />
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent>
+                                                                                    <p>Owner: {device.owner[0].name}</p>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+                                                                    )}
+                                                                    {/* Compartido con */}
+                                                                    {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.slice(0, 2).map((tenant: any) => (
+                                                                        <TooltipProvider key={tenant.id}>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger>
+                                                                                    <img
+                                                                                        src={`/storage/${tenant.photo}`}
+                                                                                        alt={tenant.name}
+                                                                                        title={`Shared with: ${tenant.name}`}
+                                                                                        className="w-7 h-7 object-cover rounded-full border-2 border-blue-400 hover:border-blue-500 transition-colors"
+                                                                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                            e.currentTarget.src = '/images/default-user.png';
+                                                                                        }}
+                                                                                    />
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent>
+                                                                                    <p>Shared with: {tenant.name}</p>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+                                                                    ))}
+                                                                    {/* Mostrar +N si hay más usuarios */}
+                                                                    {Array.isArray(device.shared_with) && device.shared_with.length > 2 && (
+                                                                        <div className="w-7 h-7 bg-slate-200 rounded-full border-2 border-slate-400 flex items-center justify-center hover:bg-slate-300 transition-colors">
+                                                                            <span className="text-xs font-bold text-slate-600">
+                                                                                +{device.shared_with.length - 2}
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Botón de acción */}
+                                                                <div className="flex items-center justify-center w-9 h-9 bg-primary/10 rounded-full group-hover:bg-primary/20 group-hover:scale-105 transition-all duration-300 flex-shrink-0">
+                                                                    <span className="text-primary text-lg font-bold">+</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Indicador de hover */}
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-primary/0 to-primary/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                                 </button>
                                             )
                                         }) : (
-                                            <span className="text-slate-500 text-sm">You have no registered devices.</span>
+                                            <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400">
+                                                <Monitor className="w-16 h-16 mb-3 text-slate-300" />
+                                                <p className="text-lg font-medium text-slate-600">No devices registered</p>
+                                                <p className="text-sm text-slate-500">Contact your administrator to register devices</p>
+                                            </div>
                                         )}
                                     </div>
-
-                                </div>
-                                <div className="flex flex-col gap-2 items-end">
-                                    {/* <div className="relative mb-2">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                                        <Input
-                                            placeholder="Search tickets..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="pl-10 w-64 rounded-lg border-sidebar-border focus:ring-2 focus:ring-blue-400 transition"
-                                        />
-                                    </div> */}
-                                    {/* Lista de dispositivos como botones/cards */}
-                                    <div className="flex flex-col gap-3 justify-end">
-
-
-                                        <div className="flex items-center gap-3 ">
-
-                                            <img
-                                                src={`/storage/${memberData?.photo}`}
-                                                alt={memberData?.name}
-                                                className="w-12 h-12 rounded-full border border-primary object-cover"
-                                              onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                    e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
-                                                }}
-                                            />
-                                            <h1 className="text-3xl font-extrabold text-accent flex justify-end text-end gap-2">
-
-                                                {memberData?.name}
-                                            </h1>
-                                        </div>
-                                        <p className="text-slate-600 mt-1 mb-4 flex gap-2">
-                                            <span> {apartmentData?.name} </span> |
-                                            <span> {buildingData?.name} </span>
-                                        </p>
-
-
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    </>
+                    
                 )}
 
                 <div className="px-6 py-8">
@@ -608,72 +826,72 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                         }}
                                     />
                                 </div>
-                ) : isMember ? (
-                // Solo mostrar tabs locales si NO hay filtro del backend
-                !statusFilter ? (
-                <Card className="shadow-none border-0 bg-transparent mb-10">
-                    <CardContent className="p-0">
-                        <Tabs value={memberTab} onValueChange={setMemberTab} className="w-full">
-                            <TabsList className="grid w-full grid-cols-5 bg-transparent rounded-full p-1">
-                                {memberTabs.map((tabItem) => {
-                                    // Define color classes for each tab
-                                    let colorClass = "";
-                                    let countColor = "";
-                                    let iconColor = "";
-                                    switch (tabItem.value) {
-                                        case "all":
-                                            colorClass = "data-[state=active]:text-blue-700";
-                                            countColor = "text-blue-700";
-                                            iconColor = "text-blue-700";
-                                            break;
-                                        case "open":
-                                            colorClass = "data-[state=active]:text-yellow-600";
-                                            countColor = "text-yellow-600";
-                                            iconColor = "text-yellow-600";
-                                            break;
-                                        case "in_progress":
-                                            colorClass = "data-[state=active]:text-amber-700";
-                                            countColor = "text-amber-700";
-                                            iconColor = "text-amber-700";
-                                            break;
-                                        case "resolved":
-                                            colorClass = "data-[state=active]:text-emerald-700";
-                                            countColor = "text-emerald-700";
-                                            iconColor = "text-emerald-700";
-                                            break;
-                                        case "closed":
-                                            colorClass = "data-[state=active]:text-slate-700";
-                                            countColor = "text-slate-700";
-                                            iconColor = "text-slate-700";
-                                            break;
-                                        default:
-                                            colorClass = "";
-                                            countColor = "text-blue-700";
-                                            iconColor = "text-blue-700";
-                                    }
-                                    return (
-                                        <TabsTrigger
-                                            key={tabItem.value}
-                                            value={tabItem.value}
-                                            className={`flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all rounded-xl ${colorClass}`}
-                                        >
-                                            <span className={`font-bold text-3xl ${countColor}`}>
-                                                {tabItem.value === "all"
-                                                    ? memberTickets.length
-                                                    : memberTickets.filter((t: any) => t.status === tabItem.value).length}
-                                            </span>
-                                            <div className="flex gap-2 items-center">
-                                                <tabItem.icon className={`w-5 h-5 ${iconColor}`} />
-                                                <span className="text-sm">{tabItem.label}</span>
-                                            </div>
-                                        </TabsTrigger>
-                                    );
-                                })}
-                            </TabsList>
-                        </Tabs>
-                    </CardContent>
-                </Card>
-                ) : null // No mostrar tabs cuando hay filtro del backend
+                            ) : isMember ? (
+                                // Solo mostrar tabs locales si NO hay filtro del backend
+                                !statusFilter ? (
+                                    <Card className="shadow-none border-0 bg-transparent mb-10">
+                                        <CardContent className="p-0">
+                                            <Tabs value={memberTab} onValueChange={setMemberTab} className="w-full">
+                                                <TabsList className="grid w-full grid-cols-5 bg-transparent rounded-full p-1">
+                                                    {memberTabs.map((tabItem) => {
+                                                        // Define color classes for each tab
+                                                        let colorClass = "";
+                                                        let countColor = "";
+                                                        let iconColor = "";
+                                                        switch (tabItem.value) {
+                                                            case "all":
+                                                                colorClass = "data-[state=active]:text-blue-700";
+                                                                countColor = "text-blue-700";
+                                                                iconColor = "text-blue-700";
+                                                                break;
+                                                            case "open":
+                                                                colorClass = "data-[state=active]:text-yellow-600";
+                                                                countColor = "text-yellow-600";
+                                                                iconColor = "text-yellow-600";
+                                                                break;
+                                                            case "in_progress":
+                                                                colorClass = "data-[state=active]:text-amber-700";
+                                                                countColor = "text-amber-700";
+                                                                iconColor = "text-amber-700";
+                                                                break;
+                                                            case "resolved":
+                                                                colorClass = "data-[state=active]:text-emerald-700";
+                                                                countColor = "text-emerald-700";
+                                                                iconColor = "text-emerald-700";
+                                                                break;
+                                                            case "closed":
+                                                                colorClass = "data-[state=active]:text-slate-700";
+                                                                countColor = "text-slate-700";
+                                                                iconColor = "text-slate-700";
+                                                                break;
+                                                            default:
+                                                                colorClass = "";
+                                                                countColor = "text-blue-700";
+                                                                iconColor = "text-blue-700";
+                                                        }
+                                                        return (
+                                                            <TabsTrigger
+                                                                key={tabItem.value}
+                                                                value={tabItem.value}
+                                                                className={`flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all rounded-xl ${colorClass}`}
+                                                            >
+                                                                <span className={`font-bold text-3xl ${countColor}`}>
+                                                                    {tabItem.value === "all"
+                                                                        ? memberTickets.length
+                                                                        : memberTickets.filter((t: any) => t.status === tabItem.value).length}
+                                                                </span>
+                                                                <div className="flex gap-2 items-center">
+                                                                    <tabItem.icon className={`w-5 h-5 ${iconColor}`} />
+                                                                    <span className="text-sm">{tabItem.label}</span>
+                                                                </div>
+                                                            </TabsTrigger>
+                                                        );
+                                                    })}
+                                                </TabsList>
+                                            </Tabs>
+                                        </CardContent>
+                                    </Card>
+                                ) : null // No mostrar tabs cuando hay filtro del backend
                             ) : (
                                 <Card className="shadow-none border-0 bg-transparent mb-10">
                                     <CardContent className="p-0">
@@ -730,13 +948,12 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                         </div>
                                     ) : (
                                         memberFilteredTickets.map((ticket: any) => (
-                                            <Card 
-                                                key={ticket.id} 
-                                                className={`cursor-pointer transition-all hover:shadow-lg  ${
-                                                    selectedTicket?.id === ticket.id 
-                                                        ? 'border-primary bg-blue-50/50' 
+                                            <Card
+                                                key={ticket.id}
+                                                className={`cursor-pointer transition-all hover:shadow-lg  ${selectedTicket?.id === ticket.id
+                                                        ? 'border-primary bg-blue-50/50'
                                                         : ' '
-                                                }`}
+                                                    }`}
                                                 onClick={() => handleSelectTicket(ticket)}
                                             >
                                                 <CardContent className="p-4">
@@ -747,25 +964,25 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                             </h3>
                                                             <StatusBadge status={ticket.status} />
                                                         </div>
-                                                        
-                                                        <p className="text-sm text-slate-600 line-clamp-2">
+
+                                                        <p className="text-sm text-slate-700 line-clamp-2 leading-relaxed">
                                                             {ticket.description}
                                                         </p>
-                                                        
+
                                                         <div className="flex items-center gap-2 flex-wrap">
                                                             <CategoryBadge category={ticket.category} />
                                                             <DeviceBadge device={ticket.device} />
                                                         </div>
-                                                        
-                                                        <div className="flex items-center justify-between text-xs text-slate-500">
-                                                            <span>{ticket.code}</span>
+
+                                                        <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
+                                                            <span className="bg-slate-100 px-2 py-1 rounded">{ticket.code}</span>
                                                             <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
                                                         </div>
-                                                        
+
                                                         {ticket.technical && (
-                                                            <div className="flex items-center gap-2 text-xs text-slate-600">
-                                                                <UserIcon className="w-3 h-3" />
-                                                                <span>Assigned to {ticket.technical.name}</span>
+                                                            <div className="flex items-center gap-2 text-xs text-slate-700 bg-green-50 px-2 py-1 rounded-md border border-green-200">
+                                                                <UserIcon className="w-3 h-3 text-green-600" />
+                                                                <span>Assigned to <strong>{ticket.technical.name}</strong></span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -784,7 +1001,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                         {/* Elegant Background Pattern */}
                                         <div className="absolute inset-0 "></div>
                                         <div className="absolute top-0 right-0 w-32 h-32  rounded-full transform translate-x-16 -translate-y-16"></div>
-                                        
+
                                         <div className="relative z-10 flex items-center justify-between">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-xl backdrop-blur-sm border border-primary-foreground/20 flex items-center justify-center">
@@ -932,7 +1149,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                             <UserCheck className="w-4 h-4 text-accent" />
                                                             Technical Assignment
                                                         </h4>
-                                                        
+
                                                         {selectedTicket.technical ? (
                                                             <div className="flex items-center justify-between p-3 bg-accent/5 rounded-lg border border-accent/20">
                                                                 <div className="flex items-center gap-3">
@@ -1048,69 +1265,262 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                         </div>
                                                     )}
 
-                                                    {/* Ticket History */}
-                                                    <div className="px-6 pb-6">
-                                                        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                                                            <Clock className="w-4 h-4 text-muted-foreground" />
-                                                            Complete Activity History
-                                                        </h4>
-                                                        <div className="space-y-3 max-h-96 overflow-y-auto">
-                                                            {selectedTicket.history && selectedTicket.history.length > 0 ? (
-                                                                [...selectedTicket.history].reverse().map((entry: any, index: number) => (
-                                                                    <div key={index} className="flex gap-3 p-3 bg-muted/30 rounded-lg">
-                                                                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                                                                            <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                                                                        </div>
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <div className="flex items-center gap-2 mb-1">
-                                                                                <span className="text-xs font-medium text-foreground">
-                                                                                    {entry.user?.name || 'System'}
-                                                                                </span>
-                                                                                <span className="text-xs text-muted-foreground">
-                                                                                    {new Date(entry.created_at).toLocaleString()}
-                                                                                </span>
-                                                                            </div>
-                                                                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                                                                {entry.description}
-                                                                            </p>
-                                                                        </div>
+                                                    {/* Acciones Rápidas para Members */}
+                                                    {isMember && (
+                                                        <div className="px-6">
+                                                            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                                                <Zap className="w-4 h-4 text-blue-600" />
+                                                                Acciones Rápidas
+                                                            </h4>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                {/* Solicitar Llamada */}
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (selectedTicket.technical?.phone) {
+                                                                            window.open(`tel:${selectedTicket.technical.phone}`, '_self');
+                                                                        } else {
+                                                                            window.open('tel:+1234567890', '_self'); // Número de soporte general
+                                                                        }
+                                                                    }}
+                                                                    className="flex flex-col items-center gap-2 p-3 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors group"
+                                                                >
+                                                                    <div className="w-8 h-8 bg-green-100 group-hover:bg-green-200 rounded-full flex items-center justify-center">
+                                                                        <PhoneCall className="w-4 h-4 text-green-600" />
                                                                     </div>
-                                                                ))
-                                                            ) : selectedTicket.histories && selectedTicket.histories.length > 0 ? (
-                                                                [...selectedTicket.histories].reverse().map((entry: any, index: number) => (
-                                                                    <div key={index} className="flex gap-3 p-3 bg-muted/30 rounded-lg">
-                                                                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                                                                            <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                                                                    <span className="text-xs font-medium text-green-800">Solicitar Llamada</span>
+                                                                </button>
+
+                                                                {/* Asistencia Remota */}
+                                                                <button
+                                                                    onClick={() => setShowQuickActionsModal({ open: true, ticketId: selectedTicket.id })}
+                                                                    className="flex flex-col items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors group"
+                                                                >
+                                                                    <div className="w-8 h-8 bg-blue-100 group-hover:bg-blue-200 rounded-full flex items-center justify-center">
+                                                                        <Monitor className="w-4 h-4 text-blue-600" />
+                                                                    </div>
+                                                                    <span className="text-xs font-medium text-blue-800">Asistencia Remota</span>
+                                                                </button>
+
+                                                                {/* Subir Archivos */}
+                                                                <button
+                                                                    onClick={() => setShowQuickActionsModal({ open: true, ticketId: selectedTicket.id })}
+                                                                    className="flex flex-col items-center gap-2 p-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors group"
+                                                                >
+                                                                    <div className="w-8 h-8 bg-purple-100 group-hover:bg-purple-200 rounded-full flex items-center justify-center">
+                                                                        <Upload className="w-4 h-4 text-purple-600" />
+                                                                    </div>
+                                                                    <span className="text-xs font-medium text-purple-800">Subir Archivo</span>
+                                                                </button>
+
+                                                                {/* Reabrir Ticket (solo si está cerrado) */}
+                                                                {(selectedTicket.status === 'resolved' || selectedTicket.status === 'closed') && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            router.post(`/tickets/${selectedTicket.id}/update-status`,
+                                                                                { status: 'open', comment: 'Ticket reabierto por el usuario - problema persiste' },
+                                                                                { preserveScroll: true, onSuccess: () => refreshSelectedTicket(selectedTicket.id) }
+                                                                            );
+                                                                        }}
+                                                                        className="flex flex-col items-center gap-2 p-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors group"
+                                                                    >
+                                                                        <div className="w-8 h-8 bg-amber-100 group-hover:bg-amber-200 rounded-full flex items-center justify-center">
+                                                                            <RefreshCw className="w-4 h-4 text-amber-600" />
                                                                         </div>
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <div className="flex items-center gap-2 mb-1">
-                                                                                <span className="text-xs font-medium text-foreground">
-                                                                                    {entry.user?.name || entry.technical?.name || 'System'}
-                                                                                </span>
-                                                                                <span className="text-xs text-muted-foreground">
-                                                                                    {new Date(entry.created_at).toLocaleString()}
-                                                                                </span>
+                                                                        <span className="text-xs font-medium text-amber-800">Reabrir Ticket</span>
+                                                                    </button>
+                                                                )}
+
+                                                                {/* Calificar Servicio (solo si está resuelto) */}
+                                                                {selectedTicket.status === 'resolved' && (
+                                                                    <button
+                                                                        onClick={() => setShowRatingModal({ open: true, ticketId: selectedTicket.id })}
+                                                                        className="flex flex-col items-center gap-2 p-3 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded-lg transition-colors group"
+                                                                    >
+                                                                        <div className="w-8 h-8 bg-yellow-100 group-hover:bg-yellow-200 rounded-full flex items-center justify-center">
+                                                                            <Star className="w-4 h-4 text-yellow-600" />
+                                                                        </div>
+                                                                        <span className="text-xs font-medium text-yellow-800">Calificar Servicio</span>
+                                                                    </button>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Mostrar técnico asignado con foto */}
+                                                            {selectedTicket.technical && (
+                                                                <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                                                                    <div className="flex items-center gap-3">
+                                                                        {selectedTicket.technical.photo ? (
+                                                                            <img
+                                                                                src={selectedTicket.technical.photo.startsWith('http')
+                                                                                    ? selectedTicket.technical.photo
+                                                                                    : `/storage/${selectedTicket.technical.photo}`}
+                                                                                alt={selectedTicket.technical.name}
+                                                                                className="w-10 h-10 rounded-full border-2 border-green-300 object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center">
+                                                                                <UserCheck className="w-5 h-5 text-green-600" />
                                                                             </div>
-                                                                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                                                                {entry.description}
+                                                                        )}
+                                                                        <div className="flex-1">
+                                                                            <p className="text-sm font-medium text-green-800">
+                                                                                Técnico: {selectedTicket.technical.name}
                                                                             </p>
-                                                                            {entry.action && (
-                                                                                <span className="inline-block mt-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
-                                                                                    {entry.action.replace('_', ' ')}
-                                                                                </span>
+                                                                            <p className="text-xs text-green-600">
+                                                                                {selectedTicket.technical.email} • {selectedTicket.technical.shift || 'Disponible'}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="flex gap-1">
+                                                                            {selectedTicket.technical.email && (
+                                                                                <a
+                                                                                    href={`mailto:${selectedTicket.technical.email}`}
+                                                                                    className="p-2 bg-green-100 hover:bg-green-200 rounded-full transition-colors"
+                                                                                    title="Enviar email"
+                                                                                >
+                                                                                    <Mail className="w-3 h-3 text-green-600" />
+                                                                                </a>
+                                                                            )}
+                                                                            {selectedTicket.technical.phone && (
+                                                                                <a
+                                                                                    href={`tel:${selectedTicket.technical.phone}`}
+                                                                                    className="p-2 bg-green-100 hover:bg-green-200 rounded-full transition-colors"
+                                                                                    title="Llamar"
+                                                                                >
+                                                                                    <Phone className="w-3 h-3 text-green-600" />
+                                                                                </a>
                                                                             )}
                                                                         </div>
                                                                     </div>
-                                                                ))
-                                                            ) : (
-                                                                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                                                                    <MessageSquare className="w-12 h-12 mb-3 text-muted-foreground/50" />
-                                                                    <p className="text-sm font-medium">No activity yet</p>
-                                                                    <p className="text-xs text-center">Comments and updates will appear here</p>
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    </div>
+                                                    )}
+
+                                                    {/* Línea de Tiempo Visual del Ticket */}
+                                                    {isMember && selectedTicket.histories && selectedTicket.histories.length > 0 && (
+                                                        <div className="px-6">
+                                                            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                                                <Clock className="w-4 h-4 text-indigo-600" />
+                                                                Línea de Tiempo
+                                                            </h4>
+                                                            <div className="relative">
+                                                                {/* Línea vertical */}
+                                                                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-200 to-indigo-100"></div>
+
+                                                                <div className="space-y-4">
+                                                                    {[...selectedTicket.histories].reverse().map((entry: any, index: number) => (
+                                                                        <div key={index} className="relative flex items-start gap-4">
+                                                                            {/* Icono de estado */}
+                                                                            <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-2 ${entry.action?.includes('created') ? 'bg-blue-100 border-blue-300' :
+                                                                                    entry.action?.includes('assigned') ? 'bg-purple-100 border-purple-300' :
+                                                                                        entry.action?.includes('in_progress') ? 'bg-amber-100 border-amber-300' :
+                                                                                            entry.action?.includes('resolved') ? 'bg-green-100 border-green-300' :
+                                                                                                entry.action?.includes('closed') ? 'bg-gray-100 border-gray-300' :
+                                                                                                    'bg-indigo-100 border-indigo-300'
+                                                                                }`}>
+                                                                                {entry.action?.includes('created') ? <AlertCircle className="w-4 h-4 text-blue-600" /> :
+                                                                                    entry.action?.includes('assigned') ? <UserCheck className="w-4 h-4 text-purple-600" /> :
+                                                                                        entry.action?.includes('in_progress') ? <Clock className="w-4 h-4 text-amber-600" /> :
+                                                                                            entry.action?.includes('resolved') ? <CheckCircle className="w-4 h-4 text-green-600" /> :
+                                                                                                entry.action?.includes('closed') ? <XCircle className="w-4 h-4 text-gray-600" /> :
+                                                                                                    <MessageSquare className="w-4 h-4 text-indigo-600" />}
+                                                                            </div>
+
+                                                                            {/* Contenido */}
+                                                                            <div className="flex-1 min-w-0 pb-4">
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    <span className="text-sm font-medium text-foreground">
+                                                                                        {entry.technical?.name || entry.user?.name || 'Sistema'}
+                                                                                    </span>
+                                                                                    <span className="text-xs text-muted-foreground">
+                                                                                        {new Date(entry.created_at).toLocaleDateString()} a las {new Date(entry.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                                                                    </span>
+                                                                                    {entry.action && (
+                                                                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${entry.action?.includes('created') ? 'bg-blue-100 text-blue-800' :
+                                                                                                entry.action?.includes('assigned') ? 'bg-purple-100 text-purple-800' :
+                                                                                                    entry.action?.includes('in_progress') ? 'bg-amber-100 text-amber-800' :
+                                                                                                        entry.action?.includes('resolved') ? 'bg-green-100 text-green-800' :
+                                                                                                            entry.action?.includes('closed') ? 'bg-gray-100 text-gray-800' :
+                                                                                                                'bg-indigo-100 text-indigo-800'
+                                                                                            }`}>
+                                                                                            {entry.action.replaceAll('_', ' ').replaceAll('status change ', '')}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                                                                    {entry.description}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Ticket History - Solo para técnicos */}
+                                                    {!isMember && (
+                                                        <div className="px-6 pb-6">
+                                                            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                                                <Clock className="w-4 h-4 text-muted-foreground" />
+                                                                Complete Activity History
+                                                            </h4>
+                                                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                                                                {selectedTicket.history && selectedTicket.history.length > 0 ? (
+                                                                    [...selectedTicket.history].reverse().map((entry: any, index: number) => (
+                                                                        <div key={index} className="flex gap-3 p-3 bg-muted/30 rounded-lg">
+                                                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                                                                <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                                                                            </div>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    <span className="text-xs font-medium text-foreground">
+                                                                                        {entry.user?.name || 'System'}
+                                                                                    </span>
+                                                                                    <span className="text-xs text-muted-foreground">
+                                                                                        {new Date(entry.created_at).toLocaleString()}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                                    {entry.description}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))
+                                                                ) : selectedTicket.histories && selectedTicket.histories.length > 0 ? (
+                                                                    [...selectedTicket.histories].reverse().map((entry: any, index: number) => (
+                                                                        <div key={index} className="flex gap-3 p-3 bg-muted/30 rounded-lg">
+                                                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                                                                <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                                                                            </div>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-center gap-2 mb-1">
+                                                                                    <span className="text-xs font-medium text-foreground">
+                                                                                        {entry.user?.name || entry.technical?.name || 'System'}
+                                                                                    </span>
+                                                                                    <span className="text-xs text-muted-foreground">
+                                                                                        {new Date(entry.created_at).toLocaleString()}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <p className="text-xs text-muted-foreground leading-relaxed">                                                                                {entry.description}
+                                                                                </p>
+                                                                                {entry.action && (
+                                                                                    <span className="inline-block mt-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
+                                                                                        {entry.action.replaceAll('_', ' ')}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))
+                                                                ) : (
+                                                                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                                                                        <MessageSquare className="w-12 h-12 mb-3 text-muted-foreground/50" />
+                                                                        <p className="text-sm font-medium">No activity yet</p>
+                                                                        <p className="text-xs text-center">Comments and updates will appear here</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -1204,17 +1614,17 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             </div>
                         </div>
                         <DialogFooter className="pt-6 border-t border-slate-200">
-                            <Button 
-                                type="button" 
-                                variant="outline" 
+                            <Button
+                                type="button"
+                                variant="outline"
                                 onClick={() => setShowHistoryModal({ open: false })}
                                 className="px-6 py-2.5"
                             >
                                 Cancel
                             </Button>
-                            <Button 
-                                type="submit" 
-                                disabled={addingHistory} 
+                            <Button
+                                type="submit"
+                                disabled={addingHistory}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
                             >
                                 {addingHistory ? (
@@ -1253,7 +1663,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                         <DialogDescription className="text-base text-slate-600">
                             {(() => {
                                 const currentTicket = selectedTicket || allTickets.find(ticket => ticket.id === showAssignModal.ticketId);
-                                return currentTicket?.technical 
+                                return currentTicket?.technical
                                     ? `Currently assigned to ${currentTicket.technical.name}. Select a different technician to reassign this ticket.`
                                     : 'Select a technician to assign this ticket and ensure proper handling.';
                             })()}
@@ -1300,79 +1710,77 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                         return !currentTicket?.technical || currentTicket.technical.id !== t.id;
                                     })
                                     .map((t) => (
-                                    <div
-                                        key={t.id}
-                                        className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
-                                            assignTechnicalId === t.id
-                                                ? 'border-purple-500 bg-purple-50 shadow-md'
-                                                : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-25'
-                                        }`}
-                                        onClick={() => setAssignTechnicalId(t.id)}
-                                    >
-                                        <div className="relative">
-                                            {t.photo ? (
-                                                <img
-                                                    src={t.photo?.startsWith('http') ? t.photo : `/storage/${t.photo}`}
-                                                    alt={t.name}
-                                                    className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
-                                                />
-                                            ) : (
-                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white text-lg font-bold shadow-md">
-                                                    {t.name?.substring(0, 1) || '?'}
-                                                </div>
-                                            )}
-                                            {assignTechnicalId === t.id && (
-                                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
-                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                                                    </svg>
-                                                </div>
-                                            )}
+                                        <div
+                                            key={t.id}
+                                            className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${assignTechnicalId === t.id
+                                                    ? 'border-purple-500 bg-purple-50 shadow-md'
+                                                    : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-25'
+                                                }`}
+                                            onClick={() => setAssignTechnicalId(t.id)}
+                                        >
+                                            <div className="relative">
+                                                {t.photo ? (
+                                                    <img
+                                                        src={t.photo?.startsWith('http') ? t.photo : `/storage/${t.photo}`}
+                                                        alt={t.name}
+                                                        className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+                                                    />
+                                                ) : (
+                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white text-lg font-bold shadow-md">
+                                                        {t.name?.substring(0, 1) || '?'}
+                                                    </div>
+                                                )}
+                                                {assignTechnicalId === t.id && (
+                                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                                        </svg>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="font-semibold text-slate-800">{t.name}</h4>
+                                                <p className="text-sm text-slate-600">{t.email}</p>
+                                                {t.shift && (
+                                                    <p className="text-xs text-slate-500">Shift: {t.shift}</p>
+                                                )}
+                                            </div>
+                                            <div className={`w-4 h-4 rounded-full border-2 ${assignTechnicalId === t.id
+                                                    ? 'border-purple-500 bg-purple-500'
+                                                    : 'border-slate-300'
+                                                }`}>
+                                                {assignTechnicalId === t.id && (
+                                                    <div className="w-full h-full rounded-full bg-purple-500"></div>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-semibold text-slate-800">{t.name}</h4>
-                                            <p className="text-sm text-slate-600">{t.email}</p>
-                                            {t.shift && (
-                                                <p className="text-xs text-slate-500">Shift: {t.shift}</p>
-                                            )}
-                                        </div>
-                                        <div className={`w-4 h-4 rounded-full border-2 ${
-                                            assignTechnicalId === t.id 
-                                                ? 'border-purple-500 bg-purple-500' 
-                                                : 'border-slate-300'
-                                        }`}>
-                                            {assignTechnicalId === t.id && (
-                                                <div className="w-full h-full rounded-full bg-purple-500"></div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                                
+                                    ))}
+
                                 {/* Mostrar mensaje si no hay técnicos disponibles */}
                                 {technicals.filter((t) => {
                                     const currentTicket = selectedTicket || allTickets.find(ticket => ticket.id === showAssignModal.ticketId);
                                     return !currentTicket?.technical || currentTicket.technical.id !== t.id;
                                 }).length === 0 && (
-                                    <div className="flex flex-col items-center justify-center py-8 text-slate-500">
-                                        <UserCheck className="w-12 h-12 mb-3 text-slate-400" />
-                                        <p className="text-sm font-medium">No other technicians available</p>
-                                        <p className="text-xs text-center">All technicians are either assigned or unavailable</p>
-                                    </div>
-                                )}
+                                        <div className="flex flex-col items-center justify-center py-8 text-slate-500">
+                                            <UserCheck className="w-12 h-12 mb-3 text-slate-400" />
+                                            <p className="text-sm font-medium">No other technicians available</p>
+                                            <p className="text-xs text-center">All technicians are either assigned or unavailable</p>
+                                        </div>
+                                    )}
                             </div>
                         </div>
                         <DialogFooter className="pt-6 border-t border-slate-200">
-                            <Button 
-                                type="button" 
-                                variant="outline" 
+                            <Button
+                                type="button"
+                                variant="outline"
                                 onClick={() => setShowAssignModal({ open: false })}
                                 className="px-6 py-2.5"
                             >
                                 Cancel
                             </Button>
-                            <Button 
-                                type="submit" 
-                                disabled={assigning || !assignTechnicalId} 
+                            <Button
+                                type="submit"
+                                disabled={assigning || !assignTechnicalId}
                                 className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
                             >
                                 {assigning ? (
@@ -1433,7 +1841,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                     {errors.device_id}
                                 </div>}
                             </div>
-                            
+
                             {/* Category */}
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-3">Category</label>
@@ -1453,7 +1861,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                     {errors.category}
                                 </div>}
                             </div>
-                            
+
                             {/* Title */}
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-3">Title</label>
@@ -1469,7 +1877,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                     {errors.title}
                                 </div>}
                             </div>
-                            
+
                             {/* Description */}
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-3">Description</label>
@@ -1492,19 +1900,19 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                 </div>}
                             </div>
                         </div>
-                        
+
                         <DialogFooter className="pt-6 border-t border-slate-200">
-                            <Button 
-                                type="button" 
-                                variant="outline" 
+                            <Button
+                                type="button"
+                                variant="outline"
                                 onClick={() => setShowCreateModal(false)}
                                 className="px-6 py-2.5"
                             >
                                 Cancel
                             </Button>
-                            <Button 
-                                type="submit" 
-                                disabled={processing} 
+                            <Button
+                                type="submit"
+                                disabled={processing}
                                 className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
                             >
                                 {processing ? (
@@ -1527,8 +1935,8 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
             {/* Status Change with Comment Modal */}
             <Dialog
                 open={showStatusChangeModal.open}
-                onOpenChange={(open) => setShowStatusChangeModal({ 
-                    open, 
+                onOpenChange={(open) => setShowStatusChangeModal({
+                    open,
                     ticketId: showStatusChangeModal.ticketId,
                     newStatus: showStatusChangeModal.newStatus,
                     ticket: showStatusChangeModal.ticket
@@ -1545,13 +1953,13 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             {showStatusChangeModal.newStatus === 'cancelled' && 'Cancel Ticket'}
                         </DialogTitle>
                         <DialogDescription className="text-base text-slate-600">
-                            {showStatusChangeModal.newStatus === 'resolved' && 
+                            {showStatusChangeModal.newStatus === 'resolved' &&
                                 'Please describe how you resolved this issue. This information is crucial for future reference and similar problems.'
                             }
-                            {showStatusChangeModal.newStatus === 'closed' && 
+                            {showStatusChangeModal.newStatus === 'closed' &&
                                 'Please provide final comments before closing this ticket. Include any additional notes or recommendations.'
                             }
-                            {showStatusChangeModal.newStatus === 'cancelled' && 
+                            {showStatusChangeModal.newStatus === 'cancelled' &&
                                 'Please explain why this ticket is being cancelled. This helps with tracking and future improvements.'
                             }
                         </DialogDescription>
@@ -1560,10 +1968,10 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                         onSubmit={async (e) => {
                             e.preventDefault();
                             if (!statusChangeComment.trim()) return;
-                            
+
                             setChangingStatus(true);
                             setStatusLoadingId(showStatusChangeModal.ticketId || 0);
-                            
+
                             // Primero cambiar el estado
                             router.put(
                                 `/tickets/${showStatusChangeModal.ticketId}`,
@@ -1614,11 +2022,11 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                         value={statusChangeComment}
                                         onChange={(e) => setStatusChangeComment(e.target.value)}
                                         placeholder={
-                                            showStatusChangeModal.newStatus === 'resolved' 
+                                            showStatusChangeModal.newStatus === 'resolved'
                                                 ? "Describe in detail how you fixed the issue, what tools/parts were used, and any preventive measures taken..."
                                                 : showStatusChangeModal.newStatus === 'closed'
-                                                ? "Add any final notes, recommendations, or follow-up actions needed..."
-                                                : "Explain why this ticket is being cancelled and any alternative solutions provided..."
+                                                    ? "Add any final notes, recommendations, or follow-up actions needed..."
+                                                    : "Explain why this ticket is being cancelled and any alternative solutions provided..."
                                         }
                                         required
                                         maxLength={1000}
@@ -1633,17 +2041,17 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             </div>
                         </div>
                         <DialogFooter className="pt-6 border-t border-slate-200">
-                            <Button 
-                                type="button" 
-                                variant="outline" 
+                            <Button
+                                type="button"
+                                variant="outline"
                                 onClick={() => setShowStatusChangeModal({ open: false })}
                                 className="px-6 py-2.5"
                             >
                                 Cancel
                             </Button>
-                            <Button 
-                                type="submit" 
-                                disabled={changingStatus || !statusChangeComment.trim()} 
+                            <Button
+                                type="submit"
+                                disabled={changingStatus || !statusChangeComment.trim()}
                                 className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
                             >
                                 {changingStatus ? (
@@ -1662,6 +2070,509 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Quick Actions Modal - Para miembros */}
+            <Dialog
+                open={showQuickActionsModal.open}
+                onOpenChange={(open) => setShowQuickActionsModal({ open, ticketId: showQuickActionsModal.ticketId })}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader className="pb-6">
+                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                                <Zap className="w-6 h-6 text-blue-600" />
+                            </div>
+                            Acciones Adicionales
+                        </DialogTitle>
+                        <DialogDescription className="text-base text-slate-600">
+                            Estas funciones estarán disponibles próximamente. Por ahora, utiliza los contactos del técnico.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        {/* Asistencia Remota */}
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center gap-3 mb-2">
+                                <Monitor className="w-5 h-5 text-blue-600" />
+                                <h4 className="font-semibold text-blue-800">Asistencia Remota</h4>
+                            </div>
+                            <p className="text-sm text-blue-700 mb-3">
+                                Permite al técnico acceder a tu dispositivo de forma remota para solucionar el problema.
+                            </p>
+                            <Button
+                                variant="outline"
+                                className="w-full border-blue-300 text-blue-700 hover:bg-blue-100"
+                                disabled
+                            >
+                                Próximamente disponible
+                            </Button>
+                        </div>
+
+                        {/* Subir Archivo */}
+                        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div className="flex items-center gap-3 mb-2">
+                                <Upload className="w-5 h-5 text-purple-600" />
+                                <h4 className="font-semibold text-purple-800">Subir Evidencia</h4>
+                            </div>
+                            <p className="text-sm text-purple-700 mb-3">
+                                Sube fotos, videos o documentos relacionados con el problema.
+                            </p>
+                            <div className="grid grid-cols-3 gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                                    disabled
+                                >
+                                    <Camera className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                                    disabled
+                                >
+                                    <Video className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                                    disabled
+                                >
+                                    <FileText className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Chat Directo */}
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-center gap-3 mb-2">
+                                <MessageSquare className="w-5 h-5 text-green-600" />
+                                <h4 className="font-semibold text-green-800">Chat Directo</h4>
+                            </div>
+                            <p className="text-sm text-green-700 mb-3">
+                                Chatea en tiempo real con tu técnico asignado.
+                            </p>
+                            <Button
+                                variant="outline"
+                                className="w-full border-green-300 text-green-700 hover:bg-green-100"
+                                disabled
+                            >
+                                Iniciar Chat (Próximamente)
+                            </Button>
+                        </div>
+                    </div>
+                    <DialogFooter className="pt-4">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowQuickActionsModal({ open: false })}
+                            className="w-full"
+                        >
+                            Cerrar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Rating Modal */}
+            <Dialog
+                open={showRatingModal.open}
+                onOpenChange={(open) => setShowRatingModal({ open, ticketId: showRatingModal.ticketId })}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader className="pb-6">
+                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+                            <div className="p-2 bg-yellow-100 rounded-lg">
+                                <Star className="w-6 h-6 text-yellow-600" />
+                            </div>
+                            Calificar Servicio
+                        </DialogTitle>
+                        <DialogDescription className="text-base text-slate-600">
+                            Tu opinión nos ayuda a mejorar. ¿Cómo calificarías la solución de tu problema?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (ticketRating === 0) return;
+
+                            setSubmittingRating(true);
+
+                            // Agregar la calificación como comentario en el historial
+                            router.post(`/tickets/${showRatingModal.ticketId}/add-history`,
+                                {
+                                    action: 'service_rating',
+                                    description: `Calificación del servicio: ${ticketRating}/5 estrellas${ratingComment ? ` - ${ratingComment}` : ''}`
+                                },
+                                {
+                                    preserveScroll: true,
+                                    onSuccess: () => {
+                                        setShowRatingModal({ open: false });
+                                        setTicketRating(0);
+                                        setRatingComment("");
+                                        refreshSelectedTicket(showRatingModal.ticketId);
+                                    },
+                                    onError: () => {
+                                        alert("Error submitting rating");
+                                    },
+                                    onFinish: () => {
+                                        setSubmittingRating(false);
+                                    }
+                                }
+                            );
+                        }}
+                        className="space-y-6"
+                    >
+                        <div className="space-y-4">
+                            {/* Rating Stars */}
+                            <div className="text-center">
+                                <div className="flex justify-center gap-2 mb-4">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() => setTicketRating(star)}
+                                            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${star <= ticketRating
+                                                    ? 'bg-yellow-100 text-yellow-500 scale-110'
+                                                    : 'bg-gray-100 text-gray-400 hover:bg-yellow-50 hover:text-yellow-400'
+                                                }`}
+                                        >
+                                            <Star className={`w-6 h-6 ${star <= ticketRating ? 'fill-current' : ''}`} />
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-sm text-slate-600">
+                                    {ticketRating === 0 && 'Selecciona una calificación'}
+                                    {ticketRating === 1 && 'Muy insatisfecho'}
+                                    {ticketRating === 2 && 'Insatisfecho'}
+                                    {ticketRating === 3 && 'Neutral'}
+                                    {ticketRating === 4 && 'Satisfecho'}
+                                    {ticketRating === 5 && 'Muy satisfecho'}
+                                </p>
+                            </div>
+
+                            {/* Optional Comment */}
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-800 mb-3">
+                                    Comentarios adicionales (opcional)
+                                </label>
+                                <textarea
+                                    className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base min-h-[80px] focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 resize-none transition-all duration-200"
+                                    value={ratingComment}
+                                    onChange={(e) => setRatingComment(e.target.value)}
+                                    placeholder="¿Algo específico que quieras comentar sobre el servicio?"
+                                    maxLength={500}
+                                />
+                                <div className="text-xs text-slate-400 mt-1">
+                                    {ratingComment.length}/500
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter className="pt-6 border-t border-slate-200">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowRatingModal({ open: false })}
+                                className="px-6 py-2.5"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={submittingRating || ticketRating === 0}
+                                className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
+                            >
+                                {submittingRating ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Enviando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Star className="w-4 h-4 mr-2" />
+                                        Enviar Calificación
+                                    </>
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Help/Guides Modal */}
+            <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader className="pb-6">
+                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                                <HelpCircle className="w-6 h-6 text-blue-600" />
+                            </div>
+                            Centro de Ayuda ADK Assist
+                        </DialogTitle>
+                        <DialogDescription className="text-base text-slate-600">
+                            Encuentra soluciones rápidas y guías para los problemas más comunes.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6">
+                        {/* Guías Rápidas */}
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <BookOpen className="w-5 h-5 text-blue-600" />
+                                Guías de Solución Rápida
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Wifi className="w-5 h-5 text-blue-600" />
+                                        <h4 className="font-semibold text-blue-800">Problemas de Red</h4>
+                                    </div>
+                                    <p className="text-sm text-blue-700">
+                                        Soluciones para conexión lenta, WiFi inestable y problemas de conectividad.
+                                    </p>
+                                </div>
+
+                                <div className="p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors cursor-pointer">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Monitor className="w-5 h-5 text-green-600" />
+                                        <h4 className="font-semibold text-green-800">Problemas de Hardware</h4>
+                                    </div>
+                                    <p className="text-sm text-green-700">
+                                        Diagnóstico de equipos, periféricos y componentes del sistema.
+                                    </p>
+                                </div>
+
+                                <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors cursor-pointer">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Settings className="w-5 h-5 text-purple-600" />
+                                        <h4 className="font-semibold text-purple-800">Software y Aplicaciones</h4>
+                                    </div>
+                                    <p className="text-sm text-purple-700">
+                                        Instalación, configuración y resolución de problemas de software.
+                                    </p>
+                                </div>
+
+                                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Shield className="w-5 h-5 text-amber-600" />
+                                        <h4 className="font-semibold text-amber-800">Seguridad</h4>
+                                    </div>
+                                    <p className="text-sm text-amber-700">
+                                        Antivirus, actualizaciones de seguridad y protección de datos.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Contacto de Emergencia */}
+                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-red-800">
+                                <PhoneCall className="w-5 h-5 text-red-600" />
+                                Contacto de Emergencia
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-sm text-red-700 mb-2">
+                                        <strong>Soporte Técnico 24/7:</strong>
+                                    </p>
+                                    <a
+                                        href="tel:+1234567890"
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg transition-colors"
+                                    >
+                                        <Phone className="w-4 h-4" />
+                                        +1 (234) 567-890
+                                    </a>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-red-700 mb-2">
+                                        <strong>Email de Soporte:</strong>
+                                    </p>
+                                    <a
+                                        href="mailto:soporte@adkassist.com"
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg transition-colors"
+                                    >
+                                        <Mail className="w-4 h-4" />
+                                        soporte@adkassist.com
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tips y Recomendaciones */}
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <LightbulbIcon className="w-5 h-5 text-amber-600" />
+                                Tips y Recomendaciones
+                            </h3>
+                            <div className="space-y-3">
+                                <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                    <div className="w-6 h-6 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                        <span className="text-xs font-bold text-amber-800">1</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-medium text-amber-800">Reinicia regularmente</h4>
+                                        <p className="text-sm text-amber-700">Reinicia tu router cada 2 semanas y tu PC una vez por semana.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                        <span className="text-xs font-bold text-blue-800">2</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-medium text-blue-800">Mantén actualizado</h4>
+                                        <p className="text-sm text-blue-700">Instala las actualizaciones de Windows y antivirus automáticamente.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                    <div className="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                        <span className="text-xs font-bold text-green-800">3</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-medium text-green-800">Respaldo regular</h4>
+                                        <p className="text-sm text-green-700">Guarda copias de tus archivos importantes en la nube o disco externo.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter className="pt-6">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowHelpModal(false)}
+                            className="w-full"
+                        >
+                            Cerrar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Device Stats Modal */}
+            <Dialog open={showDeviceStats} onOpenChange={setShowDeviceStats}>
+                <DialogContent className="sm:max-w-xl">
+                    <DialogHeader className="pb-6">
+                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+                            <div className="p-2 bg-indigo-100 rounded-lg">
+                                <TrendingUp className="w-6 h-6 text-indigo-600" />
+                            </div>
+                            Resumen de Dispositivos y Tickets
+                        </DialogTitle>
+                        <DialogDescription className="text-base text-slate-600">
+                            Estadísticas de tus dispositivos y tickets del último mes.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6">
+                        {/* Estadísticas Generales */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <Monitor className="w-4 h-4 text-blue-600" />
+                                </div>
+                                <div className="text-2xl font-bold text-blue-600">{deviceOptions.length}</div>
+                                <div className="text-xs text-blue-700">Dispositivos</div>
+                            </div>
+                            <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <CheckCircle className="w-4 h-4 text-green-600" />
+                                </div>
+                                <div className="text-2xl font-bold text-green-600">
+                                    {memberTickets.filter((t: any) => t.status === 'resolved' || t.status === 'closed').length}
+                                </div>
+                                <div className="text-xs text-green-700">Resueltos</div>
+                            </div>
+                            <div className="text-center p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <Clock className="w-4 h-4 text-amber-600" />
+                                </div>
+                                <div className="text-2xl font-bold text-amber-600">
+                                    {memberTickets.filter((t: any) => t.status === 'open' || t.status === 'in_progress').length}
+                                </div>
+                                <div className="text-xs text-amber-700">Activos</div>
+                            </div>
+                            <div className="text-center p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <Calendar className="w-4 h-4 text-purple-600" />
+                                </div>
+                                <div className="text-2xl font-bold text-purple-600">
+                                    {memberTickets.filter((t: any) => new Date(t.created_at).getMonth() === new Date().getMonth()).length}
+                                </div>
+                                <div className="text-xs text-purple-700">Este Mes</div>
+                            </div>
+                        </div>
+
+                        {/* Lista de Dispositivos */}
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <Monitor className="w-5 h-5 text-indigo-600" />
+                                Tus Dispositivos
+                            </h3>
+                            <div className="space-y-3 max-h-64 overflow-y-auto">
+                                {deviceOptions.map((device: any) => {
+                                    const deviceTickets = memberTickets.filter((t: any) => t.device_id === device.id);
+                                    const activeTickets = deviceTickets.filter((t: any) => t.status === 'open' || t.status === 'in_progress');
+
+                                    return (
+                                        <div key={device.id} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-3 h-3 rounded-full ${activeTickets.length > 0 ? 'bg-amber-400' : 'bg-green-400'}`}></div>
+                                                <div>
+                                                    <h4 className="font-medium text-slate-800">
+                                                        {device.name_device?.name || device.name || `Device #${device.id}`}
+                                                    </h4>
+                                                    <p className="text-xs text-slate-600">
+                                                        {activeTickets.length > 0 ?
+                                                            `${activeTickets.length} ticket(s) activo(s)` :
+                                                            'Sin problemas activos'
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-sm font-medium text-slate-700">
+                                                    {deviceTickets.length} total
+                                                </div>
+                                                <div className="text-xs text-slate-500">
+                                                    tickets
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Rendimiento del Mes */}
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
+                            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-green-800">
+                                <Award className="w-5 h-5 text-green-600" />
+                                Rendimiento del Mes
+                            </h3>
+                            {memberTickets.filter((t: any) => new Date(t.created_at).getMonth() === new Date().getMonth()).length === 0 ? (
+                                <div className="text-center py-4">
+                                    <div className="text-4xl mb-2">🎉</div>
+                                    <p className="text-green-800 font-medium">¡Excelente!</p>
+                                    <p className="text-sm text-green-700">Sin incidencias este mes</p>
+                                </div>
+                            ) : (
+                                <div className="text-center">
+                                    <p className="text-green-800 font-medium">
+                                        {memberTickets.filter((t: any) => new Date(t.created_at).getMonth() === new Date().getMonth()).length} ticket(s) este mes
+                                    </p>
+                                    <p className="text-sm text-green-700">Mantén tus dispositivos actualizados</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter className="pt-6">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowDeviceStats(false)}
+                            className="w-full"
+                        >
+                            Cerrar
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </AppLayout>
