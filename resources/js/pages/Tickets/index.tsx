@@ -692,11 +692,11 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                         </div>
 
                                                         {/* Fila 2: Ubicación */}
-                                                        {device.apartment && (
+                                                        {device.ubicacion && (
                                                             <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
                                                                 <Home className="w-4 h-4 mr-2 text-slate-500" />
                                                                 <span className="truncate font-medium">
-                                                                    {device.apartment.building?.name} - {device.apartment.name}
+                                                                    {device.ubicacion}
                                                                 </span>
                                                             </div>
                                                         )}
@@ -1090,10 +1090,10 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                                         {selectedTicket.device.system.name}
                                                                     </div>
                                                                 )}
-                                                                {selectedTicket.device.apartment && (
+                                                                {  selectedTicket.device.ubicacion && (
                                                                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-200">
                                                                         <Home className="w-3 h-3" />
-                                                                        {selectedTicket.device.apartment.building?.name} - {selectedTicket.device.apartment.name}
+                                                                        {selectedTicket.device.ubicacion}
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -1266,134 +1266,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                     )}
 
                                                     {/* Acciones Rápidas para Members */}
-                                                    {isMember && (
-                                                        <div className="px-6">
-                                                            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                                                                <Zap className="w-4 h-4 text-blue-600" />
-                                                                Acciones Rápidas
-                                                            </h4>
-                                                            <div className="grid grid-cols-2 gap-3">
-                                                                {/* Solicitar Llamada */}
-                                                                <button
-                                                                    onClick={() => {
-                                                                        if (selectedTicket.technical?.phone) {
-                                                                            window.open(`tel:${selectedTicket.technical.phone}`, '_self');
-                                                                        } else {
-                                                                            window.open('tel:+1234567890', '_self'); // Número de soporte general
-                                                                        }
-                                                                    }}
-                                                                    className="flex flex-col items-center gap-2 p-3 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors group"
-                                                                >
-                                                                    <div className="w-8 h-8 bg-green-100 group-hover:bg-green-200 rounded-full flex items-center justify-center">
-                                                                        <PhoneCall className="w-4 h-4 text-green-600" />
-                                                                    </div>
-                                                                    <span className="text-xs font-medium text-green-800">Solicitar Llamada</span>
-                                                                </button>
-
-                                                                {/* Asistencia Remota */}
-                                                                <button
-                                                                    onClick={() => setShowQuickActionsModal({ open: true, ticketId: selectedTicket.id })}
-                                                                    className="flex flex-col items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors group"
-                                                                >
-                                                                    <div className="w-8 h-8 bg-blue-100 group-hover:bg-blue-200 rounded-full flex items-center justify-center">
-                                                                        <Monitor className="w-4 h-4 text-blue-600" />
-                                                                    </div>
-                                                                    <span className="text-xs font-medium text-blue-800">Asistencia Remota</span>
-                                                                </button>
-
-                                                                {/* Subir Archivos */}
-                                                                <button
-                                                                    onClick={() => setShowQuickActionsModal({ open: true, ticketId: selectedTicket.id })}
-                                                                    className="flex flex-col items-center gap-2 p-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors group"
-                                                                >
-                                                                    <div className="w-8 h-8 bg-purple-100 group-hover:bg-purple-200 rounded-full flex items-center justify-center">
-                                                                        <Upload className="w-4 h-4 text-purple-600" />
-                                                                    </div>
-                                                                    <span className="text-xs font-medium text-purple-800">Subir Archivo</span>
-                                                                </button>
-
-                                                                {/* Reabrir Ticket (solo si está cerrado) */}
-                                                                {(selectedTicket.status === 'resolved' || selectedTicket.status === 'closed') && (
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            router.post(`/tickets/${selectedTicket.id}/update-status`,
-                                                                                { status: 'open', comment: 'Ticket reabierto por el usuario - problema persiste' },
-                                                                                { preserveScroll: true, onSuccess: () => refreshSelectedTicket(selectedTicket.id) }
-                                                                            );
-                                                                        }}
-                                                                        className="flex flex-col items-center gap-2 p-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors group"
-                                                                    >
-                                                                        <div className="w-8 h-8 bg-amber-100 group-hover:bg-amber-200 rounded-full flex items-center justify-center">
-                                                                            <RefreshCw className="w-4 h-4 text-amber-600" />
-                                                                        </div>
-                                                                        <span className="text-xs font-medium text-amber-800">Reabrir Ticket</span>
-                                                                    </button>
-                                                                )}
-
-                                                                {/* Calificar Servicio (solo si está resuelto) */}
-                                                                {selectedTicket.status === 'resolved' && (
-                                                                    <button
-                                                                        onClick={() => setShowRatingModal({ open: true, ticketId: selectedTicket.id })}
-                                                                        className="flex flex-col items-center gap-2 p-3 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded-lg transition-colors group"
-                                                                    >
-                                                                        <div className="w-8 h-8 bg-yellow-100 group-hover:bg-yellow-200 rounded-full flex items-center justify-center">
-                                                                            <Star className="w-4 h-4 text-yellow-600" />
-                                                                        </div>
-                                                                        <span className="text-xs font-medium text-yellow-800">Calificar Servicio</span>
-                                                                    </button>
-                                                                )}
-                                                            </div>
-
-                                                            {/* Mostrar técnico asignado con foto */}
-                                                            {selectedTicket.technical && (
-                                                                <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-                                                                    <div className="flex items-center gap-3">
-                                                                        {selectedTicket.technical.photo ? (
-                                                                            <img
-                                                                                src={selectedTicket.technical.photo.startsWith('http')
-                                                                                    ? selectedTicket.technical.photo
-                                                                                    : `/storage/${selectedTicket.technical.photo}`}
-                                                                                alt={selectedTicket.technical.name}
-                                                                                className="w-10 h-10 rounded-full border-2 border-green-300 object-cover"
-                                                                            />
-                                                                        ) : (
-                                                                            <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center">
-                                                                                <UserCheck className="w-5 h-5 text-green-600" />
-                                                                            </div>
-                                                                        )}
-                                                                        <div className="flex-1">
-                                                                            <p className="text-sm font-medium text-green-800">
-                                                                                Técnico: {selectedTicket.technical.name}
-                                                                            </p>
-                                                                            <p className="text-xs text-green-600">
-                                                                                {selectedTicket.technical.email} • {selectedTicket.technical.shift || 'Disponible'}
-                                                                            </p>
-                                                                        </div>
-                                                                        <div className="flex gap-1">
-                                                                            {selectedTicket.technical.email && (
-                                                                                <a
-                                                                                    href={`mailto:${selectedTicket.technical.email}`}
-                                                                                    className="p-2 bg-green-100 hover:bg-green-200 rounded-full transition-colors"
-                                                                                    title="Enviar email"
-                                                                                >
-                                                                                    <Mail className="w-3 h-3 text-green-600" />
-                                                                                </a>
-                                                                            )}
-                                                                            {selectedTicket.technical.phone && (
-                                                                                <a
-                                                                                    href={`tel:${selectedTicket.technical.phone}`}
-                                                                                    className="p-2 bg-green-100 hover:bg-green-200 rounded-full transition-colors"
-                                                                                    title="Llamar"
-                                                                                >
-                                                                                    <Phone className="w-3 h-3 text-green-600" />
-                                                                                </a>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                              
 
                                                     {/* Línea de Tiempo Visual del Ticket */}
                                                     {isMember && selectedTicket.histories && selectedTicket.histories.length > 0 && (

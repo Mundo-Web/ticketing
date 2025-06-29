@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Trash2, Edit, Plus, Laptop2, ShieldCheck, ShieldPlus, ScanQrCodeIcon, Keyboard, ShareIcon } from 'lucide-react';
+import { Trash2, Edit, Plus, Laptop2, ShieldCheck, ShieldPlus, ScanQrCodeIcon, Keyboard, ShareIcon, MapPin } from 'lucide-react';
 import CreatableSelect from 'react-select/creatable';
 import axios from 'axios';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -94,6 +95,7 @@ const ModalDispositivos = ({
         apartment_id: apartmentId,
         tenant_id: tenantId,
         tenants: [] as number[],
+        ubicacion: '',
     });
 
     const handleShareDevice = async (deviceId: number, tenantIds: number[], unshareIds: number[] = []) => {
@@ -159,7 +161,8 @@ const ModalDispositivos = ({
             new_name_device: '',
             apartment_id: apartmentId,
             tenant_id: tenantId,
-            tenants: device.tenants?.map(t => t.id) || []
+            tenants: device.tenants?.map(t => t.id) || [],
+            ubicacion: device.ubicacion || ''
         });
         setShowForm(true);
         setEditMode(true);
@@ -822,6 +825,20 @@ const ModalDispositivos = ({
                             </div>
                         </div>
 
+                        {/* Campo Ubicación */}
+                        <div className='space-y-2'>
+                            <Label className='flex gap-2 items-center'>
+                                <MapPin className='w-4 h-4' /> Location/Description
+                            </Label>
+                            <Textarea
+                                placeholder="Enter device location or description (optional)"
+                                value={data.ubicacion}
+                                onChange={(e) => setData('ubicacion', e.target.value)}
+                                rows={3}
+                                className="resize-none"
+                            />
+                        </div>
+
                         <div className='space-y-2'>
                             <Label>Sharing with members</Label>
                             <Select
@@ -860,6 +877,7 @@ const ModalDispositivos = ({
                                     <th className="px-4 py-3 text-left font-medium">Brand</th>
                                     <th className="px-4 py-3 text-left font-medium">Model</th>
                                     <th className="px-4 py-3 text-left font-medium">System</th>
+                                    <th className="px-4 py-3 text-left font-medium">Location</th>
                                     <th className="px-4 py-3 text-left font-medium">Shared with</th>
                                     <th className="px-4 py-3 text-left font-medium">Actions</th>
                                 </tr>
@@ -871,6 +889,11 @@ const ModalDispositivos = ({
                                         <td className="px-4 py-3">{device.brand?.name || '-'}</td>
                                         <td className="px-4 py-3">{device.model?.name || '-'}</td>
                                         <td className="px-4 py-3">{device.system?.name || '-'}</td>
+                                        <td className="px-4 py-3 max-w-32">
+                                            <div className="text-sm text-gray-600 truncate" title={device.ubicacion}>
+                                                {device.ubicacion || '-'}
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3">
                                             <div className="flex flex-wrap gap-1">
                                                 {device.shared_with?.map(tenant => {
@@ -950,6 +973,11 @@ const ModalDispositivos = ({
                                         <td className="px-4 py-3">{device.brand?.name || '-'}</td>
                                         <td className="px-4 py-3">{device.model?.name || '-'}</td>
                                         <td className="px-4 py-3">{device.system?.name || '-'}</td>
+                                        <td className="px-4 py-3 max-w-32">
+                                            <div className="text-sm text-gray-600 truncate" title={device.ubicacion}>
+                                                {device.ubicacion || '-'}
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3">
                                             <div className="flex flex-wrap gap-1">
                                                 {device.owner && (
