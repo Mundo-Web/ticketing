@@ -9,7 +9,7 @@ const MemberCard = ({ ticket }: { ticket: any }) => {
     if (!ticket.user || !ticket.user.tenant) return null;
 
     const tenant = ticket.user.tenant;
-    
+
     return (
         <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-3 mb-3">
             <div className="flex items-center gap-3">
@@ -28,7 +28,7 @@ const MemberCard = ({ ticket }: { ticket: any }) => {
                         </div>
                     )}
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1 mb-1">
                         <User className="w-3 h-3 text-purple-600" />
@@ -36,7 +36,7 @@ const MemberCard = ({ ticket }: { ticket: any }) => {
                             {tenant.name}
                         </p>
                     </div>
-                    
+
                     {tenant.apartment && (
                         <div className="flex items-center gap-1 mb-1">
                             <Home className="w-3 h-3 text-blue-600" />
@@ -45,7 +45,7 @@ const MemberCard = ({ ticket }: { ticket: any }) => {
                             </p>
                         </div>
                     )}
-                    
+
                     {tenant.apartment?.building && (
                         <div className="flex items-center gap-1">
                             <Building className="w-3 h-3 text-gray-600" />
@@ -62,12 +62,12 @@ const MemberCard = ({ ticket }: { ticket: any }) => {
 
 const getStatuses = (props: any) => {
     const { isTechnicalDefault, isTechnical, isSuperAdmin, isMember, statusFilter } = props;
-    
+
     // Si hay un filtro de estado específico, mostrar SOLO las columnas de ese filtro
     if (statusFilter) {
         const statuses = statusFilter.split(',');
         const filteredColumns = [];
-        
+
         for (const status of statuses) {
             switch (status.trim()) {
                 case 'open':
@@ -90,10 +90,10 @@ const getStatuses = (props: any) => {
                     break;
             }
         }
-        
+
         return filteredColumns;
     }
-    
+
     // Sin filtro: mostrar columnas normales según el rol
     if (isTechnicalDefault) {
         return [
@@ -103,7 +103,7 @@ const getStatuses = (props: any) => {
             { key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-pink-500" },
         ];
     }
-    
+
     if (isTechnical) {
         return [
             { key: "recents", label: "TO DO", icon: AlertCircle, color: "bg-orange-500" },
@@ -112,7 +112,7 @@ const getStatuses = (props: any) => {
             { key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-pink-500" },
         ];
     }
-    
+
     return [
         { key: "open", label: "TO DO", icon: AlertCircle, color: "bg-orange-500" },
         { key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-500" },
@@ -125,7 +125,18 @@ const getStatuses = (props: any) => {
 
 export default function KanbanBoard(props: any) {
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
-    const { tickets, user, onTicketClick, isTechnicalDefault, isTechnical, isSuperAdmin, isMember, onStatusChange, statusFilter } = props;
+    const {
+        tickets,
+        user,
+        onTicketClick,
+        isTechnicalDefault,
+        isTechnical,
+        isSuperAdmin,
+        isMember,
+        onStatusChange,
+        onStatusChangeWithComment,
+        statusFilter
+    } = props;
     const isManager = isTechnicalDefault || isSuperAdmin;
     const [showRecents, setShowRecents] = useState(isManager);
     const [searchQuery, setSearchQuery] = useState("");
@@ -186,16 +197,16 @@ export default function KanbanBoard(props: any) {
 
     // Funciones helper para manejar selección múltiple
     const toggleTechnicalSelection = (technicalId: number) => {
-        setSelectedTechnicalIds(prev => 
-            prev.includes(technicalId) 
+        setSelectedTechnicalIds(prev =>
+            prev.includes(technicalId)
                 ? prev.filter(id => id !== technicalId)
                 : [...prev, technicalId]
         );
     };
 
     const toggleBuildingSelection = (buildingId: number) => {
-        setSelectedBuildingIds(prev => 
-            prev.includes(buildingId) 
+        setSelectedBuildingIds(prev =>
+            prev.includes(buildingId)
                 ? prev.filter(id => id !== buildingId)
                 : [...prev, buildingId]
         );
@@ -257,29 +268,40 @@ export default function KanbanBoard(props: any) {
         const ticket = columns[source.droppableId]?.find((t: any) => t.id === Number(draggableId));
         if (!ticket) return;
 
-        router.post(
-            `/tickets/${ticket.id}/update-status`,
-            { status: destination.droppableId === "recents" ? "open" : destination.droppableId },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    if (onStatusChange) {
-                        onStatusChange(ticket.id);
+        const newStatus = destination.droppableId === "recents" ? "open" : destination.droppableId;
+
+        // Estados que requieren comentario obligatorio
+        const statusesRequiringComment = ['resolved', 'closed', 'cancelled'];
+
+        if (statusesRequiringComment.includes(newStatus) && onStatusChangeWithComment) {
+            // Usar la nueva función que abre el modal de comentario
+            onStatusChangeWithComment(ticket, newStatus);
+        } else {
+            // Cambio directo para estados que no requieren comentario
+            router.post(
+                `/tickets/${ticket.id}/update-status`,
+                { status: newStatus },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        if (onStatusChange) {
+                            onStatusChange(ticket.id);
+                        }
                     }
                 }
-            }
-        );
-    }, [canDrag, columns, onStatusChange]);
+            );
+        }
+    }, [canDrag, columns, onStatusChange, onStatusChangeWithComment]);
 
     return (
         <div className="flex flex-col h-full ">
             {/* Jira-style header */}
             <div className="bg-white border-b border-gray-300 py-3 px-4 mb-4 shadow-sm">                    <div className="flex items-center justify-start">
-                <div className="flex items-center gap-3">                      
-                      <h1 className="text-xl font-bold text-gray-800">
-                    Tickets Board
+                <div className="flex items-center gap-3">
+                    <h1 className="text-xl font-bold text-gray-800">
+                        Tickets Board
 
-                </h1>
+                    </h1>
                     {/* <div className="relative">
                             <input
                                 type="text"
@@ -330,147 +352,154 @@ export default function KanbanBoard(props: any) {
                             </div> */}
 
                             {/* Solo mostrar las secciones de filtros si es jefe técnico (isTechnicalDefault) */}
-                          
-                                <div className="flex w-full justify-between gap-8">
-                                    {/* Filtro por técnicos */}
-                                  <div className="ml-6 flex gap-2 items-center justify-center h-full">
-                                      <label className=" text-xs font-semibold text-gray-700  uppercase tracking-wider">
-                                          Technicals
-                                      </label>
-                                       
-                                        <div className="flex flex-wrap gap-2 items-center">
-                                            {technicals.map(t => (
-                                                <TooltipProvider key={t.id}>
-                                                    <Tooltip delayDuration={300}>
-                                                        <TooltipTrigger asChild>
-                                                            <div
-                                                                className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedTechnicalIds.includes(t.id)
-                                                                    ? 'bg-blue-500 ring-2 ring-blue-300 scale-110'
-                                                                    : 'hover:bg-gray-100'
-                                                                    }`}
-                                                                onClick={() => toggleTechnicalSelection(t.id)}
-                                                            >
-                                                                {t.photo ? (
-                                                                    <img
-                                                                        src={t.photo?.startsWith('http') ? t.photo : `/storage/${t.photo}`}
-                                                                        alt={t.name}
-                                                                        className="w-8 h-8 rounded-full object-cover border border-gray-200"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-base font-bold">
-                                                                        {t.name?.substring(0, 1) || '?'}
-                                                                    </div>
-                                                                )}
-                                                               
-                                                                {selectedTechnicalIds.includes(t.id) && (
-                                                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                                                                        </svg>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
-                                                            <p className="font-medium">{t.name}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            ))}
 
-                                            {selectedTechnicalIds.length > 0 && (
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <button
-                                                                onClick={clearTechnicalFilters}
-                                                                className="ml-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-blue-200 transition-all duration-200"
-                                                            >
-                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                                </svg>
-                                                                Clear ({selectedTechnicalIds.length})
-                                                            </button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent className="bg-gray-800 text-white text-xs">
-                                                            <p>Clear all technician filters</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            )}
-                                        </div>
-                                    </div>
+                            <div className="flex w-full justify-between gap-8">
+                                {/* Filtro por técnicos */}
+                                <div className="ml-6 flex gap-2 items-center justify-center h-full">
+                                    <label className=" text-xs font-semibold text-gray-700  uppercase tracking-wider">
+                                        Technicals
+                                    </label>
 
-                                    {/* Filtro por edificios */}
-                                    <div className="flex gap-2 items-center justify-center h-full">
-                                      <label className=" text-xs font-semibold text-gray-700  uppercase tracking-wider">
-                                          Buildings
-                                      </label>
-                                        <div className="flex flex-wrap gap-2 items-center">
-                                            {buildings.map(b => (
-                                                <TooltipProvider key={b.id}>
-                                                    <Tooltip delayDuration={300}>
-                                                        <TooltipTrigger asChild>
-                                                            <div
-                                                                className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedBuildingIds.includes(b.id)
-                                                                    ? 'bg-green-500 ring-2 ring-green-300 scale-110'
-                                                                    : 'hover:bg-gray-100'
-                                                                    }`}
-                                                                onClick={() => toggleBuildingSelection(b.id)}
-                                                            >
-                                                                {b.image ? (
-                                                                    <img
-                                                                        src={b.image?.startsWith('http') ? b.image : `/storage/${b.image}`}
-                                                                        alt={b.description}
-                                                                        className="w-8 h-8 rounded-full object-cover border border-gray-200"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-400 to-emerald-400 flex items-center justify-center text-white text-base font-bold">
-                                                                        <Building className="w-4 h-4" />
-                                                                    </div>
-                                                                )}
-                                                               
-                                                                {selectedBuildingIds.includes(b.id) && (
-                                                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                                                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                                                                        </svg>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
-                                                            <p className="font-medium">{b.description}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            ))}
+                                    <div className="flex flex-wrap gap-2 items-center">
+                                        {technicals.map(t => (
+                                            <TooltipProvider key={t.id}>
+                                                <Tooltip delayDuration={300}>
+                                                    <TooltipTrigger asChild>
+                                                        <div
+                                                            className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedTechnicalIds.includes(t.id)
+                                                                ? 'bg-blue-500 ring-2 ring-blue-300 scale-110'
+                                                                : 'hover:bg-gray-100'
+                                                                }`}
+                                                            onClick={() => toggleTechnicalSelection(t.id)}
+                                                        >
+                                                            {t.photo ? (
+                                                                <img
+                                                                    src={`/storage/${t.photo}`}
+                                                                    alt={t.name}
+                                                                    className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                                                                 onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                e.currentTarget.src = '/images/default-user.png';
+                                                            }}
+                                                                />
+                                                            ) : (
+                                                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-base font-bold">
+                                                                    {t.name?.substring(0, 1) || '?'}
+                                                                </div>
+                                                            )}
 
-                                            {selectedBuildingIds.length > 0 && (
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <button
-                                                                onClick={clearBuildingFilters}
-                                                                className="ml-2 flex items-center gap-1 text-xs text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-green-200 transition-all duration-200"
-                                                            >
-                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                                </svg>
-                                                                Clear ({selectedBuildingIds.length})
-                                                            </button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent className="bg-gray-800 text-white text-xs">
-                                                            <p>Clear all building filters</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            )}
-                                        </div>
+                                                            {selectedTechnicalIds.includes(t.id) && (
+                                                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                                                    </svg>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
+                                                        <p className="font-medium">{t.name}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        ))}
+
+                                        {selectedTechnicalIds.length > 0 && (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <button
+                                                            onClick={clearTechnicalFilters}
+                                                            className="ml-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-blue-200 transition-all duration-200"
+                                                        >
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                            </svg>
+                                                            Clear ({selectedTechnicalIds.length})
+                                                        </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-gray-800 text-white text-xs">
+                                                        <p>Clear all technician filters</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )}
                                     </div>
                                 </div>
-                            
-                            
+
+                                {/* Filtro por edificios */}
+                                <div className="flex gap-2 items-center justify-center h-full">
+                                    <label className=" text-xs font-semibold text-gray-700  uppercase tracking-wider">
+                                        Buildings
+                                    </label>
+                                    <div className="flex flex-wrap gap-2 items-center">
+                                        {buildings.map(b => (
+                                            <TooltipProvider key={b.id}>
+                                                <Tooltip delayDuration={300}>
+                                                    <TooltipTrigger asChild>
+                                                        <div
+                                                            className={`cursor-pointer relative p-0.5 rounded-full transition-all duration-200 ${selectedBuildingIds.includes(b.id)
+                                                                ? 'bg-green-500 ring-2 ring-green-300 scale-110'
+                                                                : 'hover:bg-gray-100'
+                                                                }`}
+                                                            onClick={() => toggleBuildingSelection(b.id)}
+                                                        >
+                                                            {b.image ? (
+                                                                <img
+                                                                    src={`/storage/${b.image}`}
+                                                                    alt={b.description}
+                                                                    className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                                                                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                        e.currentTarget.src = '/images/default-builder-square.png';
+                                                                    }}
+
+                                                                />
+                                                            ) : (
+                                                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-400 to-emerald-400 flex items-center justify-center text-white text-base font-bold">
+                                                                    <Building className="w-4 h-4" />
+                                                                </div>
+                                                            )}
+
+                                                            {selectedBuildingIds.includes(b.id) && (
+                                                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                                                    </svg>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
+                                                        <p className="font-medium">{b.description}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        ))}
+
+                                        {selectedBuildingIds.length > 0 && (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <button
+                                                            onClick={clearBuildingFilters}
+                                                            className="ml-2 flex items-center gap-1 text-xs text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 px-2.5 py-1.5 rounded-full font-medium shadow-sm border border-green-200 transition-all duration-200"
+                                                        >
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                            </svg>
+                                                            Clear ({selectedBuildingIds.length})
+                                                        </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-gray-800 text-white text-xs">
+                                                        <p>Clear all building filters</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+
                         </div>
                     </div>
 
@@ -540,59 +569,59 @@ export default function KanbanBoard(props: any) {
                                                                         <MoreVertical size={16} />
                                                                     </button>
                                                                 </div>                                                <h4 className="text-sm font-medium text-gray-800 mb-3">
-                                                    {ticket.title}
-                                                </h4>
+                                                                    {ticket.title}
+                                                                </h4>
 
-                                                {/* Member Card */}
-                                                <MemberCard ticket={ticket} />
+                                                                {/* Member Card */}
+                                                                <MemberCard ticket={ticket} />
 
-                                                <div className="flex flex-wrap gap-2 mb-3 items-center">
-                                                    <span className="px-2 py-0.5 bg-gradient-to-r from-purple-200 to-purple-100 text-purple-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
-                                                        <Tag className="inline w-3 h-3 mr-1 text-purple-400" />
-                                                        {ticket.category}
-                                                    </span>
-                                                    {ticket.device && (
-                                                        <span className="px-2 py-0.5 bg-gradient-to-r from-blue-200 to-blue-100 text-blue-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
-                                                            <Monitor className="inline w-3 h-3 mr-1 text-blue-400" />
-                                                            {ticket.device.name || (ticket.device.name_device && ticket.device.name_device.name) || "Dispositivo"}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                                                <div className="flex flex-wrap gap-2 mb-3 items-center">
+                                                                    <span className="px-2 py-0.5 bg-gradient-to-r from-purple-200 to-purple-100 text-purple-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
+                                                                        <Tag className="inline w-3 h-3 mr-1 text-purple-400" />
+                                                                        {ticket.category}
+                                                                    </span>
+                                                                    {ticket.device && (
+                                                                        <span className="px-2 py-0.5 bg-gradient-to-r from-blue-200 to-blue-100 text-blue-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
+                                                                            <Monitor className="inline w-3 h-3 mr-1 text-blue-400" />
+                                                                            {ticket.device.name || (ticket.device.name_device && ticket.device.name_device.name) || "Dispositivo"}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
 
-                                                <div className="flex justify-between items-center text-xs text-gray-500 mt-4">
-                                                    <div className="flex items-center">
-                                                        <CalendarIcon className="w-3 h-3 mr-1" />
-                                                        {new Date(ticket.created_at).toLocaleDateString()}
-                                                    </div>
-
-                                                    {ticket.technical && (
-                                                        <TooltipProvider>
-                                                            <Tooltip delayDuration={200}>
-                                                                <TooltipTrigger asChild>
-                                                                    <div className="flex items-center cursor-pointer group">
-                                                                        {ticket.technical.photo ? (
-                                                                            <img
-                                                                                src={ticket.technical.photo.startsWith('http')
-                                                                                    ? ticket.technical.photo
-                                                                                    : `/storage/${ticket.technical.photo}`}
-                                                                                alt={ticket.technical.name}
-                                                                                className="w-7 h-7 rounded-full border-2 border-blue-300 shadow-md group-hover:scale-105 transition-transform"
-                                                                            />
-                                                                        ) : (
-                                                                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center text-white text-base font-bold">
-                                                                                {ticket.technical.name?.substring(0, 1) || '?'}
-                                                                            </div>
-                                                                        )}
+                                                                <div className="flex justify-between items-center text-xs text-gray-500 mt-4">
+                                                                    <div className="flex items-center">
+                                                                        <CalendarIcon className="w-3 h-3 mr-1" />
+                                                                        {new Date(ticket.created_at).toLocaleDateString()}
                                                                     </div>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent className="bg-gray-900 text-white px-3 py-2 text-xs rounded shadow-lg">
-                                                                    <div className="font-semibold text-base">{ticket.technical.name}</div>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    )}
-                                                </div>
-                                            </div>
+
+                                                                    {ticket.technical && (
+                                                                        <TooltipProvider>
+                                                                            <Tooltip delayDuration={200}>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <div className="flex items-center cursor-pointer group">
+                                                                                        {ticket.technical.photo ? (
+                                                                                            <img
+                                                                                                src={ticket.technical.photo.startsWith('http')
+                                                                                                    ? ticket.technical.photo
+                                                                                                    : `/storage/${ticket.technical.photo}`}
+                                                                                                alt={ticket.technical.name}
+                                                                                                className="w-7 h-7 rounded-full border-2 border-blue-300 shadow-md group-hover:scale-105 transition-transform"
+                                                                                            />
+                                                                                        ) : (
+                                                                                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center text-white text-base font-bold">
+                                                                                                {ticket.technical.name?.substring(0, 1) || '?'}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent className="bg-gray-900 text-white px-3 py-2 text-xs rounded shadow-lg">
+                                                                                    <div className="font-semibold text-base">{ticket.technical.name}</div>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+                                                                    )}
+                                                                </div>
+                                                            </div>
 
                                                             {menuOpen === ticket.id && (
                                                                 <div className="border-t border-gray-200 p-2 bg-gray-50">

@@ -2,7 +2,7 @@ import type React from "react"
 
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from "@/types"
-import { Head, Link, router, usePage, useForm } from "@inertiajs/react"
+import { Head, router, usePage, useForm } from "@inertiajs/react"
 import { useEffect } from "react"
 import { useState } from "react"
 
@@ -11,7 +11,6 @@ import {
     XCircle,
     Loader2,
     Eye,
-    Plus,
     Share2,
     Clock,
     Monitor,
@@ -22,7 +21,6 @@ import {
     CheckCircle2,
     PlayCircle,
     StopCircle,
-    Search,
     User,
     Building,
     Home,
@@ -240,11 +238,14 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
     // State management
     const [showHistoryModal, setShowHistoryModal] = useState<{ open: boolean; ticketId?: number }>({ open: false })
     const [showAssignModal, setShowAssignModal] = useState<{ open: boolean; ticketId?: number }>({ open: false })
+    const [showStatusChangeModal, setShowStatusChangeModal] = useState<{ open: boolean; ticketId?: number; newStatus?: string; ticket?: any }>({ open: false })
     const [historyText, setHistoryText] = useState("")
     const [historyAction, setHistoryAction] = useState("comment")
+    const [statusChangeComment, setStatusChangeComment] = useState("")
     const [assignTechnicalId, setAssignTechnicalId] = useState<number | null>(null)
     const [assigning, setAssigning] = useState(false)
     const [addingHistory, setAddingHistory] = useState(false)
+    const [changingStatus, setChangingStatus] = useState(false)
     const [technicals, setTechnicals] = useState<any[]>([])
     const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null)
     const [tab, setTab] = useState<"all" | "assigned" | "approved">("all")
@@ -296,18 +297,33 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
     }
 
     const handleStatusChange = (ticket: any, newStatus: string) => {
-        setStatusLoadingId(ticket.id)
-        router.put(
-            `/tickets/${ticket.id}`,
-            { status: newStatus },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    refreshSelectedTicket(ticket.id);
+        // Estados que requieren comentario obligatorio
+        const statusesRequiringComment = ['resolved', 'closed', 'cancelled'];
+        
+        if (statusesRequiringComment.includes(newStatus)) {
+            // Abrir modal para pedir comentario obligatorio
+            setShowStatusChangeModal({
+                open: true,
+                ticketId: ticket.id,
+                newStatus: newStatus,
+                ticket: ticket
+            });
+            setStatusChangeComment("");
+        } else {
+            // Cambio directo para estados que no requieren comentario
+            setStatusLoadingId(ticket.id);
+            router.put(
+                `/tickets/${ticket.id}`,
+                { status: newStatus },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        refreshSelectedTicket(ticket.id);
+                    },
+                    onFinish: () => setStatusLoadingId(null),
                 },
-                onFinish: () => setStatusLoadingId(null),
-            },
-        )
+            );
+        }
     }
 
     const getNextStatuses = (status: string) => {
@@ -359,16 +375,12 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
     const approvedTickets = tickets.data.filter((t: any) => t.status === "resolved" || t.status === "closed");
 
     let ticketsToShow: any[] = [];
-    let canActOnTickets = false;
     if (tab === "all") {
         ticketsToShow = allTickets;
-        canActOnTickets = false;
     } else if (tab === "assigned") {
         ticketsToShow = assignedTickets;
-        canActOnTickets = true;
     } else if (tab === "approved") {
         ticketsToShow = approvedTickets;
-        canActOnTickets = true;
     }
 
 
@@ -590,6 +602,9 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                             if (selectedTicket && selectedTicket.id === ticketId) {
                                                 refreshSelectedTicket(ticketId);
                                             }
+                                        }}
+                                        onStatusChangeWithComment={(ticket, newStatus) => {
+                                            handleStatusChange(ticket, newStatus);
                                         }}
                                     />
                                 </div>
@@ -1037,11 +1052,11 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                     <div className="px-6 pb-6">
                                                         <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                                                             <Clock className="w-4 h-4 text-muted-foreground" />
-                                                            Recent Activity
+                                                            Complete Activity History
                                                         </h4>
-                                                        <div className="space-y-3 max-h-48 overflow-y-auto">
+                                                        <div className="space-y-3 max-h-96 overflow-y-auto">
                                                             {selectedTicket.history && selectedTicket.history.length > 0 ? (
-                                                                selectedTicket.history.slice(0, 5).map((entry: any, index: number) => (
+                                                                [...selectedTicket.history].reverse().map((entry: any, index: number) => (
                                                                     <div key={index} className="flex gap-3 p-3 bg-muted/30 rounded-lg">
                                                                         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                                                                             <MessageSquare className="w-4 h-4 text-muted-foreground" />
@@ -1062,7 +1077,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                                     </div>
                                                                 ))
                                                             ) : selectedTicket.histories && selectedTicket.histories.length > 0 ? (
-                                                                selectedTicket.histories.slice(0, 5).map((entry: any, index: number) => (
+                                                                [...selectedTicket.histories].reverse().map((entry: any, index: number) => (
                                                                     <div key={index} className="flex gap-3 p-3 bg-muted/30 rounded-lg">
                                                                         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                                                                             <MessageSquare className="w-4 h-4 text-muted-foreground" />
@@ -1501,6 +1516,147 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                     <>
                                         <AlertCircle className="w-4 h-4 mr-2" />
                                         Create Ticket
+                                    </>
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Status Change with Comment Modal */}
+            <Dialog
+                open={showStatusChangeModal.open}
+                onOpenChange={(open) => setShowStatusChangeModal({ 
+                    open, 
+                    ticketId: showStatusChangeModal.ticketId,
+                    newStatus: showStatusChangeModal.newStatus,
+                    ticket: showStatusChangeModal.ticket
+                })}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader className="pb-6">
+                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+                            <div className="p-2 bg-amber-100 rounded-lg">
+                                <CheckCircle className="w-6 h-6 text-amber-600" />
+                            </div>
+                            {showStatusChangeModal.newStatus === 'resolved' && 'Mark as Resolved'}
+                            {showStatusChangeModal.newStatus === 'closed' && 'Close Ticket'}
+                            {showStatusChangeModal.newStatus === 'cancelled' && 'Cancel Ticket'}
+                        </DialogTitle>
+                        <DialogDescription className="text-base text-slate-600">
+                            {showStatusChangeModal.newStatus === 'resolved' && 
+                                'Please describe how you resolved this issue. This information is crucial for future reference and similar problems.'
+                            }
+                            {showStatusChangeModal.newStatus === 'closed' && 
+                                'Please provide final comments before closing this ticket. Include any additional notes or recommendations.'
+                            }
+                            {showStatusChangeModal.newStatus === 'cancelled' && 
+                                'Please explain why this ticket is being cancelled. This helps with tracking and future improvements.'
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (!statusChangeComment.trim()) return;
+                            
+                            setChangingStatus(true);
+                            setStatusLoadingId(showStatusChangeModal.ticketId || 0);
+                            
+                            // Primero cambiar el estado
+                            router.put(
+                                `/tickets/${showStatusChangeModal.ticketId}`,
+                                { status: showStatusChangeModal.newStatus },
+                                {
+                                    preserveScroll: true,
+                                    onSuccess: () => {
+                                        // Luego agregar el comentario con la acción
+                                        router.post(`/tickets/${showStatusChangeModal.ticketId}/add-history`,
+                                            {
+                                                action: `status_change_${showStatusChangeModal.newStatus}`,
+                                                description: statusChangeComment
+                                            },
+                                            {
+                                                preserveScroll: true,
+                                                onSuccess: () => {
+                                                    setShowStatusChangeModal({ open: false });
+                                                    setStatusChangeComment("");
+                                                    refreshSelectedTicket(showStatusChangeModal.ticketId);
+                                                },
+                                                onFinish: () => {
+                                                    setChangingStatus(false);
+                                                    setStatusLoadingId(null);
+                                                }
+                                            }
+                                        );
+                                    },
+                                    onError: () => {
+                                        alert("Error changing status");
+                                        setChangingStatus(false);
+                                        setStatusLoadingId(null);
+                                    }
+                                }
+                            );
+                        }}
+                        className="space-y-6"
+                    >
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-800 mb-3">
+                                    {showStatusChangeModal.newStatus === 'resolved' && 'Resolution Details *'}
+                                    {showStatusChangeModal.newStatus === 'closed' && 'Final Comments *'}
+                                    {showStatusChangeModal.newStatus === 'cancelled' && 'Cancellation Reason *'}
+                                </label>
+                                <div className="relative">
+                                    <textarea
+                                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base min-h-[120px] focus:border-amber-500 focus:ring-2 focus:ring-amber-200 resize-none transition-all duration-200"
+                                        value={statusChangeComment}
+                                        onChange={(e) => setStatusChangeComment(e.target.value)}
+                                        placeholder={
+                                            showStatusChangeModal.newStatus === 'resolved' 
+                                                ? "Describe in detail how you fixed the issue, what tools/parts were used, and any preventive measures taken..."
+                                                : showStatusChangeModal.newStatus === 'closed'
+                                                ? "Add any final notes, recommendations, or follow-up actions needed..."
+                                                : "Explain why this ticket is being cancelled and any alternative solutions provided..."
+                                        }
+                                        required
+                                        maxLength={1000}
+                                    />
+                                    <div className="absolute bottom-3 right-3 text-xs text-slate-400">
+                                        {statusChangeComment.length}/1000
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2">
+                                    * This comment is required and will be added to the ticket history for future reference.
+                                </p>
+                            </div>
+                        </div>
+                        <DialogFooter className="pt-6 border-t border-slate-200">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => setShowStatusChangeModal({ open: false })}
+                                className="px-6 py-2.5"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                disabled={changingStatus || !statusChangeComment.trim()} 
+                                className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
+                            >
+                                {changingStatus ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                        {showStatusChangeModal.newStatus === 'resolved' && 'Mark as Resolved'}
+                                        {showStatusChangeModal.newStatus === 'closed' && 'Close Ticket'}
+                                        {showStatusChangeModal.newStatus === 'cancelled' && 'Cancel Ticket'}
                                     </>
                                 )}
                             </Button>
