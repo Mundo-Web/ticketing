@@ -778,7 +778,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                         </div>
                         {/* Sidebar - Ticket Details */}
                         <div className={`${isMember ? "xl:col-span-4" : "xl:col-span-4"}`}>
-                            <div className="sticky top-8 border-2 border-primary rounded-lg shadow-2xl">
+                            <div className="sticky top-8  rounded-lg shadow-2xl">
                                 <Card className="shadow-2xl border-0 bg-gradient-to-br from-background via-sidebar to-muted overflow-hidden">
                                     <CardHeader className="border-b-2 border-primary text-primary-foreground pb-6 relative overflow-hidden">
                                         {/* Elegant Background Pattern */}

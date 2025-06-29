@@ -48,7 +48,21 @@ const MemberCard = ({ ticket }: { ticket: any }) => {
 
                     {tenant.apartment?.building && (
                         <div className="flex items-center gap-1">
-                            <Building className="w-3 h-3 text-gray-600" />
+                            {tenant.apartment.building.image ? (
+                                <img
+                                    src={`/storage/${tenant.apartment.building.image}`}
+                                    alt={tenant.apartment.building.name}
+                                    className="w-3 h-3 rounded-full object-cover border border-gray-300"
+                                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                                        if (nextElement) {
+                                            nextElement.style.display = 'inline-block';
+                                        }
+                                    }}
+                                />
+                            ) : null}
+                            <Building className={`w-3 h-3 text-gray-600 ${tenant.apartment.building.image ? 'hidden' : ''}`} />
                             <p className="text-xs text-gray-700 truncate">
                                 {tenant.apartment.building.name}
                             </p>
@@ -161,6 +175,7 @@ export default function KanbanBoard(props: any) {
             .then(res => res.json())
             .then(data => {
                 console.log("Edificios cargados en KanbanBoard:", data.buildings);
+                console.log("Primer edificio:", data.buildings?.[0]);
                 setBuildings(data.buildings || []);
             })
             .catch(error => {
@@ -300,78 +315,14 @@ export default function KanbanBoard(props: any) {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
-                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 002-2M13 7a2 2 0 012 2v6a2 2 0 01-2 2"/>
-                                </svg>
-                            </div>
+                           
                             <div>
                                 <h1 className="text-xl font-bold text-foreground">Tickets Board</h1>
-                                <p className="text-sm text-muted-foreground">Manage and track ticket progress</p>
+                                
                             </div>
-                        </div>
-                    </div>
-                    
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Search tickets..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 pr-4 py-2.5 border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary bg-background w-64 shadow-sm transition-all duration-200 placeholder:text-muted-foreground"
-                        />
-                        <div className="absolute left-3 top-3 text-muted-foreground">
-                            <Search size={16} />
-                        </div>
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery("")}
-                                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                                <XCircle size={16} />
-                            </button>
-                        )}
-                    </div>
-                </div>
+                                {/* Solo mostrar las secciones de filtros si es jefe técnico (isTechnicalDefault) */}
 
-                <div className="flex items-center gap-2">
-                    <div className="">
-                        <div className="">
-                            {/* <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
-                                    Técnico
-                                </label>
-                                <select
-                                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                                    value={selectedTechnicalId || ''}
-                                    onChange={e => setSelectedTechnicalId(e.target.value ? Number(e.target.value) : null)}
-                                >
-                                    <option value="">Todos los técnicos</option>
-                                    {technicals.map(t => (
-                                        <option key={t.id} value={t.id}>{t.name}</option>
-                                    ))}
-                                </select>
-                            </div> */}
-
-                            {/*        <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
-                                    Estado
-                                </label>
-                                <div className="flex flex-wrap gap-2">
-                                    {statuses.map(status => (
-                                        <div 
-                                            key={status.key} 
-                                            className={`px-3 py-1 text-xs rounded-full font-medium flex items-center ${status.color} text-white`}
-                                        >
-                                            {status.label}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div> */}
-
-                            {/* Solo mostrar las secciones de filtros si es jefe técnico (isTechnicalDefault) */}
-
-                            <div className="flex w-full justify-between gap-8">
+                            <div className="flex w-auto justify-between gap-8">
                                 {/* Filtro por técnicos */}
                                 <div className="ml-6 flex gap-2 items-center justify-center h-full">
                                     <label className=" text-xs font-semibold text-gray-700  uppercase tracking-wider">
@@ -464,12 +415,11 @@ export default function KanbanBoard(props: any) {
                                                             {b.image ? (
                                                                 <img
                                                                     src={`/storage/${b.image}`}
-                                                                    alt={b.description}
+                                                                    alt={b.name}
                                                                     className="w-8 h-8 rounded-full object-cover border border-gray-200"
                                                                     onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                                                                         e.currentTarget.src = '/images/default-builder-square.png';
                                                                     }}
-
                                                                 />
                                                             ) : (
                                                                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-400 to-emerald-400 flex items-center justify-center text-white text-base font-bold">
@@ -487,7 +437,7 @@ export default function KanbanBoard(props: any) {
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent className="bg-primary text-white px-3 py-1.5 text-xs rounded shadow-lg">
-                                                        <p className="font-medium">{b.description}</p>
+                                                        <p className="font-medium">{b.name}</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </TooltipProvider>
@@ -516,6 +466,67 @@ export default function KanbanBoard(props: any) {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Search tickets..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10 pr-4 py-2.5 border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary bg-background w-64 shadow-sm transition-all duration-200 placeholder:text-muted-foreground"
+                        />
+                        <div className="absolute left-3 top-3 text-muted-foreground">
+                            <Search size={16} />
+                        </div>
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <XCircle size={16} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <div className="">
+                        <div className="">
+                            {/* <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
+                                    Técnico
+                                </label>
+                                <select
+                                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                                    value={selectedTechnicalId || ''}
+                                    onChange={e => setSelectedTechnicalId(e.target.value ? Number(e.target.value) : null)}
+                                >
+                                    <option value="">Todos los técnicos</option>
+                                    {technicals.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div> */}
+
+                            {/*        <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
+                                    Estado
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {statuses.map(status => (
+                                        <div 
+                                            key={status.key} 
+                                            className={`px-3 py-1 text-xs rounded-full font-medium flex items-center ${status.color} text-white`}
+                                        >
+                                            {status.label}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div> */}
+
+                        
 
 
                         </div>

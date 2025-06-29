@@ -590,7 +590,7 @@ class BuildingController extends Controller
      */
     public function apiIndex()
     {
-        $buildings = Building::select('id', 'name', 'description', 'image as photo', 'location_link')
+        $buildings = Building::select('id', 'name', 'description', 'image', 'location_link')
             ->where('status', true)
             ->orderBy('name')
             ->get();
