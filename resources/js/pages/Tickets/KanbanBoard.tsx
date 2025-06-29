@@ -71,22 +71,22 @@ const getStatuses = (props: any) => {
         for (const status of statuses) {
             switch (status.trim()) {
                 case 'open':
-                    filteredColumns.push({ key: "open", label: "OPEN", icon: AlertCircle, color: "bg-orange-500" });
+                    filteredColumns.push({ key: "open", label: "OPEN", icon: AlertCircle, color: "bg-amber-600" });
                     break;
                 case 'in_progress':
-                    filteredColumns.push({ key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-500" });
+                    filteredColumns.push({ key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-600" });
                     break;
                 case 'resolved':
-                    filteredColumns.push({ key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-green-500" });
+                    filteredColumns.push({ key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-emerald-600" });
                     break;
                 case 'closed':
-                    filteredColumns.push({ key: "closed", label: "CLOSED", icon: XCircle, color: "bg-gray-400" });
+                    filteredColumns.push({ key: "closed", label: "CLOSED", icon: XCircle, color: "bg-slate-600" });
                     break;
                 case 'cancelled':
-                    filteredColumns.push({ key: "cancelled", label: "CANCELLED", icon: XCircle, color: "bg-red-500" });
+                    filteredColumns.push({ key: "cancelled", label: "CANCELLED", icon: XCircle, color: "bg-red-600" });
                     break;
                 case 'reopened':
-                    filteredColumns.push({ key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-pink-500" });
+                    filteredColumns.push({ key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-purple-600" });
                     break;
             }
         }
@@ -97,29 +97,29 @@ const getStatuses = (props: any) => {
     // Sin filtro: mostrar columnas normales según el rol
     if (isTechnicalDefault) {
         return [
-            { key: "recents", label: "TO DO", icon: AlertCircle, color: "bg-orange-500" },
-            { key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-500" },
-            { key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-green-500" },
-            { key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-pink-500" },
+            { key: "recents", label: "TO DO", icon: AlertCircle, color: "bg-amber-600" },
+            { key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-600" },
+            { key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-emerald-600" },
+            { key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-purple-600" },
         ];
     }
 
     if (isTechnical) {
         return [
-            { key: "recents", label: "TO DO", icon: AlertCircle, color: "bg-orange-500" },
-            { key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-500" },
-            { key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-green-500" },
-            { key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-pink-500" },
+            { key: "recents", label: "TO DO", icon: AlertCircle, color: "bg-amber-600" },
+            { key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-600" },
+            { key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-emerald-600" },
+            { key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-purple-600" },
         ];
     }
 
     return [
-        { key: "open", label: "TO DO", icon: AlertCircle, color: "bg-orange-500" },
-        { key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-500" },
-        { key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-green-500" },
-        { key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-pink-500" },
-        { key: "closed", label: "CLOSED", icon: XCircle, color: "bg-gray-400" },
-        { key: "cancelled", label: "CANCELLED", icon: XCircle, color: "bg-red-500" },
+        { key: "open", label: "TO DO", icon: AlertCircle, color: "bg-amber-600" },
+        { key: "in_progress", label: "IN PROGRESS", icon: Clock, color: "bg-blue-600" },
+        { key: "resolved", label: "RESOLVED", icon: CheckCircle, color: "bg-emerald-600" },
+        { key: "reopened", label: "REOPENED", icon: AlertCircle, color: "bg-purple-600" },
+        { key: "closed", label: "CLOSED", icon: XCircle, color: "bg-slate-600" },
+        { key: "cancelled", label: "CANCELLED", icon: XCircle, color: "bg-red-600" },
     ];
 };
 
@@ -294,26 +294,44 @@ export default function KanbanBoard(props: any) {
     }, [canDrag, columns, onStatusChange, onStatusChangeWithComment]);
 
     return (
-        <div className="flex flex-col h-full ">
-            {/* Jira-style header */}
-            <div className="bg-white border-b border-gray-300 py-3 px-4 mb-4 shadow-sm">                    <div className="flex items-center justify-start">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-xl font-bold text-gray-800">
-                        Tickets Board
-
-                    </h1>
-                    {/* <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Buscar tickets..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 pr-4 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
-                            />
-                            <div className="absolute left-3 top-2.5 text-gray-400">
-                                <Search size={16} />
+        <div className="flex flex-col h-full">
+            {/* Modern Header */}
+            <div className="bg-gradient-to-r from-background to-gray-50 border-b border-border py-4 px-6 mb-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 002-2M13 7a2 2 0 012 2v6a2 2 0 01-2 2"/>
+                                </svg>
                             </div>
-                        </div> */}
+                            <div>
+                                <h1 className="text-xl font-bold text-foreground">Tickets Board</h1>
+                                <p className="text-sm text-muted-foreground">Manage and track ticket progress</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Search tickets..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10 pr-4 py-2.5 border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary bg-background w-64 shadow-sm transition-all duration-200 placeholder:text-muted-foreground"
+                        />
+                        <div className="absolute left-3 top-3 text-muted-foreground">
+                            <Search size={16} />
+                        </div>
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <XCircle size={16} />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -507,9 +525,6 @@ export default function KanbanBoard(props: any) {
                 </div>
             </div>
 
-
-            </div>
-
             {/* Kanban Board */}
             <DragDropContext onDragEnd={onDragEnd}>
                 <div className="flex flex-1 overflow-x-auto pb-4 px-2">
@@ -544,53 +559,56 @@ export default function KanbanBoard(props: any) {
                                                             ref={provided.innerRef}
                                                             {...provided.draggableProps}
                                                             {...provided.dragHandleProps}
-                                                            className={`bg-white border border-gray-200 rounded mb-3 shadow-sm hover:border-blue-400 transition-colors ${snapshot.isDragging ? "ring-2 ring-blue-300 shadow-md" : ""
+                                                            className={`bg-white border border-border rounded-lg mb-4 shadow-md hover:shadow-lg hover:border-primary/50 transition-all duration-200 ${snapshot.isDragging ? "ring-2 ring-primary/50 shadow-xl transform rotate-2" : ""
                                                                 }`}
                                                             style={provided.draggableProps.style}
                                                             onClick={() => onTicketClick(ticket)}
                                                         >
-                                                            <div className="p-3">
-                                                                <div className="flex justify-between items-start mb-2">
-                                                                    <div className="flex items-center">
-                                                                        <span className="text-sm font-semibold text-blue-600 mr-2">
+                                                            <div className="p-4">
+                                                                <div className="flex justify-between items-start mb-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
                                                                             {ticket.code}
                                                                         </span>
                                                                         {ticket.priority && (
                                                                             <span className={`inline-block w-2 h-2 rounded-full ${ticket.priority === 'high' ? 'bg-red-500' :
-                                                                                ticket.priority === 'medium' ? 'bg-orange-400' : 'bg-green-500'
+                                                                                ticket.priority === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'
                                                                                 }`}></span>
                                                                         )}
                                                                     </div>
 
                                                                     <button
-                                                                        className="text-gray-500 hover:text-gray-700 p-1"
+                                                                        className="group relative text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-primary/10 transition-all duration-200 hover:shadow-md border border-transparent hover:border-primary/20"
                                                                         onClick={e => { e.stopPropagation(); setMenuOpen(menuOpen === ticket.id ? null : ticket.id); }}
                                                                     >
-                                                                        <MoreVertical size={16} />
+                                                                        <MoreVertical size={16} className="transition-transform group-hover:scale-110" />
+                                                                        <div className="absolute -inset-1 bg-primary/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 -z-10"></div>
                                                                     </button>
-                                                                </div>                                                <h4 className="text-sm font-medium text-gray-800 mb-3">
+                                                                </div>
+                                                                
+                                                                <h4 className="text-sm font-semibold text-foreground mb-3 line-clamp-2 leading-tight">
                                                                     {ticket.title}
                                                                 </h4>
 
                                                                 {/* Member Card */}
                                                                 <MemberCard ticket={ticket} />
 
-                                                                <div className="flex flex-wrap gap-2 mb-3 items-center">
-                                                                    <span className="px-2 py-0.5 bg-gradient-to-r from-purple-200 to-purple-100 text-purple-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
-                                                                        <Tag className="inline w-3 h-3 mr-1 text-purple-400" />
+                                                                <div className="flex flex-wrap gap-2 mb-4 items-center">
+                                                                    <span className="px-3 py-1 bg-gradient-to-r from-accent/20 to-accent/10 text-accent rounded-full text-xs font-semibold shadow-sm flex items-center border border-accent/20">
+                                                                        <Tag className="inline w-3 h-3 mr-1.5" />
                                                                         {ticket.category}
                                                                     </span>
                                                                     {ticket.device && (
-                                                                        <span className="px-2 py-0.5 bg-gradient-to-r from-blue-200 to-blue-100 text-blue-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
-                                                                            <Monitor className="inline w-3 h-3 mr-1 text-blue-400" />
-                                                                            {ticket.device.name || (ticket.device.name_device && ticket.device.name_device.name) || "Dispositivo"}
+                                                                        <span className="px-3 py-1 bg-gradient-to-r from-primary/20 to-primary/10 text-primary rounded-full text-xs font-semibold shadow-sm flex items-center border border-primary/20">
+                                                                            <Monitor className="inline w-3 h-3 mr-1.5" />
+                                                                            {ticket.device.name || (ticket.device.name_device && ticket.device.name_device.name) || "Device"}
                                                                         </span>
                                                                     )}
                                                                 </div>
 
-                                                                <div className="flex justify-between items-center text-xs text-gray-500 mt-4">
+                                                                <div className="flex justify-between items-center text-xs text-muted-foreground mt-4 pt-3 border-t border-border">
                                                                     <div className="flex items-center">
-                                                                        <CalendarIcon className="w-3 h-3 mr-1" />
+                                                                        <CalendarIcon className="w-3 h-3 mr-1.5" />
                                                                         {new Date(ticket.created_at).toLocaleDateString()}
                                                                     </div>
 
@@ -624,23 +642,84 @@ export default function KanbanBoard(props: any) {
                                                             </div>
 
                                                             {menuOpen === ticket.id && (
-                                                                <div className="border-t border-gray-200 p-2 bg-gray-50">
-                                                                    {isTechnicalDefault && (
+                                                                <div className="border-t border-border bg-gradient-to-b from-background to-muted/30 backdrop-blur-sm">
+                                                                    <div className="p-3 space-y-1">
+                                                                        {isTechnicalDefault && (
+                                                                            <button
+                                                                                className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-primary hover:text-primary-foreground hover:bg-primary rounded-lg transition-all duration-200 group border border-transparent hover:border-primary/20 hover:shadow-md"
+                                                                                onClick={e => { 
+                                                                                    e.stopPropagation(); 
+                                                                                    setMenuOpen(null); 
+                                                                                    if (props.onAssign) {
+                                                                                        props.onAssign(ticket);
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                <div className="p-1.5 rounded-md bg-primary/10 group-hover:bg-primary-foreground/10 transition-colors">
+                                                                                    <Share2 size={16} className="transition-transform group-hover:scale-110" />
+                                                                                </div>
+                                                                                <div className="flex flex-col items-start">
+                                                                                    <span className="font-semibold">Assign Technician</span>
+                                                                                    <span className="text-xs text-muted-foreground group-hover:text-primary-foreground/80">Manage ticket assignment</span>
+                                                                                </div>
+                                                                            </button>
+                                                                        )}
                                                                         <button
-                                                                            className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-200 rounded"
-                                                                            onClick={e => { e.stopPropagation(); setMenuOpen(null); props.onAssign && props.onAssign(ticket); }}
+                                                                            className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-accent hover:text-accent-foreground hover:bg-accent rounded-lg transition-all duration-200 group border border-transparent hover:border-accent/20 hover:shadow-md"
+                                                                            onClick={e => { 
+                                                                                e.stopPropagation(); 
+                                                                                setMenuOpen(null); 
+                                                                                if (props.onComment) {
+                                                                                    props.onComment(ticket);
+                                                                                }
+                                                                            }}
                                                                         >
-                                                                            <Share2 size={14} className="text-gray-500" />
-                                                                            Assign
+                                                                            <div className="p-1.5 rounded-md bg-accent/10 group-hover:bg-accent-foreground/10 transition-colors">
+                                                                                <MessageSquare size={16} className="transition-transform group-hover:scale-110" />
+                                                                            </div>
+                                                                            <div className="flex flex-col items-start">
+                                                                                <span className="font-semibold">Add Comment</span>
+                                                                                <span className="text-xs text-muted-foreground group-hover:text-accent-foreground/80">Update ticket progress</span>
+                                                                            </div>
                                                                         </button>
-                                                                    )}
-                                                                    <button
-                                                                        className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-200 rounded"
-                                                                        onClick={e => { e.stopPropagation(); setMenuOpen(null); props.onComment && props.onComment(ticket); }}
-                                                                    >
-                                                                        <MessageSquare size={14} className="text-gray-500" />
-                                                                        Comment
-                                                                    </button>
+                                                                        
+                                                                        {/* Status change quick actions for technicians and managers */}
+                                                                        {(isTechnical || isManager) && ticket.status !== 'resolved' && ticket.status !== 'closed' && ticket.status !== 'cancelled' && (
+                                                                            <div className="pt-2 border-t border-border/50">
+                                                                                <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2 px-1">Quick Actions</div>
+                                                                                <div className="space-y-1">
+                                                                                    {ticket.status !== 'in_progress' && (
+                                                                                        <button
+                                                                                            className="flex items-center gap-3 w-full px-3 py-2 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-all duration-200 group"
+                                                                                            onClick={e => { 
+                                                                                                e.stopPropagation(); 
+                                                                                                setMenuOpen(null); 
+                                                                                                router.post(`/tickets/${ticket.id}/update-status`, { status: 'in_progress' }, { preserveScroll: true });
+                                                                                            }}
+                                                                                        >
+                                                                                            <Clock size={14} className="text-blue-500" />
+                                                                                            Start Progress
+                                                                                        </button>
+                                                                                    )}
+                                                                                    {ticket.status === 'in_progress' && (
+                                                                                        <button
+                                                                                            className="flex items-center gap-3 w-full px-3 py-2 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-all duration-200 group"
+                                                                                            onClick={e => { 
+                                                                                                e.stopPropagation(); 
+                                                                                                setMenuOpen(null); 
+                                                                                                if (onStatusChangeWithComment) {
+                                                                                                    onStatusChangeWithComment(ticket, 'resolved');
+                                                                                                }
+                                                                                            }}
+                                                                                        >
+                                                                                            <CheckCircle size={14} className="text-emerald-500" />
+                                                                                            Mark Resolved
+                                                                                        </button>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -731,9 +810,12 @@ export default function KanbanBoard(props: any) {
                                         ))}
 
                                         {columns[status.key]?.length === 0 && (
-                                            <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                                                <div className="text-gray-400 mb-1">No tickets in this column</div>
-                                                <div className="text-xs text-gray-500">Drag tickets here or create new ones</div>
+                                            <div className="bg-gradient-to-br from-background to-muted/30 border-2 border-dashed border-border rounded-lg p-8 text-center transition-colors hover:border-primary/30">
+                                                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                                                    <status.icon className="w-6 h-6 text-muted-foreground" />
+                                                </div>
+                                                <div className="text-muted-foreground font-medium mb-1">No tickets here</div>
+                                                <div className="text-xs text-muted-foreground/70">Drag tickets here or create new ones</div>
                                             </div>
                                         )}
 
