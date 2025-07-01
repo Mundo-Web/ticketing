@@ -6,6 +6,7 @@ export interface Device {
     system_id: number;
     name_device_id: number;
     ubicacion?: string;
+    icon_id?: string;
     brand?: { id: number; name: string };
     model?: { id: number; name: string };
     system?: { id: number; name: string };

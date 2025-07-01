@@ -18,6 +18,7 @@ class Device extends Model
         'name_device_id',
         'status',
         'ubicacion',
+        'icon_id',
     ];
 
 

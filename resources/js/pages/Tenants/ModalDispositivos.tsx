@@ -14,6 +14,8 @@ import { Tenant } from '@/types/models/Tenant';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Select, { components } from 'react-select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import DeviceIcon from '@/components/DeviceIcon';
+import { getDeviceIconsByCategory } from '@/utils/deviceIcons';
 
 // Helper para routes (Ziggy)
 declare global {
@@ -96,6 +98,7 @@ const ModalDispositivos = ({
         tenant_id: tenantId,
         tenants: [] as number[],
         ubicacion: '',
+        icon_id: '',
     });
 
     const handleShareDevice = async (deviceId: number, tenantIds: number[], unshareIds: number[] = []) => {
@@ -162,7 +165,8 @@ const ModalDispositivos = ({
             apartment_id: apartmentId,
             tenant_id: tenantId,
             tenants: device.tenants?.map(t => t.id) || [],
-            ubicacion: device.ubicacion || ''
+            ubicacion: device.ubicacion || '',
+            icon_id: device.icon_id || ''
         });
         setShowForm(true);
         setEditMode(true);
@@ -770,6 +774,60 @@ const ModalDispositivos = ({
                                 />
                             </div>
 
+                            {/* Campo Device Icon */}
+                            <div className='space-y-2'>
+                                <Label className='flex gap-2 items-center'>
+                                    <DeviceIcon deviceIconId={data.icon_id} size={16} /> Device Icon
+                                </Label>
+                                <Select
+                                    isClearable
+                                    placeholder="Select device icon"
+                                    onChange={(option) => setData('icon_id', option?.value || '')}
+                                    options={(() => {
+                                        const categories = getDeviceIconsByCategory();
+                                        const allDevices = Object.values(categories).flatMap(category => category.devices);
+                                        return allDevices.map(device => ({
+                                            label: device.name,
+                                            value: device.id,
+                                            icon: device.icon,
+                                            color: device.color
+                                        }));
+                                    })()}
+                                    value={(() => {
+                                        if (!data.icon_id) return null;
+                                        const categories = getDeviceIconsByCategory();
+                                        const allDevices = Object.values(categories).flatMap(category => category.devices);
+                                        const device = allDevices.find(d => d.id === data.icon_id);
+                                        return device ? {
+                                            label: device.name,
+                                            value: device.id,
+                                            icon: device.icon,
+                                            color: device.color
+                                        } : null;
+                                    })()}
+                                    components={{
+                                        Option: ({ children, ...props }) => (
+                                            <components.Option {...props}>
+                                                <div className="flex items-center gap-3">
+                                                    <DeviceIcon deviceIconId={props.data.value} size={20} />
+                                                    <span>{children}</span>
+                                                </div>
+                                            </components.Option>
+                                        ),
+                                        SingleValue: ({ children, ...props }) => (
+                                            <components.SingleValue {...props}>
+                                                <div className="flex items-center gap-2">
+                                                    <DeviceIcon deviceIconId={props.data.value} size={16} />
+                                                    <span>{children}</span>
+                                                </div>
+                                            </components.SingleValue>
+                                        )
+                                    }}
+                                    className="react-select-container"
+                                    classNamePrefix="react-select"
+                                />
+                            </div>
+
                             {/* Campo Brand */}
                             <div className='space-y-2'>
                                 <Label className='flex gap-2 items-center'>
@@ -885,7 +943,15 @@ const ModalDispositivos = ({
                             <tbody>
                                 {deviceList.map((device) => (
                                     <tr key={device.id} className="hover:bg-gray-50 border-b">
-                                        <td className="px-4 py-3">{device.name_device?.name || '-'}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <DeviceIcon 
+                                                    deviceIconId={device.icon_id} 
+                                                    size={20} 
+                                                />
+                                                <span>{device.name_device?.name || '-'}</span>
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3">{device.brand?.name || '-'}</td>
                                         <td className="px-4 py-3">{device.model?.name || '-'}</td>
                                         <td className="px-4 py-3">{device.system?.name || '-'}</td>
@@ -969,7 +1035,15 @@ const ModalDispositivos = ({
 
                                 {deviceShareList.map((device) => (
                                     <tr key={`shared-${device.id}`} className="hover:bg-gray-50 border-b bg-blue-50">
-                                        <td className="px-4 py-3">{device.name_device?.name || '-'}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <DeviceIcon 
+                                                    deviceIconId={device.icon_id} 
+                                                    size={20} 
+                                                />
+                                                <span>{device.name_device?.name || '-'}</span>
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3">{device.brand?.name || '-'}</td>
                                         <td className="px-4 py-3">{device.model?.name || '-'}</td>
                                         <td className="px-4 py-3">{device.system?.name || '-'}</td>

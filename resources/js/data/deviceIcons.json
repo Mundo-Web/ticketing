@@ -1,0 +1,231 @@
+{
+  "categories": {
+    "security": {
+      "name": "Security",
+      "devices": [
+        {
+          "id": "camera",
+          "name": "Camera",
+          "icon": "Camera",
+          "color": "#3B82F6"
+        },
+        {
+          "id": "doorbell",
+          "name": "Smart Doorbell", 
+          "icon": "Bell",
+          "color": "#F59E0B"
+        },
+        {
+          "id": "lock",
+          "name": "Smart Lock",
+          "icon": "Lock",
+          "color": "#EF4444"
+        },
+        {
+          "id": "alarm",
+          "name": "Alarm System",
+          "icon": "Shield",
+          "color": "#DC2626"
+        },
+        {
+          "id": "motion-sensor",
+          "name": "Motion Sensor",
+          "icon": "Eye",
+          "color": "#8B5CF6"
+        }
+      ]
+    },
+    "networking": {
+      "name": "Networking",
+      "devices": [
+        {
+          "id": "router",
+          "name": "Router",
+          "icon": "Router",
+          "color": "#059669"
+        },
+        {
+          "id": "wifi",
+          "name": "WiFi Access Point",
+          "icon": "Wifi",
+          "color": "#0891B2"
+        },
+        {
+          "id": "wifi-router",
+          "name": "WiFi Router",
+          "icon": "Wifi",
+          "color": "#0891B2"
+        },
+        {
+          "id": "ethernet",
+          "name": "Ethernet Switch",
+          "icon": "Network",
+          "color": "#7C3AED"
+        },
+        {
+          "id": "modem",
+          "name": "Modem",
+          "icon": "Radio",
+          "color": "#DB2777"
+        }
+      ]
+    },
+    "smart-home": {
+      "name": "Smart Home",
+      "devices": [
+        {
+          "id": "thermostat",
+          "name": "Smart Thermostat",
+          "icon": "Thermometer",
+          "color": "#F97316"
+        },
+        {
+          "id": "light",
+          "name": "Smart Light",
+          "icon": "Lightbulb",
+          "color": "#FBBF24"
+        },
+        {
+          "id": "speaker",
+          "name": "Smart Speaker",
+          "icon": "Speaker",
+          "color": "#6366F1"
+        },
+        {
+          "id": "tv",
+          "name": "Smart TV",
+          "icon": "Tv",
+          "color": "#1F2937"
+        },
+        {
+          "id": "refrigerator",
+          "name": "Smart Refrigerator",
+          "icon": "Package",
+          "color": "#374151"
+        }
+      ]
+    },
+    "entertainment": {
+      "name": "Entertainment",
+      "devices": [
+        {
+          "id": "gaming-console",
+          "name": "Gaming Console",
+          "icon": "Gamepad2",
+          "color": "#16A34A"
+        },
+        {
+          "id": "streaming-device",
+          "name": "Streaming Device",
+          "icon": "Play",
+          "color": "#DC2626"
+        },
+        {
+          "id": "sound-system",
+          "name": "Sound System",
+          "icon": "Volume2",
+          "color": "#7C2D12"
+        }
+      ]
+    },
+    "computing": {
+      "name": "Computing",
+      "devices": [
+        {
+          "id": "laptop",
+          "name": "Laptop",
+          "icon": "Laptop",
+          "color": "#374151"
+        },
+        {
+          "id": "desktop",
+          "name": "Desktop Computer",
+          "icon": "Monitor",
+          "color": "#4B5563"
+        },
+        {
+          "id": "monitor",
+          "name": "Monitor",
+          "icon": "Monitor",
+          "color": "#4B5563"
+        },
+        {
+          "id": "tablet",
+          "name": "Tablet",
+          "icon": "Tablet",
+          "color": "#6B7280"
+        },
+        {
+          "id": "smartphone",
+          "name": "Smartphone",
+          "icon": "Smartphone",
+          "color": "#111827"
+        },
+        {
+          "id": "printer",
+          "name": "Printer",
+          "icon": "Printer",
+          "color": "#059669"
+        }
+      ]
+    },
+    "appliances": {
+      "name": "Appliances",
+      "devices": [
+        {
+          "id": "washing-machine",
+          "name": "Washing Machine",
+          "icon": "Waves",
+          "color": "#0EA5E9"
+        },
+        {
+          "id": "dishwasher",
+          "name": "Dishwasher",
+          "icon": "Droplets",
+          "color": "#06B6D4"
+        },
+        {
+          "id": "microwave",
+          "name": "Microwave",
+          "icon": "Timer",
+          "color": "#8B5CF6"
+        },
+        {
+          "id": "air-conditioner",
+          "name": "Air Conditioner",
+          "icon": "Wind",
+          "color": "#0891B2"
+        }
+      ]
+    },
+    "other": {
+      "name": "Other",
+      "devices": [
+        {
+          "id": "generic",
+          "name": "Generic Device",
+          "icon": "Cpu",
+          "color": "#6B7280"
+        },
+        {
+          "id": "iot-sensor",
+          "name": "IoT Sensor",
+          "icon": "Radar",
+          "color": "#EC4899"
+        },
+        {
+          "id": "battery",
+          "name": "Battery Device",
+          "icon": "Battery",
+          "color": "#059669"
+        },
+        {
+          "id": "usb-device",
+          "name": "USB Device",
+          "icon": "Usb",
+          "color": "#7C3AED"
+        }
+      ]
+    }
+  }
+}

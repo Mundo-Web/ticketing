@@ -65,6 +65,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import KanbanBoard from "./KanbanBoard";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import DeviceIcon from '@/components/DeviceIcon';
 
 import { Device } from "@/types/models/Device"
 import { Tenant } from "@/types/models/Tenant";
@@ -220,10 +221,15 @@ function CategoryBadge({ category }: { category: string }) {
 }
 
 function DeviceBadge({ device }: { device: any }) {
+    console.log('DeviceBadge rendered with device:', device);
     return (
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/20 text-primary-foreground text-xs font-medium border border-primary/30">
-            <Monitor className="w-3 h-3" />
-            {device?.name_device?.name || device?.name || "Sin dispositivo"}
+            {device?.icon_id ? (
+                <DeviceIcon deviceIconId={device.icon_id} size={12} />
+            ) : (
+                <Monitor className="w-3 h-3" />
+            )}
+            {device?.name_device?.name || device?.name || "No device"}
         </div>
     )
 }
@@ -503,41 +509,41 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                 <div className="flex w-full  gap-4 items-center justify-end">
                                       {/* Dashboard Rápido */}
                                     <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
-                                        {/* Último Ticket */}
+                                        {/* Last Ticket */}
                                         <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer"
                                             onClick={() => setShowDeviceStats(true)}>
                                             <div className="flex flex-col items-center gap-1">
                                                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                                                     <Clock className="w-4 h-4 text-blue-600" />
                                                 </div>
-                                                <span className="text-xs text-slate-600">Último Ticket</span>
+                                                <span className="text-xs text-slate-600">Last Ticket</span>
                                                 <span className="text-lg font-bold text-blue-600">
                                                     {memberTickets.length > 0 ? memberTickets[0]?.code?.slice(-3) || '000' : '---'}
                                                 </span>
                                             </div>
                                         </Card>
 
-                                        {/* Estado de Dispositivos */}
+                                        {/* Device Status */}
                                         <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer"
                                             onClick={() => setShowDeviceStats(true)}>
                                             <div className="flex flex-col items-center gap-1">
                                                 <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                                                     <Monitor className="w-4 h-4 text-green-600" />
                                                 </div>
-                                                <span className="text-xs text-slate-600">Dispositivos</span>
+                                                <span className="text-xs text-slate-600">Devices</span>
                                                 <span className="text-lg font-bold text-green-600">
                                                     {deviceOptions.length}
                                                 </span>
                                             </div>
                                         </Card>
 
-                                        {/* Tickets Activos */}
+                                        {/* Active Tickets */}
                                         <Card className="p-3 text-center hover:shadow-md transition-shadow">
                                             <div className="flex flex-col items-center gap-1">
                                                 <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
                                                     <AlertCircle className="w-4 h-4 text-amber-600" />
                                                 </div>
-                                                <span className="text-xs text-slate-600">Activos</span>
+                                                <span className="text-xs text-slate-600">Active</span>
                                                 <span className="text-lg font-bold text-amber-600">
                                                     {memberTickets.filter((t: any) => t.status === 'open' || t.status === 'in_progress').length}
                                                 </span>
@@ -594,8 +600,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                     </div>*/}
                                    
 
-                                    {/* Consejo del Mes */}
-                                    {memberTickets.filter((t: any) => new Date(t.created_at).getMonth() === new Date().getMonth()).length === 0 && (
+                                    {/* Consejo del Mes   {memberTickets.filter((t: any) => new Date(t.created_at).getMonth() === new Date().getMonth()).length === 0 && (
                                         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 max-w-md">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <Award className="w-4 h-4 text-green-600" />
@@ -605,7 +610,8 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                 Este mes no has reportado incidencias. ¡Excelente trabajo!
                                             </p>
                                         </div>
-                                    )}
+                                    )}*/}
+                                  
 
                                     {/* Sugerencia de Mantenimiento 
                                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 max-w-md">
@@ -657,7 +663,11 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                             ? 'bg-amber-100 text-amber-600 group-hover:bg-amber-200' 
                                                             : 'bg-blue-100 text-blue-600 group-hover:bg-blue-200'
                                                     }`}>
-                                                        <Monitor className="w-8 h-8" />
+                                                        {device.icon_id ? (
+                                                            <DeviceIcon deviceIconId={device.icon_id} size={32} />
+                                                        ) : (
+                                                            <Monitor className="w-8 h-8" />
+                                                        )}
                                                     </div>
 
                                                     {/* Información principal del dispositivo */}
@@ -1064,12 +1074,20 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                     {selectedTicket.device && (
                                                         <div className="px-6">
                                                             <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                                                                <Monitor className="w-4 h-4 text-primary" />
+                                                                {selectedTicket.device.icon_id ? (
+                                                                    <DeviceIcon deviceIconId={selectedTicket.device.icon_id} size={16} />
+                                                                ) : (
+                                                                    <Monitor className="w-4 h-4 text-primary" />
+                                                                )}
                                                                 Device Information
                                                             </h4>
                                                             <div className="flex flex-wrap gap-2">
                                                                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-medium border border-primary/20">
-                                                                    <Cpu className="w-3 h-3" />
+                                                                    {selectedTicket.device?.icon_id ? (
+                                                                        <DeviceIcon deviceIconId={selectedTicket.device.icon_id} size={12} />
+                                                                    ) : (
+                                                                        <Cpu className="w-3 h-3" />
+                                                                    )}
                                                                     {selectedTicket.device.name_device?.name || selectedTicket.device.name || 'Unknown Device'}
                                                                 </div>
                                                                 {selectedTicket.device.brand && (
@@ -1957,39 +1975,39 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             <div className="p-2 bg-blue-100 rounded-lg">
                                 <Zap className="w-6 h-6 text-blue-600" />
                             </div>
-                            Acciones Adicionales
+                            Additional Actions
                         </DialogTitle>
                         <DialogDescription className="text-base text-slate-600">
-                            Estas funciones estarán disponibles próximamente. Por ahora, utiliza los contactos del técnico.
+                            These features will be available soon. For now, use the technician's contacts.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        {/* Asistencia Remota */}
+                        {/* Remote Assistance */}
                         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <div className="flex items-center gap-3 mb-2">
                                 <Monitor className="w-5 h-5 text-blue-600" />
-                                <h4 className="font-semibold text-blue-800">Asistencia Remota</h4>
+                                <h4 className="font-semibold text-blue-800">Remote Assistance</h4>
                             </div>
                             <p className="text-sm text-blue-700 mb-3">
-                                Permite al técnico acceder a tu dispositivo de forma remota para solucionar el problema.
+                                Allows the technician to remotely access your device to solve the problem.
                             </p>
                             <Button
                                 variant="outline"
                                 className="w-full border-blue-300 text-blue-700 hover:bg-blue-100"
                                 disabled
                             >
-                                Próximamente disponible
+                                Coming soon
                             </Button>
                         </div>
 
-                        {/* Subir Archivo */}
+                        {/* Upload File */}
                         <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
                             <div className="flex items-center gap-3 mb-2">
                                 <Upload className="w-5 h-5 text-purple-600" />
-                                <h4 className="font-semibold text-purple-800">Subir Evidencia</h4>
+                                <h4 className="font-semibold text-purple-800">Upload Evidence</h4>
                             </div>
                             <p className="text-sm text-purple-700 mb-3">
-                                Sube fotos, videos o documentos relacionados con el problema.
+                                Upload photos, videos or documents related to the problem.
                             </p>
                             <div className="grid grid-cols-3 gap-2">
                                 <Button
@@ -2019,21 +2037,21 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             </div>
                         </div>
 
-                        {/* Chat Directo */}
+                        {/* Direct Chat */}
                         <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                             <div className="flex items-center gap-3 mb-2">
                                 <MessageSquare className="w-5 h-5 text-green-600" />
-                                <h4 className="font-semibold text-green-800">Chat Directo</h4>
+                                <h4 className="font-semibold text-green-800">Direct Chat</h4>
                             </div>
                             <p className="text-sm text-green-700 mb-3">
-                                Chatea en tiempo real con tu técnico asignado.
+                                Chat in real time with your assigned technician.
                             </p>
                             <Button
                                 variant="outline"
                                 className="w-full border-green-300 text-green-700 hover:bg-green-100"
                                 disabled
                             >
-                                Iniciar Chat (Próximamente)
+                                Start Chat (Coming Soon)
                             </Button>
                         </div>
                     </div>
@@ -2043,7 +2061,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             onClick={() => setShowQuickActionsModal({ open: false })}
                             className="w-full"
                         >
-                            Cerrar
+                            Close
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -2060,10 +2078,10 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             <div className="p-2 bg-yellow-100 rounded-lg">
                                 <Star className="w-6 h-6 text-yellow-600" />
                             </div>
-                            Calificar Servicio
+                            Rate Service
                         </DialogTitle>
                         <DialogDescription className="text-base text-slate-600">
-                            Tu opinión nos ayuda a mejorar. ¿Cómo calificarías la solución de tu problema?
+                            Your opinion helps us improve. How would you rate the solution to your problem?
                         </DialogDescription>
                     </DialogHeader>
                     <form
@@ -2150,7 +2168,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                 onClick={() => setShowRatingModal({ open: false })}
                                 className="px-6 py-2.5"
                             >
-                                Cancelar
+                                Cancel
                             </Button>
                             <Button
                                 type="submit"
@@ -2182,10 +2200,10 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             <div className="p-2 bg-blue-100 rounded-lg">
                                 <HelpCircle className="w-6 h-6 text-blue-600" />
                             </div>
-                            Centro de Ayuda ADK Assist
+                            ADK Assist Help Center
                         </DialogTitle>
                         <DialogDescription className="text-base text-slate-600">
-                            Encuentra soluciones rápidas y guías para los problemas más comunes.
+                            Find quick solutions and guides for the most common problems.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-6">
@@ -2329,10 +2347,10 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             <div className="p-2 bg-indigo-100 rounded-lg">
                                 <TrendingUp className="w-6 h-6 text-indigo-600" />
                             </div>
-                            Resumen de Dispositivos y Tickets
+                            Device and Ticket Summary
                         </DialogTitle>
                         <DialogDescription className="text-base text-slate-600">
-                            Estadísticas de tus dispositivos y tickets del último mes.
+                            Statistics of your devices and tickets from last month.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-6">
@@ -2343,7 +2361,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                     <Monitor className="w-4 h-4 text-blue-600" />
                                 </div>
                                 <div className="text-2xl font-bold text-blue-600">{deviceOptions.length}</div>
-                                <div className="text-xs text-blue-700">Dispositivos</div>
+                                <div className="text-xs text-blue-700">Devices</div>
                             </div>
                             <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
                                 <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -2352,7 +2370,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                 <div className="text-2xl font-bold text-green-600">
                                     {memberTickets.filter((t: any) => t.status === 'resolved' || t.status === 'closed').length}
                                 </div>
-                                <div className="text-xs text-green-700">Resueltos</div>
+                                <div className="text-xs text-green-700">Resolved</div>
                             </div>
                             <div className="text-center p-4 bg-amber-50 border border-amber-200 rounded-lg">
                                 <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -2361,7 +2379,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                 <div className="text-2xl font-bold text-amber-600">
                                     {memberTickets.filter((t: any) => t.status === 'open' || t.status === 'in_progress').length}
                                 </div>
-                                <div className="text-xs text-amber-700">Activos</div>
+                                <div className="text-xs text-amber-700">Active</div>
                             </div>
                             <div className="text-center p-4 bg-purple-50 border border-purple-200 rounded-lg">
                                 <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -2370,15 +2388,15 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                 <div className="text-2xl font-bold text-purple-600">
                                     {memberTickets.filter((t: any) => new Date(t.created_at).getMonth() === new Date().getMonth()).length}
                                 </div>
-                                <div className="text-xs text-purple-700">Este Mes</div>
+                                <div className="text-xs text-purple-700">This Month</div>
                             </div>
                         </div>
 
-                        {/* Lista de Dispositivos */}
+                        {/* Device List */}
                         <div>
                             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <Monitor className="w-5 h-5 text-indigo-600" />
-                                Tus Dispositivos
+                                Your Devices
                             </h3>
                             <div className="space-y-3 max-h-64 overflow-y-auto">
                                 {deviceOptions.map((device: any) => {
@@ -2388,6 +2406,13 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                     return (
                                         <div key={device.id} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg">
                                             <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${activeTickets.length > 0 ? 'bg-amber-100' : 'bg-green-100'}`}>
+                                                    {device.icon_id ? (
+                                                        <DeviceIcon deviceIconId={device.icon_id} size={20} />
+                                                    ) : (
+                                                        <Monitor className="w-5 h-5 text-slate-600" />
+                                                    )}
+                                                </div>
                                                 <div className={`w-3 h-3 rounded-full ${activeTickets.length > 0 ? 'bg-amber-400' : 'bg-green-400'}`}></div>
                                                 <div>
                                                     <h4 className="font-medium text-slate-800">
@@ -2395,8 +2420,8 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                                                     </h4>
                                                     <p className="text-xs text-slate-600">
                                                         {activeTickets.length > 0 ?
-                                                            `${activeTickets.length} ticket(s) activo(s)` :
-                                                            'Sin problemas activos'
+                                                            `${activeTickets.length} active ticket(s)` :
+                                                            'No active issues'
                                                         }
                                                     </p>
                                                 </div>
@@ -2415,24 +2440,24 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             </div>
                         </div>
 
-                        {/* Rendimiento del Mes */}
+                        {/* Monthly Performance */}
                         <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
                             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-green-800">
                                 <Award className="w-5 h-5 text-green-600" />
-                                Rendimiento del Mes
+                                Monthly Performance
                             </h3>
                             {memberTickets.filter((t: any) => new Date(t.created_at).getMonth() === new Date().getMonth()).length === 0 ? (
                                 <div className="text-center py-4">
                                     <div className="text-4xl mb-2">🎉</div>
-                                    <p className="text-green-800 font-medium">¡Excelente!</p>
-                                    <p className="text-sm text-green-700">Sin incidencias este mes</p>
+                                    <p className="text-green-800 font-medium">Excellent!</p>
+                                    <p className="text-sm text-green-700">No incidents this month</p>
                                 </div>
                             ) : (
                                 <div className="text-center">
                                     <p className="text-green-800 font-medium">
-                                        {memberTickets.filter((t: any) => new Date(t.created_at).getMonth() === new Date().getMonth()).length} ticket(s) este mes
+                                        {memberTickets.filter((t: any) => new Date(t.created_at).getMonth() === new Date().getMonth()).length} ticket(s) this month
                                     </p>
-                                    <p className="text-sm text-green-700">Mantén tus dispositivos actualizados</p>
+                                    <p className="text-sm text-green-700">Keep your devices updated</p>
                                 </div>
                             )}
                         </div>
@@ -2443,7 +2468,7 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                             onClick={() => setShowDeviceStats(false)}
                             className="w-full"
                         >
-                            Cerrar
+                            Close
                         </Button>
                     </DialogFooter>
                 </DialogContent>

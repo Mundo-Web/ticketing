@@ -118,6 +118,7 @@ class DeviceController extends Controller
             'tenants' => 'sometimes|array',
             'tenants.*' => 'exists:tenants,id',
             'ubicacion' => 'nullable|string',
+            'icon_id' => 'nullable|string|max:255',
         ]);
 
         DB::beginTransaction();
@@ -142,7 +143,8 @@ class DeviceController extends Controller
                 'model_id' => $model_id,
                 'system_id' => $system_id,
                 'name_device_id' => $name_device_id,
-                'ubicacion' => $request->ubicacion
+                'ubicacion' => $request->ubicacion,
+                'icon_id' => $request->icon_id
             ]);
 
             // Attach main tenant
@@ -204,6 +206,7 @@ class DeviceController extends Controller
             'tenants' => 'nullable|array',
             'tenants.*' => 'exists:tenants,id',
             'ubicacion' => 'nullable|string',
+            'icon_id' => 'nullable|string|max:255',
         ]);
 
         DB::beginTransaction();
@@ -220,7 +223,8 @@ class DeviceController extends Controller
                 'model_id' => $model_id,
                 'system_id' => $system_id,
                 'name_device_id' => $name_device_id,
-                'ubicacion' => $request->ubicacion
+                'ubicacion' => $request->ubicacion,
+                'icon_id' => $request->icon_id
             ]);
 
             // Sincronizar inquilinos si se proporcionan

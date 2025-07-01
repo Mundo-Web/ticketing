@@ -56,6 +56,7 @@ import { Tenant } from '@/types/models/Tenant';
 import { TenantForm } from './TenantForm';
 import { Apartment } from '@/types/models/Apartment';
 import TicketHistoryModal from '@/components/TicketHistoryModal';
+import DeviceIcon from '@/components/DeviceIcon';
 import _ from 'lodash';
 
 // Extend Tenant type to include additional properties used in this component
@@ -2061,7 +2062,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                             <div className="flex items-center gap-2">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="sm" className="border-corporate-gold/20 hover:bg-corporate-gold/10 hover:border-corporate-gold">
+                                        <Button variant="outline" size="sm" className="border-corporate-gold/20 hover:bg-primary hover:border-corporate-gold">
                                             <Filter className="mr-2 h-4 w-4" />
                                             Columns <ChevronDown className="ml-1 h-4 w-4" />
                                         </Button>
@@ -2087,7 +2088,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="sm" className="border-corporate-gold/20 hover:bg-corporate-gold/10 hover:border-corporate-gold">
+                                        <Button variant="outline" size="sm" className="border-corporate-gold/20 hover:bg-primary hover:border-corporate-gold">
                                             <FileSpreadsheet className="mr-2 h-4 w-4" />
                                             Export <ChevronDown className="ml-1 h-4 w-4" />
                                         </Button>
@@ -2386,18 +2387,18 @@ const ApartmentRowExpanded = ({ row, handleShowDevices, handleShowTicketHistory 
                                                 </div>
                                                 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                                                    <div className="flex items-center gap-2 text-muted-foreground hover:text-corporate-gold transition-colors">
+                                                    <a href={`mailto:${tenant.email}`} className="flex items-center gap-2 text-muted-foreground hover:text-corporate-gold transition-colors">
                                                         <div className="w-6 h-6 rounded-full bg-corporate-gold/20 flex items-center justify-center">
                                                             <Mail className="w-3 h-3 text-corporate-gold" />
                                                         </div>
                                                         <span className="font-medium">{tenant.email}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-muted-foreground hover:text-corporate-gold transition-colors">
+                                                    </a>
+                                                    <a href={`tel:${tenant.phone}`} className="flex items-center gap-2 text-muted-foreground hover:text-corporate-gold transition-colors">
                                                         <div className="w-6 h-6 rounded-full bg-corporate-warm/20 flex items-center justify-center">
                                                             <Phone className="w-3 h-3 text-corporate-warm" />
                                                         </div>
                                                         <span className="font-medium">{tenant.phone}</span>
-                                                    </div>
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>

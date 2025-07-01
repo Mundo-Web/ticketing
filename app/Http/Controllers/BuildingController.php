@@ -484,7 +484,7 @@ class BuildingController extends Controller
         
         // Obtener parámetros de búsqueda, paginación y ordenamiento
         $search = $request->input('search', '');
-        $perPage = $request->input('per_page', 6);
+        $perPage = $request->input('per_page', 18); // Default 18 per page
         $sortBy = $request->input('sort_by', 'order'); // Campo por el cual ordenar
         $sortDir = $request->input('sort_dir', 'asc'); // Dirección del ordenamiento
         

@@ -3,6 +3,7 @@ import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, X
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { router } from "@inertiajs/react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@radix-ui/react-tooltip";
+import DeviceIcon from '@/components/DeviceIcon';
 
 // Componente MemberCard para mostrar información del member
 const MemberCard = ({ ticket }: { ticket: any }) => {
@@ -611,7 +612,11 @@ export default function KanbanBoard(props: any) {
                                                                     </span>
                                                                     {ticket.device && (
                                                                         <span className="px-3 py-1 bg-gradient-to-r from-primary/20 to-primary/10 text-primary rounded-full text-xs font-semibold shadow-sm flex items-center border border-primary/20">
-                                                                            <Monitor className="inline w-3 h-3 mr-1.5" />
+                                                                            {ticket.device.icon_id ? (
+                                                                                <DeviceIcon deviceIconId={ticket.device.icon_id} size={12} className="mr-1.5" />
+                                                                            ) : (
+                                                                                <Monitor className="inline w-3 h-3 mr-1.5" />
+                                                                            )}
                                                                             {ticket.device.name || (ticket.device.name_device && ticket.device.name_device.name) || "Device"}
                                                                         </span>
                                                                     )}
@@ -772,7 +777,11 @@ export default function KanbanBoard(props: any) {
                                                         </span>
                                                         {ticket.device && (
                                                             <span className="px-2 py-0.5 bg-gradient-to-r from-blue-200 to-blue-100 text-blue-800 rounded-full text-xs font-semibold shadow-sm flex items-center">
-                                                                <Monitor className="inline w-3 h-3 mr-1 text-blue-400" />
+                                                                {ticket.device.icon_id ? (
+                                                                    <DeviceIcon deviceIconId={ticket.device.icon_id} size={12} className="mr-1 text-blue-400" />
+                                                                ) : (
+                                                                    <Monitor className="inline w-3 h-3 mr-1 text-blue-400" />
+                                                                )}
                                                                 {ticket.device.name || (ticket.device.name_device && ticket.device.name_device.name) || "Dispositivo"}
                                                             </span>
                                                         )}
