@@ -32,10 +32,13 @@ class ApartmentController extends Controller
         DB::beginTransaction();
 
         try {
+            // Determinar el order correcto
+            $order = $this->getNextAvailableOrder($building, $request->order);
+            
             $apartment = $building->apartments()->create([
                 'name' => $request->name,
                 'ubicacion' => $request->ubicacion ?? '',
-                'order' => $request->order ?? 0,
+                'order' => $order,
                 'status' => true
             ]);
 
@@ -69,10 +72,13 @@ class ApartmentController extends Controller
         DB::beginTransaction();
 
         try {
+            // Determinar el order correcto para actualización
+            $order = $this->getNextAvailableOrder($apartment->building, $request->order, $apartment->id);
+            
             $apartment->update([
                 'name' => $request->name,
                 'ubicacion' => $request->ubicacion ?? '',
-                'order' => $request->order ?? 0,
+                'order' => $order,
             ]);
 
             $this->saveTenants($request, $apartment);
@@ -288,7 +294,10 @@ class ApartmentController extends Controller
 
             foreach ($groupedData as $apartmentName => $members) {
                 // Obtener el valor de order del primer miembro del grupo (si existe)
-                $orderValue = $members->first()['order'] ?? 0;
+                $requestedOrder = $members->first()['order'] ?? null;
+                
+                // Determinar el order correcto usando la misma lógica
+                $finalOrder = $this->getNextAvailableOrder($building, $requestedOrder);
                 
                 // Crear o buscar el apartamento
                 $apartment = $building->apartments()->firstOrCreate([
@@ -296,12 +305,13 @@ class ApartmentController extends Controller
                 ], [
                     'status' => true,
                     'ubicacion' => '',
-                    'order' => $orderValue
+                    'order' => $finalOrder
                 ]);
 
                 // Si el apartamento ya existe, actualizar el order si se proporciona uno nuevo
-                if (!$apartment->wasRecentlyCreated && isset($members->first()['order'])) {
-                    $apartment->update(['order' => $orderValue]);
+                if (!$apartment->wasRecentlyCreated && $requestedOrder && $requestedOrder > 0) {
+                    $newOrder = $this->getNextAvailableOrder($building, $requestedOrder, $apartment->id);
+                    $apartment->update(['order' => $newOrder]);
                 }
 
                 $isNewApartment = $apartment->wasRecentlyCreated;
@@ -474,5 +484,49 @@ class ApartmentController extends Controller
         } catch (\Exception $e) {
             throw $e;
         }
+    }
+    
+    /**
+     * Determina el siguiente order disponible para un apartamento
+     * 
+     * @param Building $building
+     * @param int|null $requestedOrder
+     * @param int|null $excludeApartmentId - Para excluir el apartamento actual en actualizaciones
+     * @return int
+     */
+    private function getNextAvailableOrder(Building $building, $requestedOrder = null, $excludeApartmentId = null)
+    {
+        // Si no se proporciona order o es 0, obtener el máximo + 1
+        if (!$requestedOrder || $requestedOrder == 0) {
+            $maxOrder = $building->apartments()
+                ->when($excludeApartmentId, function ($query) use ($excludeApartmentId) {
+                    return $query->where('id', '!=', $excludeApartmentId);
+                })
+                ->max('order') ?? 0;
+            
+            return $maxOrder + 1;
+        }
+        
+        // Verificar si el order solicitado ya existe
+        $existingApartment = $building->apartments()
+            ->where('order', $requestedOrder)
+            ->when($excludeApartmentId, function ($query) use ($excludeApartmentId) {
+                return $query->where('id', '!=', $excludeApartmentId);
+            })
+            ->exists();
+        
+        // Si el order ya existe, obtener el máximo + 1
+        if ($existingApartment) {
+            $maxOrder = $building->apartments()
+                ->when($excludeApartmentId, function ($query) use ($excludeApartmentId) {
+                    return $query->where('id', '!=', $excludeApartmentId);
+                })
+                ->max('order') ?? 0;
+            
+            return $maxOrder + 1;
+        }
+        
+        // Si el order no existe, usarlo
+        return $requestedOrder;
     }
 }
