@@ -27,6 +27,8 @@ class TicketController extends Controller
             'device.system',
             'histories.technical',
             'user.tenant.apartment.building', // Para saber quién creó el ticket y su info
+            'createdByOwner', // Relación con Owner que creó el ticket
+            'createdByDoorman', // Relación con Doorman que creó el ticket
         ];
         $ticketsQuery = Ticket::with($withRelations);
         $allTicketsQuery = Ticket::with($withRelations);
@@ -265,31 +267,75 @@ class TicketController extends Controller
             'category' => 'required|string|max:100',
             'title' => 'required|string|max:255',
             'description' => 'required|string',
+            'member_id' => 'nullable|exists:tenants,id', // Para cuando owner/doorman crea por member
         ]);
         
-        // Create ticket without assigning any technical - let it remain unassigned
-        $ticket = Ticket::create([
-            ...$validated,
-            'user_id' => auth()->id(),
+        $user = Auth::user();
+        $ticketData = [
+            'device_id' => $validated['device_id'],
+            'category' => $validated['category'],
+            'title' => $validated['title'],
+            'description' => $validated['description'],
             'status' => Ticket::STATUS_OPEN,
             'technical_id' => null, // Leave unassigned
-        ]);
+        ];
+
+        // Determinar quién es el usuario final del ticket y quién lo creó
+        if ($request->has('member_id') && ($user->hasRole('owner') || $user->hasRole('doorman'))) {
+            // Owner o Doorman creando ticket para un member
+            $member = \App\Models\Tenant::findOrFail($validated['member_id']);
+            $memberUser = \App\Models\User::where('email', $member->email)->first();
+            
+            if (!$memberUser) {
+                return redirect()->back()->withErrors(['member_id' => 'Member user not found']);
+            }
+            
+            $ticketData['user_id'] = $memberUser->id;
+            
+            // Registrar quién lo creó
+            if ($user->hasRole('owner')) {
+                $owner = \App\Models\Owner::where('email', $user->email)->first();
+                if ($owner) {
+                    $ticketData['created_by_owner_id'] = $owner->id;
+                }
+            } elseif ($user->hasRole('doorman')) {
+                $doorman = \App\Models\Doorman::where('email', $user->email)->first();
+                if ($doorman) {
+                    $ticketData['created_by_doorman_id'] = $doorman->id;
+                }
+            }
+        } else {
+            // Member creando su propio ticket
+            $ticketData['user_id'] = $user->id;
+        }
+        
+        // Create ticket
+        $ticket = Ticket::create($ticketData);
         
         // Add initial history entry
-        $user = auth()->user();
-        $userName = 'System';
+        $userName = $user->name;
         
         // Try to get the user's name from tenant relationship if it's a member
         if ($user->hasRole('member')) {
             $tenant = \App\Models\Tenant::where('email', $user->email)->first();
             $userName = $tenant ? $tenant->name : $user->name;
-        } else {
-            $userName = $user->name;
+        } elseif ($user->hasRole('owner')) {
+            $owner = \App\Models\Owner::where('email', $user->email)->first();
+            $userName = $owner ? $owner->name : $user->name;
+        } elseif ($user->hasRole('doorman')) {
+            $doorman = \App\Models\Doorman::where('email', $user->email)->first();
+            $userName = $doorman ? $doorman->name : $user->name;
+        }
+        
+        $historyDescription = "Ticket created by {$userName}";
+        if ($request->has('member_id') && ($user->hasRole('owner') || $user->hasRole('doorman'))) {
+            $member = \App\Models\Tenant::findOrFail($validated['member_id']);
+            $historyDescription .= " on behalf of {$member->name}";
         }
         
         $ticket->addHistory(
             'created',
-            "Ticket created by {$userName}",
+            $historyDescription,
             null,
             null
         );
@@ -311,6 +357,8 @@ class TicketController extends Controller
             'device.system',
             'histories.technical',
             'user.tenant.apartment.building', // Para saber quién creó el ticket y su info
+            'createdByOwner', // Relación con Owner que creó el ticket
+            'createdByDoorman', // Relación con Doorman que creó el ticket
         ])->findOrFail($id);
         // Si es AJAX/fetch, devolver JSON
         if (request()->wantsJson() || request()->ajax()) {

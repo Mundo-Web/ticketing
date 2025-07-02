@@ -95,6 +95,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('technicals-list', [TicketController::class, 'technicalsList'])->name('tickets.technicalsList');
     
+    // Rutas para owner y doorman para gestionar devices de members
+    Route::get('/owner-doorman/devices', [\App\Http\Controllers\OwnerDoormanDeviceController::class, 'index'])
+        ->name('owner-doorman.devices')
+        ->middleware('role:owner|doorman');
+    
 });
 
 require __DIR__ . '/settings.php';

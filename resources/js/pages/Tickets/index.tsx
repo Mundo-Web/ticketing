@@ -23,6 +23,7 @@ import {
     StopCircle,
     User,
     Building,
+    Building2,
     Home,
     Zap,
     Mail,
@@ -46,6 +47,7 @@ import {
     Award,
     TrendingUp,
     Shield,
+    ShieldCheck,
     Wifi,
     HelpCircle,
     BookOpen,
@@ -1301,6 +1303,19 @@ export default function TicketsIndex({
                                                             <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
                                                                 {selectedTicket.code}
                                                             </span>
+                                                            {/* Badge para mostrar si fue creado por Owner o Doorman */}
+                                                            {selectedTicket.created_by_owner_id && selectedTicket.created_by_owner && (
+                                                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200">
+                                                                    <Building2 className="w-3 h-3" />
+                                                                    Created by Owner: {selectedTicket.created_by_owner.name}
+                                                                </span>
+                                                            )}
+                                                            {selectedTicket.created_by_doorman_id && selectedTicket.created_by_doorman && (
+                                                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                                                    <ShieldCheck className="w-3 h-3" />
+                                                                    Created by Doorman: {selectedTicket.created_by_doorman.name}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
 

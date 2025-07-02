@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { SharedData, type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
-import { Laptop, Users, Building2, Home, Share2, Edit, Trash2, Cpu, ChevronRight, Plus, Search, Filter, SlidersHorizontal, DoorOpen, ShieldPlus, ScanQrCodeIcon, Keyboard } from 'lucide-react';
+import { Laptop, Users, Building2, Home, Share2, Edit, Trash2, Cpu, ChevronRight, Plus, Search, Filter, SlidersHorizontal, DoorOpen, ShieldPlus, ScanQrCodeIcon, Keyboard, Ticket, Building } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -69,6 +69,10 @@ export default function DeviceDashboard({
     building: Building;
     apartment: Apartment;
 }) {
+    // Obtener información del usuario actual
+    const { auth } = usePage<SharedData>().props;
+    const isOwner = (auth.user as any)?.roles?.includes("owner");
+    const isDoorman = (auth.user as any)?.roles?.includes("doorman");
 
     // Estado para el modal de ticket
     const [openTicketModal, setOpenTicketModal] = useState(false);
@@ -125,11 +129,23 @@ export default function DeviceDashboard({
             <Head title="Gestión de Dispositivos" />
 
             <div className="flex flex-col gap-6 p-6">
-                {/* Botón de acción para crear ticket */}
-                <div className="flex justify-end mb-2">
+                {/* Botones de acción */}
+                <div className="flex justify-between items-center mb-2">
+                    {/* Botón especial para Owner/Doorman */}
+                    {(isOwner || isDoorman) && (
+                        <a
+                            href="/owner-doorman/devices"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
+                        >
+                            <Building className="w-4 h-4" />
+                            Manage Building Members & Tickets
+                        </a>
+                    )}
+                    
+                    {/* Botón para crear ticket personal */}
                     <Dialog open={openTicketModal} onOpenChange={setOpenTicketModal}>
                         <DialogTrigger asChild>
-                            <Button onClick={() => setOpenTicketModal(true)} className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                            <Button onClick={() => setOpenTicketModal(true)} className="bg-yellow-500 hover:bg-yellow-600 text-white ml-auto">
                                 <Plus className="w-4 h-4 mr-2" /> Reportar un problema
                             </Button>
                         </DialogTrigger>

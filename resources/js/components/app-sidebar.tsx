@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { SharedData, type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, FileText, Building, CheckCircle, XCircle, Laptop } from 'lucide-react';
+import { LayoutGrid, FileText, Building, CheckCircle, XCircle, Laptop, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 
@@ -169,14 +169,20 @@ export function AppSidebar() {
   ];
 
 
-    // Menú para members (usuarios normales)
+    // Menú para owners y doormans (gestión de edificio)
   const buildingNavItems: NavItem[] = [
    {
-      title: 'Devices',
+      title: 'My Devices',
       href: `/buildings/${auth?.user?.owner?.id || auth?.user?.doorman?.id}/apartments`,
       icon: Laptop,
       isActive: route().current('buildings.*'),
-    }, 
+    },
+   /* {
+      title: 'Manage Members',
+      href: '/owner-doorman/devices',
+      icon: Users,
+      isActive: route().current('owner-doorman.*'),
+    }, */
     {
       title: 'Tickets',
       href: '/tickets',

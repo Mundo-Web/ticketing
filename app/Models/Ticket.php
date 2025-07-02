@@ -22,6 +22,8 @@ class Ticket extends Model
         'closed_at',
         'code',
         'technical_id',
+        'created_by_owner_id',
+        'created_by_doorman_id',
     ];
     // Boot: generar código único al crear
     protected static function boot()
@@ -72,6 +74,16 @@ class Ticket extends Model
     public function technical()
     {
         return $this->belongsTo(Technical::class);
+    }
+
+    public function createdByOwner()
+    {
+        return $this->belongsTo(\App\Models\Owner::class, 'created_by_owner_id');
+    }
+
+    public function createdByDoorman()
+    {
+        return $this->belongsTo(\App\Models\Doorman::class, 'created_by_doorman_id');
     }
 
     // Métodos de ayuda para estados

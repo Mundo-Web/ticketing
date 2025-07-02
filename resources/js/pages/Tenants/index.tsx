@@ -1,6 +1,6 @@
 // pages/Apartments/Index.tsx
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, SharedData } from '@/types';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
@@ -50,13 +50,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ModalDispositivos from './ModalDispositivos';
 import { BuildingCombobox } from './ComboBox';
 import { Tenant } from '@/types/models/Tenant';
 import { TenantForm } from './TenantForm';
 import { Apartment } from '@/types/models/Apartment';
 import TicketHistoryModal from '@/components/TicketHistoryModal';
-import DeviceIcon from '@/components/DeviceIcon';
 import _ from 'lodash';
 
 // Extend Tenant type to include additional properties used in this component
@@ -181,12 +181,16 @@ interface Props {
 
 export default function Index({ apartments, brands, models, systems, name_devices, filters }: Props) {
     // Removing unused auth
-    // const { auth } = usePage<SharedData>().props;
+    const { auth } = usePage<SharedData>().props;
   
     // Debug inicial
     console.log('=== COMPONENT RENDERED ===');
     console.log('Apartments data:', apartments);
     console.log('Building info:', usePage().props);
+    console.log('USER ROLE DEBUG:', auth.user?.role);
+    console.log('USER ROLES ARRAY:', auth.user?.roles);
+    console.log('IS OWNER OR DOORMAN (role):', auth.user?.role === 'owner' || auth.user?.role === 'doorman');
+    console.log('IS OWNER OR DOORMAN (roles array):', auth.user?.roles?.includes('owner') || auth.user?.roles?.includes('doorman'));
     console.log('=== END COMPONENT DEBUG ===');
 
     // Estados para la tabla
@@ -231,6 +235,12 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [showDevicesModal, setShowDevicesModal] = useState(false);
     const [showTicketHistoryModal, setShowTicketHistoryModal] = useState(false);
     const [selectedTenantForTickets, setSelectedTenantForTickets] = useState<Tenant | null>(null);
+    
+    // Nuevos estados para crear tickets
+    const [showCreateTicketDevicesModal, setShowCreateTicketDevicesModal] = useState(false);
+    const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
+    const [selectedTenantForTicketCreation, setSelectedTenantForTicketCreation] = useState<Apartment | null>(null);
+    const [selectedDeviceForTicket, setSelectedDeviceForTicket] = useState<Device | null>(null);
     const [initialFormData, setInitialFormData] = useState<typeof data | undefined>();
     const [showConfirmClose, setShowConfirmClose] = useState(false);
     const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
@@ -276,6 +286,16 @@ export default function Index({ apartments, brands, models, systems, name_device
             photo: File | null;
             photoPreview?: string;
         }>,
+    });
+
+    // Form para crear tickets
+    const ticketForm = useForm({
+        device_id: '',
+        category: '',
+        title: '',
+        description: '',
+        member_id: '',
+        priority: 'medium',
     });
 
     const searchInputRef = useRef<HTMLInputElement>(null);
@@ -531,6 +551,40 @@ export default function Index({ apartments, brands, models, systems, name_device
         setShowTicketHistoryModal(true);
     };
 
+    // Nuevas funciones para crear tickets (se usan en el modal)
+
+    const handleDeviceSelected = (device: Device) => {
+        console.log('=== DEVICE SELECTED ===');
+        console.log('Selected device:', device);
+        console.log('Selected tenant:', selectedTenant);
+        console.log('Selected apartment for ticket creation:', selectedTenantForTicketCreation);
+        console.log('=== END DEVICE SELECTED ===');
+        
+        setSelectedDeviceForTicket(device);
+        ticketForm.setData('device_id', device.id.toString());
+        // Usar el tenant seleccionado en lugar del apartment
+        ticketForm.setData('member_id', selectedTenant?.id.toString() || '');
+        setShowCreateTicketDevicesModal(false);
+        setShowCreateTicketModal(true);
+    };
+
+    const handleSubmitTicket = (e: React.FormEvent) => {
+        e.preventDefault();
+        ticketForm.post('/tickets', {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowCreateTicketModal(false);
+                ticketForm.reset();
+                setSelectedTenantForTicketCreation(null);
+                setSelectedDeviceForTicket(null);
+                toast.success('Ticket created successfully!');
+            },
+            onError: () => {
+                toast.error('Error creating ticket. Please try again.');
+            }
+        });
+    };
+
     const getEmbedUrl = (locationLink: string): string => {
     console.log('=== GENERATING EMBED URL ===');
     console.log('Input location_link:', locationLink);
@@ -724,7 +778,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                 const order = row.getValue("order") as number;
                 return (
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center justify-center w-6 h-6 rounded-full  text-primary-foreground font-semibold text-xs font-medium">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full text-primary-foreground font-medium text-xs">
                             {order || 0}
                         </div>
                     </div>
@@ -827,6 +881,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             enableHiding: false,
             cell: ({ row }) => {
                 const apartment = row.original;
+                
                 return (
                     <div className="flex gap-2">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(apartment)}>
@@ -2132,6 +2187,13 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                 row={row}
                                                 handleShowDevices={handleShowDevices}
                                                 handleShowTicketHistory={handleShowTicketHistory}
+                                                auth={auth}
+                                                setSelectedTenantForTicketCreation={setSelectedTenantForTicketCreation}
+                                                setShowCreateTicketDevicesModal={setShowCreateTicketDevicesModal}
+                                                setSelectedApartment={setSelectedApartment}
+                                                setSelectedTenant={setSelectedTenant}
+                                                setSelectedDevices={setSelectedDevices}
+                                                setSelectedShareDevices={setSelectedShareDevices}
                                             />
                                         ))
                                     ) : (
@@ -2238,6 +2300,186 @@ export default function Index({ apartments, brands, models, systems, name_device
                         </div>
                     </div>
                 </div>
+
+            {/* Modal for Device Selection */}
+            <Dialog open={showCreateTicketDevicesModal} onOpenChange={setShowCreateTicketDevicesModal}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Select Device</DialogTitle>
+                        <DialogDescription>
+                            Choose a device for apartment {selectedTenantForTicketCreation?.name} to create a ticket.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                        {/* Devices del tenant */}
+                        {selectedDevices.length > 0 && (
+                            <div>
+                                <h4 className="font-medium text-sm text-muted-foreground mb-2">Personal Devices</h4>
+                                <div className="space-y-2">
+                                    {selectedDevices.map((device: Device) => (
+                                        <div
+                                            key={device.id}
+                                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                                            onClick={() => handleDeviceSelected(device)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-corporate-gold/10 flex items-center justify-center">
+                                                    <Laptop className="w-5 h-5 text-corporate-gold" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-medium">{device.name || 'Unknown Device'}</div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {device.brand?.name} - {device.model?.name}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Shared Devices */}
+                        {selectedShareDevices.length > 0 && (
+                            <div>
+                                <h4 className="font-medium text-sm text-muted-foreground mb-2">Shared Devices</h4>
+                                <div className="space-y-2">
+                                    {selectedShareDevices.map((device: Device) => (
+                                        <div
+                                            key={device.id}
+                                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-blue-50 cursor-pointer transition-colors"
+                                            onClick={() => handleDeviceSelected(device)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                                                    <Users className="w-5 h-5 text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-medium">{device.name || 'Unknown Device'}</div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {device.brand?.name} - {device.model?.name} (Shared)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* No devices message */}
+                        {selectedDevices.length === 0 && selectedShareDevices.length === 0 && (
+                            <div className="text-center py-8 text-gray-500">
+                                <Laptop className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                                <p className="font-medium">No devices available</p>
+                                <p className="text-sm">This member doesn't have any devices assigned.</p>
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal for Ticket Creation */}
+            <Dialog open={showCreateTicketModal} onOpenChange={setShowCreateTicketModal}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Create Ticket</DialogTitle>
+                        <DialogDescription>
+                            Creating ticket for {selectedTenant?.name} in apartment {selectedTenantForTicketCreation?.name} - {selectedDeviceForTicket?.name}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmitTicket} className="space-y-4">
+                        <div>
+                            <Label htmlFor="category">Category *</Label>
+                            <Select 
+                                value={ticketForm.data.category} 
+                                onValueChange={(value) => ticketForm.setData('category', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Hardware">Hardware</SelectItem>
+                                    <SelectItem value="Software">Software</SelectItem>
+                                    <SelectItem value="Red">Network</SelectItem>
+                                    <SelectItem value="Soporte">Support</SelectItem>
+                                    <SelectItem value="Otro">Other</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {ticketForm.errors.category && (
+                                <p className="text-sm text-red-600 mt-1">{ticketForm.errors.category}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <Label htmlFor="title">Title *</Label>
+                            <Input
+                                id="title"
+                                value={ticketForm.data.title}
+                                onChange={(e) => ticketForm.setData('title', e.target.value)}
+                                placeholder="Enter ticket title"
+                                required
+                            />
+                            {ticketForm.errors.title && (
+                                <p className="text-sm text-red-600 mt-1">{ticketForm.errors.title}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <Label htmlFor="description">Description</Label>
+                            <Textarea
+                                id="description"
+                                value={ticketForm.data.description}
+                                onChange={(e) => ticketForm.setData('description', e.target.value)}
+                                placeholder="Describe the issue..."
+                                rows={4}
+                            />
+                            {ticketForm.errors.description && (
+                                <p className="text-sm text-red-600 mt-1">{ticketForm.errors.description}</p>
+                            )}
+                        </div>
+
+                       {/* <div>
+                            <Label htmlFor="priority">Priority</Label>
+                            <Select 
+                                value={ticketForm.data.priority} 
+                                onValueChange={(value) => ticketForm.setData('priority', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select priority" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="low">Low</SelectItem>
+                                    <SelectItem value="medium">Medium</SelectItem>
+                                    <SelectItem value="high">High</SelectItem>
+                                    <SelectItem value="urgent">Urgent</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {ticketForm.errors.priority && (
+                                <p className="text-sm text-red-600 mt-1">{ticketForm.errors.priority}</p>
+                            )}
+                        </div> */}
+
+                        <div className="flex justify-end gap-2">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => setShowCreateTicketModal(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                disabled={ticketForm.processing}
+                            >
+                                {ticketForm.processing ? 'Creating...' : 'Create Ticket'}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
            
         </AppLayout>
     );
@@ -2270,10 +2512,28 @@ interface ApartmentRowExpandedProps {
     };
     handleShowDevices: (apartment: Apartment, tenant: ExtendedTenant) => void;
     handleShowTicketHistory: (tenant: Tenant) => void;
+    auth: { user?: any };
+    setSelectedTenantForTicketCreation: (apartment: Apartment | null) => void;
+    setShowCreateTicketDevicesModal: (show: boolean) => void;
+    setSelectedApartment: (apartment: Apartment | null) => void;
+    setSelectedTenant: (tenant: Tenant | null) => void;
+    setSelectedDevices: (devices: Device[]) => void;
+    setSelectedShareDevices: (devices: Device[]) => void;
 }
 
 // Componente de fila expandible para la tabla avanzada
-const ApartmentRowExpanded = ({ row, handleShowDevices, handleShowTicketHistory }: ApartmentRowExpandedProps) => {
+const ApartmentRowExpanded = ({ 
+    row, 
+    handleShowDevices, 
+    handleShowTicketHistory, 
+    auth, 
+    setSelectedTenantForTicketCreation, 
+    setShowCreateTicketDevicesModal,
+    setSelectedApartment,
+    setSelectedTenant,
+    setSelectedDevices,
+    setSelectedShareDevices
+}: ApartmentRowExpandedProps) => {
     const [expanded, setExpanded] = useState(false);
     const apartment = row.original;
 
@@ -2404,22 +2664,51 @@ const ApartmentRowExpanded = ({ row, handleShowDevices, handleShowTicketHistory 
                                         </div>
 
                                         <div className="flex items-center gap-3">
+                                            {/* Botón Devices - Para todos los roles excepto superadmin regular */}
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex items-center gap-2 hover:bg-corporate-gold hover:text-primary-foreground transition-all duration-300 border-corporate-gold/20 hover:border-corporate-gold group-hover/member:border-corporate-gold/40"
-                                                onClick={() => handleShowDevices(apartment, tenant)}
+                                                onClick={() => {
+                                                    console.log('=== DEVICES BUTTON CLICKED ===');
+                                                    console.log('User role:', auth.user?.role);
+                                                    console.log('User roles array:', auth.user?.roles);
+                                                    console.log('Tenant:', tenant);
+                                                    console.log('Tenant devices:', tenant.devices);
+                                                    console.log('Tenant shared devices:', tenant.shared_devices);
+                                                    console.log('Apartment:', apartment);
+                                                    console.log('=== END DEVICES BUTTON DEBUG ===');
+                                                    
+                                                    const userRoles = auth.user?.roles || [];
+                                                    const isSuperAdmin = userRoles.includes('superadmin') || userRoles.includes('super-admin');
+                                                    const isOwner = userRoles.includes('owner');
+                                                    const isDoorman = userRoles.includes('doorman');
+                                                    
+                                                    if (isSuperAdmin) {
+                                                        // SuperAdmin: Modal de gestión de devices
+                                                        handleShowDevices(apartment, tenant);
+                                                    } else if (isOwner || isDoorman) {
+                                                        // Owner/Doorman: Modal de devices para seleccionar y crear ticket
+                                                        setSelectedApartment(apartment);
+                                                        setSelectedTenant(tenant);
+                                                        setSelectedDevices(tenant.devices || []);
+                                                        setSelectedShareDevices(tenant.shared_devices || []);
+                                                        setSelectedTenantForTicketCreation(apartment);
+                                                        setShowCreateTicketDevicesModal(true);
+                                                    }
+                                                }}
                                             >
                                                 <Laptop className="w-4 h-4" />
                                                 <span className="font-bold text-base">
                                                     {Number(tenant.devices?.length || 0) + Number(tenant.shared_devices?.length || 0)}
                                                 </span>
-                                                <span className="hidden sm:inline font-medium ">Devices</span>
+                                                <span className="hidden sm:inline font-medium">Devices</span>
                                             </Button>
+
                                             <Button
-                                               
+                                                variant="outline"
                                                 size="sm"
-                                               
+                                                className="flex items-center gap-2 hover:bg-blue-500 hover:text-white transition-all duration-300 border-blue-300 hover:border-blue-500"
                                                 onClick={() => handleShowTicketHistory(tenant)}
                                             >
                                                 <Ticket className="w-4 h-4" />
