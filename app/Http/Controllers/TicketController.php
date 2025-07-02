@@ -17,7 +17,7 @@ class TicketController extends Controller
     public function index(Request $request)
     {
         // Listar tickets del usuario autenticado (o todos si es super-admin, o asignados si es technical)
-        $user = auth()->user();
+        $user = Auth::user();
         $withRelations = [
             'technical',
             'device',
@@ -126,14 +126,104 @@ class TicketController extends Controller
         $tickets = $ticketsQuery->latest()->paginate(10);
         $allTickets = $allTicketsQuery->get();
         $memberData = null;
-        //cargar los datos del member
-        $memberData = Tenant::where('email', $user->email)->first();
         $apartmentData = null;
         $buildingData = null;
-        if ($memberData) {
-            // Si no hay member, retornar error o redirigir
-            $apartmentData = $memberData->apartment;
-            $buildingData = $apartmentData->building;
+        
+        // Cargar datos según el rol del usuario
+        if ($user->hasRole('member')) {
+            // Para MEMBERS: buscar en tabla tenants
+            $memberData = Tenant::where('email', $user->email)->first();
+            if ($memberData) {
+                $apartmentData = $memberData->apartment;
+                $buildingData = $apartmentData->building;
+            }
+        } elseif ($user->hasRole('owner')) {
+            // Para OWNERS: buscar en tabla owners
+            $owner = \App\Models\Owner::where('email', $user->email)->with('building')->first();
+            if ($owner) {
+                $buildingData = $owner->building;
+                // Para owners, memberData y apartmentData pueden ser null
+            }
+        } elseif ($user->hasRole('doorman')) {
+            // Para DOORMANS: buscar en tabla doormans
+            $doorman = \App\Models\Doorman::where('email', $user->email)->with('building')->first();
+            if ($doorman) {
+                $buildingData = $doorman->building;
+                // Para doorman, memberData y apartmentData pueden ser null
+            }
+        }
+
+        // Datos adicionales para doorman y owner
+        $allMembers = null;
+        $allApartments = null;
+        
+        if ($user->hasRole('doorman') || $user->hasRole('owner')) {
+            // Obtener el building del doorman/owner
+            $userBuildingId = null;
+            
+            if ($user->hasRole('doorman')) {
+                $doorman = \App\Models\Doorman::where('email', $user->email)->first();
+                if ($doorman) {
+                    $userBuildingId = $doorman->building_id;
+                }
+            } elseif ($user->hasRole('owner')) {
+                $owner = \App\Models\Owner::where('email', $user->email)->first();
+                if ($owner) {
+                    $userBuildingId = $owner->building_id;
+                }
+            }
+            
+            if ($userBuildingId) {
+                // Obtener solo los members/tenants del mismo building
+                $allMembers = Tenant::with('apartment.building')
+                    ->select('id', 'name', 'email', 'photo', 'apartment_id')
+                    ->whereHas('apartment', function($query) use ($userBuildingId) {
+                        $query->where('buildings_id', $userBuildingId);
+                    })
+                    ->get()
+                    ->map(function ($tenant) {
+                        return [
+                            'id' => $tenant->id,
+                            'name' => $tenant->name,
+                            'email' => $tenant->email,
+                            'photo' => $tenant->photo,
+                            'apartment_name' => $tenant->apartment ? $tenant->apartment->name : 'N/A',
+                            'tenant' => [
+                                'id' => $tenant->id,
+                                'name' => $tenant->name,
+                                'email' => $tenant->email,
+                                'photo' => $tenant->photo,
+                                'apartment_id' => $tenant->apartment_id,
+                            ]
+                        ];
+                    });
+
+                // Obtener solo los apartments del mismo building
+                $allApartments = \App\Models\Apartment::with('building:id,name')
+                    ->select('id', 'name', 'ubicacion', 'buildings_id')
+                    ->where('buildings_id', $userBuildingId)
+                    ->get()
+                    ->map(function ($apartment) {
+                        return [
+                            'id' => $apartment->id,
+                            'name' => $apartment->name,
+                            'floor' => $apartment->ubicacion,
+                            'building' => $apartment->building ? [
+                                'id' => $apartment->building->id,
+                                'name' => $apartment->building->name,
+                            ] : null,
+                        ];
+                    });
+
+                // FILTRAR LOS TICKETS para mostrar solo del building correspondiente
+                $ticketsQuery->whereHas('user.tenant.apartment', function($query) use ($userBuildingId) {
+                    $query->where('buildings_id', $userBuildingId);
+                });
+                $allTicketsQuery->whereHas('user.tenant.apartment', function($query) use ($userBuildingId) {
+                    $query->where('buildings_id', $userBuildingId);
+                });
+                // NO filtrar allTicketsUnfilteredQuery - debe contener todos los tickets para técnicos
+            }
         }
 
 
@@ -151,6 +241,8 @@ class TicketController extends Controller
             'isTechnicalDefault' => $isTechnicalDefault,
             'isSuperAdmin' => $user->hasRole('super-admin'),
             'statusFilter' => $statusFilter, // Pasar el filtro actual al frontend
+            'allMembers' => $allMembers, // Para doorman y owner
+            'allApartments' => $allApartments, // Para doorman y owner
         ]);
     }
 

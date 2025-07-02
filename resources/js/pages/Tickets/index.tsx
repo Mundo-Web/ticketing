@@ -50,6 +50,9 @@ import {
     HelpCircle,
     BookOpen,
     LightbulbIcon,
+    Filter,
+    Users,
+    MapPin,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -62,6 +65,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import KanbanBoard from "./KanbanBoard";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -195,6 +199,32 @@ interface Building {
     address: string;
 }
 
+interface Member {
+    id: number;
+    name: string;
+    email?: string;
+    photo?: string;
+    apartment_name?: string;
+    tenant?: {
+        id: number;
+        name: string;
+        email: string;
+        photo?: string;
+        apartment_id?: number;
+    };
+}
+
+interface ApartmentData {
+    id: number;
+    name: string;
+    floor?: string;
+    building?: {
+        id: number;
+        name: string;
+    };
+    members?: Member[];
+}
+
 interface TicketsProps {
     tickets: {
         data: Ticket[]
@@ -209,6 +239,9 @@ interface TicketsProps {
     apartmentData: Apartment | null;
     buildingData: Building | null;
     statusFilter?: string;
+    // Nuevas props para doorman y owner
+    allMembers?: Member[];
+    allApartments?: ApartmentData[];
 }
 
 function CategoryBadge({ category }: { category: string }) {
@@ -235,7 +268,19 @@ function DeviceBadge({ device }: { device: any }) {
 }
 
 // Elegant Corporate Device Information Component
-export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered, devicesOwn, devicesShared, memberData, apartmentData, buildingData, statusFilter }: TicketsProps) {
+export default function TicketsIndex({ 
+    tickets, 
+    allTickets, 
+    allTicketsUnfiltered, 
+    devicesOwn, 
+    devicesShared, 
+    memberData, 
+    apartmentData, 
+    buildingData, 
+    statusFilter,
+    allMembers,
+    allApartments 
+}: TicketsProps) {
     // Dynamic breadcrumbs based on status filter
     const breadcrumbs: BreadcrumbItem[] = statusFilter
         ? [
@@ -286,7 +331,49 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
     const isMember = (auth.user as any)?.roles?.includes("member");
     const isSuperAdmin = (auth.user as any)?.roles?.includes("super-admin");
     const isTechnical = (auth.user as any)?.roles?.includes("technical");
+    const isDoorman = (auth.user as any)?.roles?.includes("doorman");
+    const isOwner = (auth.user as any)?.roles?.includes("owner");
     // isTechnicalDefault ahora viene del backend correctamente
+
+    // Estados para filtros de doorman y owner
+    const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>('all');
+    const [selectedApartmentFilter, setSelectedApartmentFilter] = useState<string>('all');
+
+    // Función para filtrar tickets para doorman/owner - FILTRADO FRONTEND DIRECTO
+    const getFilteredTicketsForDoormanOwner = () => {
+        // FORZAR FILTRADO EN FRONTEND por building del usuario logueado
+        let filtered = allTicketsUnfiltered; // Usar TODOS los tickets
+        
+        // 1. FILTRAR POR BUILDING DEL USUARIO (Owner/Doorman)
+        if (buildingData?.id) {
+            filtered = filtered.filter((ticket: any) => {
+                // Verificar si el ticket pertenece al building del usuario
+                const ticketBuildingId = ticket.user?.tenant?.apartment?.building?.id || 
+                                       ticket.user?.tenant?.apartment?.buildings_id ||
+                                       ticket.device?.apartment?.building?.id ||
+                                       ticket.device?.apartment?.buildings_id;
+                return ticketBuildingId === buildingData.id;
+            });
+        }
+        
+        // 2. Filtrar por member si está seleccionado
+        if (selectedMemberFilter !== 'all') {
+            filtered = filtered.filter((ticket: any) => 
+                ticket.user?.id?.toString() === selectedMemberFilter ||
+                ticket.user?.tenant?.id?.toString() === selectedMemberFilter
+            );
+        }
+        
+        // 3. Filtrar por apartment si está seleccionado
+        if (selectedApartmentFilter !== 'all') {
+            filtered = filtered.filter((ticket: any) => 
+                ticket.user?.tenant?.apartment_id?.toString() === selectedApartmentFilter ||
+                ticket.device?.apartment_id?.toString() === selectedApartmentFilter
+            );
+        }
+        
+        return filtered;
+    };
 
     // Tab labels in English
     const [searchQuery] = useState("")
@@ -813,7 +900,154 @@ export default function TicketsIndex({ tickets, allTickets, allTicketsUnfiltered
                         {/* Main Content */}
                         <div className={`xl:col-span-8 flex flex-col gap-8`}>
                             {/* Tabs */}
-                            {(isTechnicalDefault || isSuperAdmin || isTechnical) ? (
+                            {(isDoorman || isOwner) ? (
+                                <>
+                                    {/* Filtros para Doorman/Owner */}
+                                    <Card className="shadow-lg border-0 !p-0">
+                                        <CardContent className="!p-0">
+                                            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 p-4 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 rounded-xl border border-primary/20 shadow-inner">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg flex-shrink-0">
+                                                        <Filter className="w-6 h-6 text-primary-foreground" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <h3 className="text-lg font-bold text-foreground bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                                                            Ticket Filters
+                                                        </h3>
+                                                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                                                            Filter tickets by member or apartment
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex flex-col sm:flex-row gap-3 min-w-0 flex-1 xl:flex-initial xl:max-w-md">
+                                                    {/* Filtro por Member */}
+                                                    <div className="flex flex-col gap-2 min-w-0 flex-1">
+                                                        <label className="text-xs font-semibold text-foreground flex items-center gap-2">
+                                                            <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                                                <Users className="w-2.5 h-2.5 text-primary" />
+                                                            </div>
+                                                            <span className="truncate">Filter by Member</span>
+                                                        </label>
+                                                        <SearchableSelect
+                                                            value={selectedMemberFilter}
+                                                            onValueChange={setSelectedMemberFilter}
+                                                            placeholder="All Members"
+                                                            searchPlaceholder="Search members..."
+                                                            className="bg-background border-border focus:border-primary/50 focus:ring-2 focus:ring-primary/20 shadow-sm text-sm min-w-0"
+                                                            options={[
+                                                                {
+                                                                    value: 'all',
+                                                                    label: 'All Members',
+                                                                    icon: <Users className="w-4 h-4 text-primary" />
+                                                                },
+                                                                ...(allMembers ? allMembers.map((member) => ({
+                                                                    value: member.id.toString(),
+                                                                    label: member.name,
+                                                                    subtitle: member.apartment_name ? `Apt: ${member.apartment_name}` : undefined,
+                                                                    image: member.photo ? `/storage/${member.photo}` : '/images/default-user.png'
+                                                                })) : [])
+                                                            ]}
+                                                        />
+                                                    </div>
+
+                                                    {/* Filtro por Apartment */}
+                                                    <div className="flex flex-col gap-2 min-w-0 flex-1">
+                                                        <label className="text-xs font-semibold text-foreground flex items-center gap-2">
+                                                            <div className="w-4 h-4 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0">
+                                                                <MapPin className="w-2.5 h-2.5 text-secondary" />
+                                                            </div>
+                                                            <span className="truncate">Filter by Apartment</span>
+                                                        </label>
+                                                        <SearchableSelect
+                                                            value={selectedApartmentFilter}
+                                                            onValueChange={setSelectedApartmentFilter}
+                                                            placeholder="All Apartments"
+                                                            searchPlaceholder="Search apartments..."
+                                                            className="bg-background border-border focus:border-secondary/50 focus:ring-2 focus:ring-secondary/20 shadow-sm text-sm min-w-0"
+                                                            options={[
+                                                                {
+                                                                    value: 'all',
+                                                                    label: 'All Apartments',
+                                                                    icon: <Home className="w-4 h-4 text-secondary" />
+                                                                },
+                                                                ...(allApartments ? allApartments.map((apartment) => ({
+                                                                    value: apartment.id.toString(),
+                                                                    label: apartment.name,
+                                                                    subtitle: apartment.building ? apartment.building.name : undefined,
+                                                                    icon: <Home className="w-4 h-4 text-accent" />
+                                                                })) : [])
+                                                            ]}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                  
+                                    
+                                    <div className="kanban-container flex w-full min-h-[500px] overflow-x-scroll">
+                                        <KanbanBoard
+                                            tickets={getFilteredTicketsForDoormanOwner()}
+                                            user={auth.user}
+                                            onTicketClick={handleSelectTicket}
+                                            isTechnicalDefault={false}
+                                            isTechnical={false}
+                                            isSuperAdmin={false}
+                                            isMember={false}
+                                            statusFilter={statusFilter}
+                                            onAssign={(ticket) => setShowAssignModal({ open: true, ticketId: ticket.id })}
+                                            onComment={(ticket) => setShowHistoryModal({ open: true, ticketId: ticket.id })}
+                                            onStatusChange={(ticketId) => {
+                                                if (selectedTicket && selectedTicket.id === ticketId) {
+                                                    refreshSelectedTicket(ticketId);
+                                                }
+                                            }}
+                                            onStatusChangeWithComment={(ticket, newStatus) => {
+                                                handleStatusChange(ticket, newStatus);
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Indicador de filtros activos */}
+                                    {(selectedMemberFilter !== 'all' || selectedApartmentFilter !== 'all') && (
+                                        <div className="mt-4 p-3 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border border-primary/20 rounded-lg shadow-sm overflow-hidden">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2 text-sm text-foreground min-w-0">
+                                                    <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                                        <Filter className="w-2.5 h-2.5 text-primary" />
+                                                    </div>
+                                                    <span className="font-semibold flex-shrink-0">Active Filters:</span>
+                                                    <div className="flex flex-wrap gap-1.5 min-w-0">
+                                                        {selectedMemberFilter !== 'all' && (
+                                                            <span className="bg-gradient-to-r from-primary/20 to-secondary/20 text-foreground px-2 py-1 rounded-full text-xs font-medium border border-primary/30 shadow-sm truncate max-w-32">
+                                                                Member: {allMembers?.find(m => m.id.toString() === selectedMemberFilter)?.name}
+                                                            </span>
+                                                        )}
+                                                        {selectedApartmentFilter !== 'all' && (
+                                                            <span className="bg-gradient-to-r from-secondary/20 to-accent/20 text-foreground px-2 py-1 rounded-full text-xs font-medium border border-secondary/30 shadow-sm truncate max-w-32">
+                                                                Apt: {allApartments?.find(a => a.id.toString() === selectedApartmentFilter)?.name}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setSelectedMemberFilter('all');
+                                                        setSelectedApartmentFilter('all');
+                                                    }}
+                                                    className="text-primary border-primary/30 hover:bg-primary hover:border-primary/50 transition-all duration-200 shadow-sm text-xs px-3 py-1.5 flex-shrink-0"
+                                                >
+                                                    Clear All
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (isTechnicalDefault || isSuperAdmin || isTechnical) ? (
                                 <div className="kanban-container flex w-full min-h-[500px] overflow-x-scroll">
                                     <KanbanBoard
                                         tickets={statusFilter ? allTickets : (allTicketsUnfiltered.length > 0 ? allTicketsUnfiltered : allTickets)}

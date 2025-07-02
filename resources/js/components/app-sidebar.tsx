@@ -168,6 +168,22 @@ export function AppSidebar() {
     },
   ];
 
+
+    // Menú para members (usuarios normales)
+  const buildingNavItems: NavItem[] = [
+   {
+      title: 'Devices',
+      href: `/buildings/${auth?.user?.owner?.id || auth?.user?.doorman?.id}/apartments`,
+      icon: Laptop,
+      isActive: route().current('buildings.*'),
+    }, 
+    {
+      title: 'Tickets',
+      href: '/tickets',
+      icon: FileText,
+      isActive: route().current('tickets.*'),
+    },
+  ];
   return (
     <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader>
@@ -183,7 +199,9 @@ export function AppSidebar() {
           <NavMain items={mainNavItems} />
         ) : userRoles.includes('technical') ? (
           <NavMain items={technicalNavItems} />
-        ) : (
+        ) : userRoles.includes('owner') || userRoles.includes('doorman') ? (
+          <NavMain items={buildingNavItems} />
+        ): (
           <NavMain items={memberNavItems} />
         )}
       </SidebarContent>
