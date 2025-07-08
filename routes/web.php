@@ -62,6 +62,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/buildings/{building}/apartments/bulk-upload', [ApartmentController::class, 'bulkUpload'])->name('buildings.apartments.bulk-upload');
     Route::get('/tenants/{tenantId}/tickets', [BuildingController::class, 'tenantTickets'])->name('tenants.tickets');
     Route::put('buildings/{building}/owner', [BuildingController::class, 'updateOwner'])->name('buildings.update-owner');
+    
+    // Password reset routes for web interface
+    Route::post('/tenants/{tenantId}/reset-password', [BuildingController::class, 'resetTenantPassword'])->name('tenants.reset-password');
+    Route::post('/bulk-reset-passwords', [BuildingController::class, 'bulkResetPasswords'])->name('tenants.bulk-reset-passwords');
+    Route::post('/apartments/{apartmentId}/reset-passwords', [BuildingController::class, 'resetApartmentPasswords'])->name('apartments.reset-passwords');
+    Route::post('/buildings/{buildingId}/reset-passwords', [BuildingController::class, 'resetBuildingPasswords'])->name('buildings.reset-passwords');
 
     Route::resource('technicals', TechnicalController::class);
     Route::put('technicals/{technical}/update-status', [TechnicalController::class, 'updateStatus'])

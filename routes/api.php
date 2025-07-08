@@ -38,6 +38,10 @@ Route::middleware(['auth:sanctum', 'tenant'])->prefix('tenant')->group(function 
     Route::get('/building', [TenantController::class, 'building']);
     Route::get('/doormen', [TenantController::class, 'doormen']);
     Route::get('/owner', [TenantController::class, 'owner']);
+    
+    // Password management routes
+    Route::post('/change-password', [TenantController::class, 'changePassword']);
+    Route::post('/reset-password-request', [TenantController::class, 'resetPasswordRequest']);
 });
 
 // Technical API routes

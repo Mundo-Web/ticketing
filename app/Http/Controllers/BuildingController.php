@@ -11,9 +11,12 @@ use App\Models\Doorman;
 use App\Models\NameDevice;
 use App\Models\System;
 use App\Models\User;
+use App\Models\Tenant;
+use App\Mail\PasswordResetNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use SoDe\Extend\Crypto;
@@ -639,6 +642,219 @@ class BuildingController extends Controller
             Log::error('Error in tenantTickets: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to fetch tickets',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset password for a single tenant
+     */
+    public function resetTenantPassword(Request $request, $tenantId)
+    {
+        try {
+            $request->validate([
+                'tenant_id' => 'required|exists:tenants,id'
+            ]);
+
+            $tenant = Tenant::findOrFail($tenantId);
+            
+            // Encontrar el usuario asociado con este tenant
+            $user = User::where('email', $tenant->email)->first();
+            
+            if (!$user) {
+                return response()->json([
+                    'error' => 'User not found for this tenant'
+                ], 404);
+            }
+
+            // Generar nueva contraseña temporal (su email)
+            $tempPassword = $user->email;
+
+            // Actualizar contraseña en base de datos
+            $user->update([
+                'password' => Hash::make($tempPassword)
+            ]);
+
+            // Enviar email de notificación
+            try {
+                Mail::to($user->email)->send(new PasswordResetNotification($user, $tempPassword));
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Password has been reset for ' . $tenant->name . '. An email notification has been sent.'
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error sending password reset email: ' . $e->getMessage());
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Password has been reset for ' . $tenant->name . ' but there was an error sending the email notification.'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error in resetTenantPassword: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to reset password',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset password for multiple tenants (bulk reset)
+     */
+    public function bulkResetPasswords(Request $request)
+    {
+        try {
+            $request->validate([
+                'tenant_ids' => 'required|array',
+                'tenant_ids.*' => 'exists:tenants,id'
+            ]);
+
+            $results = [];
+            $successCount = 0;
+            $errorCount = 0;
+
+            foreach ($request->tenant_ids as $tenantId) {
+                try {
+                    $tenant = Tenant::findOrFail($tenantId);
+                    $user = User::where('email', $tenant->email)->first();
+                    
+                    if (!$user) {
+                        $results[] = [
+                            'tenant_id' => $tenantId,
+                            'tenant_name' => $tenant->name,
+                            'success' => false,
+                            'message' => 'User not found'
+                        ];
+                        $errorCount++;
+                        continue;
+                    }
+
+                    // Generar nueva contraseña temporal (su email)
+                    $tempPassword = $user->email;
+
+                    // Actualizar contraseña en base de datos
+                    $user->update([
+                        'password' => Hash::make($tempPassword)
+                    ]);
+
+                    // Enviar email de notificación
+                    try {
+                        Mail::to($user->email)->send(new PasswordResetNotification($user, $tempPassword));
+                        
+                        $results[] = [
+                            'tenant_id' => $tenantId,
+                            'tenant_name' => $tenant->name,
+                            'success' => true,
+                            'message' => 'Password reset successfully'
+                        ];
+                        $successCount++;
+                    } catch (\Exception $e) {
+                        Log::error('Error sending email for tenant ' . $tenantId . ': ' . $e->getMessage());
+                        
+                        $results[] = [
+                            'tenant_id' => $tenantId,
+                            'tenant_name' => $tenant->name,
+                            'success' => true,
+                            'message' => 'Password reset but email notification failed'
+                        ];
+                        $successCount++;
+                    }
+
+                } catch (\Exception $e) {
+                    Log::error('Error resetting password for tenant ' . $tenantId . ': ' . $e->getMessage());
+                    
+                    $results[] = [
+                        'tenant_id' => $tenantId,
+                        'tenant_name' => 'Unknown',
+                        'success' => false,
+                        'message' => 'Failed to reset password'
+                    ];
+                    $errorCount++;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Bulk password reset completed. {$successCount} successful, {$errorCount} failed.",
+                'results' => $results,
+                'summary' => [
+                    'total' => count($request->tenant_ids),
+                    'successful' => $successCount,
+                    'failed' => $errorCount
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error in bulkResetPasswords: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to process bulk password reset',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset password for all tenants in a specific apartment
+     */
+    public function resetApartmentPasswords(Request $request, $apartmentId)
+    {
+        try {
+            $apartment = Apartment::with('tenants')->findOrFail($apartmentId);
+            
+            if ($apartment->tenants->isEmpty()) {
+                return response()->json([
+                    'error' => 'No tenants found in this apartment'
+                ], 404);
+            }
+
+            $tenantIds = $apartment->tenants->pluck('id')->toArray();
+            
+            // Usar la función de bulk reset
+            $request->merge(['tenant_ids' => $tenantIds]);
+            
+            return $this->bulkResetPasswords($request);
+
+        } catch (\Exception $e) {
+            Log::error('Error in resetApartmentPasswords: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to reset apartment passwords',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset password for all tenants in the building
+     */
+    public function resetBuildingPasswords(Request $request, $buildingId)
+    {
+        try {
+            $building = Building::with('apartments.tenants')->findOrFail($buildingId);
+            
+            $tenantIds = [];
+            foreach ($building->apartments as $apartment) {
+                $tenantIds = array_merge($tenantIds, $apartment->tenants->pluck('id')->toArray());
+            }
+
+            if (empty($tenantIds)) {
+                return response()->json([
+                    'error' => 'No tenants found in this building'
+                ], 404);
+            }
+
+            // Usar la función de bulk reset
+            $request->merge(['tenant_ids' => $tenantIds]);
+            
+            return $this->bulkResetPasswords($request);
+
+        } catch (\Exception $e) {
+            Log::error('Error in resetBuildingPasswords: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to reset building passwords',
                 'message' => $e->getMessage()
             ], 500);
         }

@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
     Plus, Edit, Trash2, ChevronRight, Laptop, UploadCloud, 
     ChevronDown, ChevronLeft, Search, Filter, FileSpreadsheet, 
-    Download, Users, Mail, Phone, Crown, Shield, MapPinIcon, Ticket
+    Download, Users, Mail, Phone, Crown, Shield, MapPinIcon, Ticket, KeyRound
 } from 'lucide-react';
 import * as XLSX from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -247,6 +247,13 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [bulkFile, setBulkFile] = useState<File | null>(null);
     const [isBulkUploading, setIsBulkUploading] = useState(false);
     const [mapKey, setMapKey] = useState(0); // Para forzar re-render del mapa
+    
+    // Estados para reset de contraseñas
+    const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+    const [showBulkResetModal, setShowBulkResetModal] = useState(false);
+    const [selectedTenantForReset, setSelectedTenantForReset] = useState<Tenant | null>(null);
+    const [selectedTenantsForBulkReset, setSelectedTenantsForBulkReset] = useState<number[]>([]);
+    const [isResettingPassword, setIsResettingPassword] = useState(false);
 
     const { building, all_buildings, googleMapsApiKey } = usePage().props as unknown as {
         building: {
@@ -1291,6 +1298,97 @@ export default function Index({ apartments, brands, models, systems, name_device
         });
     };
 
+    // Funciones para reset de contraseña
+    const handleResetPassword = (tenant: Tenant) => {
+        setSelectedTenantForReset(tenant);
+        setShowResetPasswordModal(true);
+    };
+
+    const confirmResetPassword = () => {
+        if (!selectedTenantForReset) return;
+
+        setIsResettingPassword(true);
+        
+        router.post(route('tenants.reset-password', selectedTenantForReset.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowResetPasswordModal(false);
+                setSelectedTenantForReset(null);
+                toast.success('Password reset successfully! Email notification sent.');
+            },
+            onError: (errors) => {
+                console.error('Password reset errors:', errors);
+                toast.error('Error resetting password. Please try again.');
+            },
+            onFinish: () => {
+                setIsResettingPassword(false);
+            }
+        });
+    };
+
+    const handleBulkResetPasswords = () => {
+        if (selectedTenantsForBulkReset.length === 0) {
+            toast.error('Please select at least one tenant');
+            return;
+        }
+
+        setIsResettingPassword(true);
+        
+        router.post(route('tenants.bulk-reset-passwords'), {
+            tenant_ids: selectedTenantsForBulkReset
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowBulkResetModal(false);
+                setSelectedTenantsForBulkReset([]);
+                toast.success('Bulk password reset completed!');
+            },
+            onError: (errors) => {
+                console.error('Bulk reset errors:', errors);
+                toast.error('Error in bulk password reset. Please try again.');
+            },
+            onFinish: () => {
+                setIsResettingPassword(false);
+            }
+        });
+    };
+
+    const handleResetApartmentPasswords = (apartmentId: number) => {
+        setIsResettingPassword(true);
+        
+        router.post(route('apartments.reset-passwords', apartmentId), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('All apartment passwords reset successfully!');
+            },
+            onError: (errors) => {
+                console.error('Apartment reset errors:', errors);
+                toast.error('Error resetting apartment passwords. Please try again.');
+            },
+            onFinish: () => {
+                setIsResettingPassword(false);
+            }
+        });
+    };
+
+    const handleResetBuildingPasswords = () => {
+        setIsResettingPassword(true);
+        
+        router.post(route('buildings.reset-passwords', building.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('All building passwords reset successfully!');
+            },
+            onError: (errors) => {
+                console.error('Building reset errors:', errors);
+                toast.error('Error resetting building passwords. Please try again.');
+            },
+            onFinish: () => {
+                setIsResettingPassword(false);
+            }
+        });
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Apartments" />
@@ -1330,6 +1428,31 @@ export default function Index({ apartments, brands, models, systems, name_device
                             <UploadCloud className="w-5 h-5" />
                             <span className="hidden sm:block">Bulk Upload</span>
                         </Button>
+                        
+                        {/* Botones de reset masivo - Solo para super-admin, owner, doorman */}
+                        {(auth.user?.roles?.includes('super-admin') || 
+                          auth.user?.roles?.includes('owner') || 
+                          auth.user?.roles?.includes('doorman')) && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button 
+                                        variant="outline" 
+                                        className="flex items-center gap-2 border-orange-300 hover:bg-orange-500 hover:text-white"
+                                        disabled={isResettingPassword}
+                                    >
+                                        <KeyRound className="w-5 h-5" />
+                                        <span className="hidden sm:block">Reset Passwords</span>
+                                        <ChevronDown className="ml-1 h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={handleResetBuildingPasswords}>
+                                        <KeyRound className="mr-2 h-4 w-4" />
+                                        Reset All Building Passwords
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                     </div>
                 </div>
 
@@ -2187,6 +2310,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                 row={row}
                                                 handleShowDevices={handleShowDevices}
                                                 handleShowTicketHistory={handleShowTicketHistory}
+                                                handleResetPassword={handleResetPassword}
                                                 auth={auth}
                                                 setSelectedTenantForTicketCreation={setSelectedTenantForTicketCreation}
                                                 setShowCreateTicketDevicesModal={setShowCreateTicketDevicesModal}
@@ -2194,6 +2318,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                 setSelectedTenant={setSelectedTenant}
                                                 setSelectedDevices={setSelectedDevices}
                                                 setSelectedShareDevices={setSelectedShareDevices}
+                                                isResettingPassword={isResettingPassword}
                                             />
                                         ))
                                     ) : (
@@ -2480,6 +2605,72 @@ export default function Index({ apartments, brands, models, systems, name_device
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {/* Modal de confirmación para reset de contraseña individual */}
+            <Dialog open={showResetPasswordModal} onOpenChange={setShowResetPasswordModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Reset Password</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to reset the password for <strong>{selectedTenantForReset?.name}</strong>?
+                            <br /><br />
+                            The password will be changed to their email address: <strong>{selectedTenantForReset?.email}</strong>
+                            <br />
+                            An email notification will be sent to them with their new credentials.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowResetPasswordModal(false)}
+                            disabled={isResettingPassword}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={confirmResetPassword}
+                            disabled={isResettingPassword}
+                        >
+                            {isResettingPassword ? 'Resetting...' : 'Reset Password'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de confirmación para reset masivo */}
+            <Dialog open={showBulkResetModal} onOpenChange={setShowBulkResetModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Bulk Password Reset</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to reset passwords for <strong>{selectedTenantsForBulkReset.length}</strong> selected members?
+                            <br /><br />
+                            Each member's password will be changed to their email address and they will receive email notifications with their new credentials.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowBulkResetModal(false)}
+                            disabled={isResettingPassword}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={handleBulkResetPasswords}
+                            disabled={isResettingPassword}
+                        >
+                            {isResettingPassword ? 'Resetting...' : 'Reset All Passwords'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
            
         </AppLayout>
     );
@@ -2512,13 +2703,15 @@ interface ApartmentRowExpandedProps {
     };
     handleShowDevices: (apartment: Apartment, tenant: ExtendedTenant) => void;
     handleShowTicketHistory: (tenant: Tenant) => void;
-    auth: { user?: any };
+    handleResetPassword: (tenant: Tenant) => void;
+    auth: { user?: { roles?: string[] } };
     setSelectedTenantForTicketCreation: (apartment: Apartment | null) => void;
     setShowCreateTicketDevicesModal: (show: boolean) => void;
     setSelectedApartment: (apartment: Apartment | null) => void;
     setSelectedTenant: (tenant: Tenant | null) => void;
     setSelectedDevices: (devices: Device[]) => void;
     setSelectedShareDevices: (devices: Device[]) => void;
+    isResettingPassword: boolean;
 }
 
 // Componente de fila expandible para la tabla avanzada
@@ -2526,13 +2719,15 @@ const ApartmentRowExpanded = ({
     row, 
     handleShowDevices, 
     handleShowTicketHistory, 
+    handleResetPassword,
     auth, 
     setSelectedTenantForTicketCreation, 
     setShowCreateTicketDevicesModal,
     setSelectedApartment,
     setSelectedTenant,
     setSelectedDevices,
-    setSelectedShareDevices
+    setSelectedShareDevices,
+    isResettingPassword
 }: ApartmentRowExpandedProps) => {
     const [expanded, setExpanded] = useState(false);
     const apartment = row.original;
@@ -2717,6 +2912,22 @@ const ApartmentRowExpanded = ({
                                                 </span>
                                                 <span className="hidden sm:inline font-medium">Tickets</span>
                                             </Button>
+
+                                            {/* Botón Reset Password - Solo para super-admin, owner, doorman */}
+                                            {(auth.user?.roles?.includes('super-admin') || 
+                                              auth.user?.roles?.includes('owner') || 
+                                              auth.user?.roles?.includes('doorman')) && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex items-center gap-2 hover:bg-orange-500 hover:text-white transition-all duration-300 border-orange-300 hover:border-orange-500"
+                                                    onClick={() => handleResetPassword(tenant)}
+                                                    disabled={isResettingPassword}
+                                                >
+                                                    <KeyRound className="w-4 h-4" />
+                                                    <span className="hidden sm:inline font-medium">Reset Password</span>
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

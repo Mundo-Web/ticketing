@@ -7,9 +7,12 @@ use App\Models\Apartment;
 use App\Models\Building;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Mail\PasswordResetNotification;
+use App\Mail\NewUserWelcome;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -134,17 +137,29 @@ class ApartmentController extends Controller
             }
 
             // Crear o actualizar usuario asociado al tenant
+            $userExists = User::where('email', $tenant->email)->exists();
+            
             $user = User::updateOrCreate(
                 ['email' => $tenant->email],
                 [
                     'name' => $tenant->name,
-                    'password' => Hash::make($tenant->email), // contraseña igual al email, puedes cambiar
+                    'password' => Hash::make($tenant->email), // contraseña igual al email
                 ]
             );
 
             // Asignar rol member si no lo tiene
             if (!$user->hasRole('member')) {
                 $user->assignRole('member');
+            }
+
+            // Si es un usuario nuevo, enviar email de bienvenida con credenciales
+            if (!$userExists) {
+                try {
+                    Mail::to($user->email)->send(new NewUserWelcome($user, $tenant->email));
+                    Log::info("Welcome email sent to new user: {$user->email}");
+                } catch (\Exception $e) {
+                    Log::error("Failed to send welcome email to {$user->email}: " . $e->getMessage());
+                }
             }
         }
 

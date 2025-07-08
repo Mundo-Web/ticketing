@@ -8,6 +8,8 @@ use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class TenantController extends Controller
@@ -511,5 +513,65 @@ class TenantController extends Controller
                 }),
             ]
         ]);
+    }
+
+    /**
+     * Change password for authenticated tenant
+     */
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        // Verificar contraseña actual
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'error' => 'Current password is incorrect'
+            ], 400);
+        }
+
+        // Actualizar contraseña
+        $user->update([
+            'password' => Hash::make($request->new_password)
+        ]);
+
+        return response()->json([
+            'message' => 'Password changed successfully'
+        ]);
+    }
+
+    /**
+     * Request password reset (for authenticated users)
+     */
+    public function resetPasswordRequest(Request $request)
+    {
+        $user = $request->user();
+
+        // Generar nueva contraseña temporal (su email)
+        $tempPassword = $user->email;
+
+        // Actualizar contraseña en base de datos
+        $user->update([
+            'password' => Hash::make($tempPassword)
+        ]);
+
+        // Enviar email de notificación
+        try {
+            Mail::to($user->email)->send(new \App\Mail\PasswordResetNotification($user, $tempPassword));
+            
+            return response()->json([
+                'message' => 'Password has been reset. Check your email for the temporary password.'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error sending password reset email: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'Password has been reset but there was an error sending the email notification.'
+            ]);
+        }
     }
 }

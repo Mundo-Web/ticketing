@@ -487,6 +487,100 @@ Authorization: Bearer {token}
 
 ---
 
+## Gestión de Contraseñas
+
+### 12. Cambiar Contraseña
+
+**Endpoint:** `POST /tenant/change-password`  
+**Autenticación:** Bearer Token requerido  
+
+#### Request Body:
+```json
+{
+    "current_password": "string (required)",
+    "new_password": "string (required, min:8)",
+    "new_password_confirmation": "string (required, must match new_password)"
+}
+```
+
+#### Response Success (200):
+```json
+{
+    "message": "Password changed successfully"
+}
+```
+
+#### Response Error (400):
+```json
+{
+    "error": "Current password is incorrect"
+}
+```
+
+#### Response Error (422):
+```json
+{
+    "message": "The given data was invalid.",
+    "errors": {
+        "new_password": [
+            "The new password must be at least 8 characters."
+        ],
+        "new_password_confirmation": [
+            "The new password confirmation does not match."
+        ]
+    }
+}
+```
+
+#### Variables disponibles:
+- `current_password`: Contraseña actual del usuario
+- `new_password`: Nueva contraseña (mínimo 8 caracteres)
+- `new_password_confirmation`: Confirmación de la nueva contraseña
+
+---
+
+### 13. Solicitar Reset de Contraseña
+
+**Endpoint:** `POST /tenant/reset-password-request`  
+**Autenticación:** Bearer Token requerido  
+
+#### Request Body:
+No requiere body. El sistema utiliza la información del token para identificar al usuario.
+
+#### Response Success (200):
+```json
+{
+    "message": "Password has been reset. Check your email for the temporary password."
+}
+```
+
+#### Response Error (500):
+```json
+{
+    "error": "Failed to reset password"
+}
+```
+
+#### Funcionalidad:
+- **Contraseña temporal**: Se genera automáticamente usando el email del usuario como contraseña
+- **Actualización**: La contraseña se actualiza inmediatamente en la base de datos
+- **Notificación por email**: Se envía un email automático con:
+  - La nueva contraseña temporal
+  - Instrucciones para cambiar la contraseña
+  - Recordatorio de que es una contraseña temporal
+- **Acceso inmediato**: El usuario puede hacer login inmediatamente con la nueva contraseña temporal
+- **Recomendación**: Se recomienda al usuario cambiar la contraseña temporal después del login
+
+#### Flujo recomendado:
+1. Usuario solicita reset de contraseña desde la app
+2. Sistema genera contraseña temporal = email del usuario
+3. Se actualiza la contraseña en BD
+4. Se envía email con la nueva contraseña
+5. Usuario recibe email y hace login con la contraseña temporal
+6. Usuario cambia la contraseña usando el endpoint `/tenant/change-password`
+
+---
+
 ## Códigos de Estado HTTP
 
 | Código | Descripción | Uso |
@@ -586,6 +680,30 @@ const newTicket = await fetch('/api/tenant/tickets', {
 });
 ```
 
+### 4. Cambiar contraseña:
+```javascript
+const changePassword = await fetch('/api/tenant/change-password', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+        current_password: 'old_password',
+        new_password: 'new_secure_password',
+        new_password_confirmation: 'new_secure_password'
+    })
+});
+```
+
+### 5. Solicitar reset de contraseña:
+```javascript
+const resetPassword = await fetch('/api/tenant/reset-password-request', {
+    method: 'POST',
+    headers
+});
+
+const result = await resetPassword.json();
+console.log(result.message); // "Password has been reset. Check your email for the temporary password."
+```
+
 ---
 
 ## Notas Importantes para Desarrolladores
@@ -610,5 +728,16 @@ const newTicket = await fetch('/api/tenant/tickets', {
 7. **Rate Limiting**: Considera implementar rate limiting en producción
 
 8. **CORS**: Configurar CORS si la app móvil está en un dominio diferente
+
+9. **Gestión de contraseñas**:
+   - **Contraseña por defecto**: Nuevos usuarios tienen como contraseña inicial su dirección de email
+   - **Contraseña temporal**: Al resetear, se genera una contraseña temporal igual al email
+   - **Notificaciones por email**: Se envían automáticamente al resetear contraseñas
+   - **Cambio recomendado**: Usuarios deben cambiar contraseñas temporales después del login
+
+10. **Sistema de emails**:
+    - **Reset de contraseña**: Email automático con nueva contraseña temporal
+    - **Nuevos usuarios**: Email de bienvenida con credenciales iniciales
+    - **Templates**: HTML responsivo con diseño profesional
 
 Esta documentación proporciona toda la información necesaria para integrar la API en cualquier aplicación frontend, especialmente React Native.
