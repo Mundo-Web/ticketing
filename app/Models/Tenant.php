@@ -38,10 +38,14 @@ class Tenant extends Model
 
     public function tickets()
     {
-        return $this->hasMany(Ticket::class, 'user_id')
-            ->join('users', 'tickets.user_id', '=', 'users.id')
-            ->where('users.email', $this->email)
-            ->select('tickets.*');
+        // Obtener tickets del usuario asociado a este tenant
+        $user = \App\Models\User::where('email', $this->email)->first();
+        if ($user) {
+            return $user->hasMany(\App\Models\Ticket::class, 'user_id');
+        }
+        
+        // Si no existe usuario, devolver relación vacía
+        return $this->hasMany(\App\Models\Ticket::class, 'user_id', 'id')->whereRaw('1 = 0');
     }
 
     public function ticketsCount()
