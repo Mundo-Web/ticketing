@@ -163,6 +163,7 @@ class TenantController extends Controller
                     'model' => $device->model?->name,
                     'system' => $device->system?->name,
                     'device_type' => $device->name_device?->name,
+                    'icon_id' => $device->icon_id,
                 ];
             }),
             'shared_devices' => $sharedDevices->map(function($device) {
@@ -175,6 +176,7 @@ class TenantController extends Controller
                     'model' => $device->model?->name,
                     'system' => $device->system?->name,
                     'device_type' => $device->name_device?->name,
+                    'icon_id' => $device->icon_id,
                     'owner' => $device->owner->first() ? [
                         'id' => $device->owner->first()->id,
                         'name' => $device->owner->first()->name,
@@ -233,6 +235,7 @@ class TenantController extends Controller
                         'model' => $ticket->device->model?->name,
                         'system' => $ticket->device->system?->name,
                         'device_type' => $ticket->device->name_device?->name,
+                        'icon_id' => $ticket->device->icon_id,
                     ] : null,
                     'technical' => $ticket->technical ? [
                         'id' => $ticket->technical->id,
@@ -495,6 +498,7 @@ class TenantController extends Controller
                     'system' => $ticket->device->system?->name,
                     'device_type' => $ticket->device->name_device?->name,
                     'ubicacion' => $ticket->device->ubicacion,
+                    'icon_id' => $ticket->device->icon_id,
                 ] : null,
                 'technical' => $ticket->technical ? [
                     'id' => $ticket->technical->id,

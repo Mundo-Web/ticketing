@@ -157,7 +157,8 @@ Authorization: Bearer {token}
             "brand": "string|null",
             "model": "string|null",
             "system": "string|null",
-            "device_type": "string|null"
+            "device_type": "string|null",
+            "icon_id": "string|null"
         }
     ],
     "shared_devices": [
@@ -170,6 +171,7 @@ Authorization: Bearer {token}
             "model": "string|null",
             "system": "string|null",
             "device_type": "string|null",
+            "icon_id": "string|null",
             "owner": {
                 "id": "integer",
                 "name": "string",
@@ -191,6 +193,7 @@ Authorization: Bearer {token}
 - `device.model`: Modelo específico del dispositivo
 - `device.system`: Sistema operativo o tipo de sistema
 - `device.device_type`: Tipo de dispositivo (ej: "Television", "Air Conditioner")
+- `device.icon_id`: ID del icono asociado al dispositivo para mostrar en la interfaz
 - `shared_devices[].owner`: Información del propietario original del dispositivo compartido
 
 ---
@@ -226,7 +229,8 @@ Authorization: Bearer {token}
                 "brand": "string|null",
                 "model": "string|null",
                 "system": "string|null",
-                "device_type": "string|null"
+                "device_type": "string|null",
+                "icon_id": "string|null"
             },
             "technical": {
                 "id": "integer",
@@ -327,7 +331,8 @@ Authorization: Bearer {token}
             "model": "string|null",
             "system": "string|null",
             "device_type": "string|null",
-            "ubicacion": "string|null"
+            "ubicacion": "string|null",
+            "icon_id": "string|null"
         },
         "technical": {
             "id": "integer",
@@ -739,5 +744,11 @@ console.log(result.message); // "Password has been reset. Check your email for t
     - **Reset de contraseña**: Email automático con nueva contraseña temporal
     - **Nuevos usuarios**: Email de bienvenida con credenciales iniciales
     - **Templates**: HTML responsivo con diseño profesional
+
+11. **Iconos de dispositivos**:
+    - **Campo icon_id**: Incluido en todas las respuestas de devices
+    - **Valores**: String identificador del icono (ej: "tv", "laptop", "router")
+    - **Uso**: Para mostrar iconos apropiados en la interfaz de usuario
+    - **Nullable**: Puede ser null si no se ha asignado icono específico
 
 Esta documentación proporciona toda la información necesaria para integrar la API en cualquier aplicación frontend, especialmente React Native.
