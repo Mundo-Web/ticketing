@@ -302,6 +302,7 @@ export default function Index({ apartments, brands, models, systems, name_device
         title: '',
         description: '',
         member_id: '',
+        tenant_id: '',
         priority: 'medium',
     });
 
@@ -565,12 +566,25 @@ export default function Index({ apartments, brands, models, systems, name_device
         console.log('Selected device:', device);
         console.log('Selected tenant:', selectedTenant);
         console.log('Selected apartment for ticket creation:', selectedTenantForTicketCreation);
+        console.log('User roles:', auth.user?.roles);
         console.log('=== END DEVICE SELECTED ===');
         
         setSelectedDeviceForTicket(device);
         ticketForm.setData('device_id', device.id.toString());
-        // Usar el tenant seleccionado en lugar del apartment
-        ticketForm.setData('member_id', selectedTenant?.id.toString() || '');
+        
+        // Verificar el rol del usuario para determinar qué campo usar
+        const isAdminOrTechnical = auth.user?.roles?.includes('super-admin') || auth.user?.roles?.includes('technical');
+        
+        if (isAdminOrTechnical) {
+            // Para admin/technical usar tenant_id
+            ticketForm.setData('tenant_id', selectedTenant?.id.toString() || '');
+            ticketForm.setData('member_id', ''); // Limpiar member_id
+        } else {
+            // Para doorman/owner usar member_id
+            ticketForm.setData('member_id', selectedTenant?.id.toString() || '');
+            ticketForm.setData('tenant_id', ''); // Limpiar tenant_id
+        }
+        
         setShowCreateTicketDevicesModal(false);
         setShowCreateTicketModal(true);
     };
@@ -2878,12 +2892,10 @@ const ApartmentRowExpanded = ({
                                                     const isSuperAdmin = userRoles.includes('superadmin') || userRoles.includes('super-admin');
                                                     const isOwner = userRoles.includes('owner');
                                                     const isDoorman = userRoles.includes('doorman');
+                                                    const isTechnical = userRoles.includes('technical');
                                                     
-                                                    if (isSuperAdmin) {
-                                                        // SuperAdmin: Modal de gestión de devices
-                                                        handleShowDevices(apartment, tenant);
-                                                    } else if (isOwner || isDoorman) {
-                                                        // Owner/Doorman: Modal de devices para seleccionar y crear ticket
+                                                    if (isSuperAdmin || isOwner || isDoorman || isTechnical) {
+                                                        // Todos los roles pueden crear tickets - diferencia está en el backend
                                                         setSelectedApartment(apartment);
                                                         setSelectedTenant(tenant);
                                                         setSelectedDevices(tenant.devices || []);

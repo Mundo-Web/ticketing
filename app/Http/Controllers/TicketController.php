@@ -5,6 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Technical;
 use App\Models\Tenant;
 use App\Models\Ticket;
+use App\Models\User;
+use App\Models\Building;
+use App\Models\Device;
+use App\Models\Doorman;
+use App\Models\Owner;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -291,6 +296,7 @@ class TicketController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'member_id' => 'nullable|exists:tenants,id', // Para cuando owner/doorman crea por member
+            'tenant_id' => 'nullable|exists:tenants,id', // Para cuando admin/technical crea por tenant
         ]);
         
         $user = Auth::user();
@@ -325,6 +331,26 @@ class TicketController extends Controller
                 $doorman = \App\Models\Doorman::where('email', $user->email)->first();
                 if ($doorman) {
                     $ticketData['created_by_doorman_id'] = $doorman->id;
+                }
+            }
+        } elseif ($request->has('tenant_id') && ($user->hasRole('super-admin') || $user->hasRole('technical'))) {
+            // Admin o Technical creando ticket para un tenant
+            $tenant = \App\Models\Tenant::findOrFail($validated['tenant_id']);
+            $tenantUser = \App\Models\User::where('email', $tenant->email)->first();
+            
+            if (!$tenantUser) {
+                return redirect()->back()->withErrors(['tenant_id' => 'Tenant user not found']);
+            }
+            
+            $ticketData['user_id'] = $tenantUser->id;
+            
+            // Registrar quién lo creó
+            if ($user->hasRole('super-admin')) {
+                $ticketData['created_by_admin_id'] = $user->id; // Usar el ID del admin directamente
+            } elseif ($user->hasRole('technical')) {
+                $technical = \App\Models\Technical::where('email', $user->email)->first();
+                if ($technical) {
+                    $ticketData['created_by_technical_id'] = $technical->id;
                 }
             }
         } else {
@@ -419,7 +445,7 @@ class TicketController extends Controller
         }
         $ticket->save();
         // Agregar al historial
-        $user = auth()->user();
+        $user = Auth::user();
         $technical = Technical::where('email', $user->email)->first();
         $technicalId = $technical ? $technical->id : null;
         
@@ -479,7 +505,7 @@ class TicketController extends Controller
         $ticket->save();
 
         // Get who is performing the assignment
-        $user = auth()->user();
+        $user = Auth::user();
         $assignerTechnical = Technical::where('email', $user->email)->first();
         $assignerName = $assignerTechnical ? $assignerTechnical->name : $user->name;
 
@@ -511,7 +537,7 @@ class TicketController extends Controller
         ]);
 
         // Obtener el usuario autenticado
-        $user = auth()->user();
+        $user = Auth::user();
         // Buscar el técnico correspondiente al usuario autenticado por email
         $technical = Technical::where('email', $user->email)->first();
         $technicalId = $technical ? $technical->id : null;
@@ -543,7 +569,7 @@ class TicketController extends Controller
         $ticket->save();
 
         // Get user info for better history
-        $user = auth()->user();
+        $user = Auth::user();
         $technical = Technical::where('email', $user->email)->first();
         $actorName = $technical ? $technical->name : $user->name;
 

@@ -578,4 +578,26 @@ class TenantController extends Controller
             ]);
         }
     }
+
+    /**
+     * Get all tenants for admin/technical to create tickets
+     */
+    public function getAllTenants()
+    {
+        try {
+            $tenants = Tenant::with(['apartment.building'])
+                ->orderBy('name')
+                ->get();
+
+            return response()->json([
+                'tenants' => $tenants
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching tenants: ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => 'Error fetching tenants'
+            ], 500);
+        }
+    }
 }

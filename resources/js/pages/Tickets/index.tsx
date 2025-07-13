@@ -339,6 +339,7 @@ export default function TicketsIndex({
     const [deviceAlerts, setDeviceAlerts] = useState<any[]>([]);
     const [loadingAlerts, setLoadingAlerts] = useState<Record<number, boolean>>({});
     const [showNinjaOneAlerts, setShowNinjaOneAlerts] = useState<Record<number, boolean>>({});
+    const [allTenants, setAllTenants] = useState<any[]>([]);
     const { auth, isTechnicalDefault } = usePage<SharedData & { isTechnicalDefault?: boolean }>().props;
     const isMember = (auth.user as any)?.roles?.includes("member");
     const isSuperAdmin = (auth.user as any)?.roles?.includes("super-admin");
@@ -425,6 +426,7 @@ export default function TicketsIndex({
         category: "",
         title: "",
         description: "",
+        tenant_id: "", // For admin/technical to select which tenant the ticket is for
     });
 
     // Manejar envío del formulario
@@ -525,6 +527,19 @@ export default function TicketsIndex({
         } catch (e) {
             console.error("Error al cargar técnicos:", e)
             setTechnicals([])
+        }
+    }
+
+    const loadAllTenants = async () => {
+        try {
+            const response = await fetch("/api/tenants/all", { headers: { Accept: "application/json" } })
+            if (!response.ok) throw new Error("Error al cargar tenants")
+            const data = await response.json()
+            setAllTenants(data.tenants || [])
+            console.log("Tenants cargados:", data.tenants)
+        } catch (e) {
+            console.error("Error al cargar tenants:", e)
+            setAllTenants([])
         }
     }
 
@@ -698,6 +713,13 @@ export default function TicketsIndex({
             loadTechnicals();
         }
     }, [showAssignModal.open]);
+
+    // Cargar tenants cuando se abre el modal de crear ticket (solo para admin/technical)
+    useEffect(() => {
+        if (showCreateModal && (isSuperAdmin || isTechnicalDefault || isTechnical)) {
+            loadAllTenants();
+        }
+    }, [showCreateModal, isSuperAdmin, isTechnicalDefault, isTechnical]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -1244,29 +1266,62 @@ export default function TicketsIndex({
                                     )}
                                 </>
                             ) : (isTechnicalDefault || isSuperAdmin || isTechnical) ? (
-                                <div className="kanban-container flex w-full min-h-[500px] overflow-x-scroll">
-                                    <KanbanBoard
-                                        tickets={statusFilter ? allTickets : (allTicketsUnfiltered.length > 0 ? allTicketsUnfiltered : allTickets)}
-                                        user={auth.user}
-                                        onTicketClick={handleSelectTicket}
-                                        isTechnicalDefault={isTechnicalDefault}
-                                        isTechnical={isTechnical}
-                                        isSuperAdmin={isSuperAdmin}
-                                        isMember={isMember}
-                                        statusFilter={statusFilter} // Pasar el filtro de estado
-                                        onAssign={(ticket) => setShowAssignModal({ open: true, ticketId: ticket.id })}
-                                        onComment={(ticket) => setShowHistoryModal({ open: true, ticketId: ticket.id })}
-                                        onDelete={handleDelete}
-                                        onStatusChange={(ticketId) => {
-                                            if (selectedTicket && selectedTicket.id === ticketId) {
-                                                refreshSelectedTicket(ticketId);
-                                            }
-                                        }}
-                                        onStatusChangeWithComment={(ticket, newStatus) => {
-                                            handleStatusChange(ticket, newStatus);
-                                        }}
-                                    />
-                                </div>
+                                <>
+                                    {/* Header con botón crear ticket para Admin/Technical */}
+                                    <Card className="shadow-lg border-0 !p-0">
+                                        <CardContent className="!p-0">
+                                            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 p-4 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 rounded-xl border border-primary/20 shadow-inner">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg flex-shrink-0">
+                                                        <UserPlus className="w-6 h-6 text-primary-foreground" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <h3 className="text-lg font-bold text-foreground bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                                                            Ticket Management
+                                                        </h3>
+                                                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                                                            Create and manage tickets for any building
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex gap-3">
+                                                    <Button
+                                                        onClick={() => setShowCreateModal(true)}
+                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors shadow-md hover:shadow-lg"
+                                                    >
+                                                        <UserPlus className="w-4 h-4" />
+                                                        Create New Ticket
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    <div className="kanban-container flex w-full min-h-[500px] overflow-x-scroll">
+                                        <KanbanBoard
+                                            tickets={statusFilter ? allTickets : (allTicketsUnfiltered.length > 0 ? allTicketsUnfiltered : allTickets)}
+                                            user={auth.user}
+                                            onTicketClick={handleSelectTicket}
+                                            isTechnicalDefault={isTechnicalDefault}
+                                            isTechnical={isTechnical}
+                                            isSuperAdmin={isSuperAdmin}
+                                            isMember={isMember}
+                                            statusFilter={statusFilter} // Pasar el filtro de estado
+                                            onAssign={(ticket) => setShowAssignModal({ open: true, ticketId: ticket.id })}
+                                            onComment={(ticket) => setShowHistoryModal({ open: true, ticketId: ticket.id })}
+                                            onDelete={handleDelete}
+                                            onStatusChange={(ticketId) => {
+                                                if (selectedTicket && selectedTicket.id === ticketId) {
+                                                    refreshSelectedTicket(ticketId);
+                                                }
+                                            }}
+                                            onStatusChangeWithComment={(ticket, newStatus) => {
+                                                handleStatusChange(ticket, newStatus);
+                                            }}
+                                        />
+                                    </div>
+                                </>
                             ) : isMember ? (
                                 // Solo mostrar tabs locales si NO hay filtro del backend
                                 !statusFilter ? (
@@ -2161,6 +2216,30 @@ export default function TicketsIndex({
                     </DialogHeader>
                     <form onSubmit={handleSubmitTicket} className="space-y-6">
                         <div className="space-y-4">
+                            {/* Tenant selection - only for admin/technical */}
+                            {(isSuperAdmin || isTechnicalDefault || isTechnical) && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-800 mb-3">Select Member</label>
+                                    <select
+                                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base bg-white focus:ring-2 focus:ring-transparent focus:outline-0 transition-all duration-200"
+                                        value={data.tenant_id}
+                                        onChange={e => setData('tenant_id', e.target.value)}
+                                        required
+                                    >
+                                        <option value="">Select a member</option>
+                                        {allTenants.map((tenant: any) => (
+                                            <option key={tenant.id} value={tenant.id}>
+                                                {tenant.name} - {tenant.apartment?.name || 'No apartment'} ({tenant.apartment?.building?.name || 'No building'})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.tenant_id && <div className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                                        <AlertCircle className="w-4 h-4" />
+                                        {errors.tenant_id}
+                                    </div>}
+                                </div>
+                            )}
+
                             {/* Device */}
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-3">Device</label>

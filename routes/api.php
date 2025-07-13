@@ -50,6 +50,9 @@ Route::get('/technicals', [TechnicalController::class, 'index']);
 Route::get('/technicals/{technical}/tickets', [TechnicalController::class, 'getTickets']);
 Route::get('/tickets/{ticket}/detail', [TechnicalController::class, 'getTicketDetail']);
 
+// Tenants API routes for admin/technical
+Route::get('/tenants/all', [TenantController::class, 'getAllTenants']);
+
 // Building API routes
 Route::get('/buildings', [BuildingController::class, 'apiIndex']);
 
