@@ -3,6 +3,7 @@ import type React from "react"
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from "@/types"
 import { Head, router, usePage, useForm } from "@inertiajs/react"
+import { toast } from 'sonner';
 import { useEffect } from "react"
 import { useState } from "react"
 
@@ -55,6 +56,7 @@ import {
     Filter,
     Users,
     MapPin,
+    Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -72,6 +74,7 @@ import KanbanBoard from "./KanbanBoard";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import DeviceIcon from '@/components/DeviceIcon';
+import NinjaOneAlertCard from '@/components/NinjaOneAlertCard';
 
 import { Device } from "@/types/models/Device"
 import { Tenant } from "@/types/models/Tenant";
@@ -276,6 +279,7 @@ export default function TicketsIndex({
     allTicketsUnfiltered, 
     devicesOwn, 
     devicesShared, 
+    allDevices = [], // Default to empty array
     memberData, 
     apartmentData, 
     buildingData, 
@@ -329,6 +333,12 @@ export default function TicketsIndex({
     const [ratingComment, setRatingComment] = useState("");
     const [submittingRating, setSubmittingRating] = useState(false);
     const [showDeviceStats, setShowDeviceStats] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState<{ open: boolean; ticket?: any }>({ open: false });
+    
+    // NinjaOne Alerts States
+    const [deviceAlerts, setDeviceAlerts] = useState<any[]>([]);
+    const [loadingAlerts, setLoadingAlerts] = useState<Record<number, boolean>>({});
+    const [showNinjaOneAlerts, setShowNinjaOneAlerts] = useState<Record<number, boolean>>({});
     const { auth, isTechnicalDefault } = usePage<SharedData & { isTechnicalDefault?: boolean }>().props;
     const isMember = (auth.user as any)?.roles?.includes("member");
     const isSuperAdmin = (auth.user as any)?.roles?.includes("super-admin");
@@ -380,11 +390,34 @@ export default function TicketsIndex({
     // Tab labels in English
     const [searchQuery] = useState("")
 
-    const deviceOptions = [...devicesOwn, ...devicesShared].map(device => ({
-        ...device,
-        // Si el nombre es null, usar device.name_device?.name
-        name: device.name || (device.name_device ? device.name_device.name : ''),
-    }));
+    // Device options based on user role
+    const getDeviceOptions = () => {
+        if (isSuperAdmin || isTechnicalDefault) {
+            // Admin and technical default can access all devices
+            return allDevices.map(device => {
+                // Safely get the first tenant (owner) and their apartment/building info
+                const firstTenant = Array.isArray(device.tenants) && device.tenants.length > 0 ? device.tenants[0] : null;
+                const apartment = firstTenant?.apartment || null;
+                const building = apartment?.building || null;
+                
+                return {
+                    ...device,
+                    name: device.name || (device.name_device ? device.name_device.name : ''),
+                    // Add building and apartment info for context from the first tenant (owner)
+                    building_name: building?.name || 'N/A',
+                    apartment_name: apartment?.name || 'N/A'
+                };
+            });
+        } else {
+            // Members use their own and shared devices
+            return [...devicesOwn, ...devicesShared].map(device => ({
+                ...device,
+                name: device.name || (device.name_device ? device.name_device.name : ''),
+            }));
+        }
+    };
+
+    const deviceOptions = getDeviceOptions();
 
     // useForm for ticket creation
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -409,10 +442,34 @@ export default function TicketsIndex({
     };
 
     const handleDelete = (ticket: any) => {
-        if (!window.confirm("¿Estás seguro de que deseas eliminar este ticket?")) return
-        router.delete(`/tickets/${ticket.id}`, {
+        // Open custom confirmation modal instead of browser alert
+        setShowDeleteModal({ open: true, ticket });
+    }
+
+    const confirmDelete = () => {
+        if (!showDeleteModal.ticket) return;
+        
+        router.delete(`/tickets/${showDeleteModal.ticket.id}`, {
             preserveScroll: true,
-        })
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            onSuccess: () => {
+                // Clear selected ticket if it was the one deleted
+                if (selectedTicket && selectedTicket.id === showDeleteModal.ticket.id) {
+                    setSelectedTicket(null);
+                }
+                // Close modal and show success message
+                setShowDeleteModal({ open: false });
+                toast.success('Ticket eliminado exitosamente');
+                // Refresh the page to show updated tickets
+                router.reload({ only: ['tickets', 'allTickets', 'allTicketsUnfiltered'] });
+            },
+            onError: () => {
+                // Keep modal open and show error
+                toast.error("Error al eliminar el ticket. Por favor intenta de nuevo.");
+            }
+        });
     }
 
     const handleStatusChange = (ticket: any, newStatus: string) => {
@@ -487,6 +544,77 @@ export default function TicketsIndex({
             setSelectedTicketLoading(false)
         }
     }
+
+    // NinjaOne Alert Functions
+    const loadDeviceAlerts = async (deviceId: number) => {
+        setLoadingAlerts(prev => ({ ...prev, [deviceId]: true }));
+        try {
+            const response = await fetch(`/ninjaone/devices/${deviceId}/alerts`, {
+                headers: { Accept: "application/json" },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setDeviceAlerts(prev => prev.filter(alert => alert.device_id !== deviceId).concat(data.alerts || []));
+            }
+        } catch (error) {
+            console.error('Error loading device alerts:', error);
+        } finally {
+            setLoadingAlerts(prev => ({ ...prev, [deviceId]: false }));
+        }
+    };
+
+    const toggleDeviceAlerts = (deviceId: number) => {
+        setShowNinjaOneAlerts(prev => {
+            const isCurrentlyShowing = prev[deviceId];
+            if (!isCurrentlyShowing) {
+                // Load alerts when showing for the first time
+                loadDeviceAlerts(deviceId);
+            }
+            return { ...prev, [deviceId]: !isCurrentlyShowing };
+        });
+    };
+
+    const acknowledgeAlert = async (alertId: number) => {
+        try {
+            const response = await fetch(`/ninjaone/alerts/${alertId}/acknowledge`, {
+                method: 'POST',
+                headers: { 
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+            });
+            if (response.ok) {
+                // Refresh alerts for all devices
+                const uniqueDeviceIds = [...new Set(deviceAlerts.map(alert => alert.device_id))];
+                uniqueDeviceIds.forEach(deviceId => loadDeviceAlerts(deviceId));
+            }
+        } catch (error) {
+            console.error('Error acknowledging alert:', error);
+        }
+    };
+
+    const resolveAlert = async (alertId: number) => {
+        try {
+            const response = await fetch(`/ninjaone/alerts/${alertId}/resolve`, {
+                method: 'POST',
+                headers: { 
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+            });
+            if (response.ok) {
+                // Refresh alerts for all devices
+                const uniqueDeviceIds = [...new Set(deviceAlerts.map(alert => alert.device_id))];
+                uniqueDeviceIds.forEach(deviceId => loadDeviceAlerts(deviceId));
+            }
+        } catch (error) {
+            console.error('Error resolving alert:', error);
+        }
+    };
+
+    const createTicketFromAlert = (alertId: number) => {
+        window.location.href = `/tickets/create-from-alert/${alertId}`;
+    };
 
     // Filter tickets
     const userId = (usePage().props as any)?.auth?.user?.id;
@@ -728,162 +856,227 @@ export default function TicketsIndex({
                                             const hasActiveIssues = activeTickets.length > 0;
 
                                             return (
-                                                <button
-                                                    key={device.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setData('device_id', device.id.toString());
-                                                        setShowCreateModal(true);
-                                                    }}
-                                                    className={`relative flex flex-row items-center bg-white border-2 rounded-xl shadow-md hover:shadow-xl p-5 w-full transition-all duration-300 group ${
-                                                        hasActiveIssues 
-                                                            ? 'border-amber-300 bg-amber-50/30 hover:border-amber-400 hover:bg-amber-50/50' 
-                                                            : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/30'
-                                                    }`}
-                                                >
-                                                    {/* Estado del dispositivo */}
-                                                    <div className={`absolute top-4 right-4 w-3 h-3 rounded-full shadow-sm ${
-                                                        hasActiveIssues ? 'bg-amber-400' : 'bg-green-400'
-                                                    }`}></div>
+                                                <div key={device.id} className="space-y-3">
+                                                    {/* Botón principal del dispositivo */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setData('device_id', device.id.toString());
+                                                            setShowCreateModal(true);
+                                                        }}
+                                                        className={`relative flex flex-row items-center bg-white border-2 rounded-xl shadow-md hover:shadow-xl p-5 w-full transition-all duration-300 group ${
+                                                            hasActiveIssues 
+                                                                ? 'border-amber-300 bg-amber-50/30 hover:border-amber-400 hover:bg-amber-50/50' 
+                                                                : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/30'
+                                                        }`}
+                                                    >
+                                                        {/* Estado del dispositivo */}
+                                                        <div className={`absolute top-4 right-4 w-3 h-3 rounded-full shadow-sm ${
+                                                            hasActiveIssues ? 'bg-amber-400' : 'bg-green-400'
+                                                        }`}></div>
 
-                                                    {/* Icono principal */}
-                                                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center mr-5 flex-shrink-0 transition-colors duration-300 ${
-                                                        hasActiveIssues 
-                                                            ? 'bg-amber-100 text-amber-600 group-hover:bg-amber-200' 
-                                                            : 'bg-blue-100 text-blue-600 group-hover:bg-blue-200'
-                                                    }`}>
-                                                        {device.icon_id ? (
-                                                            <DeviceIcon deviceIconId={device.icon_id} size={32} />
-                                                        ) : (
-                                                            <Monitor className="w-8 h-8" />
-                                                        )}
-                                                    </div>
-
-                                                    {/* Información principal del dispositivo */}
-                                                    <div className="flex-1 min-w-0 space-y-3">
-                                                        {/* Encabezado con nombre */}
-                                                        <div className="flex items-start justify-between">
-                                                            <h3 className="font-bold text-slate-800 text-lg truncate pr-2 leading-tight">
-                                                                {device.name_device?.name || device.name || `Device #${device.id}`}
-                                                            </h3>
-                                                        </div>
-
-                                                        {/* Fila 1: Marca, Modelo y Sistema */}
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {device.brand && (
-                                                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                                                                    <Tag className="w-3 h-3 mr-1" />
-                                                                    {device.brand.name}
-                                                                </span>
-                                                            )}
-                                                            {device.model && (
-                                                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
-                                                                    <Smartphone className="w-3 h-3 mr-1" />
-                                                                    {device.model.name}
-                                                                </span>
-                                                            )}
-                                                            {device.system && (
-                                                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                                                                    <Settings className="w-3 h-3 mr-1" />
-                                                                    {device.system.name}
-                                                                </span>
+                                                        {/* Icono principal */}
+                                                        <div className={`w-16 h-16 rounded-xl flex items-center justify-center mr-5 flex-shrink-0 transition-colors duration-300 ${
+                                                            hasActiveIssues 
+                                                                ? 'bg-amber-100 text-amber-600 group-hover:bg-amber-200' 
+                                                                : 'bg-blue-100 text-blue-600 group-hover:bg-blue-200'
+                                                        }`}>
+                                                            {device.icon_id ? (
+                                                                <DeviceIcon deviceIconId={device.icon_id} size={32} />
+                                                            ) : (
+                                                                <Monitor className="w-8 h-8" />
                                                             )}
                                                         </div>
 
-                                                        {/* Fila 2: Ubicación */}
-                                                        {device.ubicacion && (
-                                                            <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
-                                                                <Home className="w-4 h-4 mr-2 text-slate-500" />
-                                                                <span className="truncate font-medium">
-                                                                    {device.ubicacion}
-                                                                </span>
+                                                        {/* Información principal del dispositivo */}
+                                                        <div className="flex-1 min-w-0 space-y-3">
+                                                            {/* Encabezado con nombre */}
+                                                            <div className="flex items-start justify-between">
+                                                                <h3 className="font-bold text-slate-800 text-lg truncate pr-2 leading-tight">
+                                                                    {device.name_device?.name || device.name || `Device #${device.id}`}
+                                                                </h3>
                                                             </div>
-                                                        )}
 
-                                                        {/* Fila 3: Estado del dispositivo y usuarios */}
-                                                        <div className="flex items-center justify-between">
-                                                            {/* Estado */}
-                                                            <div className="flex-1 mr-4">
-                                                                {hasActiveIssues ? (
-                                                                    <div className="flex items-center text-sm text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200">
-                                                                        <AlertCircle className="w-4 h-4 mr-2" />
-                                                                        <span className="font-medium">{activeTickets.length} issue{activeTickets.length !== 1 ? 's' : ''}</span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="flex items-center text-sm text-green-700 bg-green-100 px-3 py-1.5 rounded-lg border border-green-200">
-                                                                        <CheckCircle className="w-4 h-4 mr-2" />
-                                                                        <span className="font-medium">Working</span>
-                                                                    </div>
+                                                            {/* Fila 1: Marca, Modelo y Sistema */}
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {device.brand && (
+                                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                                                        <Tag className="w-3 h-3 mr-1" />
+                                                                        {device.brand.name}
+                                                                    </span>
+                                                                )}
+                                                                {device.model && (
+                                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                                                        <Smartphone className="w-3 h-3 mr-1" />
+                                                                        {device.model.name}
+                                                                    </span>
+                                                                )}
+                                                                {device.system && (
+                                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                                                                        <Settings className="w-3 h-3 mr-1" />
+                                                                        {device.system.name}
+                                                                    </span>
                                                                 )}
                                                             </div>
 
-                                                            {/* Usuarios y botón de acción */}
-                                                            <div className="flex items-center gap-3">
-                                                                {/* Usuarios */}
-                                                                <div className="flex items-center -space-x-1">
-                                                                    {/* Dueño */}
-                                                                    {device.owner && (
-                                                                        <TooltipProvider key={device.owner[0].id}>
-                                                                            <Tooltip>
-                                                                                <TooltipTrigger>
-                                                                                    <img
-                                                                                        src={`/storage/${device.owner[0].photo}`}
-                                                                                        alt={device.owner[0].name}
-                                                                                        title={`Owner: ${device.owner[0].name}`}
-                                                                                        className="w-7 h-7 object-cover rounded-full border-2 border-yellow-400 hover:border-yellow-500 transition-colors"
-                                                                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                                            e.currentTarget.src = '/images/default-user.png';
-                                                                                        }}
-                                                                                    />
-                                                                                </TooltipTrigger>
-                                                                                <TooltipContent>
-                                                                                    <p>Owner: {device.owner[0].name}</p>
-                                                                                </TooltipContent>
-                                                                            </Tooltip>
-                                                                        </TooltipProvider>
-                                                                    )}
-                                                                    {/* Compartido con */}
-                                                                    {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.slice(0, 2).map((tenant: any) => (
-                                                                        <TooltipProvider key={tenant.id}>
-                                                                            <Tooltip>
-                                                                                <TooltipTrigger>
-                                                                                    <img
-                                                                                        src={`/storage/${tenant.photo}`}
-                                                                                        alt={tenant.name}
-                                                                                        title={`Shared with: ${tenant.name}`}
-                                                                                        className="w-7 h-7 object-cover rounded-full border-2 border-blue-400 hover:border-blue-500 transition-colors"
-                                                                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                                            e.currentTarget.src = '/images/default-user.png';
-                                                                                        }}
-                                                                                    />
-                                                                                </TooltipTrigger>
-                                                                                <TooltipContent>
-                                                                                    <p>Shared with: {tenant.name}</p>
-                                                                                </TooltipContent>
-                                                                            </Tooltip>
-                                                                        </TooltipProvider>
-                                                                    ))}
-                                                                    {/* Mostrar +N si hay más usuarios */}
-                                                                    {Array.isArray(device.shared_with) && device.shared_with.length > 2 && (
-                                                                        <div className="w-7 h-7 bg-slate-200 rounded-full border-2 border-slate-400 flex items-center justify-center hover:bg-slate-300 transition-colors">
-                                                                            <span className="text-xs font-bold text-slate-600">
-                                                                                +{device.shared_with.length - 2}
-                                                                            </span>
+                                                            {/* Fila 2: Ubicación */}
+                                                            {device.ubicacion && (
+                                                                <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                                                                    <Home className="w-4 h-4 mr-2 text-slate-500" />
+                                                                    <span className="truncate font-medium">
+                                                                        {device.ubicacion}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Fila 3: Estado del dispositivo y usuarios */}
+                                                            <div className="flex items-center justify-between">
+                                                                {/* Estado */}
+                                                                <div className="flex-1 mr-4">
+                                                                    {hasActiveIssues ? (
+                                                                        <div className="flex items-center text-sm text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200">
+                                                                            <AlertCircle className="w-4 h-4 mr-2" />
+                                                                            <span className="font-medium">{activeTickets.length} issue{activeTickets.length !== 1 ? 's' : ''}</span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="flex items-center text-sm text-green-700 bg-green-100 px-3 py-1.5 rounded-lg border border-green-200">
+                                                                            <CheckCircle className="w-4 h-4 mr-2" />
+                                                                            <span className="font-medium">Working</span>
                                                                         </div>
                                                                     )}
                                                                 </div>
 
-                                                                {/* Botón de acción */}
-                                                                <div className="flex items-center justify-center w-9 h-9 bg-primary/10 rounded-full group-hover:bg-primary/20 group-hover:scale-105 transition-all duration-300 flex-shrink-0">
-                                                                    <span className="text-primary text-lg font-bold">+</span>
+                                                                {/* Usuarios y botón de acción */}
+                                                                <div className="flex items-center gap-3">
+                                                                    {/* Usuarios */}
+                                                                    <div className="flex items-center -space-x-1">
+                                                                        {/* Dueño */}
+                                                                        {device.owner && (
+                                                                            <TooltipProvider key={device.owner[0].id}>
+                                                                                <Tooltip>
+                                                                                    <TooltipTrigger>
+                                                                                        <img
+                                                                                            src={`/storage/${device.owner[0].photo}`}
+                                                                                            alt={device.owner[0].name}
+                                                                                            title={`Owner: ${device.owner[0].name}`}
+                                                                                            className="w-7 h-7 object-cover rounded-full border-2 border-yellow-400 hover:border-yellow-500 transition-colors"
+                                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                                e.currentTarget.src = '/images/default-user.png';
+                                                                                            }}
+                                                                                        />
+                                                                                    </TooltipTrigger>
+                                                                                    <TooltipContent>
+                                                                                        <p>Owner: {device.owner[0].name}</p>
+                                                                                    </TooltipContent>
+                                                                                </Tooltip>
+                                                                            </TooltipProvider>
+                                                                        )}
+                                                                        {/* Compartido con */}
+                                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.slice(0, 2).map((tenant: any) => (
+                                                                            <TooltipProvider key={tenant.id}>
+                                                                                <Tooltip>
+                                                                                    <TooltipTrigger>
+                                                                                        <img
+                                                                                            src={`/storage/${tenant.photo}`}
+                                                                                            alt={tenant.name}
+                                                                                            title={`Shared with: ${tenant.name}`}
+                                                                                            className="w-7 h-7 object-cover rounded-full border-2 border-blue-400 hover:border-blue-500 transition-colors"
+                                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                                e.currentTarget.src = '/images/default-user.png';
+                                                                                            }}
+                                                                                        />
+                                                                                    </TooltipTrigger>
+                                                                                    <TooltipContent>
+                                                                                        <p>Shared with: {tenant.name}</p>
+                                                                                    </TooltipContent>
+                                                                                </Tooltip>
+                                                                            </TooltipProvider>
+                                                                        ))}
+                                                                        {/* Mostrar +N si hay más usuarios */}
+                                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 2 && (
+                                                                            <div className="w-7 h-7 bg-slate-200 rounded-full border-2 border-slate-400 flex items-center justify-center hover:bg-slate-300 transition-colors">
+                                                                                <span className="text-xs font-bold text-slate-600">
+                                                                                    +{device.shared_with.length - 2}
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Botón de acción */}
+                                                                    <div className="flex items-center justify-center w-9 h-9 bg-primary/10 rounded-full group-hover:bg-primary/20 group-hover:scale-105 transition-all duration-300 flex-shrink-0">
+                                                                        <span className="text-primary text-lg font-bold">+</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
 
-                                                    {/* Indicador de hover */}
-                                                    <div className="absolute inset-0 bg-gradient-to-r from-primary/0 to-primary/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                                                </button>
+                                                        {/* Indicador de hover */}
+                                                        <div className="absolute inset-0 bg-gradient-to-r from-primary/0 to-primary/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                                                    </button>
+
+                                                    {/* NinjaOne Integration - Solo mostrar si el dispositivo tiene integración habilitada */}
+                                                    {device.ninjaone_enabled && (
+                                                        <div className="space-y-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    toggleDeviceAlerts(device.id);
+                                                                }}
+                                                                className="w-full flex items-center justify-between px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm"
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <Shield className="w-4 h-4 text-blue-600" />
+                                                                    <span className="font-medium text-blue-800">NinjaOne Alerts</span>
+                                                                    {deviceAlerts.filter(alert => alert.device_id === device.id && alert.status !== 'resolved').length > 0 && (
+                                                                        <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+                                                                            {deviceAlerts.filter(alert => alert.device_id === device.id && alert.status !== 'resolved').length}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div className={`transition-transform ${showNinjaOneAlerts[device.id] ? 'rotate-180' : ''}`}>
+                                                                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                    </svg>
+                                                                </div>
+                                                            </button>
+
+                                                            {/* Mostrar alertas cuando están expandidas */}
+                                                            {showNinjaOneAlerts[device.id] && (
+                                                                <div className="space-y-2 pl-4">
+                                                                    {loadingAlerts[device.id] ? (
+                                                                        <div className="flex items-center justify-center py-4">
+                                                                            <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                                                                            <span className="ml-2 text-sm text-gray-600">Loading alerts...</span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <>
+                                                                            {deviceAlerts.filter(alert => alert.device_id === device.id).length === 0 ? (
+                                                                                <div className="text-center py-4 text-sm text-gray-500">
+                                                                                    <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                                                                                    No active alerts for this device
+                                                                                </div>
+                                                                            ) : (
+                                                                                deviceAlerts
+                                                                                    .filter(alert => alert.device_id === device.id)
+                                                                                    .map(alert => (
+                                                                                        <NinjaOneAlertCard
+                                                                                            key={alert.id}
+                                                                                            alert={alert}
+                                                                                            onAcknowledge={acknowledgeAlert}
+                                                                                            onResolve={resolveAlert}
+                                                                                            onCreateTicket={createTicketFromAlert}
+                                                                                            showActions={true}
+                                                                                        />
+                                                                                    ))
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             )
                                         }) : (
                                             <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400">
@@ -1001,6 +1194,7 @@ export default function TicketsIndex({
                                             statusFilter={statusFilter}
                                             onAssign={(ticket) => setShowAssignModal({ open: true, ticketId: ticket.id })}
                                             onComment={(ticket) => setShowHistoryModal({ open: true, ticketId: ticket.id })}
+                                            onDelete={handleDelete}
                                             onStatusChange={(ticketId) => {
                                                 if (selectedTicket && selectedTicket.id === ticketId) {
                                                     refreshSelectedTicket(ticketId);
@@ -1062,6 +1256,7 @@ export default function TicketsIndex({
                                         statusFilter={statusFilter} // Pasar el filtro de estado
                                         onAssign={(ticket) => setShowAssignModal({ open: true, ticketId: ticket.id })}
                                         onComment={(ticket) => setShowHistoryModal({ open: true, ticketId: ticket.id })}
+                                        onDelete={handleDelete}
                                         onStatusChange={(ticketId) => {
                                             if (selectedTicket && selectedTicket.id === ticketId) {
                                                 refreshSelectedTicket(ticketId);
@@ -1528,6 +1723,16 @@ export default function TicketsIndex({
                                                                         Mark as {statusConfig[status]?.label || status}
                                                                     </button>
                                                                 ))}
+                                                                {/* Delete button - only for super admins */}
+                                                                {isSuperAdmin && (
+                                                                    <button
+                                                                        onClick={() => handleDelete(selectedTicket)}
+                                                                        className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 rounded-lg text-sm font-medium transition-colors border border-red-200 hover:border-red-300"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                        Delete Ticket
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     )}
@@ -1970,6 +2175,9 @@ export default function TicketsIndex({
                                         deviceOptions.map((d: any) => (
                                             <option key={d.id} value={d.id}>
                                                 {d.name_device?.name || d.name || `Device #${d.id}`}
+                                                {(isSuperAdmin || isTechnicalDefault) && d.building_name && d.apartment_name && 
+                                                    ` - ${d.building_name} / ${d.apartment_name}`
+                                                }
                                             </option>
                                         ))
                                     ) : (
@@ -2718,6 +2926,40 @@ export default function TicketsIndex({
                             className="w-full"
                         >
                             Close
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Custom Delete Confirmation Modal */}
+            <Dialog
+                open={showDeleteModal.open}
+                onOpenChange={(open) => setShowDeleteModal({ open, ticket: showDeleteModal.ticket })}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader className="pb-6">
+                        <DialogTitle className="text-lg font-semibold text-gray-900">
+                            Confirmar eliminación
+                        </DialogTitle>
+                        <DialogDescription className="text-sm text-gray-500">
+                            ¿Estás seguro de que deseas eliminar el ticket #{showDeleteModal.ticket?.id}? 
+                            Esta acción no se puede deshacer.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex justify-end space-x-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowDeleteModal({ open: false })}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={confirmDelete}
+                        >
+                            Eliminar
                         </Button>
                     </DialogFooter>
                 </DialogContent>

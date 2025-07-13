@@ -8,6 +8,7 @@ use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\TechnicalController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\NinjaOneController;
 use App\Models\Support;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -105,6 +106,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/owner-doorman/devices', [\App\Http\Controllers\OwnerDoormanDeviceController::class, 'index'])
         ->name('owner-doorman.devices')
         ->middleware('role:owner|doorman');
+    
+    // NinjaOne Routes
+    Route::prefix('ninjaone')->name('ninjaone.')->group(function () {
+        Route::get('/alerts', [NinjaOneController::class, 'alerts'])->name('alerts');
+        Route::post('/alerts/{alert}/acknowledge', [NinjaOneController::class, 'acknowledgeAlert'])->name('alerts.acknowledge');
+        Route::post('/alerts/{alert}/resolve', [NinjaOneController::class, 'resolveAlert'])->name('alerts.resolve');
+        Route::post('/devices/{device}/sync', [NinjaOneController::class, 'syncDevice'])->name('devices.sync');
+        Route::get('/devices/{device}/alerts', [NinjaOneController::class, 'getDeviceAlerts'])->name('devices.alerts');
+    });
+    
+    // Ticket creation from NinjaOne alerts
+    Route::get('/tickets/create-from-alert/{alert}', [NinjaOneController::class, 'createTicketFromAlert'])->name('tickets.create-from-alert');
+    Route::post('/tickets/create-from-alert/{alert}', [NinjaOneController::class, 'storeTicketFromAlert'])->name('tickets.store-from-alert');
     
 });
 

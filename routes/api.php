@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\TechnicalController;
 use App\Http\Controllers\Api\TenantController;
+use App\Http\Controllers\Api\NinjaOneWebhookController;
 use App\Http\Controllers\BuildingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -51,3 +52,8 @@ Route::get('/tickets/{ticket}/detail', [TechnicalController::class, 'getTicketDe
 
 // Building API routes
 Route::get('/buildings', [BuildingController::class, 'apiIndex']);
+
+// NinjaOne Webhook Routes (No authentication required for webhooks)
+Route::prefix('ninjaone')->group(function () {
+    Route::post('/webhook', [NinjaOneWebhookController::class, 'handleWebhook']);
+});

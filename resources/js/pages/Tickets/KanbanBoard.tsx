@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Fragment, useCallback, useMemo } from "react";
-import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, XCircle, Filter, Search, MoreVertical, Tag, Monitor, User, Building, Home } from "lucide-react";
+import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, XCircle, Filter, Search, MoreVertical, Tag, Monitor, User, Building, Home, Trash2 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { router } from "@inertiajs/react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@radix-ui/react-tooltip";
@@ -736,6 +736,30 @@ export default function KanbanBoard(props: any) {
                                                                                         </button>
                                                                                     )}
                                                                                 </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Delete button - only for admins */}
+                                                                        {isSuperAdmin && (
+                                                                            <div className="pt-2 border-t border-border/50">
+                                                                                <button
+                                                                                    className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 group border border-transparent hover:border-red-200 hover:shadow-md"
+                                                                                    onClick={e => {
+                                                                                        e.stopPropagation();
+                                                                                        setMenuOpen(null);
+                                                                                        if (props.onDelete) {
+                                                                                            props.onDelete(ticket);
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="p-1.5 rounded-md bg-red-100 group-hover:bg-red-200 transition-colors">
+                                                                                        <Trash2 size={16} className="transition-transform group-hover:scale-110" />
+                                                                                    </div>
+                                                                                    <div className="flex flex-col items-start">
+                                                                                        <span className="font-semibold">Delete Ticket</span>
+                                                                                        <span className="text-xs text-muted-foreground group-hover:text-red-700/80">Permanently remove ticket</span>
+                                                                                    </div>
+                                                                                </button>
                                                                             </div>
                                                                         )}
                                                                     </div>

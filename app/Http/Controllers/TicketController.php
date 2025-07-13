@@ -34,9 +34,21 @@ class TicketController extends Controller
         $allTicketsQuery = Ticket::with($withRelations);
         $devicesOwn = collect();
         $devicesShared = collect();
+        $allDevices = collect(); // Para admin y técnico default
 
         $isTechnicalDefault = false;
         if ($user->hasRole('super-admin')) {
+            // Admin puede ver todos los dispositivos
+            $allDevices = \App\Models\Device::with([
+                'brand',
+                'model', 
+                'system',
+                'name_device',
+                'tenants' => function ($query) {
+                    $query->select('tenants.id', 'tenants.name', 'tenants.email', 'tenants.photo')
+                          ->with('apartment.building');
+                }
+            ])->get();
             // Ver todos los tickets
             // No filter
         } elseif ($user->hasRole('technical')) {
@@ -44,8 +56,18 @@ class TicketController extends Controller
             $technical = Technical::where('email', $user->email)->first();
             if ($technical) {
                 if ($technical->is_default) {
-                    // Jefe técnico: puede ver todos los tickets
+                    // Jefe técnico: puede ver todos los tickets y todos los dispositivos
                     $isTechnicalDefault = true;
+                    $allDevices = \App\Models\Device::with([
+                        'brand',
+                        'model', 
+                        'system',
+                        'name_device',
+                        'tenants' => function ($query) {
+                            $query->select('tenants.id', 'tenants.name', 'tenants.email', 'tenants.photo')
+                                  ->with('apartment.building');
+                        }
+                    ])->get();
                     // No filter
                 } else {
                     // Técnico normal: solo tickets asignados a él
@@ -237,6 +259,7 @@ class TicketController extends Controller
             'allTicketsUnfiltered' => $allTicketsUnfiltered,
             'devicesOwn' => $devicesOwn,
             'devicesShared' => $devicesShared,
+            'allDevices' => $allDevices, // Para admin y técnico default
             'memberData' => $memberData,
             'apartmentData' =>  $apartmentData,
             'buildingData' => $buildingData,
@@ -417,7 +440,20 @@ class TicketController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $user = Auth::user();
+        $ticket = Ticket::findOrFail($id);
+        
+        // Solo admin puede eliminar tickets
+        if (!$user->hasRole('super-admin')) {
+            return back()->withErrors(['error' => 'Unauthorized to delete tickets']);
+        }
+        
+        // Eliminar el ticket y sus dependencias
+        $ticket->histories()->delete(); // Eliminar historial
+        $ticket->delete();
+        
+        // Redirect back with success message
+        return redirect()->back()->with('success', 'Ticket deleted successfully');
     }
 
     /**
