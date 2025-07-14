@@ -10,6 +10,9 @@ use App\Models\Building;
 use App\Models\Device;
 use App\Models\Doorman;
 use App\Models\Owner;
+use App\Events\TicketCreated;
+use App\Events\TicketAssigned;
+use App\Events\TicketStatusChanged;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -389,6 +392,9 @@ class TicketController extends Controller
             null
         );
         
+        // Dispatch ticket created event
+        event(new TicketCreated($ticket));
+        
         return redirect()->back()->with('success', 'Ticket creado correctamente');
     }
 
@@ -495,34 +501,88 @@ class TicketController extends Controller
      */
     public function assignTechnical(Request $request, Ticket $ticket)
     {
-        $validated = $request->validate([
-            'technical_id' => 'required|exists:technicals,id',
-            'comment' => 'nullable|string|max:1000',
-        ]);
-        $oldTechnical = $ticket->technical_id;
-        $newTechnical = Technical::findOrFail($validated['technical_id']);
-        $ticket->technical_id = $validated['technical_id'];
-        $ticket->save();
+        try {
+            $validated = $request->validate([
+                'technical_id' => 'required|exists:technicals,id',
+                'comment' => 'nullable|string|max:1000',
+            ]);
+            
+            $oldTechnical = $ticket->technical_id;
+            $newTechnical = Technical::findOrFail($validated['technical_id']);
+            
+            // Verificar que el ticket no esté ya asignado al mismo técnico
+            if ($ticket->technical_id == $validated['technical_id']) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ticket is already assigned to this technician'
+                    ], 400);
+                }
+                return redirect()->back()->with('error', 'Ticket is already assigned to this technician');
+            }
+            
+            $ticket->technical_id = $validated['technical_id'];
+            $ticket->save();
 
-        // Get who is performing the assignment
-        $user = Auth::user();
-        $assignerTechnical = Technical::where('email', $user->email)->first();
-        $assignerName = $assignerTechnical ? $assignerTechnical->name : $user->name;
+            // Get who is performing the assignment
+            $user = Auth::user();
+            $assignerTechnical = Technical::where('email', $user->email)->first();
+            $assignerName = $assignerTechnical ? $assignerTechnical->name : $user->name;
 
-        $description = $validated['comment'] ?? "Ticket assigned to {$newTechnical->name} by {$assignerName}";
-        
-        $ticket->addHistory(
-            'assigned_technical',
-            $description,
-            [
-                'from' => $oldTechnical,
-                'to' => $validated['technical_id']
-            ],
-            $validated['technical_id']
-        );
-        // SIEMPRE redirige (no devuelvas JSON)
-        
-        return redirect()->back()->with('success', 'Technician assigned');
+            $description = $validated['comment'] ?? "Ticket assigned to {$newTechnical->name} by {$assignerName}";
+            
+            $ticket->addHistory(
+                'assigned_technical',
+                $description,
+                [
+                    'from' => $oldTechnical,
+                    'to' => $validated['technical_id']
+                ],
+                $validated['technical_id']
+            );
+            
+            // Dispatch ticket assigned event
+            event(new TicketAssigned($ticket, $newTechnical, $user));
+            
+            // Detectar si es una petición AJAX/fetch y responder en consecuencia
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Technician assigned successfully',
+                    'ticket' => $ticket->load([
+                        'technical', 
+                        'user.tenant', 
+                        'device.tenants',
+                        'createdByOwner',
+                        'createdByDoorman'
+                    ]),
+                    'technical' => $newTechnical
+                ]);
+            }
+            
+            // Para formularios tradicionales, redirigir
+            return redirect()->back()->with('success', 'Technician assigned');
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error assigning technician: ' . $e->getMessage());
+            
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while assigning technician'
+                ], 500);
+            }
+            return redirect()->back()->with('error', 'An error occurred while assigning technician');
+        }
     }
 
     /**

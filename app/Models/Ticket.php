@@ -86,6 +86,24 @@ class Ticket extends Model
         return $this->belongsTo(\App\Models\Doorman::class, 'created_by_doorman_id');
     }
 
+    // Relación con comentarios
+    public function comments()
+    {
+        return $this->hasMany(TicketComment::class)->orderBy('created_at', 'desc');
+    }
+
+    // Comentarios públicos
+    public function publicComments()
+    {
+        return $this->hasMany(TicketComment::class)->where('is_internal', false)->orderBy('created_at', 'desc');
+    }
+
+    // Comentarios internos
+    public function internalComments()
+    {
+        return $this->hasMany(TicketComment::class)->where('is_internal', true)->orderBy('created_at', 'desc');
+    }
+
     // Métodos de ayuda para estados
     public function isOpen() { return $this->status === self::STATUS_OPEN; }
     public function isInProgress() { return $this->status === self::STATUS_IN_PROGRESS; }

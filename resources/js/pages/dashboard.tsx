@@ -1,6 +1,11 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type PageProps } from '@/types';
 import { Head, usePage, router } from '@inertiajs/react';
+import { useState, useRef, useEffect } from 'react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+
+// UI Components
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,55 +19,33 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
+// Icons
 import {
-    Building,
-    Users,
-    Ticket,
-    Wrench,
-    Smartphone,
-    TrendingUp,
-    Clock,
-    CheckCircle,
-    AlertCircle,
-    Home,
-    Activity,
-    BarChart3,
-    Calendar,
-    Timer,
-    Download,    ExternalLink,
-    RefreshCcw,
-    FileSpreadsheet,
-    Bell,
-    Zap,
-    UserPlus,
-    AlertTriangle,
-    X,
-    User,
-    Phone,
-    Mail,    Monitor,    ChevronLeft,
-    ChevronRight,
-    Laptop,    Check,
-    MessageSquare,
-    Info,
-    AlertOctagon
+    Building, Users, Ticket, Wrench, Smartphone, TrendingUp, Clock,
+    CheckCircle, AlertCircle, Home, Activity, BarChart3, Calendar,
+    Timer, Download, ExternalLink, RefreshCcw, FileSpreadsheet,
+    Bell, Zap, UserPlus, AlertTriangle, X, User, Phone, Mail,
+    Monitor, ChevronLeft, ChevronRight, Laptop, Check,
+    MessageSquare, Info, AlertOctagon
 } from 'lucide-react';
+
+// Charts
 import {
-    ResponsiveContainer,
-    PieChart as RechartsPieChart,
-    Cell,
-    Pie,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip as RechartsTooltip,
-    Legend,
-    Area,    AreaChart
+    ResponsiveContainer, PieChart as RechartsPieChart, Cell, Pie,
+    XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
+    Legend, Area, AreaChart
 } from 'recharts';
+
+// Export utilities
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import { format } from 'date-fns';
-import { useState, useRef, useEffect } from 'react';
-import { toast } from 'sonner';
+
+// Advanced Dashboard Components
+import DashboardFilterPanel from '@/components/dashboard/DashboardFilterPanel';
+import ExtendedKPIs from '@/components/dashboard/ExtendedKPIs';
+import AdvancedCharts from '@/components/dashboard/AdvancedCharts';
+import ExportData from '@/components/dashboard/ExportData';
 
 interface NotificationItem {
     id: number;
@@ -94,12 +77,12 @@ interface DashboardProps extends PageProps {
             devices: number;
             technicals: number;
         };
-    };    charts: {
+    }; charts: {
         ticketsByStatus: Record<string, number>;
         ticketsLastWeek: Array<{ date: string; count: number }>;
-        devicesByType: Array<{ 
-            name: string; 
-            count: number; 
+        devicesByType: Array<{
+            name: string;
+            count: number;
             devices: Array<{
                 id: number;
                 device_name: string;
@@ -111,21 +94,21 @@ interface DashboardProps extends PageProps {
         }>;
         ticketsByPriority: Record<string, number>;
         ticketsByCategory: Record<string, number>;
-    };    lists: {
-        topTechnicals: Array<{ 
+    }; lists: {
+        topTechnicals: Array<{
             id: number;
-            name: string; 
-            photo?: string; 
+            name: string;
+            photo?: string;
             email: string;
             phone?: string;
             shift?: string;
             is_default: boolean;
             tickets_count: number;
         }>;
-        buildingsWithTickets: Array<{ 
+        buildingsWithTickets: Array<{
             id: number;
-            name: string; 
-            image?: string; 
+            name: string;
+            image?: string;
             apartments_count: number;
             tenants_count: number;
             tickets_count: number;
@@ -138,11 +121,11 @@ interface DashboardProps extends PageProps {
             category?: string;
             created_at: string;
             user?: { name: string };
-            device?: { 
-                apartment?: { 
-                    name: string; 
-                    building?: { name: string } 
-                } 
+            device?: {
+                apartment?: {
+                    name: string;
+                    building?: { name: string }
+                }
             };
             technical?: { name: string };
         }>;
@@ -153,7 +136,7 @@ interface DashboardProps extends PageProps {
             status: string;
             category: string;
             created_at: string;
-            user?: { 
+            user?: {
                 tenant?: {
                     name: string;
                     apartment?: {
@@ -162,17 +145,17 @@ interface DashboardProps extends PageProps {
                     };
                 };
             };
-            device?: { 
+            device?: {
                 name?: string;
                 name_device?: {
                     name: string;
                 };
-                apartment?: { 
-                    name: string; 
-                    building?: { name: string } 
-                } 
+                apartment?: {
+                    name: string;
+                    building?: { name: string }
+                }
             };
-        }>;        
+        }>;
         problematicDevices: Array<{
             device_type: string;
             device_name: string;
@@ -203,38 +186,18 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 // Chart colors
 const CHART_COLORS = [
-    '#3B82F6', '#EF4444', '#F59E0B', '#10B981', '#8B5CF6', 
+    '#3B82F6', '#EF4444', '#F59E0B', '#10B981', '#8B5CF6',
     '#F97316', '#06B6D4', '#84CC16', '#EC4899', '#6366F1'
 ];
 
-// Advanced Excel export functions with professional styling using ExcelJS
-const exportToExcel = async (data: Record<string, unknown>[], filename: string, sheetName: string = 'Data') => {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(sheetName);
-    
-    // Add data to worksheet
-    if (data.length > 0) {
-        const keys = Object.keys(data[0]);
-        worksheet.addRow(keys);
-        data.forEach(row => {
-            worksheet.addRow(Object.values(row));
-        });
-    }
-    
-    // Generate and download
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `${filename}.xlsx`);
-};
-
 // Professional Weekly Trend Export
-const exportWeeklyTrendExcel = async (trendData: any[]) => {
+const exportWeeklyTrendExcel = async (trendData: Array<{ date: string; count: number }>) => {
     const workbook = new ExcelJS.Workbook();
-    
+
     workbook.creator = 'Ticketing System - Trend Analysis';
     workbook.created = new Date();
     workbook.company = 'Weekly Performance Report';
-    
+
     const currentDate = new Date().toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -244,25 +207,25 @@ const exportWeeklyTrendExcel = async (trendData: any[]) => {
     });
 
     // Ensure we have exactly 7 days of data, filling gaps with zeros
-    const ensureSevenDays = (data: any[]) => {
+    const ensureSevenDays = (data: Array<{ date: string; count: number }>) => {
         const result = [];
         const today = new Date();
-        
+
         for (let i = 6; i >= 0; i--) {
             const targetDate = new Date(today);
             targetDate.setDate(today.getDate() - i);
-            const dateStr = targetDate.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric' 
+            const dateStr = targetDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
             });
-            
+
             const existingData = data.find(item => item.date === dateStr);
             result.push({
                 date: dateStr,
                 count: existingData ? (existingData.count || 0) : 0
             });
         }
-        
+
         return result;
     };
 
@@ -352,24 +315,24 @@ const exportWeeklyTrendExcel = async (trendData: any[]) => {
     validatedTrendData.forEach((day, index) => {
         const dayCount = day.count || 0;
         const safeAvgDaily = avgDaily || 1; // Prevent division by zero
-        
+
         const vsAverage = safeAvgDaily > 0 ? Math.round(((dayCount - safeAvgDaily) / safeAvgDaily) * 100) : 0;
-        const trendDirection = vsAverage > 15 ? '↗ Above Average' : 
-                              vsAverage < -15 ? '↘ Below Average' : 
-                              '→ Normal Range';
-        
+        const trendDirection = vsAverage > 15 ? '↗ Above Average' :
+            vsAverage < -15 ? '↘ Below Average' :
+                '→ Normal Range';
+
         const performance = dayCount > safeAvgDaily * 1.3 ? 'High Volume' :
-                           dayCount < safeAvgDaily * 0.7 ? 'Low Volume' :
-                           'Standard Volume';
-        
+            dayCount < safeAvgDaily * 0.7 ? 'Low Volume' :
+                'Standard Volume';
+
         const volumeCategory = dayCount > safeAvgDaily * 1.5 ? 'Peak Day' :
-                              dayCount > safeAvgDaily * 1.2 ? 'Busy Day' :
-                              dayCount < safeAvgDaily * 0.8 ? 'Light Day' :
-                              'Normal Day';
-        
+            dayCount > safeAvgDaily * 1.2 ? 'Busy Day' :
+                dayCount < safeAvgDaily * 0.8 ? 'Light Day' :
+                    'Normal Day';
+
         const actionNeeded = dayCount > safeAvgDaily * 1.5 ? 'Monitor capacity & resources' :
-                            dayCount < safeAvgDaily * 0.5 ? 'Review for issues' :
-                            'Continue monitoring';
+            dayCount < safeAvgDaily * 0.5 ? 'Review for issues' :
+                'Continue monitoring';
 
         const rowData = [
             day.date || 'Unknown',
@@ -383,10 +346,10 @@ const exportWeeklyTrendExcel = async (trendData: any[]) => {
         rowData.forEach((value, colIndex) => {
             const cell = sheet.getCell(currentRow, colIndex + 1);
             cell.value = value;
-            
+
             let fillColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
             let fontColor = colors.dark;
-            
+
             // Trend column styling
             if (colIndex === 2) {
                 if (vsAverage > 15) {
@@ -397,7 +360,7 @@ const exportWeeklyTrendExcel = async (trendData: any[]) => {
                     fontColor = 'FFFFFFFF';
                 }
             }
-            
+
             // Performance column styling
             if (colIndex === 3) {
                 switch (value) {
@@ -411,7 +374,7 @@ const exportWeeklyTrendExcel = async (trendData: any[]) => {
                         break;
                 }
             }
-            
+
             // Volume category styling
             if (colIndex === 4) {
                 switch (value) {
@@ -461,7 +424,7 @@ const exportWeeklyTrendExcel = async (trendData: any[]) => {
     const maxDay = trendData.reduce((max, day) => day.count > max.count ? day : max, trendData[0]);
     const minDay = trendData.reduce((min, day) => day.count < min.count ? day : min, trendData[0]);
     const peakVariance = Math.round(((maxDay.count - minDay.count) / avgDaily) * 100);
-    
+
     const insights = [
         ['Metric', 'Value', 'Analysis', 'Recommendation'],
         ['Peak Day', `${maxDay.date} (${maxDay.count} tickets)`, maxDay.count > avgDaily * 1.5 ? 'Significant spike' : 'Normal peak', 'Monitor for patterns'],
@@ -475,10 +438,10 @@ const exportWeeklyTrendExcel = async (trendData: any[]) => {
         row.forEach((value, colIndex) => {
             const cell = sheet.getCell(currentRow + rowIndex, colIndex + 1);
             cell.value = value;
-            
+
             let fillColor = rowIndex === 0 ? colors.secondary : 'FFFFFFFF';
             let fontColor = rowIndex === 0 ? 'FFFFFFFF' : colors.dark;
-            
+
             if (rowIndex > 0 && colIndex === 2) {
                 if (value.includes('spike') || value.includes('High volatility')) {
                     fillColor = colors.warning;
@@ -515,13 +478,13 @@ const exportWeeklyTrendExcel = async (trendData: any[]) => {
 };
 
 // Professional Ticket Distribution Export
-const exportTicketDistributionExcel = async (ticketsByStatus: any, totalTickets: number) => {
+const exportTicketDistributionExcel = async (ticketsByStatus: Record<string, number>, totalTickets: number) => {
     const workbook = new ExcelJS.Workbook();
-    
+
     workbook.creator = 'Ticketing System - Analytics';
     workbook.created = new Date();
     workbook.company = 'Ticket Distribution Analysis';
-    
+
     const currentDate = new Date().toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -608,7 +571,7 @@ const exportTicketDistributionExcel = async (ticketsByStatus: any, totalTickets:
     currentRow++;
 
     // Data rows with enhanced information
-    const statusMapping = {
+    const statusMapping: Record<string, { label: string; priority: string; action: string; color: string }> = {
         'open': { label: 'Open', priority: 'Critical', action: 'Immediate Assignment Required', color: colors.danger },
         'in_progress': { label: 'In Progress', priority: 'High', action: 'Monitor Progress', color: colors.warning },
         'resolved': { label: 'Resolved', priority: 'Low', action: 'Quality Check', color: colors.success },
@@ -616,9 +579,9 @@ const exportTicketDistributionExcel = async (ticketsByStatus: any, totalTickets:
     };
 
     Object.entries(ticketsByStatus).forEach(([status, count]) => {
-        const percentage = Math.round((count / totalTickets) * 100);
+        const percentage = Math.round((Number(count) / totalTickets) * 100);
         const statusInfo = statusMapping[status] || { label: status, priority: 'Unknown', action: 'Review', color: colors.dark };
-        
+
         const rowData = [
             statusInfo.label,
             count,
@@ -630,16 +593,16 @@ const exportTicketDistributionExcel = async (ticketsByStatus: any, totalTickets:
         rowData.forEach((value, colIndex) => {
             const cell = sheet.getCell(currentRow, colIndex + 1);
             cell.value = value;
-            
+
             let fillColor = 'FFFFFFFF';
             let fontColor = colors.dark;
-            
+
             // Status column styling
             if (colIndex === 0) {
                 fillColor = statusInfo.color;
                 fontColor = 'FFFFFFFF';
             }
-            
+
             // Priority column styling
             if (colIndex === 3) {
                 switch (value) {
@@ -692,7 +655,7 @@ const exportTicketDistributionExcel = async (ticketsByStatus: any, totalTickets:
 
     const openPercentage = Math.round((ticketsByStatus.open / totalTickets) * 100);
     const resolvedPercentage = Math.round((ticketsByStatus.resolved / totalTickets) * 100);
-    
+
     const recommendations = [
         ['Metric', 'Value', 'Status', 'Recommendation'],
         ['Open Tickets Rate', `${openPercentage}%`, openPercentage > 20 ? 'High' : 'Normal', openPercentage > 20 ? 'Increase technical resources' : 'Maintain current level'],
@@ -705,10 +668,10 @@ const exportTicketDistributionExcel = async (ticketsByStatus: any, totalTickets:
         row.forEach((value, colIndex) => {
             const cell = sheet.getCell(currentRow + rowIndex, colIndex + 1);
             cell.value = value;
-            
+
             let fillColor = rowIndex === 0 ? colors.secondary : 'FFFFFFFF';
             let fontColor = rowIndex === 0 ? 'FFFFFFFF' : colors.dark;
-            
+
             if (rowIndex > 0 && colIndex === 2) {
                 switch (value) {
                     case 'High':
@@ -756,14 +719,14 @@ const exportTicketDistributionExcel = async (ticketsByStatus: any, totalTickets:
 };
 
 // Professional Devices Export
-const exportDevicesExcel = async (devices: any[]) => {
+const exportDevicesExcel = async (devices: Array<{ id: number; device_name: string; device_type: string; brand_name: string; system_name: string; users_count: number }>) => {
     const workbook = new ExcelJS.Workbook();
-    
+
     // Set workbook properties
     workbook.creator = 'Ticketing System - Device Management';
     workbook.created = new Date();
     workbook.company = 'Device Inventory Report';
-    
+
     const currentDate = new Date().toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -789,7 +752,7 @@ const exportDevicesExcel = async (devices: any[]) => {
         pageSetup: { paperSize: 9, orientation: 'landscape' }
     });    // Set column widths
     sheet.columns = [
-        { width: 8 }, { width: 25 }, { width: 18 }, { width: 18 }, { width: 20 }, 
+        { width: 8 }, { width: 25 }, { width: 18 }, { width: 18 }, { width: 20 },
         { width: 20 }, { width: 15 }, { width: 15 }, { width: 25 }
     ];// Title
     sheet.mergeCells('A1:H1');
@@ -830,7 +793,7 @@ const exportDevicesExcel = async (devices: any[]) => {
     };    // Headers
     const headers = ['ID', 'Name Device', 'Model', 'Brand', 'System', 'Users', 'Status', 'Usage Level'];
     let currentRow = 4;
-    
+
     headers.forEach((header, index) => {
         const cell = sheet.getCell(currentRow, index + 1);
         cell.value = header;
@@ -851,15 +814,15 @@ const exportDevicesExcel = async (devices: any[]) => {
 
     // Data rows
     devices.forEach((device, index) => {
-        const usageLevel = device.users_count === 0 ? 'Unused' : 
-                          device.users_count <= 2 ? 'Low Usage' :
-                          device.users_count <= 5 ? 'Medium Usage' : 'High Usage';
-        
-        const status = device.users_count > 0 ? 'Active' : 'Inactive';        const rowData = [
+        const usageLevel = device.users_count === 0 ? 'Unused' :
+            device.users_count <= 2 ? 'Low Usage' :
+                device.users_count <= 5 ? 'Medium Usage' : 'High Usage';
+
+        const status = device.users_count > 0 ? 'Active' : 'Inactive'; const rowData = [
             device.id,
-           // device.device_name || 'N/A',
+            // device.device_name || 'N/A',
             device.device_type || 'Unknown',
-            device.model_name || 'N/A',
+            device.device_name || 'N/A',
             device.brand_name || 'N/A',
             device.system_name || 'N/A',
             device.users_count || 0,
@@ -870,7 +833,7 @@ const exportDevicesExcel = async (devices: any[]) => {
         rowData.forEach((value, colIndex) => {
             const cell = sheet.getCell(currentRow, colIndex + 1);
             cell.value = value;
-            
+
             let fillColor = index % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
             let fontColor = colors.dark;            // Status column styling
             if (colIndex === 7) {
@@ -882,7 +845,7 @@ const exportDevicesExcel = async (devices: any[]) => {
                     fontColor = 'FFFFFFFF';
                 }
             }
-            
+
             // Usage level styling
             if (colIndex === 8) {
                 switch (value) {
@@ -936,7 +899,7 @@ const exportDevicesExcel = async (devices: any[]) => {
     // Summary stats
     const summaryData = [
         ['Total Devices', totalDevices, 'Complete inventory count'],
-        ['Active Devices', activeDevices, `${Math.round((activeDevices/totalDevices)*100)}% utilization rate`],
+        ['Active Devices', activeDevices, `${Math.round((activeDevices / totalDevices) * 100)}% utilization rate`],
         ['Inactive Devices', totalDevices - activeDevices, 'Available for assignment'],
         ['Device Types', uniqueTypes, 'Different categories available'],
         ['Total Users', devices.reduce((sum, d) => sum + d.users_count, 0), 'Active device users']
@@ -973,14 +936,14 @@ const exportDevicesExcel = async (devices: any[]) => {
 };
 
 // Professional Dashboard Export with advanced styling using ExcelJS
-const exportProfessionalDashboard = async (metrics: any, charts: any, lists: any) => {
+const exportProfessionalDashboard = async (metrics: Record<string, unknown>, charts: Record<string, unknown>, lists: Record<string, unknown>) => {
     const workbook = new ExcelJS.Workbook();
-    
+
     // Set workbook properties
     workbook.creator = 'Ticketing System';
     workbook.created = new Date();
     workbook.company = 'Professional Dashboard';
-    
+
     const currentDate = new Date().toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -1062,7 +1025,7 @@ const exportProfessionalDashboard = async (metrics: any, charts: any, lists: any
 
     // Section: KEY METRICS
     let currentRow = 4;
-    
+
     // Section header
     summarySheet.mergeCells(`A${currentRow}:D${currentRow}`);
     const metricsHeaderCell = summarySheet.getCell(`A${currentRow}`);
@@ -1116,11 +1079,11 @@ const exportProfessionalDashboard = async (metrics: any, charts: any, lists: any
         row.forEach((value, colIndex) => {
             const cell = summarySheet.getCell(currentRow + rowIndex, colIndex + 1);
             cell.value = value;
-            
+
             // Determine cell color based on status
             let fillColor = 'FFFFFFFF';
             let fontColor = colors.dark;
-            
+
             if (colIndex === 2) { // Status column
                 switch (value) {
                     case 'Critical':
@@ -1144,18 +1107,18 @@ const exportProfessionalDashboard = async (metrics: any, charts: any, lists: any
                         break;
                 }
             }
-            
+
             cell.style = {
-                font: { 
-                    name: 'Segoe UI', 
-                    size: 11, 
+                font: {
+                    name: 'Segoe UI',
+                    size: 11,
                     bold: colIndex === 0,
                     color: { argb: fontColor }
                 },
                 fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
-                alignment: { 
-                    horizontal: colIndex === 0 ? 'left' : 'center', 
-                    vertical: 'middle' 
+                alignment: {
+                    horizontal: colIndex === 0 ? 'left' : 'center',
+                    vertical: 'middle'
                 },
                 border: {
                     top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
@@ -1167,7 +1130,7 @@ const exportProfessionalDashboard = async (metrics: any, charts: any, lists: any
         });
         summarySheet.getRow(currentRow + rowIndex).height = 22;
     });
-    
+
     currentRow += metricsData.length + 2;
 
     // SHEET 2: Tickets Analysis
@@ -1229,10 +1192,10 @@ const exportProfessionalDashboard = async (metrics: any, charts: any, lists: any
     ticketsRow++;
 
     // Weekly data
-    charts.ticketsLastWeek.forEach((item: any, index: number) => {
+    charts.ticketsLastWeek.forEach((item: Record<string, unknown>, index: number) => {
         const resolutionRate = item.total > 0 ? Math.round((item.resolved / item.total) * 100) : 0;
         const performance = resolutionRate >= 80 ? 'Excellent' : resolutionRate >= 60 ? 'Good' : 'Needs Improvement';
-        
+
         const weekData = [
             `Week ${index + 1}`,
             item.total,
@@ -1240,14 +1203,14 @@ const exportProfessionalDashboard = async (metrics: any, charts: any, lists: any
             `${resolutionRate}%`,
             performance
         ];
-        
+
         weekData.forEach((value, colIndex) => {
             const cell = ticketsSheet.getCell(ticketsRow, colIndex + 1);
             cell.value = value;
-            
+
             let fillColor = 'FFFFFFFF';
             let fontColor = colors.dark;
-            
+
             if (colIndex === 4) { // Performance column
                 switch (value) {
                     case 'Excellent':
@@ -1264,7 +1227,7 @@ const exportProfessionalDashboard = async (metrics: any, charts: any, lists: any
                         break;
                 }
             }
-            
+
             cell.style = {
                 font: { name: 'Segoe UI', size: 10, color: { argb: fontColor } },
                 fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
@@ -1379,10 +1342,52 @@ export default function Dashboard() {
     const { metrics, charts, lists } = usePage<DashboardProps>().props;
     const pageProps = usePage().props as unknown as { auth: { user: { roles: { name: string }[]; technical?: { is_default: boolean } } } };
     const isSuperAdmin = pageProps?.auth?.user?.roles?.some((role) => role.name === 'super-admin') || false;
-    const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false;    const canAssignTickets = isSuperAdmin || isDefaultTechnical;    
+    const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false; const canAssignTickets = isSuperAdmin || isDefaultTechnical;
     // States for modals and UI
     const [showDevicesModal, setShowDevicesModal] = useState(false);
     const buildingsContainerRef = useRef<HTMLDivElement>(null);
+
+    // Estados para los nuevos componentes avanzados
+    const [dashboardFilters, setDashboardFilters] = useState({
+        dateRange: {
+            from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+            to: new Date()
+        },
+        role: '',
+        status: '',
+        priority: ''
+    });
+
+    // Función para manejar cambios en los filtros
+    const handleFiltersChange = (newFilters: {
+        dateRange: { from?: Date; to?: Date };
+        role: string;
+        status: string;
+        priority: string;
+    }) => {
+        setDashboardFilters({
+            dateRange: {
+                from: newFilters.dateRange.from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+                to: newFilters.dateRange.to || new Date()
+            },
+            role: newFilters.role,
+            status: newFilters.status,
+            priority: newFilters.priority
+        });
+    };
+
+    // Función para resetear filtros
+    const handleResetFilters = () => {
+        setDashboardFilters({
+            dateRange: {
+                from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+                to: new Date()
+            },
+            role: '',
+            status: '',
+            priority: ''
+        });
+    };
 
     // Initialize notifications from localStorage or default values
     const getInitialNotifications = (): NotificationItem[] => {
@@ -1391,19 +1396,19 @@ export default function Dashboard() {
             if (saved) {
                 const parsed = JSON.parse(saved);
                 // Convert icon names back to components
-                return parsed.map((notif: { iconName: string; [key: string]: unknown }) => ({
+                return parsed.map((notif: { iconName: string;[key: string]: unknown }) => ({
                     ...notif,
                     icon: notif.iconName === 'AlertCircle' ? AlertCircle :
-                          notif.iconName === 'Info' ? Info :
-                          notif.iconName === 'CheckCircle' ? CheckCircle :
-                          notif.iconName === 'AlertOctagon' ? AlertOctagon :
-                          notif.iconName === 'MessageSquare' ? MessageSquare : AlertCircle
+                        notif.iconName === 'Info' ? Info :
+                            notif.iconName === 'CheckCircle' ? CheckCircle :
+                                notif.iconName === 'AlertOctagon' ? AlertOctagon :
+                                    notif.iconName === 'MessageSquare' ? MessageSquare : AlertCircle
                 }));
             }
         } catch (error) {
             console.log('Error loading notifications from localStorage:', error);
         }
-        
+
         // Default notifications if nothing in localStorage
         return [
             {
@@ -1466,7 +1471,7 @@ export default function Dashboard() {
 
     // States for notifications
     const [notifications, setNotifications] = useState<NotificationItem[]>(getInitialNotifications);
-    
+
     // Calculate unread notifications count
     const [unreadNotifications, setUnreadNotifications] = useState(() => {
         const initialNotifications = getInitialNotifications();
@@ -1476,12 +1481,12 @@ export default function Dashboard() {
     // States for last update tracking
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [updateText, setUpdateText] = useState<string>('Updated just now');
-    
+
     // Function to calculate time since last update
     const calculateTimeSinceUpdate = (lastUpdateTime: Date): string => {
         const now = new Date();
         const diffInMinutes = Math.floor((now.getTime() - lastUpdateTime.getTime()) / (1000 * 60));
-        
+
         if (diffInMinutes === 0) {
             return 'Updated just now';
         } else if (diffInMinutes === 1) {
@@ -1503,7 +1508,7 @@ export default function Dashboard() {
         const newUpdateTime = new Date();
         setLastUpdated(newUpdateTime);
         setUpdateText(calculateTimeSinceUpdate(newUpdateTime));
-        
+
         // Reload the page to fetch fresh data
         router.reload();
     };    // Function to save notifications to localStorage
@@ -1533,15 +1538,15 @@ export default function Dashboard() {
     // Functions to handle notifications
     const markAsRead = (notificationId: number) => {
         setNotifications((prev: NotificationItem[]) => {
-            const updated = prev.map((notif: NotificationItem) => 
-                notif.id === notificationId 
+            const updated = prev.map((notif: NotificationItem) =>
+                notif.id === notificationId
                     ? { ...notif, read: true }
                     : notif
             );
             saveNotificationsToStorage(updated);
             return updated;
         });
-        
+
         // Update unread count
         setUnreadNotifications((prev: number) => Math.max(0, prev - 1));
     };
@@ -1561,7 +1566,7 @@ export default function Dashboard() {
             saveNotificationsToStorage(updated);
             return updated;
         });
-        
+
         // Update unread count if notification was unread
         const notification = notifications.find((n: NotificationItem) => n.id === notificationId);
         if (notification && !notification.read) {
@@ -1583,7 +1588,7 @@ export default function Dashboard() {
     return (
         <TooltipProvider>
             <AppLayout breadcrumbs={breadcrumbs}>                <Head title="Dashboard" />
-                
+
                 {/* Custom styles for scrollbar */}                <style dangerouslySetInnerHTML={{
                     __html: `
                         .scrollbar-hide {
@@ -1632,10 +1637,10 @@ export default function Dashboard() {
                         }
                     `
                 }} />
-                  {/* Main container with premium spacing */}
+                {/* Main container with premium spacing */}
                 <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
                     <div className="container mx-auto px-8 py-16 space-y-20">
-                        
+
                         {/* Premium header with maximum spacing */}
                         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-12">
                             <div className="space-y-8">
@@ -1644,16 +1649,16 @@ export default function Dashboard() {
                                         <BarChart3 className="h-10 w-10 text-white" />
                                     </div>
                                     <div className="space-y-4">                                        <h1 className="text-6xl font-black tracking-tight text-slate-900 dark:text-white">
-                                            Dashboard
-                                        </h1><p className="text-2xl text-slate-600 font-medium">
-                                            {isSuperAdmin 
+                                        Dashboard
+                                    </h1><p className="text-2xl text-slate-600 font-medium">
+                                            {isSuperAdmin
                                                 ? "Administrative control center of the system"
                                                 : "Your personalized management panel"
                                             }
                                         </p>
                                     </div>
                                 </div>
-                                
+
                                 {/* Real-time status indicators */}
                                 <div className="flex items-center gap-12">
                                     <div className="flex items-center gap-4">
@@ -1669,27 +1674,27 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* Main controls */}
-                            <div className="flex flex-wrap items-center gap-6">                                <Button 
-                                    variant="outline" 
-                                    size="lg" 
-                                    className="gap-4 h-14 px-8 shadow-xl text-lg"
-                                    onClick={handleRefresh}
-                                >
-                                    <RefreshCcw className="h-6 w-6" />
-                                    Refresh
-                                </Button>                                <Button 
-                                    variant="outline" 
-                                    size="lg"
-                                    onClick={() => {
-                                        exportProfessionalDashboard(metrics, charts, lists);
-                                    }}
-                                    className="gap-4 h-14 px-8 shadow-xl text-lg"
-                                >
+                            <div className="flex flex-wrap items-center gap-6">                                <Button
+                                variant="outline"
+                                size="lg"
+                                className="gap-4 h-14 px-8 shadow-xl text-lg"
+                                onClick={handleRefresh}
+                            >
+                                <RefreshCcw className="h-6 w-6" />
+                                Refresh
+                            </Button>                                <Button
+                                variant="outline"
+                                size="lg"
+                                onClick={() => {
+                                    exportProfessionalDashboard(metrics, charts, lists);
+                                }}
+                                className="gap-4 h-14 px-8 shadow-xl text-lg"
+                            >
                                     <Download className="h-6 w-6" />
-                                    Export </Button>                               
-                                
+                                    Export </Button>
+
                                 {/* Notifications Dropdown */}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1707,9 +1712,9 @@ export default function Dashboard() {
                                         <DropdownMenuLabel className="flex items-center justify-between">
                                             <span className="text-lg font-semibold">Notifications</span>
                                             {unreadNotifications > 0 && (
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm" 
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={markAllAsRead}
                                                     className="text-xs"
                                                 >
@@ -1718,7 +1723,7 @@ export default function Dashboard() {
                                             )}
                                         </DropdownMenuLabel>
                                         <DropdownMenuSeparator />
-                                        
+
                                         {notifications.length === 0 ? (
                                             <div className="p-4 text-center text-slate-500">
                                                 <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -1729,7 +1734,7 @@ export default function Dashboard() {
                                                 {notifications.map((notification: NotificationItem) => {
                                                     const IconComponent = notification.icon;
                                                     return (
-                                                        <DropdownMenuItem 
+                                                        <DropdownMenuItem
                                                             key={notification.id}
                                                             className={`p-0 focus:bg-slate-50 dark:!text-slate-100 ${!notification.read ? 'bg-blue-50/50 dark:bg-secondary/10' : ''}`}
                                                         >
@@ -1737,7 +1742,7 @@ export default function Dashboard() {
                                                                 <div className={`p-2 rounded-lg ${notification.color} flex-shrink-0`}>
                                                                     <IconComponent className="h-4 w-4" />
                                                                 </div>
-                                                                
+
                                                                 <div className="flex-1 space-y-1 dark:!text-slate-100">
                                                                     <div className="flex items-center justify-between">
                                                                         <h4 className={`text-sm font-semibold dark:!text-slate-100 ${!notification.read ? 'text-slate-900' : 'text-slate-700'}`}>
@@ -1760,11 +1765,11 @@ export default function Dashboard() {
                                                                             </Button>
                                                                         </div>
                                                                     </div>
-                                                                    
+
                                                                     <p className={`text-sm dark:!text-slate-100 ${!notification.read ? 'text-slate-700' : 'text-slate-600'}`}>
                                                                         {notification.message}
                                                                     </p>
-                                                                    
+
                                                                     {!notification.read && (
                                                                         <div className="flex items-center gap-2 mt-2">
                                                                             <Button
@@ -1782,7 +1787,7 @@ export default function Dashboard() {
                                                                         </div>
                                                                     )}
                                                                 </div>
-                                                                
+
                                                                 {!notification.read && (
                                                                     <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
                                                                 )}
@@ -1792,9 +1797,9 @@ export default function Dashboard() {
                                                 })}
                                             </div>
                                         )}
-                                        
+
                                         <DropdownMenuSeparator />
-                                     {/*   <DropdownMenuItem className="p-0">
+                                        {/*   <DropdownMenuItem className="p-0">
                                             <Button 
                                                 variant="ghost" 
                                                 className="w-full justify-center py-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
@@ -1810,18 +1815,19 @@ export default function Dashboard() {
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
-                        </div>  
-                                                
-                                                
-                                                {/* SECTION 1: KEY TICKET METRICS */}
+                        </div>
+
+
+
+                        {/* SECTION 1: KEY TICKET METRICS */}
                         <div className="space-y-12">                            <div className="text-center space-y-6">                                <h2 className="text-4xl font-bold text-foreground">
-                                    Ticket Analytics
-                                </h2>
-                                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                                    Real-time monitoring of workflow and performance metrics
-                                </p>
-                            </div>
-                            
+                            Ticket Analytics
+                        </h2>
+                            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                                Real-time monitoring of workflow and performance metrics
+                            </p>
+                        </div>
+
                             {/* Perfectly aligned metrics grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">                                {/* Card 1: Total Tickets */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-primary/10 via-background to-primary/5 overflow-hidden">
@@ -1830,7 +1836,7 @@ export default function Dashboard() {
                                             <div className="p-3 rounded-xl bg-primary/20">
                                                 <Ticket className="h-6 w-6 text-primary" />
                                             </div>
-                                            <ExternalLink 
+                                            <ExternalLink
                                                 className="h-4 w-4 text-primary/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                                                 onClick={() => window.open('/tickets', '_blank')}
                                             />
@@ -1848,7 +1854,7 @@ export default function Dashboard() {
                                     </CardContent>
                                 </Card>                                {/* Card 2: Critical Tickets */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-destructive/10 via-background to-destructive/5 overflow-hidden cursor-pointer"
-                                      onClick={() => window.open('/tickets?status=open', '_blank')}>
+                                    onClick={() => window.open('/tickets?status=open', '_blank')}>
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="p-3 rounded-xl bg-destructive/20">
@@ -1870,7 +1876,7 @@ export default function Dashboard() {
 
                                 {/* Card 3: In Progress */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-secondary/10 via-background to-secondary/5 overflow-hidden cursor-pointer"
-                                      onClick={() => window.open('/tickets?status=in_progress', '_blank')}>
+                                    onClick={() => window.open('/tickets?status=in_progress', '_blank')}>
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="p-3 rounded-xl bg-secondary/20">
@@ -1892,7 +1898,7 @@ export default function Dashboard() {
 
                                 {/* Card 4: Resolved */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-accent/10 via-background to-accent/5 overflow-hidden cursor-pointer"
-                                      onClick={() => window.open('/tickets?status=resolved', '_blank')}>
+                                    onClick={() => window.open('/tickets?status=resolved', '_blank')}>
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="p-3 rounded-xl bg-accent/20">
@@ -1920,11 +1926,11 @@ export default function Dashboard() {
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-3/10 via-background to-chart-3/5 overflow-hidden">
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">                                            <div className="p-3 rounded-xl bg-orange-100">
-                                                <AlertTriangle className="h-6 w-6 text-orange-600" />
-                                            </div>
+                                            <AlertTriangle className="h-6 w-6 text-orange-600" />
+                                        </div>
                                             {canAssignTickets && (
-                                                <Button 
-                                                    size="sm" 
+                                                <Button
+                                                    size="sm"
                                                     variant="outline"
                                                     className="h-8 px-3 text-xs hover:bg-orange-50 border-orange-200 text-orange-700"
                                                     onClick={() => window.open('/tickets/assign-unassigned', '_blank')}
@@ -2004,7 +2010,7 @@ export default function Dashboard() {
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-teal-600 uppercase tracking-wider">Efficiency</p>
                                             <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                                                {metrics.tickets.total > 0 
+                                                {metrics.tickets.total > 0
                                                     ? Math.round((metrics.tickets.resolved / metrics.tickets.total) * 100)
                                                     : 0}%
                                             </p>
@@ -2019,39 +2025,39 @@ export default function Dashboard() {
                                 </Card>                            </div>
                         </div>
 
-                      
-                                     {/* SECTION: UNASSIGNED TICKETS TABLE  canAssignTickets &&*/}
+
+                        {/* SECTION: UNASSIGNED TICKETS TABLE  canAssignTickets &&*/}
                         {lists.unassignedTickets && lists.unassignedTickets.length > 0 && (
                             <div className="space-y-8">                                <div className="text-center space-y-4">                                    <h2 className="text-4xl font-bold text-chart-3">
-                                        Unassigned Tickets
-                                    </h2>
-                                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                                        Recent tickets awaiting technical assignment - quick actions available
-                                    </p>
-                                </div>
-                                
+                                Unassigned Tickets
+                            </h2>
+                                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                                    Recent tickets awaiting technical assignment - quick actions available
+                                </p>
+                            </div>
+
                                 <Card className="border-0 shadow-xl bg-gradient-to-br from-slate-50 via-white to-slate-50">                                    <CardHeader className="border-b border-slate-100 bg-slate-50">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded-lg bg-orange-100">
-                                                    <AlertTriangle className="h-5 w-5 text-orange-600" />
-                                                </div>
-                                                <div>
-                                                    <CardTitle className="text-xl text-slate-800">Latest Unassigned Tickets</CardTitle>
-                                                    <p className="text-sm text-slate-600 mt-1">Showing {lists.unassignedTickets.length} most recent unassigned tickets</p>
-                                                </div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-orange-100">
+                                                <AlertTriangle className="h-5 w-5 text-orange-600" />
                                             </div>
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm"
-                                                className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
-                                                onClick={() => window.open('/tickets', '_blank')}
-                                            >
-                                                <UserPlus className="h-4 w-4 mr-2" />
-                                                Bulk Assign
-                                            </Button>
+                                            <div>
+                                                <CardTitle className="text-xl text-slate-800">Latest Unassigned Tickets</CardTitle>
+                                                <p className="text-sm text-slate-600 mt-1">Showing {lists.unassignedTickets.length} most recent unassigned tickets</p>
+                                            </div>
                                         </div>
-                                    </CardHeader>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                                            onClick={() => window.open('/tickets', '_blank')}
+                                        >
+                                            <UserPlus className="h-4 w-4 mr-2" />
+                                            Bulk Assign
+                                        </Button>
+                                    </div>
+                                </CardHeader>
                                     <CardContent className="p-0">
                                         <div className="overflow-x-auto">
                                             <table className="w-full">
@@ -2067,10 +2073,10 @@ export default function Dashboard() {
                                                 </thead>                                                <tbody>
                                                     {lists.unassignedTickets.length > 0 ? (
                                                         lists.unassignedTickets.map((ticket, index) => (
-                                                            <UnassignedTicketRow 
-                                                                key={ticket.id} 
-                                                                ticket={ticket} 
-                                                                index={index} 
+                                                            <UnassignedTicketRow
+                                                                key={ticket.id}
+                                                                ticket={ticket}
+                                                                index={index}
                                                                 technicals={lists.availableTechnicals}
                                                             />
                                                         ))
@@ -2091,23 +2097,23 @@ export default function Dashboard() {
                                     </CardContent>
                                 </Card>
                             </div>
-                        )}             
+                        )}
 
-                          {/* SECTION 2: SYSTEM RESOURCES */}
+                        {/* SECTION 2: SYSTEM RESOURCES */}
                         {metrics.resources.buildings > 0 && (
                             <div className="space-y-8">
                                 <div className="text-center space-y-4">                                    <div className="flex items-center justify-center gap-4">                                        <h2 className="text-4xl font-bold text-foreground">
-                                            System Resources
-                                        </h2>
-                                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-4 py-2 text-sm font-semibold">
-                                            Full Access - Admin
-                                        </Badge>
-                                    </div>
+                                    System Resources
+                                </h2>
+                                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-4 py-2 text-sm font-semibold">
+                                        Full Access - Admin
+                                    </Badge>
+                                </div>
                                     <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                                         Comprehensive management of buildings, apartments, users and devices
                                     </p>
                                 </div>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {/* Buildings Card - Enhanced with carousel */}
                                     <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-1/10 via-background to-chart-1/5 overflow-hidden">
                                         <CardContent className="p-6">
@@ -2119,7 +2125,7 @@ export default function Dashboard() {
                                                     <p className="text-sm font-semibold text-violet-600 uppercase tracking-wider">Buildings</p>
                                                     <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.buildings}</p>
                                                 </div>
-                                                
+
                                                 {/* Buildings Carousel */}
                                                 {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
                                                     <div className="space-y-3">
@@ -2156,7 +2162,7 @@ export default function Dashboard() {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div 
+                                                        <div
                                                             ref={buildingsContainerRef}
                                                             className="flex gap-2 overflow-x-auto scrollbar-hide"
                                                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -2170,13 +2176,13 @@ export default function Dashboard() {
                                                                 >
                                                                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-200 to-violet-400 flex items-center justify-center transition-transform shadow-lg">
                                                                         {building.image ? (
-                                                                            <img 
+                                                                            <img
                                                                                 src={`/storage/${building.image}`}
                                                                                 alt={building.name}
                                                                                 className="w-full h-full rounded-full object-cover"
-                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                                   e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
-                                                                               }}
+                                                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                    e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
+                                                                                }}
                                                                             />
                                                                         ) : (
                                                                             <Building className="h-6 w-6 text-white" />
@@ -2187,17 +2193,17 @@ export default function Dashboard() {
                                                         </div>
                                                     </div>
                                                 )}
-                                                
+
                                                 <div className="flex items-center justify-center gap-2">
                                                     <ExternalLink className="h-3 w-3 text-violet-400" />
                                                     <span className="text-xs text-slate-500">View management</span>
                                                 </div>
                                             </div>
                                         </CardContent>
-                                    </Card>                                   
-                                     {/* Apartments Card - Enhanced with building breakdown */}
+                                    </Card>
+                                    {/* Apartments Card - Enhanced with building breakdown */}
                                     <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-2/10 via-background to-chart-2/5 overflow-hidden cursor-pointer"
-                                         >
+                                    >
                                         <CardContent className="p-6">
                                             <div className="text-center space-y-4">
                                                 <div className="p-4 rounded-xl bg-blue-100 w-fit mx-auto">
@@ -2207,7 +2213,7 @@ export default function Dashboard() {
                                                     <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">Apartments</p>
                                                     <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.apartments}</p>
                                                 </div>
-                                                
+
                                                 {/* Buildings Circles for Apartments */}
                                                 {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
                                                     <div className="space-y-3">
@@ -2246,7 +2252,7 @@ export default function Dashboard() {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div 
+                                                        <div
                                                             id="apartments-container"
                                                             className="flex gap-2 overflow-x-auto scrollbar-hide"
                                                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -2263,14 +2269,14 @@ export default function Dashboard() {
                                                                 >
                                                                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-200 to-blue-400 flex items-center justify-center  transition-transform shadow-lg">
                                                                         {building.image ? (
-                                                                            <img 
-                                                                                 src={`/storage/${building.image}`}
+                                                                            <img
+                                                                                src={`/storage/${building.image}`}
                                                                                 alt={building.name}
                                                                                 className="w-full h-full rounded-full object-cover"
-                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                                   e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
-                                                                               }}
-                                                                            
+                                                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                    e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
+                                                                                }}
+
                                                                             />
                                                                         ) : (
                                                                             <Building className="h-5 w-5 text-white" />
@@ -2284,17 +2290,17 @@ export default function Dashboard() {
                                                         </div>
                                                     </div>
                                                 )}
-                                                
-                                              {/*  <div className="flex items-center justify-center gap-2">
+
+                                                {/*  <div className="flex items-center justify-center gap-2">
                                                     <ExternalLink className="h-3 w-3 text-blue-400" />
                                                     <span className="text-xs text-slate-500">View management</span>
                                                 </div> */}
                                             </div>
                                         </CardContent>
-                                    </Card>                                    
+                                    </Card>
                                     {/* Tenants Card - Enhanced with building breakdown */}
                                     <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-3/10 via-background to-chart-3/5 overflow-hidden cursor-pointer"
-                                         >
+                                    >
                                         <CardContent className="p-6">
                                             <div className="text-center space-y-4">
                                                 <div className="p-4 rounded-xl bg-emerald-100 w-fit mx-auto">
@@ -2304,7 +2310,7 @@ export default function Dashboard() {
                                                     <p className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Members</p>
                                                     <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.tenants}</p>
                                                 </div>
-                                                
+
                                                 {/* Buildings Circles for Tenants */}
                                                 {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
                                                     <div className="space-y-3">
@@ -2343,7 +2349,7 @@ export default function Dashboard() {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div 
+                                                        <div
                                                             id="tenants-container"
                                                             className="flex gap-2 overflow-x-auto scrollbar-hide"
                                                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -2360,8 +2366,8 @@ export default function Dashboard() {
                                                                 >
                                                                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-200 to-emerald-400 flex items-center justify-center  transition-transform shadow-lg">
                                                                         {building.image ? (
-                                                                            <img 
-                                                                                  src={`/storage/${building.image}`}
+                                                                            <img
+                                                                                src={`/storage/${building.image}`}
                                                                                 alt={building.name}
                                                                                 className="w-full h-full rounded-full object-cover"
                                                                                 onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -2380,8 +2386,8 @@ export default function Dashboard() {
                                                         </div>
                                                     </div>
                                                 )}
-                                                
-                                               {/* <div className="flex items-center justify-center gap-2">
+
+                                                {/* <div className="flex items-center justify-center gap-2">
                                                     <ExternalLink className="h-3 w-3 text-emerald-400" />
                                                     <span className="text-xs text-slate-500">Ver gestión</span>
                                                 </div> */}
@@ -2391,7 +2397,7 @@ export default function Dashboard() {
 
                                     {/* Devices Card - Enhanced with modal */}
                                     <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-4/10 via-background to-chart-4/5 overflow-hidden cursor-pointer"
-                                          onClick={() => setShowDevicesModal(true)}>
+                                        onClick={() => setShowDevicesModal(true)}>
                                         <CardContent className="p-6">
                                             <div className="text-center space-y-4">
                                                 <div className="p-4 rounded-xl bg-amber-100 w-fit mx-auto">
@@ -2401,7 +2407,7 @@ export default function Dashboard() {
                                                     <p className="text-sm font-semibold text-amber-600 uppercase tracking-wider">Devices</p>
                                                     <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.devices}</p>
                                                 </div>
-                                                
+
                                                 {/* Device types preview */}
                                                 {/*charts.devicesByType && charts.devicesByType.length > 0 && (
                                                     <div className="space-y-2">
@@ -2421,7 +2427,7 @@ export default function Dashboard() {
                                                         </div>
                                                     </div>
                                                 )*/}
-                                                
+
                                                 <div className="flex items-center justify-center gap-2">
                                                     <Monitor className="h-3 w-3 text-amber-400" />
                                                     <span className="text-xs text-slate-500">Click to view details</span>
@@ -2446,8 +2452,8 @@ export default function Dashboard() {
                                                             <p className="text-sm text-slate-600 mt-1">{lists.topTechnicals.length} active technicians</p>
                                                         </div>
                                                     </div>
-                                                    <Button 
-                                                        variant="outline" 
+                                                    <Button
+                                                        variant="outline"
                                                         size="sm"
                                                         className="bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100"
                                                         onClick={() => window.open('/technicals', '_blank')}
@@ -2465,8 +2471,8 @@ export default function Dashboard() {
                                                                 <div className="relative">
                                                                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-200 to-rose-400 flex items-center justify-center overflow-hidden">
                                                                         {technical.photo ? (
-                                                                            <img 
-                                                                                src={technical.photo} 
+                                                                            <img
+                                                                                src={technical.photo}
                                                                                 alt={technical.name}
                                                                                 className="w-full h-full object-cover"
                                                                             />
@@ -2521,16 +2527,16 @@ export default function Dashboard() {
                                 )}
                             </div>
                         )}
-                          {/* SECTION 3: VISUAL ANALYSIS AND CHARTS */}
+                        {/* SECTION 3: VISUAL ANALYSIS AND CHARTS */}
                         <div className="space-y-16">                            <div className="text-center space-y-6">
-                                <h2 className="text-5xl font-black text-foreground">
-                                    Visual Analysis
-                                </h2>
-                                <p className="text-2xl text-muted-foreground max-w-3xl mx-auto font-semibold">
-                                    Interactive charts and trends to monitor system performance
-                                </p>
-                                <div className="flex justify-center gap-6">
-                                   {/* <Button
+                            <h2 className="text-5xl font-black text-foreground">
+                                Visual Analysis
+                            </h2>
+                            <p className="text-2xl text-muted-foreground max-w-3xl mx-auto font-semibold">
+                                Interactive charts and trends to monitor system performance
+                            </p>
+                            <div className="flex justify-center gap-6">
+                                {/* <Button
                                         variant="outline"
                                         size="lg"
                                         onClick={() => window.open('/reports', '_blank')}
@@ -2539,7 +2545,7 @@ export default function Dashboard() {
                                         <BarChart className="h-6 w-6" />
                                         Ver Reportes Completos
                                     </Button> */}
-                                   {/* <Button
+                                {/* <Button
                                         variant="outline"
                                         size="lg"
                                         onClick={() => {
@@ -2572,8 +2578,8 @@ export default function Dashboard() {
                                         <Download className="h-6 w-6" />
                                         Export Complete Analysis
                                     </Button> */}
-                                </div>
                             </div>
+                        </div>
 
                             <div className="grid gap-20 lg:grid-cols-12">
                                 {/* Main Chart - Ticket Distribution */}                                <div className="lg:col-span-6">
@@ -2586,16 +2592,16 @@ export default function Dashboard() {
                                                     <p className="text-xl text-muted-foreground">Estado actual del sistema</p>
                                                 </div>
                                                 <div className="flex gap-4">                                                    <Button
-                                                        variant="outline"
-                                                        size="lg"
-                                                        onClick={() => {
-                                                            const totalTickets = Object.values(charts.ticketsByStatus).reduce((sum, val) => sum + val, 0);
-                                                            exportTicketDistributionExcel(charts.ticketsByStatus, totalTickets);
-                                                        }}
-                                                        className="h-14 w-14 p-0 hover:bg-primary/10 shadow-xl border-primary/20 hover:scale-105 transition-all duration-300"
-                                                        title="Export Professional Analysis"
-                                                    >                                                        <FileSpreadsheet className="h-6 w-6 text-primary" />
-                                                    </Button>
+                                                    variant="outline"
+                                                    size="lg"
+                                                    onClick={() => {
+                                                        const totalTickets = Object.values(charts.ticketsByStatus).reduce((sum, val) => sum + val, 0);
+                                                        exportTicketDistributionExcel(charts.ticketsByStatus, totalTickets);
+                                                    }}
+                                                    className="h-14 w-14 p-0 hover:bg-primary/10 shadow-xl border-primary/20 hover:scale-105 transition-all duration-300"
+                                                    title="Export Professional Analysis"
+                                                >                                                        <FileSpreadsheet className="h-6 w-6 text-primary" />
+                                                </Button>
                                                     <Button
                                                         variant="outline"
                                                         size="lg"
@@ -2627,8 +2633,8 @@ export default function Dashboard() {
                                                             className="cursor-pointer drop-shadow-2xl"
                                                         >
                                                             {Object.entries(charts.ticketsByStatus).map((entry, index) => (
-                                                                <Cell 
-                                                                    key={`cell-${index}`} 
+                                                                <Cell
+                                                                    key={`cell-${index}`}
                                                                     fill={CHART_COLORS[index % CHART_COLORS.length]}
                                                                     stroke="#fff"
                                                                     strokeWidth={6}
@@ -2636,13 +2642,13 @@ export default function Dashboard() {
                                                                 />
                                                             ))}
                                                         </Pie>
-                                                        <RechartsTooltip 
+                                                        <RechartsTooltip
                                                             formatter={(value: number) => [
                                                                 `${value} tickets (${Math.round((value / Object.values(charts.ticketsByStatus).reduce((sum, val) => sum + val, 0)) * 100)}%)`,
                                                                 'Cantidad'
                                                             ]}
                                                             labelStyle={{ color: '#374151', fontWeight: 'bold', fontSize: '18px' }}
-                                                            contentStyle={{ 
+                                                            contentStyle={{
                                                                 backgroundColor: '#fff',
                                                                 border: 'none',
                                                                 borderRadius: '20px',
@@ -2650,8 +2656,8 @@ export default function Dashboard() {
                                                                 padding: '20px 24px'
                                                             }}
                                                         />
-                                                        <Legend 
-                                                            verticalAlign="bottom" 
+                                                        <Legend
+                                                            verticalAlign="bottom"
                                                             height={80}
                                                             formatter={(value) => (
                                                                 <span className="text-lg font-black text-slate-700">
@@ -2676,17 +2682,21 @@ export default function Dashboard() {
                                                     <p className="text-xl text-muted-foreground font-semibold">Ticket evolution over the last 7 days</p>
                                                 </div>
                                                 <div className="flex gap-4">                                                    <Button
-                                                        variant="outline"
-                                                        size="lg"
-                                                        onClick={() => {
-                                                            exportWeeklyTrendExcel(trendData);
-                                                        }}
-                                                        className="h-14 w-14 p-0 hover:bg-secondary/10 shadow-xl border-secondary/20 hover:scale-105 transition-all duration-300"
-                                                        title="Export Weekly Trend Analysis"
-                                                    >
-                                                        <FileSpreadsheet className="h-6 w-6 text-secondary" />
-                                                    </Button>
-                                                   {/* <Button
+                                                    variant="outline"
+                                                    size="lg"
+                                                    onClick={() => {
+                                                        const exportData = charts.ticketsLastWeek.map(item => ({
+                                                            date: item.date,
+                                                            count: item.count
+                                                        }));
+                                                        exportWeeklyTrendExcel(exportData);
+                                                    }}
+                                                    className="h-14 w-14 p-0 hover:bg-secondary/10 shadow-xl border-secondary/20 hover:scale-105 transition-all duration-300"
+                                                    title="Export Weekly Trend Analysis"
+                                                >
+                                                    <FileSpreadsheet className="h-6 w-6 text-secondary" />
+                                                </Button>
+                                                    {/* <Button
                                                         variant="outline"
                                                         size="lg"
                                                         onClick={() => window.open('/reports/trends', '_blank')}
@@ -2703,24 +2713,24 @@ export default function Dashboard() {
                                                     <AreaChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                                         <defs>
                                                             <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                                                                <stop offset="5%" stopColor="#6366F1" stopOpacity={0.6}/>
-                                                                <stop offset="95%" stopColor="#6366F1" stopOpacity={0.1}/>
+                                                                <stop offset="5%" stopColor="#6366F1" stopOpacity={0.6} />
+                                                                <stop offset="95%" stopColor="#6366F1" stopOpacity={0.1} />
                                                             </linearGradient>
                                                         </defs>
                                                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeWidth={2} />
-                                                        <XAxis 
-                                                            dataKey="date" 
+                                                        <XAxis
+                                                            dataKey="date"
                                                             tick={{ fontSize: 16, fill: '#475569', fontWeight: 'bold' }}
                                                             tickLine={{ stroke: '#cbd5e1' }}
                                                             axisLine={{ stroke: '#cbd5e1' }}
                                                         />
-                                                        <YAxis 
+                                                        <YAxis
                                                             tick={{ fontSize: 16, fill: '#475569', fontWeight: 'bold' }}
                                                             tickLine={{ stroke: '#cbd5e1' }}
                                                             axisLine={{ stroke: '#cbd5e1' }}
                                                         />
-                                                        <RechartsTooltip 
-                                                            contentStyle={{ 
+                                                        <RechartsTooltip
+                                                            contentStyle={{
                                                                 backgroundColor: '#fff',
                                                                 border: 'none',
                                                                 borderRadius: '20px',
@@ -2733,19 +2743,19 @@ export default function Dashboard() {
                                                                 name === 'tickets' ? 'Daily Total' : 'Average'
                                                             ]}
                                                         />
-                                                        <Area 
-                                                            type="monotone" 
-                                                            dataKey="tickets" 
-                                                            stroke="#6366F1" 
+                                                        <Area
+                                                            type="monotone"
+                                                            dataKey="tickets"
+                                                            stroke="#6366F1"
                                                             strokeWidth={5}
                                                             fill="url(#colorGradient)"
                                                             dot={{ fill: '#6366F1', strokeWidth: 4, r: 8 }}
                                                             activeDot={{ r: 10, stroke: '#6366F1', strokeWidth: 4, fill: '#fff' }}
                                                         />
-                                                        <Area 
-                                                            type="monotone" 
-                                                            dataKey="average" 
-                                                            stroke="#94A3B8" 
+                                                        <Area
+                                                            type="monotone"
+                                                            dataKey="average"
+                                                            stroke="#94A3B8"
                                                             strokeWidth={4}
                                                             strokeDasharray="10 10"
                                                             fill="none"
@@ -2759,34 +2769,86 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         </div>
-                        
-                        {/* FOOTER PREMIUM */}                       
-                         <div className="mt-32">                         
-                               <Card className="border-0 bg-chart-5 text-background shadow-2xl overflow-hidden relative dark:bg-white/10">
+
+                    {/* SECTION 3: ADVANCED CHARTS */}
+                    <div className="space-y-6 mt-4">
+                        <div className="text-center space-y-4">
+                            <h2 className="text-3xl font-bold text-foreground">
+                                Advanced Analytics
+                            </h2>
+                            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                                Interactive charts and visualizations
+                            </p>
+                        </div>
+                        <AdvancedCharts
+                            data={{
+                                ticketsByStatus: Object.entries(charts.ticketsByStatus).map(([status, count]) => ({
+                                    status,
+                                    count: count as number,
+                                    color: status === 'open' ? '#ef4444' :
+                                        status === 'in_progress' ? '#f59e0b' :
+                                            status === 'resolved' ? '#10b981' : '#6b7280'
+                                })),
+                                ticketsByPriority: Object.entries(charts.ticketsByPriority).map(([priority, count]) => ({
+                                    priority,
+                                    count: count as number,
+                                    color: priority === 'high' ? '#dc2626' :
+                                        priority === 'medium' ? '#ea580c' :
+                                            priority === 'low' ? '#16a34a' : '#6b7280'
+                                })),
+                                ticketsByBuilding: lists.buildingsWithTickets.map(b => ({
+                                    building: b.name,
+                                    count: b.tickets_count
+                                })),
+                                ticketsOverTime: charts.ticketsLastWeek.map((item, index) => ({
+                                    month: `Day ${index + 1}`,
+                                    created: item.count,
+                                    resolved: Math.floor(item.count * 0.8)
+                                })),
+                                deviceIssues: lists.problematicDevices.map(d => ({
+                                    device: d.device_name,
+                                    count: d.tickets_count,
+                                    avgResolution: 24
+                                })),
+                                techniciansPerformance: lists.topTechnicals.map(t => ({
+                                    technician: t.name,
+                                    resolved: t.tickets_count,
+                                    avg_time: 18
+                                }))
+                            }}
+                        />
+                    </div>
+
+                
+
+
+                      {/* FOOTER PREMIUM */}
+                        <div className="mt-32">
+                            <Card className="border-0 bg-chart-5 text-background shadow-2xl overflow-hidden relative dark:bg-white/10">
                                 <div className="absolute inset-0 bg-primary/10 dark:bg-transparent"></div>
                                 <CardContent className="p-16 relative">
                                     <div className="grid gap-16 lg:grid-cols-4">                                        <div className="text-center space-y-4">
-                                            <div className="p-6 rounded-3xl bg-primary/20 w-fit mx-auto dark:bg-primary">
-                                                <Activity className="h-10 w-10 text-primary dark:text-primary-foreground" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <p className="text-4xl font-black text-background">
-                                                    {metrics.tickets.total + metrics.tickets.resolved_today}
-                                                </p>
-                                                <p className="text-primary/80 font-bold text-lg">Total Processed</p>
-                                            </div>
+                                        <div className="p-6 rounded-3xl bg-primary/20 w-fit mx-auto dark:bg-primary">
+                                            <Activity className="h-10 w-10 text-primary dark:text-primary-foreground" />
                                         </div>
-                                        
+                                        <div className="space-y-2">
+                                            <p className="text-4xl font-black text-background">
+                                                {metrics.tickets.total + metrics.tickets.resolved_today}
+                                            </p>
+                                            <p className="text-primary/80 font-bold text-lg">Total Processed</p>
+                                        </div>
+                                    </div>
+
                                         <div className="text-center space-y-4">
                                             <div className="p-6 rounded-3xl bg-primary/20 w-fit mx-auto dark:bg-primary">
-                                                <TrendingUp  className="h-10 w-10 text-primary dark:text-primary-foreground" />
+                                                <TrendingUp className="h-10 w-10 text-primary dark:text-primary-foreground" />
                                             </div>
                                             <div className="space-y-2">
                                                 <p className="text-4xl font-black text-background">98.5%</p>
                                                 <p className="text-primary/80 font-bold text-lg">Uptime</p>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="text-center space-y-4">
                                             <div className="p-6 rounded-3xl bg-accent/20 w-fit mx-auto dark:bg-primary">
                                                 <Users className="h-10 w-10 text-accent dark:text-primary-foreground" />
@@ -2798,7 +2860,7 @@ export default function Dashboard() {
                                                 <p className="text-accent/80 font-bold text-lg">Active Users</p>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="text-center space-y-4">
                                             <div className="p-6 rounded-3xl bg-chart-1/20 w-fit mx-auto dark:bg-primary">
                                                 <Zap className="h-10 w-10 text-chart-1 dark:text-primary-foreground" />
@@ -2812,15 +2874,20 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                 </CardContent>
-                            </Card>                        </div>
-                          </div>
+                            </Card>
+                        </div>
+                      
+                    </div>
+
+
+
                 </div>                {/* Devices Modal con animaciones mejoradas */}
                 {showDevicesModal && (
-                    <div 
+                    <div
                         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-300"
                         onClick={() => setShowDevicesModal(false)}
                     >
-                        <div 
+                        <div
                             className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 slide-in-from-bottom-4 duration-500 ease-out"
                             onClick={(e) => e.stopPropagation()}
                         >
@@ -2842,7 +2909,7 @@ export default function Dashboard() {
                                 >
                                     <X className="h-6 w-6" />
                                 </Button>
-                            </div>                            
+                            </div>
                             <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] bg-white dark:bg-gray-900 scroll-smooth custom-scrollbar">
                                 {lists.allDevices && lists.allDevices.length > 0 ? (
                                     <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-700 delay-300">
@@ -2855,7 +2922,7 @@ export default function Dashboard() {
                                                     <p className="text-2xl font-bold text-foreground dark:text-white">{lists.allDevices.length}</p>
                                                 </CardContent>
                                             </Card>
-                                            
+
                                             <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 dark:from-secondary/20 dark:to-secondary/10 border-secondary/20 dark:border-secondary/30 dark:bg-gray-800/50 animate-in slide-in-from-bottom-2 duration-500 delay-500 hover:scale-105 transition-transform">
                                                 <CardContent className="p-4 text-center">
                                                     <Users className="h-8 w-8 text-secondary dark:text-secondary mx-auto mb-2" />
@@ -2865,7 +2932,7 @@ export default function Dashboard() {
                                                     </p>
                                                 </CardContent>
                                             </Card>
-                                            
+
                                             <Card className="bg-gradient-to-br from-accent/10 to-accent/5 dark:from-accent/20 dark:to-accent/10 border-accent/20 dark:border-accent/30 dark:bg-gray-800/50 animate-in slide-in-from-right-2 duration-500 delay-600 hover:scale-105 transition-transform">
                                                 <CardContent className="p-4 text-center">
                                                     <BarChart3 className="h-8 w-8 text-accent dark:text-accent mx-auto mb-2" />
@@ -2895,59 +2962,59 @@ export default function Dashboard() {
                                             <CardContent className="p-0 bg-white dark:bg-gray-800/50">
                                                 <div className="overflow-x-auto">
                                                     <table className="w-full">                                                        <thead>
-                                                            <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70">
-                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Device</th>
-                                                               
-                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Model</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Brand</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">System</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Users</th>
-                                                                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Status</th>
-                                                            </tr>
-                                                        </thead>
+                                                        <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70">
+                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Device</th>
+
+                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Model</th>
+                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Brand</th>
+                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">System</th>
+                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Users</th>
+                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Status</th>
+                                                        </tr>
+                                                    </thead>
                                                         <tbody>
-                                                            {lists.allDevices.map((device, index) => (                                                                <tr key={device.id} className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${index % 2 === 0 ? 'bg-white dark:bg-gray-800/30' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
-                                                                    <td className="py-3 px-4">
-                                                                        <div className="flex items-center gap-3">
-                                                                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-chart-4/20 to-chart-3/20 dark:from-chart-4/30 dark:to-chart-3/30 flex items-center justify-center">
-                                                                                <Laptop className="h-4 w-4 text-chart-4 dark:text-chart-4" />
-                                                                            </div>
-                                                                            <div>
-                                                                                <p className="font-semibold text-foreground dark:text-white text-sm">  {device.device_type || 'Unknown'}</p>
-                                                                              
-                                                                            </div>
-                                                                        </div>                                                                    
-                                                                        </td>   
-                                                                       
-                                                                    <td className="py-3 px-4">
-                                                                        <span className="text-sm font-medium text-foreground dark:text-white">
-                                                                            {device.model_name || 'N/A'}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="py-3 px-4">
-                                                                        <span className="text-sm font-medium text-foreground dark:text-white">{device.brand_name}</span>
-                                                                    </td>
-                                                                    <td className="py-3 px-4">
-                                                                        <span className="text-sm text-muted-foreground dark:text-gray-400">{device.system_name}</span>
-                                                                    </td>
-                                                                    <td className="py-3 px-4">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Users className="h-4 w-4 text-accent dark:text-accent" />
-                                                                            <span className="font-semibold text-accent dark:text-accent">{device.users_count}</span>
+                                                            {lists.allDevices.map((device, index) => (<tr key={device.id} className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${index % 2 === 0 ? 'bg-white dark:bg-gray-800/30' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
+                                                                <td className="py-3 px-4">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-chart-4/20 to-chart-3/20 dark:from-chart-4/30 dark:to-chart-3/30 flex items-center justify-center">
+                                                                            <Laptop className="h-4 w-4 text-chart-4 dark:text-chart-4" />
                                                                         </div>
-                                                                    </td>
-                                                                    <td className="py-3 px-4">
-                                                                        <Badge 
-                                                                            variant="outline" 
-                                                                            className={device.users_count > 0 
-                                                                                ? "bg-accent/10 dark:bg-accent/20 text-accent dark:text-accent border-accent/20 dark:border-accent/30" 
-                                                                                : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600"
-                                                                            }
-                                                                        >
-                                                                            {device.users_count > 0 ? 'Active' : 'Unused'}
-                                                                        </Badge>
-                                                                    </td>
-                                                                </tr>
+                                                                        <div>
+                                                                            <p className="font-semibold text-foreground dark:text-white text-sm">  {device.device_type || 'Unknown'}</p>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+
+                                                                <td className="py-3 px-4">
+                                                                    <span className="text-sm font-medium text-foreground dark:text-white">
+                                                                        {device.device_type || 'N/A'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-3 px-4">
+                                                                    <span className="text-sm font-medium text-foreground dark:text-white">{device.brand_name}</span>
+                                                                </td>
+                                                                <td className="py-3 px-4">
+                                                                    <span className="text-sm text-muted-foreground dark:text-gray-400">{device.system_name}</span>
+                                                                </td>
+                                                                <td className="py-3 px-4">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Users className="h-4 w-4 text-accent dark:text-accent" />
+                                                                        <span className="font-semibold text-accent dark:text-accent">{device.users_count}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3 px-4">
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className={device.users_count > 0
+                                                                            ? "bg-accent/10 dark:bg-accent/20 text-accent dark:text-accent border-accent/20 dark:border-accent/30"
+                                                                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600"
+                                                                        }
+                                                                    >
+                                                                        {device.users_count > 0 ? 'Active' : 'Unused'}
+                                                                    </Badge>
+                                                                </td>
+                                                            </tr>
                                                             ))}
                                                         </tbody>
                                                     </table>
@@ -2980,7 +3047,7 @@ interface UnassignedTicketRowProps {
         status: string;
         category: string;
         created_at: string;
-        user?: { 
+        user?: {
             tenant?: {
                 name: string;
                 apartment?: {
@@ -2989,15 +3056,15 @@ interface UnassignedTicketRowProps {
                 };
             };
         };
-        device?: { 
+        device?: {
             name?: string;
             name_device?: {
                 name: string;
             };
-            apartment?: { 
-                name: string; 
-                building?: { name: string } 
-            } 
+            apartment?: {
+                name: string;
+                building?: { name: string }
+            }
         };
     };
     index: number;
@@ -3019,22 +3086,33 @@ function UnassignedTicketRow({ ticket, index, technicals }: UnassignedTicketRowP
         }
 
         setIsAssigning(true);
-          try {
+        try {
             const response = await fetch(`/tickets/${ticket.id}/assign-technical`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                 },
                 body: JSON.stringify({ technical_id: selectedTech })
-            });            if (response.ok) {
-                await response.json();
-                toast.success('Ticket assigned successfully!');
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                toast.success(result.message || 'Ticket assigned successfully!');
                 // Recargar la página para mostrar datos actualizados
                 router.reload({ only: ['lists'] });
             } else {
-                const errorData = await response.json();
-                toast.error(errorData.error || 'Failed to assign ticket');
+                // Manejar errores de validación
+                if (response.status === 422) {
+                    const errorData = await response.json();
+                    const errorMessages = Object.values(errorData.errors || {}).flat();
+                    toast.error(errorMessages.join(', ') || 'Validation error');
+                } else {
+                    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+                    toast.error(errorData.message || errorData.error || 'Failed to assign ticket');
+                }
             }
         } catch (error) {
             toast.error('Error assigning ticket');
@@ -3042,14 +3120,14 @@ function UnassignedTicketRow({ ticket, index, technicals }: UnassignedTicketRowP
         } finally {
             setIsAssigning(false);
         }
-    };const getStatusBadge = (status: string) => {
+    }; const getStatusBadge = (status: string) => {
         const statusStyles: Record<string, string> = {
             open: 'bg-red-100 text-red-700 border-red-200',
             in_progress: 'bg-amber-100 text-amber-700 border-amber-200',
             resolved: 'bg-green-100 text-green-700 border-green-200',
             closed: 'bg-gray-100 text-gray-700 border-gray-200',
         };
-        
+
         return (
             <Badge variant="outline" className={`${statusStyles[status] || statusStyles.open} capitalize`}>
                 {status.replace('_', ' ')}
@@ -3064,7 +3142,7 @@ function UnassignedTicketRow({ ticket, index, technicals }: UnassignedTicketRowP
             Network: 'bg-green-100 text-green-700',
             Maintenance: 'bg-orange-100 text-orange-700',
         };
-        
+
         return (
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoryColors[category] || 'bg-gray-100 text-gray-700'}`}>
                 {category}
@@ -3076,7 +3154,7 @@ function UnassignedTicketRow({ ticket, index, technicals }: UnassignedTicketRowP
         const date = new Date(dateString);
         const now = new Date();
         const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-        
+
         if (diffInHours < 24) {
             return `${diffInHours}h ago`;
         } else {
@@ -3151,8 +3229,8 @@ function UnassignedTicketRow({ ticket, index, technicals }: UnassignedTicketRowP
                             )}
                         </SelectContent>
                     </Select>
-                    <Button 
-                        size="sm" 
+                    <Button
+                        size="sm"
                         variant="outline"
                         onClick={handleAssign}
                         disabled={!selectedTech || isAssigning}

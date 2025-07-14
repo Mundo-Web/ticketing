@@ -1267,37 +1267,7 @@ export default function TicketsIndex({
                                 </>
                             ) : (isTechnicalDefault || isSuperAdmin || isTechnical) ? (
                                 <>
-                                    {/* Header con botón crear ticket para Admin/Technical */}
-                                    <Card className="shadow-lg border-0 !p-0">
-                                        <CardContent className="!p-0">
-                                            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 p-4 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 rounded-xl border border-primary/20 shadow-inner">
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg flex-shrink-0">
-                                                        <UserPlus className="w-6 h-6 text-primary-foreground" />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <h3 className="text-lg font-bold text-foreground bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                                                            Ticket Management
-                                                        </h3>
-                                                        <p className="text-xs text-muted-foreground mt-1 truncate">
-                                                            Create and manage tickets for any building
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="flex gap-3">
-                                                    <Button
-                                                        onClick={() => setShowCreateModal(true)}
-                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors shadow-md hover:shadow-lg"
-                                                    >
-                                                        <UserPlus className="w-4 h-4" />
-                                                        Create New Ticket
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
+                                   
                                     <div className="kanban-container flex w-full min-h-[500px] overflow-x-scroll">
                                         <KanbanBoard
                                             tickets={statusFilter ? allTickets : (allTicketsUnfiltered.length > 0 ? allTicketsUnfiltered : allTickets)}

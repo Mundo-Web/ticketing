@@ -370,6 +370,12 @@ export default function Index({ apartments, brands, models, systems, name_device
         e.preventDefault();
         const formData = new FormData();
 
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            formData.append('_token', csrfToken);
+        }
+
         formData.append('name', data.name);
         formData.append('ubicacion', data.ubicacion);
         formData.append('order', data.order.toString());
@@ -429,6 +435,13 @@ export default function Index({ apartments, brands, models, systems, name_device
         if (!data.id) return;
 
         const formData = new FormData();
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            formData.append('_token', csrfToken);
+        }
+        
         formData.append('_method', 'PUT');
         formData.append('name', data.name);
         formData.append('ubicacion', data.ubicacion);
@@ -729,6 +742,13 @@ export default function Index({ apartments, brands, models, systems, name_device
         }
 
         const formData = new FormData();
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            formData.append('_token', csrfToken);
+        }
+        
         formData.append('file', bulkFile);
 
         setIsBulkUploading(true);
@@ -1122,6 +1142,13 @@ export default function Index({ apartments, brands, models, systems, name_device
     const handleSuperintendentUpdate = (e: React.FormEvent) => {
         e.preventDefault();
         const formData = new FormData();
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            formData.append('_token', csrfToken);
+        }
+        
         formData.append('_method', 'PUT');
         formData.append('owner[id]', superintendentData!.id.toString());
         formData.append('owner[name]', superintendentData!.name);
@@ -2872,21 +2899,21 @@ const ApartmentRowExpanded = ({
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-3">
-                                            {/* Botón Devices - Para todos los roles excepto superadmin regular */}
+                                        <div className="flex items-center gap-2">
+                                            {/* Botón para crear tickets - Para todos los roles */}
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex items-center gap-2 hover:bg-corporate-gold hover:text-primary-foreground transition-all duration-300 border-corporate-gold/20 hover:border-corporate-gold group-hover/member:border-corporate-gold/40"
                                                 onClick={() => {
-                                                    console.log('=== DEVICES BUTTON CLICKED ===');
+                                                    console.log('=== CREATE TICKET BUTTON CLICKED ===');
                                                     console.log('User role:', auth.user?.role);
                                                     console.log('User roles array:', auth.user?.roles);
                                                     console.log('Tenant:', tenant);
                                                     console.log('Tenant devices:', tenant.devices);
                                                     console.log('Tenant shared devices:', tenant.shared_devices);
                                                     console.log('Apartment:', apartment);
-                                                    console.log('=== END DEVICES BUTTON DEBUG ===');
+                                                    console.log('=== END CREATE TICKET BUTTON DEBUG ===');
                                                     
                                                     const userRoles = auth.user?.roles || [];
                                                     const isSuperAdmin = userRoles.includes('superadmin') || userRoles.includes('super-admin');
@@ -2911,6 +2938,24 @@ const ApartmentRowExpanded = ({
                                                 </span>
                                                 <span className="hidden sm:inline font-medium">Devices</span>
                                             </Button>
+
+                                            {/* Botón para administrar devices - Solo para super admin */}
+                                            {(auth.user?.roles?.includes('super-admin') || auth.user?.roles?.includes('superadmin')) && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex items-center gap-2 hover:bg-purple-500 hover:text-white transition-all duration-300 border-purple-300 hover:border-purple-500"
+                                                    onClick={() => {
+                                                        console.log('=== MANAGE DEVICES BUTTON CLICKED ===');
+                                                        console.log('Super admin managing devices for tenant:', tenant);
+                                                        console.log('Apartment:', apartment);
+                                                        handleShowDevices(apartment, tenant);
+                                                    }}
+                                                >
+                                                    <Laptop className="w-4 h-4" />
+                                                    <span className="hidden sm:inline font-medium">Manage</span>
+                                                </Button>
+                                            )}
 
                                             <Button
                                                 variant="outline"

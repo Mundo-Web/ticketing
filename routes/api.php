@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\TechnicalController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\NinjaOneWebhookController;
 use App\Http\Controllers\BuildingController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,16 @@ Route::middleware(['auth:sanctum', 'tenant'])->prefix('tenant')->group(function 
     // Password management routes
     Route::post('/change-password', [TenantController::class, 'changePassword']);
     Route::post('/reset-password-request', [TenantController::class, 'resetPasswordRequest']);
+});
+
+// Notification routes
+Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
+    Route::get('/', [NotificationController::class, 'index']);
+    Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/{id}', [NotificationController::class, 'destroy']);
+    Route::get('/settings', [NotificationController::class, 'getSettings']);
+    Route::put('/settings', [NotificationController::class, 'updateSettings']);
 });
 
 // Technical API routes
