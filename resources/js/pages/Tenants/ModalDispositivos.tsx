@@ -1050,7 +1050,7 @@ const ModalDispositivos = ({
                 )}
 
                 {/* Tabla de dispositivos */}
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border rounded-lg overflow-visible">
                     <table className="w-full">
                         <table className="w-full">
                             <thead className="bg-gray-50">
