@@ -18,6 +18,8 @@ class Ticket extends Model
         'title',
         'description',
         'status',
+        'priority',
+        'source',
         'resolved_at',
         'closed_at',
         'code',

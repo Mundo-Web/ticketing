@@ -7,6 +7,11 @@ export interface Device {
     name_device_id: number;
     ubicacion?: string;
     icon_id?: string;
+    is_in_ninjaone?: boolean;
+    ninjaone_system_name?: string;
+    ninjaone_status?: string;
+    ninjaone_issues_count?: number;
+    ninjaone_online?: boolean;
     brand?: { id: number; name: string };
     model?: { id: number; name: string };
     system?: { id: number; name: string };

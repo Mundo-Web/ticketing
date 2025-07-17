@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Trash2, Edit, Plus, Laptop2, ShieldCheck, ShieldPlus, ScanQrCodeIcon, Keyboard, ShareIcon, MapPin } from 'lucide-react';
+import { Trash2, Edit, Plus, Laptop2, ShieldCheck, ShieldPlus, ScanQrCodeIcon, Keyboard, ShareIcon, MapPin, Tag, AlertCircle, CheckCircle } from 'lucide-react';
 import CreatableSelect from 'react-select/creatable';
 import axios from 'axios';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -59,7 +59,7 @@ const ModalDispositivos = ({
     console.log(deviceShareList)
     const [showForm, setShowForm] = useState(false);
     const [editMode, setEditMode] = useState(false);
-
+    
     // Estados locales para las opciones
     const [localBrands, setLocalBrands] = useState(brands);
     const [localModels, setLocalModels] = useState(models);
@@ -71,6 +71,63 @@ const ModalDispositivos = ({
         deviceCount?: number;
         canForce?: boolean;
     }>({ type: '', id: null });
+    
+    // Función para exportar dispositivos en NinjaOne
+    const exportNinjaOneDevices = async (exportType: 'all' | 'building' | 'apartment') => {
+        try {
+            // Filtrar dispositivos que están en NinjaOne
+            const ninjaOneDevices = deviceList.filter(device => device.is_in_ninjaone === true);
+            
+            if (ninjaOneDevices.length === 0) {
+                toast.error('No hay dispositivos en NinjaOne para exportar');
+                return;
+            }
+            
+            let url = '';
+            let data = {};
+            
+            switch (exportType) {
+                case 'all':
+                    url = route('devices.export.ninjaone');
+                    data = { devices: ninjaOneDevices.map(d => d.id) };
+                    break;
+                case 'building':
+                    url = route('devices.export.ninjaone.building');
+                    data = { 
+                        tenant_id: tenantId,
+                        // Si no tenemos building_id, usamos el apartmentId para que el backend resuelva
+                        apartment_id: apartmentId 
+                    };
+                    break;
+                case 'apartment':
+                    url = route('devices.export.ninjaone.apartment');
+                    data = { 
+                        tenant_id: tenantId,
+                        apartment_id: apartmentId
+                    };
+                    break;
+            }
+            
+            const response = await axios.post(url, data, {
+                responseType: 'blob'
+            });
+            
+            // Crear un blob y un enlace para descargar
+            const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', `ninjaone-devices-${exportType}-${new Date().toISOString().split('T')[0]}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            
+            toast.success(`Dispositivos exportados correctamente (${exportType})`);
+        } catch (error) {
+            console.error('Error exporting devices:', error);
+            toast.error('Error al exportar dispositivos');
+        }
+    };
     useEffect(() => {
         setDeviceList(devices);
         setDeviceShareList(shareDevice);
@@ -99,6 +156,7 @@ const ModalDispositivos = ({
         tenants: [] as number[],
         ubicacion: '',
         icon_id: '',
+        is_in_ninjaone: false as boolean,
     });
 
     const handleShareDevice = async (deviceId: number, tenantIds: number[], unshareIds: number[] = []) => {
@@ -166,7 +224,8 @@ const ModalDispositivos = ({
             tenant_id: tenantId,
             tenants: device.tenants?.map(t => t.id) || [],
             ubicacion: device.ubicacion || '',
-            icon_id: device.icon_id || ''
+            icon_id: device.icon_id || '',
+            is_in_ninjaone: device.is_in_ninjaone || false
         });
         setShowForm(true);
         setEditMode(true);
@@ -749,10 +808,46 @@ const ModalDispositivos = ({
                 </DialogHeader>
 
                 <div className="flex justify-between items-center mb-4">
-                    <Button onClick={handleShowCreate} className="gap-2">
-                        <Plus className="w-4 h-4" /> New Device
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button onClick={handleShowCreate} className="gap-2">
+                            <Plus className="w-4 h-4" /> New Device
+                        </Button>
+                        
+                        <div className="dropdown relative">
+                            <Button variant="outline" className="gap-2 flex items-center">
+                                <ShieldPlus className="w-4 h-4" /> Export NinjaOne Devices
+                                <div className="ml-1 border-l border-gray-300 h-4"></div>
+                                <span className="text-xs">▼</span>
+                            </Button>
+                            <div className="dropdown-content absolute hidden bg-white shadow-md rounded-md mt-1 py-1 w-48 z-10">
+                                <button 
+                                    onClick={() => exportNinjaOneDevices('all')} 
+                                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                                >
+                                    <ShieldCheck className="w-4 h-4" /> All Devices
+                                </button>
+                                <button 
+                                    onClick={() => exportNinjaOneDevices('building')} 
+                                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                                >
+                                    <MapPin className="w-4 h-4" /> By Building
+                                </button>
+                                <button 
+                                    onClick={() => exportNinjaOneDevices('apartment')} 
+                                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                                >
+                                    <MapPin className="w-4 h-4" /> By Apartment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                
+                <style>
+                    {`.dropdown:hover .dropdown-content {
+                        display: block;
+                    }`}
+                </style>
 
                 {showForm && (
                     <form onSubmit={handleSubmit} className="mb-6 space-y-4 p-4 border rounded-lg">
@@ -897,6 +992,35 @@ const ModalDispositivos = ({
                             />
                         </div>
 
+                        {/* Campo NinjaOne */}
+                        <div className='flex items-center space-x-2'>
+                            <Checkbox
+                                id="ninjaone"
+                                checked={data.is_in_ninjaone}
+                                onCheckedChange={(checked) => setData('is_in_ninjaone', Boolean(checked))}
+                            />
+                            <Label htmlFor="ninjaone" className="flex gap-2 items-center">
+                                <ShieldCheck className='w-4 h-4' /> Device is in NinjaOne
+                            </Label>
+                        </div>
+                        
+                        {/* Campo Name para conectar con NinjaOne */}
+                        {data.is_in_ninjaone && (
+                            <div className='space-y-2'>
+                                <Label className='flex gap-2 items-center'>
+                                    <Tag className='w-4 h-4' /> NinjaOne Device Name
+                                </Label>
+                                <Input
+                                    placeholder="Enter device name as it appears in NinjaOne"
+                                    value={data.name || ''}
+                                    onChange={(e) => setData('name', e.target.value)}
+                                />
+                                <p className="text-xs text-gray-500">
+                                    Enter the System Name as shown in NinjaOne (e.g., DESKTOP-6VEP452, DAMIANPC)
+                                </p>
+                            </div>
+                        )}
+
                         <div className='space-y-2'>
                             <Label>Sharing with members</Label>
                             <Select
@@ -936,6 +1060,7 @@ const ModalDispositivos = ({
                                     <th className="px-4 py-3 text-left font-medium">Model</th>
                                     <th className="px-4 py-3 text-left font-medium">System</th>
                                     <th className="px-4 py-3 text-left font-medium">Location</th>
+                                    <th className="px-4 py-3 text-left font-medium">NinjaOne</th>
                                     <th className="px-4 py-3 text-left font-medium">Shared with</th>
                                     <th className="px-4 py-3 text-left font-medium">Actions</th>
                                 </tr>
@@ -959,6 +1084,67 @@ const ModalDispositivos = ({
                                             <div className="text-sm text-gray-600 truncate" title={device.ubicacion}>
                                                 {device.ubicacion || '-'}
                                             </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {device.is_in_ninjaone ? (
+                                                <div className="flex items-center">
+                                                    <ShieldCheck className="w-4 h-4 text-green-500 mr-1" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-green-600">Yes</span>
+                                                        {device.name && (
+                                                            <span className="text-xs text-gray-500">
+                                                                System: {device.name}
+                                                            </span>
+                                                        )}
+                                                        {!device.name && (
+                                                            <span className="text-xs text-orange-500">
+                                                                ⚠️ No system name
+                                                            </span>
+                                                        )}
+                                                        {device.ninjaone_status && (
+                                                            <div className="mt-1 flex items-center gap-1">
+                                                                {device.ninjaone_status === 'healthy' && (
+                                                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                        <CheckCircle className="w-3 h-3" /> Healthy
+                                                                    </span>
+                                                                )}
+                                                                {device.ninjaone_status === 'warning' && (
+                                                                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                        <AlertCircle className="w-3 h-3" /> Warning
+                                                                    </span>
+                                                                )}
+                                                                {device.ninjaone_status === 'critical' && (
+                                                                    <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                        <AlertCircle className="w-3 h-3" /> Critical
+                                                                    </span>
+                                                                )}
+                                                                {device.ninjaone_status === 'offline' && (
+                                                                    <span className="text-xs bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                        <AlertCircle className="w-3 h-3" /> Offline
+                                                                    </span>
+                                                                )}
+                                                                {device.ninjaone_status === 'maintenance' && (
+                                                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                        <AlertCircle className="w-3 h-3" /> Maintenance
+                                                                    </span>
+                                                                )}
+                                                                {device.ninjaone_status === 'unknown' && (
+                                                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                        <AlertCircle className="w-3 h-3" /> Unknown
+                                                                    </span>
+                                                                )}
+                                                                {(device.ninjaone_issues_count || 0) > 0 && (
+                                                                    <span className="text-xs text-red-600 ml-1">
+                                                                        ({device.ninjaone_issues_count} issues)
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400">No</span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex flex-wrap gap-1">

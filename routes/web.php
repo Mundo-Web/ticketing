@@ -84,6 +84,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/devices/{device}/remove-from-tenant', [DeviceController::class, 'removeFromTenant'])
         ->name('devices.removeFromTenant');
         
+    // NinjaOne export routes
+    Route::post('/devices/export/ninjaone', [DeviceController::class, 'exportNinjaOneDevices'])
+        ->name('devices.export.ninjaone');
+        
+    Route::post('/devices/export/ninjaone/building', [DeviceController::class, 'exportNinjaOneDevicesByBuilding'])
+        ->name('devices.export.ninjaone.building');
+        
+    Route::post('/devices/export/ninjaone/apartment', [DeviceController::class, 'exportNinjaOneDevicesByApartment'])
+        ->name('devices.export.ninjaone.apartment');
+        
     Route::delete('/delete/brand/{id}', [DeviceController::class, 'destroyBrand'])
         ->name('brands.destroy');
 

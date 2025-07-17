@@ -57,6 +57,9 @@ import {
     Users,
     MapPin,
     Trash2,
+    Bell,
+    X,
+    Plus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -339,6 +342,10 @@ export default function TicketsIndex({
     const [deviceAlerts, setDeviceAlerts] = useState<any[]>([]);
     const [loadingAlerts, setLoadingAlerts] = useState<Record<number, boolean>>({});
     const [showNinjaOneAlerts, setShowNinjaOneAlerts] = useState<Record<number, boolean>>({});
+    const [userDeviceAlerts, setUserDeviceAlerts] = useState<any[]>([]);
+    const [loadingUserAlerts, setLoadingUserAlerts] = useState(false);
+    const [showNinjaOneNotifications, setShowNinjaOneNotifications] = useState(false);
+    const [creatingTicketFromAlert, setCreatingTicketFromAlert] = useState<number | null>(null);
     const [allTenants, setAllTenants] = useState<any[]>([]);
     const { auth, isTechnicalDefault } = usePage<SharedData & { isTechnicalDefault?: boolean }>().props;
     const isMember = (auth.user as any)?.roles?.includes("member");
@@ -631,6 +638,91 @@ export default function TicketsIndex({
         window.location.href = `/tickets/create-from-alert/${alertId}`;
     };
 
+    // Load user device alerts for notifications
+    const loadUserDeviceAlerts = async () => {
+        if (!isMember) return; // Only for members
+        
+        setLoadingUserAlerts(true);
+        try {
+            const response = await fetch('/api/ninjaone/user-device-alerts', {
+                headers: { 
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${(auth.user as any)?.token || ''}`
+                },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setUserDeviceAlerts(data.device_alerts || []);
+            }
+        } catch (error) {
+            console.error('Error loading user device alerts:', error);
+            setUserDeviceAlerts([]);
+        } finally {
+            setLoadingUserAlerts(false);
+        }
+    };
+
+    // Create ticket from device alert
+    const createTicketFromDeviceAlert = async (deviceAlert: any) => {
+        setCreatingTicketFromAlert(deviceAlert.device_id);
+        
+        try {
+            const response = await fetch('/api/ninjaone/create-ticket-from-alert', {
+                method: 'POST',
+                headers: { 
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    device_id: deviceAlert.device_id,
+                    alert_type: deviceAlert.health_status,
+                    alert_message: `Device ${deviceAlert.device_name} has status: ${deviceAlert.health_status}. Issues: ${deviceAlert.issues_count}`,
+                    severity: deviceAlert.health_status === 'critical' ? 'CRITICAL' : 
+                             deviceAlert.health_status === 'offline' ? 'HIGH' : 'MEDIUM'
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                toast.success('Ticket created successfully from device alert');
+                
+                // Refresh tickets
+                router.reload({ only: ['tickets', 'allTickets'] });
+                
+                // Remove this alert from the list
+                setUserDeviceAlerts(prev => prev.filter(alert => alert.device_id !== deviceAlert.device_id));
+            } else {
+                toast.error('Error creating ticket from alert');
+            }
+        } catch (error) {
+            console.error('Error creating ticket from device alert:', error);
+            toast.error('Error creating ticket from alert');
+        } finally {
+            setCreatingTicketFromAlert(null);
+        }
+    };
+
+    // Dismiss device alert notification
+    const dismissDeviceAlert = (deviceId: number) => {
+        setUserDeviceAlerts(prev => prev.filter(alert => alert.device_id !== deviceId));
+    };
+
+    // Load user device alerts for member notifications
+    useEffect(() => {
+        if (isMember) {
+            loadUserDeviceAlerts();
+        }
+    }, [isMember]);
+
+    // Auto-refresh device alerts every 5 minutes for members
+    useEffect(() => {
+        if (!isMember) return;
+        
+        const interval = setInterval(loadUserDeviceAlerts, 5 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, [isMember]);
+
     // Filter tickets
     const userId = (usePage().props as any)?.auth?.user?.id;
     const assignedTickets = tickets.data;
@@ -812,6 +904,102 @@ export default function TicketsIndex({
                                                 <Home className="w-3 h-3" />
                                                 {apartmentData?.name} | {buildingData?.name}
                                             </p>
+                                        </div>
+                                        
+                                        {/* NinjaOne Device Alerts Notification */}
+                                        <div className="relative">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setShowNinjaOneNotifications(!showNinjaOneNotifications)}
+                                                className={`relative ${
+                                                    userDeviceAlerts.length > 0 
+                                                        ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200' 
+                                                        : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-200'
+                                                }`}
+                                            >
+                                                <Bell className="w-4 h-4" />
+                                                {userDeviceAlerts.length > 0 && (
+                                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                                        {userDeviceAlerts.length}
+                                                    </span>
+                                                )}
+                                            </Button>
+                                            
+                                            {/* Notification Dropdown */}
+                                            {showNinjaOneNotifications && (
+                                                <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                                                    <div className="p-4 border-b border-gray-200">
+                                                        <h3 className="font-semibold text-gray-900">Device Alerts</h3>
+                                                        <p className="text-sm text-gray-600">NinjaOne device health notifications</p>
+                                                    </div>
+                                                    
+                                                    <div className="max-h-96 overflow-y-auto">
+                                                        {loadingUserAlerts ? (
+                                                            <div className="p-4 text-center">
+                                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                                                                <p className="text-sm text-gray-600 mt-2">Loading alerts...</p>
+                                                            </div>
+                                                        ) : userDeviceAlerts.length === 0 ? (
+                                                            <div className="p-4 text-center text-gray-500">
+                                                                <Shield className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                                                                <p className="text-sm">All your devices are healthy!</p>
+                                                            </div>
+                                                        ) : (
+                                                            userDeviceAlerts.map((alert, index) => (
+                                                                <div key={index} className="p-4 border-b border-gray-100 hover:bg-gray-50">
+                                                                    <div className="flex items-start gap-3">
+                                                                        <div className={`w-3 h-3 rounded-full mt-1 ${
+                                                                            alert.health_status === 'critical' ? 'bg-red-500' :
+                                                                            alert.health_status === 'offline' ? 'bg-gray-500' :
+                                                                            alert.health_status === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+                                                                        }`}></div>
+                                                                        <div className="flex-1">
+                                                                            <div className="flex items-center justify-between">
+                                                                                <h4 className="font-medium text-gray-900">{alert.device_name}</h4>
+                                                                                <button 
+                                                                                    onClick={() => dismissDeviceAlert(alert.device_id)}
+                                                                                    className="text-gray-400 hover:text-gray-600"
+                                                                                >
+                                                                                    <X className="w-4 h-4" />
+                                                                                </button>
+                                                                            </div>
+                                                                            <p className="text-sm text-gray-600 capitalize">
+                                                                                Status: {alert.health_status}
+                                                                            </p>
+                                                                            {alert.issues_count > 0 && (
+                                                                                <p className="text-sm text-red-600">
+                                                                                    {alert.issues_count} issue{alert.issues_count > 1 ? 's' : ''} detected
+                                                                                </p>
+                                                                            )}
+                                                                            <div className="mt-2 flex gap-2">
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    onClick={() => createTicketFromDeviceAlert(alert)}
+                                                                                    disabled={creatingTicketFromAlert === alert.device_id}
+                                                                                    className="text-xs"
+                                                                                >
+                                                                                    {creatingTicketFromAlert === alert.device_id ? (
+                                                                                        <>
+                                                                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                                                                            Creating...
+                                                                                        </>
+                                                                                    ) : (
+                                                                                        <>
+                                                                                            <Plus className="w-3 h-3 mr-1" />
+                                                                                            Create Ticket
+                                                                                        </>
+                                                                                    )}
+                                                                                </Button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

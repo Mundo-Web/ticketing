@@ -119,6 +119,7 @@ class DeviceController extends Controller
             'tenants.*' => 'exists:tenants,id',
             'ubicacion' => 'nullable|string',
             'icon_id' => 'nullable|string|max:255',
+            'is_in_ninjaone' => 'nullable|boolean',
         ]);
 
         DB::beginTransaction();
@@ -144,7 +145,8 @@ class DeviceController extends Controller
                 'system_id' => $system_id,
                 'name_device_id' => $name_device_id,
                 'ubicacion' => $request->ubicacion,
-                'icon_id' => $request->icon_id
+                'icon_id' => $request->icon_id,
+                'is_in_ninjaone' => $request->has('is_in_ninjaone') ? (bool)$request->is_in_ninjaone : false
             ]);
 
             // Attach main tenant
@@ -207,6 +209,7 @@ class DeviceController extends Controller
             'tenants.*' => 'exists:tenants,id',
             'ubicacion' => 'nullable|string',
             'icon_id' => 'nullable|string|max:255',
+            'is_in_ninjaone' => 'nullable|boolean',
         ]);
 
         DB::beginTransaction();
@@ -224,7 +227,8 @@ class DeviceController extends Controller
                 'system_id' => $system_id,
                 'name_device_id' => $name_device_id,
                 'ubicacion' => $request->ubicacion,
-                'icon_id' => $request->icon_id
+                'icon_id' => $request->icon_id,
+                'is_in_ninjaone' => $request->has('is_in_ninjaone') ? $request->is_in_ninjaone : $device->is_in_ninjaone
             ]);
 
             // Sincronizar inquilinos si se proporcionan
@@ -552,5 +556,179 @@ class DeviceController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false], 500);
         }
+    }
+    
+    /**
+     * Export devices that are in NinjaOne
+     */
+    public function exportNinjaOneDevices(Request $request)
+    {
+        $request->validate([
+            'devices' => 'required|array',
+            'devices.*' => 'exists:devices,id'
+        ]);
+        
+        try {
+            // Get devices that are in NinjaOne
+            $devices = Device::whereIn('id', $request->devices)
+                ->where('is_in_ninjaone', true)
+                ->with(['brand', 'model', 'system', 'name_device'])
+                ->get();
+                
+            if ($devices->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay dispositivos en NinjaOne para exportar'
+                ], 404);
+            }
+            
+            // Generate Excel file with PHPSpreadsheet
+            return $this->generateDevicesExcel($devices, 'NinjaOne Devices');
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al exportar dispositivos',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Export devices by building that are in NinjaOne
+     */
+    public function exportNinjaOneDevicesByBuilding(Request $request)
+    {
+        $request->validate([
+            'tenant_id' => 'required|exists:tenants,id',
+            'apartment_id' => 'required|exists:apartments,id'
+        ]);
+        
+        try {
+            // Get the building from the apartment
+            $apartment = Apartment::findOrFail($request->apartment_id);
+            $buildingId = $apartment->building_id;
+            
+            // Get all apartments in the building
+            $apartmentIds = Apartment::where('building_id', $buildingId)->pluck('id');
+            
+            // Get tenants in these apartments
+            $tenantIds = Tenant::whereIn('apartment_id', $apartmentIds)->pluck('id');
+            
+            // Get devices for these tenants that are in NinjaOne
+            $devices = Device::whereHas('tenants', function ($query) use ($tenantIds) {
+                $query->whereIn('tenants.id', $tenantIds);
+            })
+            ->where('is_in_ninjaone', true)
+            ->with(['brand', 'model', 'system', 'name_device'])
+            ->get();
+            
+            if ($devices->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay dispositivos en NinjaOne para este edificio'
+                ], 404);
+            }
+            
+            // Generate Excel file
+            return $this->generateDevicesExcel($devices, 'NinjaOne Devices - Building ' . $apartment->building->name);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al exportar dispositivos por edificio',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Export devices by apartment that are in NinjaOne
+     */
+    public function exportNinjaOneDevicesByApartment(Request $request)
+    {
+        $request->validate([
+            'tenant_id' => 'required|exists:tenants,id',
+            'apartment_id' => 'required|exists:apartments,id'
+        ]);
+        
+        try {
+            // Get tenants in this apartment
+            $tenantIds = Tenant::where('apartment_id', $request->apartment_id)->pluck('id');
+            
+            // Get devices for these tenants that are in NinjaOne
+            $devices = Device::whereHas('tenants', function ($query) use ($tenantIds) {
+                $query->whereIn('tenants.id', $tenantIds);
+            })
+            ->where('is_in_ninjaone', true)
+            ->with(['brand', 'model', 'system', 'name_device'])
+            ->get();
+            
+            if ($devices->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay dispositivos en NinjaOne para este apartamento'
+                ], 404);
+            }
+            
+            // Get apartment
+            $apartment = Apartment::findOrFail($request->apartment_id);
+            
+            // Generate Excel file
+            return $this->generateDevicesExcel($devices, 'NinjaOne Devices - Apartment ' . $apartment->number);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al exportar dispositivos por apartamento',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Helper method to generate Excel files for devices
+     */
+    private function generateDevicesExcel($devices, $title)
+    {
+        // Create new Spreadsheet object
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        
+        // Set document properties
+        $spreadsheet->getProperties()->setCreator('Ticketing System')
+            ->setLastModifiedBy('Ticketing System')
+            ->setTitle($title)
+            ->setSubject('Device Export')
+            ->setDescription('List of devices in NinjaOne');
+            
+        // Add some data
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setCellValue('A1', 'Name');
+        $sheet->setCellValue('B1', 'Brand');
+        $sheet->setCellValue('C1', 'Model');
+        $sheet->setCellValue('D1', 'System');
+        $sheet->setCellValue('E1', 'Location');
+        
+        // Add data from devices
+        $row = 2;
+        foreach ($devices as $device) {
+            $sheet->setCellValue('A' . $row, $device->name_device ? $device->name_device->name : '');
+            $sheet->setCellValue('B' . $row, $device->brand ? $device->brand->name : '');
+            $sheet->setCellValue('C' . $row, $device->model ? $device->model->name : '');
+            $sheet->setCellValue('D' . $row, $device->system ? $device->system->name : '');
+            $sheet->setCellValue('E' . $row, $device->ubicacion ?? '');
+            $row++;
+        }
+        
+        // Create Excel file
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        
+        // Save to temporary file
+        $tempFile = tempnam(sys_get_temp_dir(), 'devices');
+        $writer->save($tempFile);
+        
+        // Return as download
+        return response()->download($tempFile, $title . '.xlsx')
+            ->deleteFileAfterSend(true);
     }
 }

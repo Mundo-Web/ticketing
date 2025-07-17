@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\NinjaOneWebhookController;
 use App\Http\Controllers\BuildingController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NinjaOneController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -70,4 +71,11 @@ Route::get('/buildings', [BuildingController::class, 'apiIndex']);
 // NinjaOne Webhook Routes (No authentication required for webhooks)
 Route::prefix('ninjaone')->group(function () {
     Route::post('/webhook', [NinjaOneWebhookController::class, 'handleWebhook']);
+});
+
+// NinjaOne API routes (authenticated)
+Route::middleware('auth:sanctum')->prefix('ninjaone')->group(function () {
+    Route::get('/user-device-alerts', [NinjaOneController::class, 'getUserDeviceAlerts']);
+    Route::get('/devices/{deviceId}/alerts', [NinjaOneController::class, 'getDeviceAlertsApi']);
+    Route::post('/create-ticket-from-alert', [NinjaOneController::class, 'createTicketFromDeviceAlert']);
 });

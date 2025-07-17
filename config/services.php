@@ -37,6 +37,8 @@ return [
 
     'ninjaone' => [
         'api_url' => env('NINJAONE_API_URL', 'https://app.ninjarmm.com/api'),
+        'client_id' => env('NINJAONE_CLIENT_ID'),
+        'client_secret' => env('NINJAONE_CLIENT_SECRET'),
         'api_key' => env('NINJAONE_API_KEY'),
         'organization_id' => env('NINJAONE_ORGANIZATION_ID'),
         'webhook_secret' => env('NINJAONE_WEBHOOK_SECRET'),
