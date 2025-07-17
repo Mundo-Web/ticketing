@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { SharedData, type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, FileText, Building, CheckCircle, XCircle, Laptop, Users } from 'lucide-react';
+import { LayoutGrid, FileText, Building, CheckCircle, XCircle, Laptop, Users, Shield } from 'lucide-react';
 import AppLogo from './app-logo';
 
 
@@ -81,6 +81,25 @@ export function AppSidebar() {
           href: '/tickets?status=closed,cancelled',
           icon: XCircle,
           isActive: component === 'Tickets/Index' && url.includes('status=closed,cancelled'),
+        }
+      ]
+    },
+    {
+      title: 'NinjaOne',
+      icon: Shield,
+      isActive: route().current('ninjaone.*'),
+      items: [
+        {
+          title: 'Demo & Testing',
+          href: '/ninjaone/demo',
+          icon: CheckCircle,
+          isActive: route().current('ninjaone.demo'),
+        },
+        {
+          title: 'Devices Dashboard',
+          href: '/ninjaone/devices',
+          icon: Laptop,
+          isActive: route().current('ninjaone.devices.*'),
         }
       ]
     },

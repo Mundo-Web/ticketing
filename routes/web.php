@@ -119,6 +119,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // NinjaOne Routes
     Route::prefix('ninjaone')->name('ninjaone.')->group(function () {
+        Route::get('/demo', [App\Http\Controllers\NinjaOneDevicesController::class, 'demo'])->name('demo');
+        Route::get('/devices', [App\Http\Controllers\NinjaOneDevicesController::class, 'index'])->name('devices.index');
+        Route::get('/devices/{deviceId}', [App\Http\Controllers\NinjaOneDevicesController::class, 'show'])->name('devices.show');
         Route::get('/alerts', [NinjaOneController::class, 'alerts'])->name('alerts');
         Route::post('/alerts/{alert}/acknowledge', [NinjaOneController::class, 'acknowledgeAlert'])->name('alerts.acknowledge');
         Route::post('/alerts/{alert}/resolve', [NinjaOneController::class, 'resolveAlert'])->name('alerts.resolve');
