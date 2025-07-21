@@ -143,9 +143,11 @@ export default function NinjaOneDevicesIndex({ devices, stats, connection_status
         }
     };
 
-    const syncDevice = async (deviceId: number) => {
+    const refreshDevices = async () => {
         try {
-            const response = await fetch(`/api/ninjaone/devices/${deviceId}/sync`, {
+            toast.loading('Refreshing devices...', { id: 'refresh-devices' });
+            
+            const response = await fetch('/api/ninjaone/devices/refresh', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -154,14 +156,138 @@ export default function NinjaOneDevicesIndex({ devices, stats, connection_status
             });
 
             if (response.ok) {
-                toast.success('Device synced successfully!');
-                // Refresh the page or update the device data
+                toast.success('Devices refreshed successfully!', { id: 'refresh-devices' });
                 window.location.reload();
             } else {
-                toast.error('Error syncing device');
+                toast.error('Error refreshing devices', { id: 'refresh-devices' });
             }
         } catch {
-            toast.error('Error syncing device');
+            toast.error('Error refreshing devices', { id: 'refresh-devices' });
+        }
+    };
+
+    const checkApiRoutes = async () => {
+        toast.loading('Checking API routes...', { id: 'check-routes' });
+        
+        const routes = [
+            '/api/ninjaone/test-connection',
+            '/api/ninjaone/devices',
+            '/api/ninjaone/devices/refresh',
+            '/api/ninjaone/devices/123/sync'
+        ];
+        
+        for (const route of routes) {
+            try {
+                const response = await fetch(route, { method: 'HEAD' });
+                console.log(`Route ${route}: ${response.status} ${response.statusText}`);
+            } catch (error) {
+                console.log(`Route ${route}: Failed to connect`, error);
+            }
+        }
+        
+        toast.success('Route check completed. See console for details.', { id: 'check-routes' });
+    };
+
+    const syncDevice = async (deviceId: number) => {
+        const device = devices.find(d => d.ninjaone_data.id === deviceId);
+        console.log('Attempting to sync device:', {
+            id: deviceId,
+            systemName: device?.ninjaone_data.systemName,
+            hostname: device?.ninjaone_data.hostname,
+            manufacturer: device?.ninjaone_data.manufacturer,
+            model: device?.ninjaone_data.model,
+            hasLocalMapping: device?.has_local_mapping
+        });
+        
+        try {
+            toast.loading('Syncing device...', { id: `sync-${deviceId}` });
+            
+            const response = await fetch(`/api/ninjaone/devices/${deviceId}/sync`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    systemName: device?.ninjaone_data.systemName,
+                    hostname: device?.ninjaone_data.hostname,
+                    manufacturer: device?.ninjaone_data.manufacturer,
+                    model: device?.ninjaone_data.model,
+                    operatingSystem: device?.ninjaone_data.operatingSystem,
+                    deviceId: deviceId
+                })
+            });
+
+            console.log('Response status:', response.status);
+            console.log('Response statusText:', response.statusText);
+            console.log('Response url:', response.url);
+
+            let data;
+            const contentType = response.headers.get('content-type');
+            
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const textResponse = await response.text();
+                console.log('Non-JSON response:', textResponse);
+                
+                // If it's a 404, the route probably doesn't exist
+                if (response.status === 404) {
+                    toast.error('Sync endpoint not found. Please check if the API route exists.', { id: `sync-${deviceId}` });
+                    return;
+                }
+                
+                throw new Error(`Server returned non-JSON response (${response.status}): ${textResponse.substring(0, 200)}`);
+            }
+            
+            console.log('Sync response:', data);
+            
+            if (response.ok && data.success) {
+                toast.success(data.message || 'Device synced successfully!', { id: `sync-${deviceId}` });
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                const errorMessage = data.message || data.error || `HTTP ${response.status}: ${response.statusText}`;
+                toast.error(errorMessage, { id: `sync-${deviceId}` });
+                console.error('Sync error details:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: data
+                });
+                
+                if (data.details) {
+                    console.error('Detailed error:', data.details);
+                }
+            }
+        } catch (error: unknown) {
+            console.error('Sync error details:', {
+                error: error,
+                deviceId: deviceId,
+                device: device
+            });
+            
+            let errorMessage = 'Network error while syncing device';
+            
+            if (error instanceof Error) {
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                
+                if (error.message.includes('404')) {
+                    errorMessage = 'Sync endpoint not found. Please verify the API route exists.';
+                } else if (error.message.includes('403')) {
+                    errorMessage = 'Permission denied. Please check authentication.';
+                } else if (error.message.includes('500')) {
+                    errorMessage = 'Server error. Please check server logs.';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMessage = 'Network connection failed. Check your internet connection and CORS settings.';
+                } else if (error.message.includes('NetworkError')) {
+                    errorMessage = 'Network error. The API endpoint might not exist or be accessible.';
+                } else {
+                    errorMessage = `Error: ${error.message}`;
+                }
+            }
+            
+            toast.error(errorMessage, { id: `sync-${deviceId}` });
         }
     };
 
@@ -198,6 +324,16 @@ export default function NinjaOneDevicesIndex({ devices, stats, connection_status
                         <Button onClick={testConnection} variant="outline" size="sm">
                             <RefreshCw className="w-4 h-4 mr-2" />
                             Test Connection
+                        </Button>
+                        
+                        <Button onClick={refreshDevices} variant="outline" size="sm">
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Refresh Devices
+                        </Button>
+                        
+                        <Button onClick={checkApiRoutes} variant="outline" size="sm">
+                            <Database className="w-4 h-4 mr-2" />
+                            Check API Routes
                         </Button>
                     </div>
                 </div>
@@ -412,12 +548,31 @@ export default function NinjaOneDevicesIndex({ devices, stats, connection_status
                                         </div>
                                     )}
                                     
+                                    {device.ninjaone_data.manufacturer && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Manufacturer:</span>
+                                            <span>{device.ninjaone_data.manufacturer}</span>
+                                        </div>
+                                    )}
+                                    
+                                    {device.ninjaone_data.model && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Model:</span>
+                                            <span>{device.ninjaone_data.model}</span>
+                                        </div>
+                                    )}
+                                    
                                     {device.ninjaone_data.ipAddress && (
                                         <div className="flex justify-between text-sm">
                                             <span className="text-gray-600">IP:</span>
                                             <span className="font-mono">{device.ninjaone_data.ipAddress}</span>
                                         </div>
                                     )}
+                                    
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">NinjaOne ID:</span>
+                                        <span className="font-mono">{device.ninjaone_data.id}</span>
+                                    </div>
                                     
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600">Last Seen:</span>
@@ -448,9 +603,10 @@ export default function NinjaOneDevicesIndex({ devices, stats, connection_status
                                             size="sm" 
                                             onClick={() => syncDevice(device.ninjaone_data.id)}
                                             className="flex-1"
+                                            title={`Sync device: ${device.ninjaone_data.systemName || device.ninjaone_data.hostname}`}
                                         >
                                             <Download className="w-4 h-4 mr-2" />
-                                            Sync
+                                            Sync to Local
                                         </Button>
                                     )}
                                 </div>
