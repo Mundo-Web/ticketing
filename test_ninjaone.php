@@ -100,7 +100,7 @@ function getDevices($token) {
 function testWebhookEndpoint() {
     echo "\n=== TESTING WEBHOOK ENDPOINT ===\n";
     
-    $url = 'http://localhost:8000/api/ninjaone/webhook';
+    $url = 'https://adkassist.xyz/api/ninjaone/webhook';
     
     // Simular un webhook de prueba
     $testPayload = [
