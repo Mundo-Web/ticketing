@@ -111,16 +111,21 @@ function testWebhookEndpoint() {
         ]
     ];
     
-    $signature = hash_hmac('sha256', json_encode($testPayload), $_ENV['NINJAONE_WEBHOOK_SECRET']);
+    $payload = json_encode($testPayload);
+    $signature = hash_hmac('sha256', $payload, $_ENV['NINJAONE_WEBHOOK_SECRET']);
+    
+    echo "Payload: $payload\n";
+    echo "Secret: " . substr($_ENV['NINJAONE_WEBHOOK_SECRET'], 0, 10) . "...\n";
+    echo "Generated signature: $signature\n";
     
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($testPayload));
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
-        'X-NinjaRMM-Signature: sha256=' . $signature
+        'X-NinjaOne-Signature: ' . $signature
     ]);
     
     $response = curl_exec($ch);
