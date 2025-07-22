@@ -87,7 +87,7 @@ export function AppSidebar() {
     {
       title: 'NinjaOne',
       icon: Shield,
-      isActive: route().current('ninjaone.*'),
+      isActive: route().current('ninjaone.*') || route().current('ninjaone-alerts.*'),
       items: [
         {
           title: 'Demo & Testing',
@@ -100,6 +100,12 @@ export function AppSidebar() {
           href: '/ninjaone/devices',
           icon: Laptop,
           isActive: route().current('ninjaone.devices.*'),
+        },
+        {
+          title: 'Device Alerts',
+          href: '/ninjaone-alerts',
+          icon: FileText,
+          isActive: route().current('ninjaone-alerts.*'),
         }
       ]
     },

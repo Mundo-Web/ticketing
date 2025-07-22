@@ -76,6 +76,7 @@ Route::prefix('ninjaone')->group(function () {
 // NinjaOne API routes (authenticated)
 Route::middleware('auth:sanctum')->prefix('ninjaone')->group(function () {
     Route::get('/user-device-alerts', [NinjaOneController::class, 'getUserDeviceAlerts']);
+    Route::get('/user-alerts', [\App\Http\Controllers\NinjaOneAlertsController::class, 'userDeviceAlerts']);
     Route::get('/devices/{deviceId}/alerts', [NinjaOneController::class, 'getDeviceAlertsApi']);
     Route::post('/create-ticket-from-alert', [NinjaOneController::class, 'createTicketFromDeviceAlert']);
     Route::post('/devices/{deviceId}/sync', [App\Http\Controllers\NinjaOneDevicesController::class, 'sync']);

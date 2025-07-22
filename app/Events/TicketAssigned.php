@@ -25,7 +25,7 @@ class TicketAssigned implements ShouldBroadcast
      */
     public function __construct(Ticket $ticket, User $technical, User $assignedBy)
     {
-        $this->ticket = $ticket->load(['user', 'device', 'device.nameDevice']);
+        $this->ticket = $ticket->load(['user', 'device', 'device.name_device']);
         $this->technical = $technical;
         $this->assignedBy = $assignedBy;
     }

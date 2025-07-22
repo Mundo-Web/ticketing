@@ -94,7 +94,7 @@ class TicketCreatedNotification extends Notification implements ShouldQueue
             'ticket_category' => $this->ticket->category,
             'ticket_status' => $this->ticket->status,
             'user_name' => $this->ticket->user->name ?? '',
-            'device_name' => $this->ticket->device->nameDevice->name ?? 'Dispositivo desconocido',
+            'device_name' => $this->ticket->device->name_device->name ?? 'Dispositivo desconocido',
             'created_at' => $this->ticket->created_at->format('d/m/Y H:i'),
             'ticket_url' => url('/tickets/' . $this->ticket->id),
         ];

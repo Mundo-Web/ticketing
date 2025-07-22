@@ -22,7 +22,7 @@ class TicketCreated implements ShouldBroadcast
      */
     public function __construct(Ticket $ticket)
     {
-        $this->ticket = $ticket->load(['user', 'device', 'device.nameDevice']);
+        $this->ticket = $ticket->load(['user', 'device', 'device.name_device']);
     }
 
     /**
@@ -51,7 +51,7 @@ class TicketCreated implements ShouldBroadcast
                 'status' => $this->ticket->status,
                 'category' => $this->ticket->category,
                 'user' => $this->ticket->user->name,
-                'device' => $this->ticket->device->nameDevice->name ?? 'Unknown Device'
+                'device' => $this->ticket->device->name_device->name ?? 'Unknown Device'
             ]
         ];
     }

@@ -644,15 +644,33 @@ export default function TicketsIndex({
         
         setLoadingUserAlerts(true);
         try {
-            const response = await fetch('/api/ninjaone/user-device-alerts', {
+            // Use the same endpoint that works in NinjaOne alerts index, but request JSON
+            const response = await fetch('/ninjaone-alerts', {
                 headers: { 
-                    'Accept': 'application/json',
-                    'Authorization': `Bearer ${(auth.user as any)?.token || ''}`
+                    'Accept': 'application/json'
                 },
             });
             if (response.ok) {
                 const data = await response.json();
-                setUserDeviceAlerts(data.device_alerts || []);
+                // Extract alerts from the JSON response
+                const alertsData = data.alerts?.data || [];
+                
+                // Convert to the format expected by notifications
+                const deviceAlerts = alertsData.map((alert: any) => ({
+                    id: alert.id,
+                    device_id: alert.device_id,
+                    device_name: alert.device?.name || 'Unknown Device',
+                    title: alert.title,
+                    description: alert.description,
+                    severity: alert.severity,
+                    status: alert.status,
+                    alert_type: alert.alert_type,
+                    created_at: alert.created_at,
+                    health_status: alert.severity, // For compatibility
+                    issues_count: 1
+                }));
+                
+                setUserDeviceAlerts(deviceAlerts);
             }
         } catch (error) {
             console.error('Error loading user device alerts:', error);
@@ -664,43 +682,81 @@ export default function TicketsIndex({
 
     // Create ticket from device alert
     const createTicketFromDeviceAlert = async (deviceAlert: any) => {
-        setCreatingTicketFromAlert(deviceAlert.device_id);
-        
-        try {
-            const response = await fetch('/api/ninjaone/create-ticket-from-alert', {
-                method: 'POST',
-                headers: { 
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                },
-                body: JSON.stringify({
-                    device_id: deviceAlert.device_id,
-                    alert_type: deviceAlert.health_status,
-                    alert_message: `Device ${deviceAlert.device_name} has status: ${deviceAlert.health_status}. Issues: ${deviceAlert.issues_count}`,
-                    severity: deviceAlert.health_status === 'critical' ? 'CRITICAL' : 
-                             deviceAlert.health_status === 'offline' ? 'HIGH' : 'MEDIUM'
-                })
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                toast.success('Ticket created successfully from device alert');
-                
-                // Refresh tickets
-                router.reload({ only: ['tickets', 'allTickets'] });
-                
-                // Remove this alert from the list
-                setUserDeviceAlerts(prev => prev.filter(alert => alert.device_id !== deviceAlert.device_id));
-            } else {
-                toast.error('Error creating ticket from alert');
+        // Map alert types to ticket categories
+        const mapAlertTypeToCategory = (alertType: string) => {
+            switch (alertType.toLowerCase()) {
+                case 'system health':
+                case 'service':
+                    return 'Hardware';
+                case 'disk space':
+                case 'network':
+                    return 'Red';
+                case 'security':
+                    return 'Soporte';
+                default:
+                    return 'Hardware';
             }
-        } catch (error) {
-            console.error('Error creating ticket from device alert:', error);
-            toast.error('Error creating ticket from alert');
-        } finally {
-            setCreatingTicketFromAlert(null);
-        }
+        };
+
+        // Map severity to Spanish
+        const mapSeverityToSpanish = (severity: string) => {
+            switch (severity.toLowerCase()) {
+                case 'critical':
+                    return 'Crítico';
+                case 'warning':
+                    return 'Advertencia';
+                case 'info':
+                    return 'Información';
+                default:
+                    return severity;
+            }
+        };
+
+        // Map status to Spanish
+        const mapStatusToSpanish = (status: string) => {
+            switch (status.toLowerCase()) {
+                case 'open':
+                    return 'Abierto';
+                case 'acknowledged':
+                    return 'Reconocido';
+                case 'resolved':
+                    return 'Resuelto';
+                default:
+                    return status;
+            }
+        };
+
+        // Pre-fill form data with alert information
+        setData({
+            device_id: deviceAlert.device_id.toString(),
+            category: mapAlertTypeToCategory(deviceAlert.alert_type),
+            title: `Alerta: ${deviceAlert.title}`,
+            description: `🚨 ALERTA NINJAONE AUTOMÁTICA
+
+📱 Dispositivo: ${deviceAlert.device_name}
+📊 Tipo de Alerta: ${deviceAlert.alert_type}
+⚠️ Severidad: ${mapSeverityToSpanish(deviceAlert.severity)}
+📋 Estado: ${mapStatusToSpanish(deviceAlert.status)}
+
+📝 Descripción:
+${deviceAlert.description}
+
+📅 Fecha de la alerta: ${new Date(deviceAlert.created_at).toLocaleString('es-ES')}
+
+---
+⚡ Esta incidencia fue generada automáticamente desde una alerta de NinjaOne.
+Por favor, revise el dispositivo y complete los detalles adicionales si es necesario.`,
+            tenant_id: "", // This will be auto-filled by backend for members
+        });
+        
+        // Open the create ticket modal
+        setShowCreateModal(true);
+        
+        // Show success message
+        toast.success(`Formulario pre-llenado con datos de la alerta de ${deviceAlert.device_name}`);
+        
+        // Remove this alert from notifications since user is creating a ticket
+        setUserDeviceAlerts(prev => prev.filter(alert => alert.device_id !== deviceAlert.device_id));
     };
 
     // Dismiss device alert notification

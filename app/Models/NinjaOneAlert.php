@@ -10,31 +10,25 @@ class NinjaOneAlert extends Model
 {
     use HasFactory;
 
-    protected $table = 'ninjaone_alerts';
+    protected $table = 'ninja_one_alerts';
 
     protected $fillable = [
         'ninjaone_alert_id',
-        'ninjaone_device_id',
         'device_id',
         'alert_type',
         'severity',
+        'status',
         'title',
         'description',
-        'metadata',
-        'status',
-        'ninjaone_created_at',
+        'raw_data',
         'acknowledged_at',
-        'resolved_at',
-        'ticket_id',
-        'notification_sent',
+        'ticket_created',
     ];
 
     protected $casts = [
-        'metadata' => 'array',
-        'ninjaone_created_at' => 'datetime',
+        'raw_data' => 'array',
         'acknowledged_at' => 'datetime',
-        'resolved_at' => 'datetime',
-        'notification_sent' => 'boolean',
+        'ticket_created' => 'boolean',
     ];
 
     /**

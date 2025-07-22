@@ -129,6 +129,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/devices/{device}/alerts', [NinjaOneController::class, 'getDeviceAlerts'])->name('devices.alerts');
     });
     
+    // NinjaOne Alerts Management Routes
+    Route::prefix('ninjaone-alerts')->name('ninjaone-alerts.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\NinjaOneAlertsController::class, 'index'])->name('index');
+        Route::get('/{alert}', [\App\Http\Controllers\NinjaOneAlertsController::class, 'show'])->name('show');
+        Route::post('/{alert}/acknowledge', [\App\Http\Controllers\NinjaOneAlertsController::class, 'acknowledge'])->name('acknowledge');
+        Route::post('/{alert}/create-ticket', [\App\Http\Controllers\NinjaOneAlertsController::class, 'createTicket'])->name('create-ticket');
+    });
+    
     // Ticket creation from NinjaOne alerts
     Route::get('/tickets/create-from-alert/{alert}', [NinjaOneController::class, 'createTicketFromAlert'])->name('tickets.create-from-alert');
     Route::post('/tickets/create-from-alert/{alert}', [NinjaOneController::class, 'storeTicketFromAlert'])->name('tickets.store-from-alert');
