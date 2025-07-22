@@ -5,7 +5,7 @@
  */
 
 // URL del webhook
-$webhookUrl = 'http://localhost:8000/api/ninjaone/webhook';
+$webhookUrl = 'https://adkassist.xyz/api/ninjaone/webhook';
 
 // Secret para firmar el webhook (mismo que en .env)
 $secret = 'e256e0691a9c365560b9c76817d82bf8954a86fa33467ad63df4edc781dec9b9';
