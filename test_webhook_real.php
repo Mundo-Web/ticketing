@@ -26,8 +26,8 @@ $payload = [
         ],
         'device' => [
             'id' => 'device_123_real',
-            'name' => 'DESKTOP-DAMIAN',  // Usar un nombre de dispositivo que existe
-            'displayName' => 'DESKTOP-DAMIAN',
+            'name' => 'DamianPC',  // Usar un nombre de dispositivo que existe
+            'displayName' => 'DamianPC',
             'type' => 'WORKSTATION',
             'os' => [
                 'name' => 'Windows 11',
