@@ -55,11 +55,30 @@ class NinjaOneWebhookController extends Controller
     {
         Log::info("🔍 Procesando evento de alerta:", $data);
 
-        // Extraer información del dispositivo
-        $deviceName = $data["device_name"] ?? $data["deviceName"] ?? $data["hostname"] ?? null;
+        // Extraer información del dispositivo - múltiples formatos posibles
+        $deviceName = null;
+        
+        // Formato 1: device_name directo (tests locales)
+        if (isset($data["device_name"])) {
+            $deviceName = $data["device_name"];
+        }
+        // Formato 2: Estructura anidada de NinjaOne real
+        elseif (isset($data["data"]["device"]["name"])) {
+            $deviceName = $data["data"]["device"]["name"];
+        }
+        // Formato 3: Otros formatos posibles
+        elseif (isset($data["deviceName"])) {
+            $deviceName = $data["deviceName"];
+        }
+        elseif (isset($data["hostname"])) {
+            $deviceName = $data["hostname"];
+        }
         
         if (!$deviceName) {
-            Log::warning("❌ No se encontró nombre del dispositivo en el payload");
+            Log::warning("❌ No se encontró nombre del dispositivo en el payload", [
+                "payload_keys" => array_keys($data),
+                "data_keys" => isset($data["data"]) ? array_keys($data["data"]) : null
+            ]);
             return [
                 "status" => "error",
                 "message" => "Device name not found in payload"
@@ -93,15 +112,17 @@ class NinjaOneWebhookController extends Controller
             ];
         }
 
-        // Crear alerta en la base de datos
+        // Crear alerta en la base de datos - extraer datos del formato correcto
+        $alertData = $data["data"]["alert"] ?? $data; // NinjaOne format vs test format
+        
         $alert = NinjaOneAlert::create([
-            "ninjaone_alert_id" => $data["id"] ?? "alert_" . time() . "_" . $device->id,
+            "ninjaone_alert_id" => $alertData["id"] ?? "alert_" . time() . "_" . $device->id,
             "device_id" => $device->id,
-            "alert_type" => $data["alert_type"] ?? "unknown",
-            "severity" => $data["severity"] ?? "warning", 
-            "title" => $data["title"] ?? ($data["message"] ?? "Alert from NinjaOne"),
-            "description" => $data["description"] ?? ($data["message"] ?? "Alert from NinjaOne device: " . $deviceName),
-            "raw_data" => $data,
+            "alert_type" => $alertData["type"] ?? $alertData["alert_type"] ?? "unknown",
+            "severity" => $alertData["severity"] ?? "warning", 
+            "title" => $alertData["title"] ?? ($alertData["message"] ?? "Alert from NinjaOne"),
+            "description" => $alertData["description"] ?? ($alertData["message"] ?? "Alert from NinjaOne device: " . $deviceName),
+            "raw_data" => $data, // Store the full original payload
             "status" => "open"
         ]);
 
