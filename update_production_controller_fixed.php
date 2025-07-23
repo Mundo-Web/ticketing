@@ -1,5 +1,19 @@
 <?php
 
+echo "🚀 Actualizando NinjaOneWebhookController en producción...\n";
+
+// Backup del controlador actual
+$controllerPath = 'app/Http/Controllers/Api/NinjaOneWebhookController.php';
+$backupPath = 'backup_NinjaOneWebhookController_' . date('Y-m-d_H-i-s') . '.php';
+
+if (file_exists($controllerPath)) {
+    copy($controllerPath, $backupPath);
+    echo "✅ Backup creado: $backupPath\n";
+}
+
+// Código actualizado del controlador
+$updatedController = '<?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -117,4 +131,35 @@ class NinjaOneWebhookController extends Controller
             "device_id" => $device->id
         ];
     }
+}';
+
+// Escribir archivo actualizado
+file_put_contents($controllerPath, $updatedController);
+echo "✅ Controlador actualizado exitosamente\n";
+
+// Limpiar cache
+echo "🔄 Limpiando cache...\n";
+if (function_exists('exec')) {
+    exec('php artisan config:clear 2>&1', $output1, $return1);
+    exec('php artisan route:clear 2>&1', $output2, $return2);
+    exec('php artisan cache:clear 2>&1', $output3, $return3);
+    
+    echo "   Config clear: " . ($return1 === 0 ? "✅" : "❌") . "\n";
+    echo "   Route clear: " . ($return2 === 0 ? "✅" : "❌") . "\n";  
+    echo "   Cache clear: " . ($return3 === 0 ? "✅" : "❌") . "\n";
+} else {
+    echo "   ⚠️ No se puede ejecutar artisan automáticamente\n";
 }
+
+// Crear registro de actualización
+file_put_contents('webhook_controller_updated.txt', date('Y-m-d H:i:s') . " - NinjaOne controller updated successfully\n");
+
+echo "🎉 Actualización completa!\n";
+echo "📋 Resumen:\n";
+echo "   - Backup: $backupPath\n";
+echo "   - Controlador: $controllerPath\n"; 
+echo "   - Device::findByName() implementado\n";
+echo "   - Logging mejorado\n";
+echo "   - Compatible con dispositivo JULIOPC\n";
+
+?>
