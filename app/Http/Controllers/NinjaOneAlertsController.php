@@ -74,8 +74,29 @@ class NinjaOneAlertsController extends Controller
     {
         $user = Auth::user();
         
-        // For testing, show all alerts (later we'll filter by user's devices)
+        // Get user's devices (owned and shared) - SAME LOGIC AS userDeviceAlerts
+        $userDeviceIds = collect();
+        
+        // Get tenant (either user is a tenant or has a tenant relationship)
+        $tenant = $user->tenant ?? $user;
+        
+        // Get devices owned by this tenant/user
+        if ($tenant && method_exists($tenant, 'devices')) {
+            $ownedDevices = $tenant->devices()->get();
+            $userDeviceIds = $userDeviceIds->merge($ownedDevices->pluck('id'));
+        }
+        
+        Log::info('NinjaOne Alerts Index - User device access', [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'tenant_id' => $tenant ? $tenant->id : null,
+            'device_ids' => $userDeviceIds->toArray(),
+            'total_devices' => $userDeviceIds->count()
+        ]);
+        
+        // Filter alerts by user's devices ONLY
         $alertsQuery = NinjaOneAlert::with(['device'])
+            ->whereIn('device_id', $userDeviceIds->unique()) // ONLY user's devices
             ->when($request->search, function($query, $search) {
                 return $query->where(function($q) use ($search) {
                     $q->where('title', 'LIKE', "%{$search}%")
