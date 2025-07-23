@@ -95,19 +95,21 @@ class NinjaOneWebhookController extends Controller
 
         // Crear alerta en la base de datos
         $alert = NinjaOneAlert::create([
+            "ninjaone_alert_id" => $data["id"] ?? "alert_" . time() . "_" . $device->id,
             "device_id" => $device->id,
             "alert_type" => $data["alert_type"] ?? "unknown",
-            "severity" => $data["severity"] ?? "medium", 
-            "message" => $data["message"] ?? "Alert from NinjaOne",
-            "alert_data" => json_encode($data),
-            "created_at" => now(),
-            "updated_at" => now()
+            "severity" => $data["severity"] ?? "warning", 
+            "title" => $data["title"] ?? ($data["message"] ?? "Alert from NinjaOne"),
+            "description" => $data["description"] ?? ($data["message"] ?? "Alert from NinjaOne device: " . $deviceName),
+            "raw_data" => $data,
+            "status" => "open"
         ]);
 
         Log::info("✅ Alerta creada exitosamente:", [
             "alert_id" => $alert->id,
             "device_id" => $device->id,
-            "message" => $alert->message
+            "title" => $alert->title,
+            "description" => $alert->description
         ]);
 
         return [

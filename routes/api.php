@@ -71,7 +71,7 @@ Route::get('/buildings', [BuildingController::class, 'apiIndex']);
 
 // NinjaOne Webhook Routes (No authentication required for webhooks)
 Route::prefix('ninjaone')->group(function () {
-    Route::post('/webhook', [NinjaOneWebhookController::class, 'handleWebhook']);
+    Route::post('/webhook', [NinjaOneWebhookController::class, 'handle']);
     Route::any('/webhook-test', [WebhookTestController::class, 'test']); // Endpoint de prueba
 });
 
