@@ -1,11 +1,10 @@
 <?php
 /**
- * Script para probar el webhook de NinjaOne con datos reales
- * Simula una llamada real de NinjaOne para verificar que todo funciona
+ * Script para probar el webhook de NinjaOne en servidor local
  */
 
-// URL del webhook (debe coincidir con NinjaOne)
-$webhookUrl = 'https://www.adkassist.xyz/api/ninjaone/webhook';
+// URL del webhook local
+$webhookUrl = 'http://127.0.0.1:8000/api/ninjaone/webhook';
 
 // Secret para firmar el webhook (mismo que en .env)
 $secret = 'Laravel';
@@ -16,16 +15,16 @@ $payload = [
     'timestamp' => date('c'),
     'data' => [
         'alert' => [
-            'id' => 'real_alert_' . time(),
+            'id' => 'local_test_' . time(),
             'type' => 'HIGH_CPU_USAGE',
             'severity' => 'high',
-            'title' => 'High CPU Usage Detected',
+            'title' => 'High CPU Usage Detected (Local Test)',
             'description' => 'CPU usage has exceeded 90% for more than 5 minutes',
             'createdAt' => date('c'),
             'status' => 'open'
         ],
         'device' => [
-            'id' => 'device_123_real',
+            'id' => 'device_local_test',
             'name' => 'DamianPC',  // Usar un nombre de dispositivo que existe
             'displayName' => 'DamianPC',
             'type' => 'WORKSTATION',
@@ -88,16 +87,20 @@ if ($error) {
 echo "\n🔍 Verificando alertas en la base de datos...\n";
 
 // Verificar si se creó la alerta
-$pdo = new PDO('mysql:host=127.0.0.1;dbname=ticketing', 'root', '');
-$stmt = $pdo->query("SELECT COUNT(*) as count FROM ninja_one_alerts");
-$count = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+try {
+    $pdo = new PDO('mysql:host=127.0.0.1;dbname=ticketing', 'root', '');
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM ninja_one_alerts");
+    $count = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-echo "📊 Alertas en la BD: $count\n";
+    echo "📊 Alertas en la BD: $count\n";
 
-if ($count > 0) {
-    $stmt = $pdo->query("SELECT * FROM ninja_one_alerts ORDER BY id DESC LIMIT 1");
-    $lastAlert = $stmt->fetch(PDO::FETCH_ASSOC);
-    echo "🆕 Última alerta creada: " . json_encode($lastAlert, JSON_PRETTY_PRINT) . "\n";
+    if ($count > 0) {
+        $stmt = $pdo->query("SELECT * FROM ninja_one_alerts ORDER BY id DESC LIMIT 1");
+        $lastAlert = $stmt->fetch(PDO::FETCH_ASSOC);
+        echo "🆕 Última alerta creada: " . json_encode($lastAlert, JSON_PRETTY_PRINT) . "\n";
+    }
+} catch (Exception $e) {
+    echo "❌ Error conectando a la BD: " . $e->getMessage() . "\n";
 }
 
 echo "\n✨ Prueba completada\n";

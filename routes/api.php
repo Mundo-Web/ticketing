@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\TechnicalController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\NinjaOneWebhookController;
+use App\Http\Controllers\Api\WebhookTestController;
 use App\Http\Controllers\BuildingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NinjaOneController;
@@ -71,6 +72,7 @@ Route::get('/buildings', [BuildingController::class, 'apiIndex']);
 // NinjaOne Webhook Routes (No authentication required for webhooks)
 Route::prefix('ninjaone')->group(function () {
     Route::post('/webhook', [NinjaOneWebhookController::class, 'handleWebhook']);
+    Route::any('/webhook-test', [WebhookTestController::class, 'test']); // Endpoint de prueba
 });
 
 // NinjaOne API routes (authenticated)
