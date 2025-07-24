@@ -5,7 +5,7 @@ import deviceIconsData from '@/data/deviceIcons.json';
 
 export interface DeviceIconData {
   id: string;
-  namstring;
+  name: string;
   icon: string;
   color: string;
 }

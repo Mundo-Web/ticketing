@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,10 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import DeviceIcon from '@/components/DeviceIcon';
 import { getDeviceIconsByCategory } from '@/utils/deviceIcons';
 
-// Helper para routes (Ziggy)
-declare global {
-    function route(name: string, params?: any): string;
-}
+// Helper para routes (Ziggy) - assuming it's declared globally
 
 interface ModalDispositivosProps {
     visible: boolean;
@@ -28,10 +25,10 @@ interface ModalDispositivosProps {
     tenantName: Tenant;
     devices: Device[];
     shareDevice: Device[];
-    brands: any[];
-    models: any[];
-    systems: any[];
-    name_devices: any[];
+    brands: Array<{id: number; name: string; name_device_id?: number}>;
+    models: Array<{id: number; name: string; brand_id?: number}>;
+    systems: Array<{id: number; name: string; model_id?: number}>;
+    name_devices: Array<{id: number; name: string; system_id?: number}>;
     apartmentId: number;
     tenantId: number;
     tenants: Tenant[];
@@ -178,7 +175,7 @@ const ModalDispositivos = ({
                     )
                 );
 
-                const isSharedWithCurrentTenant = updatedDevice.shared_with?.some(sw => sw.id === tenantId);
+                const isSharedWithCurrentTenant = updatedDevice.shared_with?.some((sw: {id: number}) => sw.id === tenantId);
 
                 setDeviceShareList(prev => {
                     if (!isSharedWithCurrentTenant) {
@@ -296,8 +293,8 @@ const ModalDispositivos = ({
                 reset();
                 setShowForm(false);
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || (editMode ? 'Error al actualizar' : 'Error al crear'));
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : (editMode ? 'Error al actualizar' : 'Error al crear'));
         }
     };
 
@@ -464,7 +461,7 @@ const ModalDispositivos = ({
             }
         } catch (error: unknown) {
             console.error('Error deleting:', error);
-            const axiosError = error as any;
+            const axiosError = error as {response?: {status?: number; data?: {can_force?: boolean; devices_count?: number; message?: string}}; message?: string};
             console.error('Respuesta del servidor:', axiosError.response);
 
             if (axiosError.response?.status === 422 && axiosError.response?.data?.can_force) {
@@ -571,6 +568,7 @@ const ModalDispositivos = ({
 
     // Handler para guardar cambios - Removed as it's now integrated into EditModal
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const CustomOption = ({ children, ...props }: any) => (
         <components.Option {...props}>
             <div className="flex items-center justify-between w-full">
@@ -580,14 +578,16 @@ const ModalDispositivos = ({
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700"
+                            className="h-6 w-6 p-0 text-blue-500 hover:text-primary"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                setEditItem({
-                                    type: props.data.type,
-                                    id: parseInt(props.data.value),
-                                    name: props.data.label
-                                });
+                                if (props.data.type && props.data.value && props.data.label) {
+                                    setEditItem({
+                                        type: props.data.type as 'brand' | 'model' | 'system' | 'name_device',
+                                        id: parseInt(props.data.value),
+                                        name: props.data.label
+                                    });
+                                }
                             }}
                         >
                             <Edit className="h-3 w-3" />
@@ -598,10 +598,12 @@ const ModalDispositivos = ({
                             className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteItem(
-                                    parseInt(props.data.value),
-                                    props.data.type
-                                );
+                                if (props.data.value && props.data.type) {
+                                    handleDeleteItem(
+                                        parseInt(props.data.value),
+                                        props.data.type as 'brand' | 'model' | 'system' | 'name_device'
+                                    );
+                                }
                             }}
                         >
                             <Trash2 className="h-3 w-3" />
@@ -620,7 +622,7 @@ const ModalDispositivos = ({
 
     // Función para filtrar modelos basados en la marca seleccionada
 
-    const filterBrandsByName = (NameDeviceId: string) => {
+    const filterBrandsByName = useCallback((NameDeviceId: string) => {
         if (!NameDeviceId) {
             setFilteredBrands(localBrands);
             return;
@@ -628,9 +630,9 @@ const ModalDispositivos = ({
 
         const filtered = localBrands.filter(brand => brand.name_device_id?.toString() === NameDeviceId);
         setFilteredBrands(filtered.length > 0 ? filtered : localBrands);
-    };
+    }, [localBrands]);
 
-    const filterModelsByBrand = (brandId: string) => {
+    const filterModelsByBrand = useCallback((brandId: string) => {
         if (!brandId) {
             setFilteredModels(models);
             return;
@@ -638,10 +640,10 @@ const ModalDispositivos = ({
 
         const filtered = models.filter(model => model.brand_id?.toString() === brandId);
         setFilteredModels(filtered.length > 0 ? filtered : models);
-    };
+    }, [models]);
 
     // Función para filtrar sistemas basados en el modelo seleccionado
-    const filterSystemsByModel = (modelId: string) => {
+    const filterSystemsByModel = useCallback((modelId: string) => {
         if (!modelId) {
             setFilteredSystems(systems);
             return;
@@ -649,10 +651,10 @@ const ModalDispositivos = ({
 
         const filtered = systems.filter(system => system.model_id?.toString() === modelId);
         setFilteredSystems(filtered.length > 0 ? filtered : systems);
-    };
+    }, [systems]);
 
     // Function to filter device names based on selected system
-    const filterNameDevicesBySystem = (systemId: string) => {
+    const filterNameDevicesBySystem = useCallback((systemId: string) => {
         if (!systemId) {
             setFilteredNameDevices(name_devices);
             return;
@@ -660,7 +662,7 @@ const ModalDispositivos = ({
 
         const filtered = name_devices.filter(nameDevice => nameDevice.system_id?.toString() === systemId);
         setFilteredNameDevices(filtered.length > 0 ? filtered : name_devices);
-    };
+    }, [name_devices]);
 
     // Actualizar filtros cuando cambia la selección
     useEffect(() => {
@@ -697,7 +699,7 @@ const ModalDispositivos = ({
         if (data.system_id) {
             filterNameDevicesBySystem(data.system_id);
         }
-    }, [data.brand_id, data.name_device_id, data.model_id, data.system_id, data.new_name_device, data.new_brand, data.new_model, data.new_system]);
+    }, [data.brand_id, data.name_device_id, data.model_id, data.system_id, data.new_name_device, data.new_brand, data.new_model, data.new_system, filterBrandsByName, filterModelsByBrand, filterNameDevicesBySystem, filterSystemsByModel]);
 
 
     useEffect(() => {
@@ -710,7 +712,7 @@ const ModalDispositivos = ({
     }, [localNameDevices, localBrands, localModels, localSystems]);
 
 
-    const handleSelectChange = (selected: any, type: 'brand' | 'model' | 'system' | 'name_device') => {
+    const handleSelectChange = (selected: {value: string | number; label: string; __isNew__?: boolean} | null, type: 'brand' | 'model' | 'system' | 'name_device') => {
         const isNew = selected?.__isNew__ ?? false;
         const key_id = `${type}_id`;
         const key_new = `new_${type}`;
@@ -723,7 +725,7 @@ const ModalDispositivos = ({
 
         // Aplicar filtros cuando cambia la selección
         if (type === 'name_device' && !isNew) {
-            filterBrandsByName(selected?.value || '');
+            filterBrandsByName(String(selected?.value || ''));
             setData(prev => ({
                 ...prev,
                 brand_id: '',
@@ -737,7 +739,7 @@ const ModalDispositivos = ({
 
         }
         else if (type === 'brand' && !isNew) {
-            filterModelsByBrand(selected?.value || '');
+            filterModelsByBrand(String(selected?.value || ''));
             // Resetear selecciones dependientes
             setData(prev => ({
                 ...prev,
@@ -748,7 +750,7 @@ const ModalDispositivos = ({
 
             }));
         } else if (type === 'model' && !isNew) {
-            filterSystemsByModel(selected?.value || '');
+            filterSystemsByModel(String(selected?.value || ''));
             // Resetear selecciones dependientes
             setData(prev => ({
                 ...prev,
@@ -757,7 +759,7 @@ const ModalDispositivos = ({
 
             }));
         } else if (type === 'system' && !isNew) {
-            filterNameDevicesBySystem(selected?.value || '');
+            filterNameDevicesBySystem(String(selected?.value || ''));
             // Resetear selecciones dependientes
             setData(prev => ({
                 ...prev,
@@ -766,13 +768,13 @@ const ModalDispositivos = ({
         }
     };
 
-    const getSelectedValue = (id: string | number, newValue: string, list: any[]) => {
+    const getSelectedValue = (id: string | number, newValue: string, list: Array<{id: number; name: string}>) => {
         if (newValue) return { label: newValue, value: '' };
         const item = list?.find(el => el.id.toString() === id?.toString());
         return item ? { label: item.name, value: item.id } : null;
     };
 
-    const prepareOptions = (items: any[], type: 'brand' | 'model' | 'system' | 'name_device') => {
+    const prepareOptions = (items: Array<{id: number; name: string}>, type: 'brand' | 'model' | 'system' | 'name_device') => {
         return items?.map(item => ({
             label: item.name,
             value: item.id.toString(),
@@ -785,58 +787,66 @@ const ModalDispositivos = ({
 
     return (
         <Dialog open={visible} onOpenChange={onClose}>
-            <DialogContent className="min-w-[800px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="min-w-[1200px] max-w-[95vw] max-h-[95vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="text-2xl flex justify-between relative">
-                        <div>
-                            Devices of {tenantName?.name}
-                            <span className="text-sm font-normal ml-2">
-                                ({deviceList.length} owned, {deviceShareList.length} shared with me)
-                            </span>
+                    <DialogTitle className="text-2xl flex justify-between items-center relative">
+                        <div className="flex flex-col">
+                            <h2 className="text-2xl font-bold text-gray-800">Device Management</h2>
+                            <div className="flex items-center gap-3 mt-1">
+                                <span className="text-lg font-medium text-gray-700">{tenantName?.name}</span>
+                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
+                                        {deviceList.length} owned
+                                    </span>
+                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
+                                        {deviceShareList.length} shared
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <div className='relative mx-4'>
+                        <div className='flex items-center gap-4'>
                             <img
                                 src={`/storage/${tenantName?.photo}`}
                                 alt={tenantName?.name}
-                                className="w-20 h-20 object-cover rounded-full border-4 border-secondary fixed right-16"
+                                className="w-16 h-16 object-cover rounded-full border-3 border-blue-200 shadow-lg"
                                 onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                    e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
+                                    e.currentTarget.src = '/images/default-user.png';
                                 }}
                             />
                         </div>
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="flex justify-between items-center mb-4">
-                    <div className="flex gap-2">
-                        <Button onClick={handleShowCreate} className="gap-2">
+                <div className="flex justify-between items-center mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+                    <div className="flex gap-3">
+                        <Button onClick={handleShowCreate} className="gap-2 bg-primary hover:bg-primary text-white shadow-md">
                             <Plus className="w-4 h-4" /> New Device
                         </Button>
                         
                         <div className="dropdown relative">
-                            <Button variant="outline" className="gap-2 flex items-center">
-                                <ShieldPlus className="w-4 h-4" /> Export NinjaOne Devices
-                                <div className="ml-1 border-l border-gray-300 h-4"></div>
-                                <span className="text-xs">▼</span>
+                            <Button variant="outline" className="gap-2 flex items-center border-blue-200 hover:bg-blue-50 hover:text-primary shadow-sm">
+                                <ShieldPlus className="w-4 h-4 text-primary" /> Export NinjaOne Devices
+                                <div className="ml-1 border-l border-blue-300 h-4"></div>
+                                <span className="text-xs text-primary">▼</span>
                             </Button>
-                            <div className="dropdown-content absolute hidden bg-white shadow-md rounded-md mt-1 py-1 w-48 z-10">
+                            <div className="dropdown-content absolute hidden bg-white shadow-lg rounded-lg mt-2 py-2 w-52 z-10 border border-gray-100">
                                 <button 
                                     onClick={() => exportNinjaOneDevices('all')} 
-                                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                                    className="w-full text-left px-4 py-3 text-sm hover:bg-blue-50 flex items-center gap-3 transition-colors"
                                 >
-                                    <ShieldCheck className="w-4 h-4" /> All Devices
+                                    <ShieldCheck className="w-4 h-4 text-primary" /> All Devices
                                 </button>
                                 <button 
                                     onClick={() => exportNinjaOneDevices('building')} 
-                                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                                    className="w-full text-left px-4 py-3 text-sm hover:bg-blue-50 flex items-center gap-3 transition-colors"
                                 >
-                                    <MapPin className="w-4 h-4" /> By Building
+                                    <MapPin className="w-4 h-4 text-green-600" /> By Building
                                 </button>
                                 <button 
                                     onClick={() => exportNinjaOneDevices('apartment')} 
-                                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                                    className="w-full text-left px-4 py-3 text-sm hover:bg-blue-50 flex items-center gap-3 transition-colors"
                                 >
-                                    <MapPin className="w-4 h-4" /> By Apartment
+                                    <MapPin className="w-4 h-4 text-purple-600" /> By Apartment
                                 </button>
                             </div>
                         </div>
@@ -844,23 +854,92 @@ const ModalDispositivos = ({
                 </div>
                 
                 <style>
-                    {`.dropdown:hover .dropdown-content {
-                        display: block;
-                    }`}
+                    {`
+                        .dropdown:hover .dropdown-content {
+                            display: block;
+                        }
+                        
+                        .react-select-container .react-select__control {
+                            border-radius: 8px;
+                            border-color: #e5e7eb;
+                            min-height: 40px;
+                        }
+                        
+                        .react-select-container .react-select__control:hover {
+                            border-color: #3b82f6;
+                        }
+                        
+                        .react-select-container .react-select__control--is-focused {
+                            border-color: #3b82f6;
+                            box-shadow: 0 0 0 1px #3b82f6;
+                        }
+                        
+                        .react-select-container .react-select__menu {
+                            border-radius: 8px;
+                            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                        }
+                        
+                        .react-select-container .react-select__option:hover {
+                            background-color: #f3f4f6;
+                        }
+                        
+                        .react-select-container .react-select__option--is-selected {
+                            background-color: #3b82f6;
+                        }
+                        
+                        /* Custom scrollbar for table */
+                        .overflow-x-auto::-webkit-scrollbar {
+                            height: 8px;
+                        }
+                        
+                        .overflow-x-auto::-webkit-scrollbar-track {
+                            background: #f1f5f9;
+                            border-radius: 4px;
+                        }
+                        
+                        .overflow-x-auto::-webkit-scrollbar-thumb {
+                            background: #cbd5e1;
+                            border-radius: 4px;
+                        }
+                        
+                        .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+                            background: #94a3b8;
+                        }
+                        
+                        /* Table hover effects */
+                        .device-row {
+                            transition: all 0.2s ease-in-out;
+                        }
+                        
+                        .device-row:hover {
+                            transform: translateY(-1px);
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                        }
+                        
+                        /* Gradient background for shared devices */
+                        .bg-green-25 {
+                            background-color: #f0f9ff;
+                        }
+                    `}
                 </style>
 
                 {showForm && (
-                    <form onSubmit={handleSubmit} className="mb-6 space-y-4 p-4 border rounded-lg">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="mb-8 p-6 border-2 border-blue-100 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                            {editMode ? <Edit className="w-5 h-5 text-primary" /> : <Plus className="w-5 h-5 text-green-600" />}
+                            {editMode ? 'Edit Device' : 'Add New Device'}
+                        </h3>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Campo Name Device */}
                             <div className='space-y-2'>
-                                <Label className='flex gap-2 items-center'>
-                                    <Laptop2 className='w-4 h-4' /> Device
+                                <Label className='flex gap-2 items-center text-gray-700 font-medium'>
+                                    <Laptop2 className='w-4 h-4 text-primary' /> Device
                                 </Label>
                                 <CreatableSelect
                                     components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Select or create"
+                                    placeholder="Select or create device"
                                     onChange={(option) => handleSelectChange(option, 'name_device')}
                                     options={prepareOptions(filteredNameDevices, 'name_device')}
                                     value={getSelectedValue(data.name_device_id, data.new_name_device, filteredNameDevices)}
@@ -871,7 +950,7 @@ const ModalDispositivos = ({
 
                             {/* Campo Device Icon */}
                             <div className='space-y-2'>
-                                <Label className='flex gap-2 items-center'>
+                                <Label className='flex gap-2 items-center text-gray-700 font-medium'>
                                     <DeviceIcon deviceIconId={data.icon_id} size={16} /> Device Icon
                                 </Label>
                                 <Select
@@ -881,23 +960,23 @@ const ModalDispositivos = ({
                                     options={(() => {
                                         const categories = getDeviceIconsByCategory();
                                         const allDevices = Object.values(categories).flatMap(category => category.devices);
-                                        return allDevices.map(device => ({
-                                            label: device.name,
-                                            value: device.id,
-                                            icon: device.icon,
-                                            color: device.color
+                                        return allDevices.map(deviceIcon => ({
+                                            label: deviceIcon.name,
+                                            value: deviceIcon.id,
+                                            icon: deviceIcon.icon,
+                                            color: deviceIcon.color
                                         }));
                                     })()}
                                     value={(() => {
                                         if (!data.icon_id) return null;
                                         const categories = getDeviceIconsByCategory();
                                         const allDevices = Object.values(categories).flatMap(category => category.devices);
-                                        const device = allDevices.find(d => d.id === data.icon_id);
-                                        return device ? {
-                                            label: device.name,
-                                            value: device.id,
-                                            icon: device.icon,
-                                            color: device.color
+                                        const deviceIcon = allDevices.find(d => d.id === data.icon_id);
+                                        return deviceIcon ? {
+                                            label: deviceIcon.name,
+                                            value: deviceIcon.id,
+                                            icon: deviceIcon.icon,
+                                            color: deviceIcon.color
                                         } : null;
                                     })()}
                                     components={{
@@ -925,14 +1004,14 @@ const ModalDispositivos = ({
 
                             {/* Campo Brand */}
                             <div className='space-y-2'>
-                                <Label className='flex gap-2 items-center'>
-                                    <ShieldPlus className='w-4 h-4' /> Brand
+                                <Label className='flex gap-2 items-center text-gray-700 font-medium'>
+                                    <ShieldPlus className='w-4 h-4 text-green-600' /> Brand
                                 </Label>
                                 <CreatableSelect
                                     isDisabled={!data.name_device_id && !data.new_name_device}
                                     components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Select or create"
+                                    placeholder="Select or create brand"
                                     onChange={(option) => handleSelectChange(option, 'brand')}
                                     options={prepareOptions(filteredBrands, 'brand')}
                                     value={getSelectedValue(data.brand_id, data.new_brand, filteredBrands)}
@@ -943,14 +1022,14 @@ const ModalDispositivos = ({
 
                             {/* Campo Model */}
                             <div className='space-y-2'>
-                                <Label className='flex gap-2 items-center'>
-                                    <ScanQrCodeIcon className='w-4 h-4' /> Model
+                                <Label className='flex gap-2 items-center text-gray-700 font-medium'>
+                                    <ScanQrCodeIcon className='w-4 h-4 text-purple-600' /> Model
                                 </Label>
                                 <CreatableSelect
                                     isDisabled={(!data.brand_id && !data.new_brand)}
                                     components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Select or create"
+                                    placeholder="Select or create model"
                                     onChange={(option) => handleSelectChange(option, 'model')}
                                     options={prepareOptions(filteredModels, 'model')}
                                     value={getSelectedValue(data.model_id, data.new_model, filteredModels)}
@@ -961,14 +1040,14 @@ const ModalDispositivos = ({
 
                             {/* Campo System */}
                             <div className='space-y-2'>
-                                <Label className='flex gap-2 items-center'>
-                                    <Keyboard className='w-4 h-4' /> System
+                                <Label className='flex gap-2 items-center text-gray-700 font-medium'>
+                                    <Keyboard className='w-4 h-4 text-orange-600' /> System
                                 </Label>
                                 <CreatableSelect
                                     isDisabled={(!data.model_id && !data.new_model)}
                                     components={{ Option: CustomOption }}
                                     isClearable
-                                    placeholder="Select or create"
+                                    placeholder="Select or create system"
                                     onChange={(option) => handleSelectChange(option, 'system')}
                                     options={prepareOptions(filteredSystems, 'system')}
                                     value={getSelectedValue(data.system_id, data.new_system, filteredSystems)}
@@ -976,53 +1055,55 @@ const ModalDispositivos = ({
                                     classNamePrefix="react-select"
                                 />
                             </div>
+
+                            {/* Campo Ubicación */}
+                            <div className='space-y-2 lg:col-span-2'>
+                                <Label className='flex gap-2 items-center text-gray-700 font-medium'>
+                                    <MapPin className='w-4 h-4 text-purple-600' /> Location/Description
+                                </Label>
+                                <Textarea
+                                    placeholder="Enter device location or description (optional)"
+                                    value={data.ubicacion}
+                                    onChange={(e) => setData('ubicacion', e.target.value)}
+                                    rows={3}
+                                    className="resize-none border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                                />
+                            </div>
+
+                            {/* Campo NinjaOne */}
+                            <div className='flex items-center space-x-3 lg:col-span-2 p-4 bg-white rounded-lg border border-gray-200'>
+                                <Checkbox
+                                    id="ninjaone"
+                                    checked={data.is_in_ninjaone}
+                                    onCheckedChange={(checked) => setData('is_in_ninjaone', Boolean(checked))}
+                                    className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                                />
+                                <Label htmlFor="ninjaone" className="flex gap-2 items-center font-medium text-gray-700">
+                                    <ShieldCheck className='w-4 h-4 text-green-600' /> Device is in NinjaOne
+                                </Label>
+                            </div>
                         </div>
 
-                        {/* Campo Ubicación */}
-                        <div className='space-y-2'>
-                            <Label className='flex gap-2 items-center'>
-                                <MapPin className='w-4 h-4' /> Location/Description
-                            </Label>
-                            <Textarea
-                                placeholder="Enter device location or description (optional)"
-                                value={data.ubicacion}
-                                onChange={(e) => setData('ubicacion', e.target.value)}
-                                rows={3}
-                                className="resize-none"
-                            />
-                        </div>
-
-                        {/* Campo NinjaOne */}
-                        <div className='flex items-center space-x-2'>
-                            <Checkbox
-                                id="ninjaone"
-                                checked={data.is_in_ninjaone}
-                                onCheckedChange={(checked) => setData('is_in_ninjaone', Boolean(checked))}
-                            />
-                            <Label htmlFor="ninjaone" className="flex gap-2 items-center">
-                                <ShieldCheck className='w-4 h-4' /> Device is in NinjaOne
-                            </Label>
-                        </div>
-                        
                         {/* Campo Name para conectar con NinjaOne */}
                         {data.is_in_ninjaone && (
-                            <div className='space-y-2'>
-                                <Label className='flex gap-2 items-center'>
-                                    <Tag className='w-4 h-4' /> NinjaOne Device Name
+                            <div className='space-y-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg'>
+                                <Label className='flex gap-2 items-center text-gray-700 font-medium'>
+                                    <Tag className='w-4 h-4 text-yellow-600' /> NinjaOne Device Name
                                 </Label>
                                 <Input
                                     placeholder="Enter device name as it appears in NinjaOne"
                                     value={data.name || ''}
                                     onChange={(e) => setData('name', e.target.value)}
+                                    className="border-yellow-200 focus:border-yellow-400 focus:ring-yellow-400"
                                 />
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-yellow-700 bg-yellow-100 p-2 rounded">
                                     Enter the System Name as shown in NinjaOne (e.g., DESKTOP-6VEP452, DAMIANPC)
                                 </p>
                             </div>
                         )}
 
                         <div className='space-y-2'>
-                            <Label>Sharing with members</Label>
+                            <Label className="text-gray-700 font-medium">Sharing with members</Label>
                             <Select
                                 isMulti
                                 options={tenants.filter(t => t.id !== tenantId).map(t => ({ label: t.name, value: t.id }))}
@@ -1038,165 +1119,208 @@ const ModalDispositivos = ({
                             />
                         </div>
 
-                        <div className="flex gap-2 justify-end pt-4">
-                            <Button variant="outline" onClick={() => setShowForm(false)}>
+                        <div className="flex gap-3 justify-end pt-6 border-t border-gray-200">
+                            <Button variant="outline" onClick={() => setShowForm(false)} className="px-6">
                                 Cancel
                             </Button>
-                            <Button type="submit">
-                                {editMode ? 'Update' : 'Save'}
+                            <Button type="submit" className="px-6 bg-primary hover:bg-primary">
+                                {editMode ? 'Update Device' : 'Save Device'}
                             </Button>
                         </div>
                     </form>
+                    </div>
                 )}
 
-                {/* Tabla de dispositivos */}
-                <div className="border rounded-lg overflow-visible">
-                    <table className="w-full">
+                {/* Enhanced Device Table */}
+                <div className="border-2 border-gray-100 rounded-xl overflow-hidden shadow-lg bg-white">
+                    <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+                        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                            <Laptop2 className="w-5 h-5 text-primary" />
+                            Device Inventory
+                        </h3>
+                    </div>
+                    <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gradient-to-r from-blue-50 to-indigo-50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left font-medium">Name</th>
-                                    <th className="px-4 py-3 text-left font-medium">Brand</th>
-                                    <th className="px-4 py-3 text-left font-medium">Model</th>
-                                    <th className="px-4 py-3 text-left font-medium">System</th>
-                                    <th className="px-4 py-3 text-left font-medium">Location</th>
-                                    <th className="px-4 py-3 text-left font-medium">NinjaOne</th>
-                                    <th className="px-4 py-3 text-left font-medium">Shared with</th>
-                                    <th className="px-4 py-3 text-left font-medium">Actions</th>
+                                    <th className="px-6 py-4 text-left font-semibold text-gray-700 text-sm uppercase tracking-wide">Device Name</th>
+                                    <th className="px-6 py-4 text-left font-semibold text-gray-700 text-sm uppercase tracking-wide">Brand</th>
+                                    <th className="px-6 py-4 text-left font-semibold text-gray-700 text-sm uppercase tracking-wide">Model</th>
+                                    <th className="px-6 py-4 text-left font-semibold text-gray-700 text-sm uppercase tracking-wide">System</th>
+                                    <th className="px-6 py-4 text-left font-semibold text-gray-700 text-sm uppercase tracking-wide">Location</th>
+                                    <th className="px-6 py-4 text-left font-semibold text-gray-700 text-sm uppercase tracking-wide">NinjaOne Status</th>
+                                    <th className="px-6 py-4 text-left font-semibold text-gray-700 text-sm uppercase tracking-wide">Shared With</th>
+                                    <th className="px-6 py-4 text-center font-semibold text-gray-700 text-sm uppercase tracking-wide">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {deviceList.map((device) => (
-                                    <tr key={device.id} className="hover:bg-gray-50 border-b">
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <DeviceIcon 
-                                                    deviceIconId={device.icon_id} 
-                                                    size={20} 
-                                                />
-                                                <span>{device.name_device?.name || '-'}</span>
+                            <tbody className="divide-y divide-gray-100">
+                                {deviceList.map((device, index) => (
+                                    <tr key={device.id} className={`transition-colors duration-200 hover:bg-blue-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-blue-100 rounded-lg">
+                                                    <DeviceIcon 
+                                                        deviceIconId={device.icon_id} 
+                                                        size={20} 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-gray-900">{device.name_device?.name || '-'}</span>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">{device.brand?.name || '-'}</td>
-                                        <td className="px-4 py-3">{device.model?.name || '-'}</td>
-                                        <td className="px-4 py-3">{device.system?.name || '-'}</td>
-                                        <td className="px-4 py-3 max-w-32">
+                                        <td className="px-6 py-4">
+                                            <span className="inline-flex px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full">
+                                                {device.brand?.name || '-'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-gray-700 font-medium">{device.model?.name || '-'}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-gray-700 font-medium">{device.system?.name || '-'}</span>
+                                        </td>
+                                        <td className="px-6 py-4 max-w-48">
                                             <div className="text-sm text-gray-600 truncate" title={device.ubicacion}>
-                                                {device.ubicacion || '-'}
+                                                {device.ubicacion || (
+                                                    <span className="text-gray-400 italic">No location</span>
+                                                )}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-6 py-4">
                                             {device.is_in_ninjaone ? (
-                                                <div className="flex items-center">
-                                                    <ShieldCheck className="w-4 h-4 text-green-500 mr-1" />
-                                                    <div className="flex flex-col">
-                                                        <span className="text-green-600">Yes</span>
-                                                        {device.name && (
-                                                            <span className="text-xs text-gray-500">
-                                                                System: {device.name}
-                                                            </span>
-                                                        )}
-                                                        {!device.name && (
-                                                            <span className="text-xs text-orange-500">
-                                                                ⚠️ No system name
-                                                            </span>
-                                                        )}
-                                                        {device.ninjaone_status && (
-                                                            <div className="mt-1 flex items-center gap-1">
-                                                                {device.ninjaone_status === 'healthy' && (
-                                                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                                        <CheckCircle className="w-3 h-3" /> Healthy
-                                                                    </span>
-                                                                )}
-                                                                {device.ninjaone_status === 'warning' && (
-                                                                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                                        <AlertCircle className="w-3 h-3" /> Warning
-                                                                    </span>
-                                                                )}
-                                                                {device.ninjaone_status === 'critical' && (
-                                                                    <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                                        <AlertCircle className="w-3 h-3" /> Critical
-                                                                    </span>
-                                                                )}
-                                                                {device.ninjaone_status === 'offline' && (
-                                                                    <span className="text-xs bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                                        <AlertCircle className="w-3 h-3" /> Offline
-                                                                    </span>
-                                                                )}
-                                                                {device.ninjaone_status === 'maintenance' && (
-                                                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                                        <AlertCircle className="w-3 h-3" /> Maintenance
-                                                                    </span>
-                                                                )}
-                                                                {device.ninjaone_status === 'unknown' && (
-                                                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                                        <AlertCircle className="w-3 h-3" /> Unknown
-                                                                    </span>
-                                                                )}
-                                                                {(device.ninjaone_issues_count || 0) > 0 && (
-                                                                    <span className="text-xs text-red-600 ml-1">
-                                                                        ({device.ninjaone_issues_count} issues)
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-1 bg-green-100 rounded-full">
+                                                            <ShieldCheck className="w-4 h-4 text-green-600" />
+                                                        </div>
+                                                        <span className="text-green-700 font-medium">Connected</span>
                                                     </div>
+                                                    {device.name && (
+                                                        <div className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                                            System: {device.name}
+                                                        </div>
+                                                    )}
+                                                    {!device.name && (
+                                                        <div className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded flex items-center gap-1">
+                                                            <AlertCircle className="w-3 h-3" />
+                                                            No system name
+                                                        </div>
+                                                    )}
+                                                    {device.ninjaone_status && (
+                                                        <div className="flex items-center gap-1">
+                                                            {device.ninjaone_status === 'healthy' && (
+                                                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center gap-1">
+                                                                    <CheckCircle className="w-3 h-3" /> Healthy
+                                                                </span>
+                                                            )}
+                                                            {device.ninjaone_status === 'warning' && (
+                                                                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full flex items-center gap-1">
+                                                                    <AlertCircle className="w-3 h-3" /> Warning
+                                                                </span>
+                                                            )}
+                                                            {device.ninjaone_status === 'critical' && (
+                                                                <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full flex items-center gap-1">
+                                                                    <AlertCircle className="w-3 h-3" /> Critical
+                                                                </span>
+                                                            )}
+                                                            {device.ninjaone_status === 'offline' && (
+                                                                <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full flex items-center gap-1">
+                                                                    <AlertCircle className="w-3 h-3" /> Offline
+                                                                </span>
+                                                            )}
+                                                            {device.ninjaone_status === 'maintenance' && (
+                                                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex items-center gap-1">
+                                                                    <AlertCircle className="w-3 h-3" /> Maintenance
+                                                                </span>
+                                                            )}
+                                                            {device.ninjaone_status === 'unknown' && (
+                                                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full flex items-center gap-1">
+                                                                    <AlertCircle className="w-3 h-3" /> Unknown
+                                                                </span>
+                                                            )}
+                                                            {(device.ninjaone_issues_count || 0) > 0 && (
+                                                                <span className="text-xs text-red-600 ml-1">
+                                                                    ({device.ninjaone_issues_count} issues)
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-400">No</span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1 bg-gray-100 rounded-full">
+                                                        <ShieldCheck className="w-4 h-4 text-gray-400" />
+                                                    </div>
+                                                    <span className="text-gray-500">Not connected</span>
+                                                </div>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex flex-wrap gap-1">
-                                                {device.shared_with?.map(tenant => {
-                                                    console.log(tenant);
-                                                    return (
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger>
-                                                                    <img
-                                                                        key={tenant.photo}
-                                                                        src={tenant.photo ? `/storage/${tenant.photo}?v=${Date.now()}` : '/images/default-avatar.png'}
-                                                                        alt={tenant.name}
-                                                                        className="w-8 h-8 object-cover rounded-full border-2 border-blue-400"
-                                                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                            e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
-                                                                        }}
-                                                                    /></TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>{tenant.name}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-
-
-
-
-                                                    )
-                                                })}
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-wrap gap-2">
+                                                {device.shared_with?.map(tenant => (
+                                                    <TooltipProvider key={tenant.id}>
+                                                        <Tooltip>
+                                                            <TooltipTrigger>
+                                                                <img
+                                                                    src={tenant.photo ? `/storage/${tenant.photo}?v=${Date.now()}` : '/images/default-avatar.png'}
+                                                                    alt={tenant.name}
+                                                                    className="w-8 h-8 object-cover rounded-full border-2 border-blue-300 hover:border-blue-500 transition-colors shadow-sm"
+                                                                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                        e.currentTarget.src = '/images/default-user.png';
+                                                                    }}
+                                                                />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p className="font-medium">{tenant.name}</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                ))}
+                                                {!device.shared_with?.length && (
+                                                    <span className="text-gray-400 text-sm italic">Not shared</span>
+                                                )}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setSelectedDevice(device);
-                                                        setShowShareModal(true);
-                                                    }}
-                                                    className="text-green-600 hover:text-green-800"
-                                                >
-                                                    <ShareIcon className="w-4 h-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleEdit(device)}
-                                                    className="text-blue-600 hover:text-blue-800"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </Button>
+                                        <td className="px-6 py-4">
+                                            <div className="flex gap-2 justify-center">
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    setSelectedDevice(device);
+                                                                    setShowShareModal(true);
+                                                                }}
+                                                                className="text-green-600 hover:text-green-800 hover:bg-green-50 p-2"
+                                                            >
+                                                                <ShareIcon className="w-4 h-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Share device</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleEdit(device)}
+                                                                className="text-primary hover:text-blue-800 hover:bg-blue-50 p-2"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Edit device</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
                                                 <TooltipProvider>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
@@ -1204,7 +1328,7 @@ const ModalDispositivos = ({
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 onClick={() => handleDelete(device.id)}
-                                                                className="text-red-600 hover:text-red-800"
+                                                                className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2"
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
                                                             </Button>
@@ -1219,71 +1343,103 @@ const ModalDispositivos = ({
                                     </tr>
                                 ))}
 
-                                {deviceShareList.map((device) => (
-                                    <tr key={`shared-${device.id}`} className="hover:bg-gray-50 border-b bg-blue-50">
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <DeviceIcon 
-                                                    deviceIconId={device.icon_id} 
-                                                    size={20} 
-                                                />
-                                                <span>{device.name_device?.name || '-'}</span>
+                                {deviceShareList.map((device, index) => (
+                                    <tr key={`shared-${device.id}`} className={`transition-colors duration-200 hover:bg-green-50 ${index % 2 === 0 ? 'bg-green-25' : 'bg-green-50'} border-l-4 border-green-400`}>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-green-100 rounded-lg">
+                                                    <DeviceIcon 
+                                                        deviceIconId={device.icon_id} 
+                                                        size={20} 
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium text-gray-900">{device.name_device?.name || '-'}</span>
+                                                    <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                                        Shared
+                                                    </span>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">{device.brand?.name || '-'}</td>
-                                        <td className="px-4 py-3">{device.model?.name || '-'}</td>
-                                        <td className="px-4 py-3">{device.system?.name || '-'}</td>
-                                        <td className="px-4 py-3 max-w-32">
+                                        <td className="px-6 py-4">
+                                            <span className="inline-flex px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full">
+                                                {device.brand?.name || '-'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-gray-700 font-medium">{device.model?.name || '-'}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-gray-700 font-medium">{device.system?.name || '-'}</span>
+                                        </td>
+                                        <td className="px-6 py-4 max-w-48">
                                             <div className="text-sm text-gray-600 truncate" title={device.ubicacion}>
-                                                {device.ubicacion || '-'}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex flex-wrap gap-1">
-                                                {device.owner && (
-
-
-                                                    <TooltipProvider key={`owner-${device.id}`}>
-                                                        <Tooltip>
-                                                            <TooltipTrigger>
-                                                                <img
-                                                                    src={device.owner ? `/storage/${device?.owner[0].photo}` : '/images/default-avatar.png'}
-                                                                    alt={device.owner[0].name}
-                                                                    className="w-8 h-8 object-cover rounded-full border-2 border-green-500"
-                                                                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                        e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
-                                                                    }}
-                                                                /></TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>  Own: {device.owner[0].name || (Array.isArray(device.owner) && device.owner[0]?.name) || 'Unknown'}</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-
+                                                {device.ubicacion || (
+                                                    <span className="text-gray-400 italic">No location</span>
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">
-                                            Shared
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className="p-1 bg-gray-100 rounded-full">
+                                                    <ShieldCheck className="w-4 h-4 text-gray-400" />
+                                                </div>
+                                                <span className="text-gray-500 text-sm">View only</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-wrap gap-2">
+                                                {device.owner && device.owner[0] && (
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger>
+                                                                <div className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-full">
+                                                                    <img
+                                                                        src={device.owner[0].photo ? `/storage/${device.owner[0].photo}` : '/images/default-avatar.png'}
+                                                                        alt={device.owner[0].name}
+                                                                        className="w-6 h-6 object-cover rounded-full border border-blue-300"
+                                                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                            e.currentTarget.src = '/images/default-user.png';
+                                                                        }}
+                                                                    />
+                                                                    <span className="text-xs font-medium text-primary">Owner</span>
+                                                                </div>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p className="font-medium">Owner: {device.owner[0].name}</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex justify-center">
+                                                <span className="text-sm text-gray-500 italic bg-gray-100 px-3 py-1 rounded-full">
+                                                    Read-only access
+                                                </span>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                    </table>
+                    </div>
                 </div>
 
                 {showShareModal && selectedDevice && (
                     <DeviceShareModal
-                        device={selectedDevice}
-                        tenants={tenants.filter(t => t.id !== tenantId)}
-                        sharedWithIds={selectedDevice.shared_with?.map(t => t.id) || []}
+                        tenants={tenants.filter((t: Tenant) => t.id !== tenantId)}
+                        sharedWithIds={selectedDevice.shared_with?.map((t: {id: number}) => t.id) || []}
                         onClose={() => setShowShareModal(false)}
                         onShare={(selectedIds, unshareIds) => handleShareDevice(selectedDevice.id, selectedIds, unshareIds)}
                     />
                 )}
-                <EditModal />
-                <ConfirmDeleteModal />
+                
+                <div>
+                    <EditModal />
+                    <ConfirmDeleteModal />
+                </div>
             </DialogContent>
         </Dialog>
     );
@@ -1298,43 +1454,48 @@ interface DeviceShareModalProps {
     onShare: (selectedIds: number[], unshareIds: number[]) => void;
 }
 
-const DeviceShareModal = ({ device, tenants, sharedWithIds, onClose, onShare }: DeviceShareModalProps) => {
+const DeviceShareModal = ({ tenants, sharedWithIds, onClose, onShare }: Omit<DeviceShareModalProps, 'device'>) => {
     // Inicializar con los IDs de inquilinos con los que ya está compartido
     const [selectedTenants, setSelectedTenants] = useState<number[]>(sharedWithIds || []);
     const [unsharedTenants, setUnsharedTenants] = useState<number[]>([]);
 
     // Agregar un console.log para depuración
     useEffect(() => {
-        console.log("Inquilinos seleccionados:", selectedTenants);
-        console.log("Inquilinos descompartidos:", unsharedTenants);
+        console.log("Selected tenants:", selectedTenants);
+        console.log("Unshared tenants:", unsharedTenants);
     }, [selectedTenants, unsharedTenants]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("Enviando descompartidos:", unsharedTenants);
+        console.log("Sending unshared:", unsharedTenants);
         // Pasar los IDs seleccionados y los IDs para descompartir a la función onShare
         onShare(selectedTenants, unsharedTenants);
     };
 
     return (
         <Dialog open={true} onOpenChange={onClose}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>Share device</DialogTitle>
+                    <DialogTitle className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                        <ShareIcon className="w-5 h-5 text-primary" />
+                        Share Device
+                    </DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-4">
-                        <Label>Select tenants to share with</Label>
+                        <Label className="text-gray-700 font-medium">Select tenants to share with</Label>
                         {tenants.length === 0 ? (
-                            <p className="text-sm text-gray-500">No tenants available to share with</p>
+                            <div className="text-center py-8">
+                                <div className="text-gray-400 text-sm">No other tenants available to share with</div>
+                            </div>
                         ) : (
-                            <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-3">
+                            <div className="max-h-60 overflow-y-auto space-y-3 border border-gray-200 rounded-lg p-4 bg-gray-50">
                                 {tenants.map((tenant) => {
                                     const wasShared = sharedWithIds.includes(tenant.id);
                                     const isSelected = selectedTenants.includes(tenant.id);
 
                                     return (
-                                        <div key={tenant.id} className="flex items-center space-x-2">
+                                        <div key={tenant.id} className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-blue-200 transition-colors">
                                             <Checkbox
                                                 id={`tenant-${tenant.id}`}
                                                 checked={isSelected}
@@ -1353,24 +1514,35 @@ const DeviceShareModal = ({ device, tenants, sharedWithIds, onClose, onShare }: 
                                                         }
                                                     }
                                                 }}
+                                                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                                             />
-                                            <img src={`/storage/${tenant.photo}`} className='h-8 w-8 rounded-full object-cover' onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                e.currentTarget.src = '/images/default-user.png'; // Ruta de imagen por defecto
-                                            }} />
-                                            <Label htmlFor={`tenant-${tenant.id}`} className="cursor-pointer">
-                                                {tenant.name}
-                                            </Label>
+                                            <img 
+                                                src={`/storage/${tenant.photo}`} 
+                                                className='h-10 w-10 rounded-full object-cover border-2 border-gray-200' 
+                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                    e.currentTarget.src = '/images/default-user.png';
+                                                }} 
+                                            />
+                                            <div className="flex-1">
+                                                <Label htmlFor={`tenant-${tenant.id}`} className="cursor-pointer font-medium text-gray-800">
+                                                    {tenant.name}
+                                                </Label>
+                                                {wasShared && (
+                                                    <div className="text-xs text-primary mt-1">Currently shared</div>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })}
                             </div>
                         )}
                     </div>
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={onClose}>
-                            Cancel                        </Button>
-                        <Button type="submit">
-                            Save
+                    <DialogFooter className="gap-3">
+                        <Button type="button" variant="outline" onClick={onClose} className="px-6">
+                            Cancel
+                        </Button>
+                        <Button type="submit" className="px-6 bg-primary hover:bg-primary">
+                            Save Changes
                         </Button>
                     </DialogFooter>
                 </form>
