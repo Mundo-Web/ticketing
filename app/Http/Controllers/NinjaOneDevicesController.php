@@ -6,6 +6,7 @@ use App\Models\Device;
 use App\Services\NinjaOneService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class NinjaOneDevicesController extends Controller
@@ -34,6 +35,21 @@ class NinjaOneDevicesController extends Controller
             // Obtener todos los dispositivos de NinjaOne
             $ninjaOneDevices = $this->ninjaOneService->getAllDevices();
             
+            // Obtener organizations y locations de NinjaOne
+            $organizations = $this->ninjaOneService->getOrganizations();
+            $locations = $this->ninjaOneService->getLocations();
+            
+            // Crear mapas para organizations y locations
+            $organizationMap = [];
+            foreach ($organizations as $org) {
+                $organizationMap[$org['id']] = $org;
+            }
+            
+            $locationMap = [];
+            foreach ($locations as $loc) {
+                $locationMap[$loc['id']] = $loc;
+            }
+            
             // Obtener dispositivos locales que tienen integración con NinjaOne
             $localDevices = Device::where('ninjaone_enabled', true)
                 ->with(['brand', 'model', 'system', 'name_device'])
@@ -47,29 +63,58 @@ class NinjaOneDevicesController extends Controller
                 }
             }
 
-            // Enriquecer datos de NinjaOne con información local
-            $enrichedDevices = collect($ninjaOneDevices)->map(function ($ninjaDevice) use ($deviceMap) {
+            // Enriquecer datos de NinjaOne con información local y adicional
+            $enrichedDevices = collect($ninjaOneDevices)->map(function ($ninjaDevice) use ($deviceMap, $organizationMap, $locationMap) {
                 $localDevice = $deviceMap[$ninjaDevice['id']] ?? null;
+                
+                // Obtener información detallada del dispositivo (incluye OS, processors, etc.)
+                $detailedDevice = $this->ninjaOneService->getDevice($ninjaDevice['id']);
                 
                 // Obtener información adicional del dispositivo
                 $healthStatus = $this->ninjaOneService->getDeviceHealthStatus($ninjaDevice['id']);
                 $alerts = $this->ninjaOneService->getDeviceAlerts($ninjaDevice['id']);
                 
+                // Mapear organization y location
+                $organization = null;
+                if (isset($ninjaDevice['organizationId']) && isset($organizationMap[$ninjaDevice['organizationId']])) {
+                    $organization = [
+                        'id' => $ninjaDevice['organizationId'],
+                        'name' => $organizationMap[$ninjaDevice['organizationId']]['name']
+                    ];
+                }
+                
+                $location = null;
+                if (isset($ninjaDevice['locationId']) && isset($locationMap[$ninjaDevice['locationId']])) {
+                    $location = [
+                        'id' => $ninjaDevice['locationId'],
+                        'name' => $locationMap[$ninjaDevice['locationId']]['name']
+                    ];
+                }
+                
+                // Usar datos detallados si están disponibles, sino usar datos básicos
+                $deviceData = $detailedDevice ?? $ninjaDevice;
+                
                 return [
-                    'ninjaone_data' => $ninjaDevice,
+                    'ninjaone_data' => $deviceData,
                     'local_device' => $localDevice,
                     'health_status' => $healthStatus,
                     'alerts' => $alerts,
                     'alerts_count' => count($alerts),
                     'has_local_mapping' => $localDevice !== null,
+                    'organization' => $organization,
+                    'location' => $location,
                 ];
             });
 
             // Estadísticas generales
             $stats = [
                 'total_devices' => count($ninjaOneDevices),
-                'online_devices' => collect($ninjaOneDevices)->where('online', true)->count(),
-                'offline_devices' => collect($ninjaOneDevices)->where('online', false)->count(),
+                'online_devices' => collect($ninjaOneDevices)->filter(function($device) {
+                    return !($device['offline'] ?? false) && ($device['online'] ?? true);
+                })->count(),
+                'offline_devices' => collect($ninjaOneDevices)->filter(function($device) {
+                    return ($device['offline'] ?? false) || ($device['online'] ?? true) === false;
+                })->count(),
                 'mapped_devices' => count($deviceMap),
                 'unmapped_devices' => count($ninjaOneDevices) - count($deviceMap),
                 'devices_with_alerts' => $enrichedDevices->where('alerts_count', '>', 0)->count(),
@@ -146,23 +191,107 @@ class NinjaOneDevicesController extends Controller
             // Obtener información del dispositivo de NinjaOne
             $ninjaDevice = $this->ninjaOneService->getDevice($deviceId);
             if (!$ninjaDevice) {
-                return response()->json(['error' => 'Device not found in NinjaOne'], 404);
+                return response()->json([
+                    'success' => false, 
+                    'error' => 'Device not found in NinjaOne'
+                ], 404);
             }
 
-            // Buscar o crear dispositivo local
-            $localDevice = Device::where('ninjaone_device_id', $deviceId)->first();
+            // Verificar si ya existe un dispositivo local con este ninjaone_device_id
+            $existingDevice = Device::where('ninjaone_device_id', $deviceId)->first();
+            if ($existingDevice) {
+                return response()->json([
+                    'success' => false, 
+                    'error' => 'Device is already synced to local database'
+                ], 400);
+            }
+
+            // Obtener nombres del dispositivo NinjaOne para buscar coincidencias
+            $ninjaSystemName = $ninjaDevice['systemName'] ?? null;
+            $ninjaHostname = $ninjaDevice['hostname'] ?? null;
             
-            if (!$localDevice) {
-                // Crear nuevo dispositivo local
-                $localDevice = new Device();
-                $localDevice->name = $ninjaDevice['systemName'] ?? $ninjaDevice['hostname'] ?? 'Unknown Device';
-                $localDevice->ninjaone_device_id = $deviceId;
-                $localDevice->ninjaone_enabled = true;
+            if (!$ninjaSystemName && !$ninjaHostname) {
+                return response()->json([
+                    'success' => false, 
+                    'error' => 'NinjaOne device has no system name or hostname to match'
+                ], 400);
             }
 
-            // Actualizar información desde NinjaOne
-            $localDevice->ninjaone_system_name = $ninjaDevice['systemName'] ?? null;
-            $localDevice->ninjaone_hostname = $ninjaDevice['hostname'] ?? null;
+            // Buscar dispositivo local que coincida por nombre
+            $localDevice = null;
+            
+            // Primero intentar con systemName
+            if ($ninjaSystemName) {
+                $localDevice = Device::where('name', $ninjaSystemName)
+                    ->where(function($query) use ($deviceId) {
+                        $query->whereNull('ninjaone_device_id')
+                              ->orWhere('ninjaone_device_id', '!=', $deviceId);
+                    })
+                    ->first();
+            }
+            
+            // Si no se encuentra, intentar con hostname
+            if (!$localDevice && $ninjaHostname) {
+                $localDevice = Device::where('name', $ninjaHostname)
+                    ->where(function($query) use ($deviceId) {
+                        $query->whereNull('ninjaone_device_id')
+                              ->orWhere('ninjaone_device_id', '!=', $deviceId);
+                    })
+                    ->first();
+            }
+            
+            // Si aún no se encuentra, intentar búsqueda parcial con systemName
+            if (!$localDevice && $ninjaSystemName) {
+                $localDevice = Device::where('name', 'LIKE', '%' . $ninjaSystemName . '%')
+                    ->where(function($query) use ($deviceId) {
+                        $query->whereNull('ninjaone_device_id')
+                              ->orWhere('ninjaone_device_id', '!=', $deviceId);
+                    })
+                    ->first();
+            }
+            
+            // Si aún no se encuentra, intentar búsqueda parcial con hostname
+            if (!$localDevice && $ninjaHostname) {
+                $localDevice = Device::where('name', 'LIKE', '%' . $ninjaHostname . '%')
+                    ->where(function($query) use ($deviceId) {
+                        $query->whereNull('ninjaone_device_id')
+                              ->orWhere('ninjaone_device_id', '!=', $deviceId);
+                    })
+                    ->first();
+            }
+
+            // Si no se encuentra ningún dispositivo local para hacer match
+            if (!$localDevice) {
+                // Verificar si existe un dispositivo con el nombre pero ya está sincronizado con otro ID
+                $existingNamedDevice = Device::where('name', $ninjaSystemName)
+                    ->orWhere('name', $ninjaHostname)
+                    ->first();
+                
+                if ($existingNamedDevice && $existingNamedDevice->ninjaone_device_id) {
+                    return response()->json([
+                        'success' => false, 
+                        'error' => sprintf(
+                            'Local device "%s" is already synced with NinjaOne device ID: %s. Cannot sync with multiple NinjaOne devices.',
+                            $existingNamedDevice->name,
+                            $existingNamedDevice->ninjaone_device_id
+                        )
+                    ], 400);
+                }
+                
+                return response()->json([
+                    'success' => false, 
+                    'error' => sprintf(
+                        'No local device found to match with this NinjaOne device. Please create a local device first with matching name: %s',
+                        $ninjaSystemName ?? $ninjaHostname
+                    )
+                ], 404);
+            }
+
+            // Hacer el match - actualizar el dispositivo local con información de NinjaOne
+            $localDevice->ninjaone_device_id = $deviceId;
+            $localDevice->ninjaone_enabled = true;
+            $localDevice->ninjaone_system_name = $ninjaSystemName;
+            $localDevice->ninjaone_hostname = $ninjaHostname;
             $localDevice->ninjaone_serial_number = $ninjaDevice['serialNumber'] ?? null;
             $localDevice->ninjaone_online = $ninjaDevice['online'] ?? false;
             $localDevice->ninjaone_os = $ninjaDevice['operatingSystem'] ?? null;
@@ -181,17 +310,71 @@ class NinjaOneDevicesController extends Controller
             $localDevice->save();
 
             return response()->json([
-                'message' => 'Device synced successfully',
-                'device' => $localDevice
+                'success' => true,
+                'message' => sprintf(
+                    'Device "%s" successfully matched and synced with NinjaOne device "%s"',
+                    $localDevice->name,
+                    $ninjaSystemName ?? $ninjaHostname
+                ),
+                'device' => $localDevice,
+                'matched_by' => $localDevice->name === $ninjaSystemName ? 'systemName' : 
+                              ($localDevice->name === $ninjaHostname ? 'hostname' : 'partial_match')
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error syncing NinjaOne device', [
                 'device_id' => $deviceId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
-            return response()->json(['error' => 'Error syncing device: ' . $e->getMessage()], 500);
+            return response()->json([
+                'success' => false, 
+                'error' => 'Error syncing device: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Refresh all devices from NinjaOne API
+     */
+    public function refresh(Request $request)
+    {
+        try {
+            // Fetch fresh data from NinjaOne
+            $devices = $this->ninjaOneService->getAllDevices();
+            
+            if (!$devices) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to fetch devices from NinjaOne'
+                ], 500);
+            }
+
+            // Log the refresh action
+            Log::info('NinjaOne devices refreshed', [
+                'user_id' => Auth::id(),
+                'device_count' => count($devices),
+                'timestamp' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => sprintf('Successfully refreshed %d devices from NinjaOne', count($devices)),
+                'device_count' => count($devices),
+                'timestamp' => now()->toISOString()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error refreshing devices from NinjaOne', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error refreshing devices: ' . $e->getMessage()
+            ], 500);
         }
     }
 

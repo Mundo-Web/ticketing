@@ -75,13 +75,14 @@ Route::prefix('ninjaone')->group(function () {
     Route::any('/webhook-test', [WebhookTestController::class, 'test']); // Endpoint de prueba
 });
 
-// NinjaOne API routes (authenticated)
-Route::middleware('auth:sanctum')->prefix('ninjaone')->group(function () {
+// NinjaOne API routes (authenticated with web session)
+Route::middleware(['web', 'auth'])->prefix('ninjaone')->group(function () {
     Route::get('/user-device-alerts', [NinjaOneController::class, 'getUserDeviceAlerts']);
     Route::get('/user-alerts', [\App\Http\Controllers\NinjaOneAlertsController::class, 'userDeviceAlerts']);
     Route::get('/devices/{deviceId}/alerts', [NinjaOneController::class, 'getDeviceAlertsApi']);
     Route::post('/create-ticket-from-alert', [NinjaOneController::class, 'createTicketFromDeviceAlert']);
     Route::post('/devices/{deviceId}/sync', [App\Http\Controllers\NinjaOneDevicesController::class, 'sync']);
+    Route::post('/devices/refresh', [App\Http\Controllers\NinjaOneDevicesController::class, 'refresh']);
 });
 
 // NinjaOne Demo API routes (public for demonstration)

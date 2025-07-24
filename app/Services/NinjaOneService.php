@@ -421,6 +421,150 @@ class NinjaOneService
     }
 
     /**
+     * Get all organizations from NinjaOne API
+     */
+    public function getOrganizations(): array
+    {
+        try {
+            $headers = $this->getAuthHeaders();
+            if (empty($headers)) {
+                Log::error('No valid authentication headers available');
+                return [];
+            }
+
+            $response = Http::withHeaders($headers)
+                ->get("{$this->apiUrl}/v2/organizations");
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::error('Failed to fetch organizations from NinjaOne', [
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
+
+            return [];
+
+        } catch (Exception $e) {
+            Log::error('Error fetching organizations from NinjaOne API', [
+                'error' => $e->getMessage()
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
+     * Get all locations from NinjaOne API
+     */
+    public function getLocations(): array
+    {
+        try {
+            $headers = $this->getAuthHeaders();
+            if (empty($headers)) {
+                Log::error('No valid authentication headers available');
+                return [];
+            }
+
+            $response = Http::withHeaders($headers)
+                ->get("{$this->apiUrl}/v2/locations");
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::error('Failed to fetch locations from NinjaOne', [
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
+
+            return [];
+
+        } catch (Exception $e) {
+            Log::error('Error fetching locations from NinjaOne API', [
+                'error' => $e->getMessage()
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
+     * Get organization by ID
+     */
+    public function getOrganization(int $organizationId): ?array
+    {
+        try {
+            $headers = $this->getAuthHeaders();
+            if (empty($headers)) {
+                Log::error('No valid authentication headers available');
+                return null;
+            }
+
+            $response = Http::withHeaders($headers)
+                ->get("{$this->apiUrl}/v2/organization/{$organizationId}");
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::error('Failed to fetch organization from NinjaOne', [
+                'organization_id' => $organizationId,
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
+
+            return null;
+
+        } catch (Exception $e) {
+            Log::error('Error fetching organization from NinjaOne API', [
+                'organization_id' => $organizationId,
+                'error' => $e->getMessage()
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Get location by ID
+     */
+    public function getLocation(int $locationId): ?array
+    {
+        try {
+            $headers = $this->getAuthHeaders();
+            if (empty($headers)) {
+                Log::error('No valid authentication headers available');
+                return null;
+            }
+
+            $response = Http::withHeaders($headers)
+                ->get("{$this->apiUrl}/v2/location/{$locationId}");
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::error('Failed to fetch location from NinjaOne', [
+                'location_id' => $locationId,
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
+
+            return null;
+
+        } catch (Exception $e) {
+            Log::error('Error fetching location from NinjaOne API', [
+                'location_id' => $locationId,
+                'error' => $e->getMessage()
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
      * Map NinjaOne alert severity to local severity
      */
     public function mapSeverity(string $ninjaOneSeverity): string
