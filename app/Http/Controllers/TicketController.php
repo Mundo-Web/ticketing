@@ -37,6 +37,9 @@ class TicketController extends Controller
             'user.tenant.apartment.building', // Para saber quién creó el ticket y su info
             'createdByOwner', // Relación con Owner que creó el ticket
             'createdByDoorman', // Relación con Doorman que creó el ticket
+            'appointments', // Todas las citas del ticket
+            'activeAppointment', // Cita activa actual
+            'lastCompletedAppointment', // Última cita completada
         ];
         $ticketsQuery = Ticket::with($withRelations);
         $allTicketsQuery = Ticket::with($withRelations);
@@ -414,6 +417,9 @@ class TicketController extends Controller
             'user.tenant.apartment.building', // Para saber quién creó el ticket y su info
             'createdByOwner', // Relación con Owner que creó el ticket
             'createdByDoorman', // Relación con Doorman que creó el ticket
+            'appointments', // Todas las citas del ticket
+            'activeAppointment', // Cita activa actual
+            'lastCompletedAppointment', // Última cita completada
         ])->findOrFail($id);
         // Si es AJAX/fetch, devolver JSON
         if (request()->wantsJson() || request()->ajax()) {
@@ -489,6 +495,50 @@ class TicketController extends Controller
     }
 
     /**
+     * Add member comment/feedback to a ticket (only visible to admins)
+     */
+    public function addMemberFeedback(Request $request, Ticket $ticket)
+    {
+        $validated = $request->validate([
+            'comment' => 'nullable|string|max:1000',
+            'rating' => 'required|integer|min:1|max:5',
+            'is_feedback' => 'boolean',
+        ]);
+
+        $user = Auth::user();
+        
+        // Only allow ticket owner (member) to add feedback
+        if ($ticket->user_id !== $user->id) {
+            abort(403, 'You can only add feedback to your own tickets');
+        }
+
+        // Prepare feedback data
+        $feedbackData = [
+            'comment' => $validated['comment'] ?? '',
+            'rating' => $validated['rating'],
+            'from_member' => true
+        ];
+
+        // Add feedback as internal comment (only visible to admins)
+        $ticket->addHistory(
+            $validated['is_feedback'] ? 'member_feedback' : 'member_comment',
+            $validated['comment'] ? $validated['comment'] : "Calificación: {$validated['rating']} estrellas",
+            $feedbackData,
+            null // No technical_id for member feedback
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Your feedback has been submitted successfully',
+                'ticket' => $ticket->fresh(['histories.technical'])
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Your feedback has been submitted successfully');
+    }
+
+    /**
      * Listar técnicos para asignación/derivación (AJAX)
      */
     public function technicalsList()
@@ -512,6 +562,9 @@ class TicketController extends Controller
             
             // Verificar que el ticket no esté ya asignado al mismo técnico
             if ($ticket->technical_id == $validated['technical_id']) {
+                if ($request->header('X-Inertia')) {
+                    return redirect()->back()->with('error', 'Ticket is already assigned to this technician');
+                }
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
                         'success' => false,
@@ -544,7 +597,13 @@ class TicketController extends Controller
             // Dispatch ticket assigned event
             event(new TicketAssigned($ticket, $newTechnical, $user));
             
-            // Detectar si es una petición AJAX/fetch y responder en consecuencia
+            // Check if this is an Inertia request
+            if ($request->header('X-Inertia')) {
+                // For Inertia requests, redirect back with success message
+                return redirect()->back()->with('success', 'Technician assigned successfully');
+            }
+            
+            // For AJAX/fetch requests (not Inertia), return JSON
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
                     'success' => true,
@@ -564,6 +623,9 @@ class TicketController extends Controller
             return redirect()->back()->with('success', 'Technician assigned');
             
         } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->header('X-Inertia')) {
+                throw $e; // Let Inertia handle validation errors normally
+            }
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
                     'success' => false,
@@ -575,6 +637,9 @@ class TicketController extends Controller
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error assigning technician: ' . $e->getMessage());
             
+            if ($request->header('X-Inertia')) {
+                return redirect()->back()->with('error', 'An error occurred while assigning technician');
+            }
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
                     'success' => false,

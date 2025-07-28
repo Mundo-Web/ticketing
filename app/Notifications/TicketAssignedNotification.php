@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Ticket;
 use App\Models\User;
+use App\Models\Technical;
 use App\Models\NotificationTemplate;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -21,7 +22,7 @@ class TicketAssignedNotification extends Notification implements ShouldQueue
     /**
      * Create a new notification instance.
      */
-    public function __construct(Ticket $ticket, User $technical, User $assignedBy)
+    public function __construct(Ticket $ticket, Technical $technical, User $assignedBy)
     {
         $this->ticket = $ticket;
         $this->technical = $technical;

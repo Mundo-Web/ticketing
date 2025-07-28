@@ -4,6 +4,7 @@ namespace App\Events;
 
 use App\Models\Ticket;
 use App\Models\User;
+use App\Models\Technical;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -23,7 +24,7 @@ class TicketAssigned implements ShouldBroadcast
     /**
      * Create a new event instance.
      */
-    public function __construct(Ticket $ticket, User $technical, User $assignedBy)
+    public function __construct(Ticket $ticket, Technical $technical, User $assignedBy)
     {
         $this->ticket = $ticket->load(['user', 'device', 'device.name_device']);
         $this->technical = $technical;

@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { SharedData, type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, FileText, Building, CheckCircle, XCircle, Laptop, Users, Shield } from 'lucide-react';
+import { LayoutGrid, FileText, Building, CheckCircle, XCircle, Laptop, Users, Shield, Calendar } from 'lucide-react';
 import AppLogo from './app-logo';
 
 
@@ -83,6 +83,12 @@ export function AppSidebar() {
           isActive: component === 'Tickets/Index' && url.includes('status=closed,cancelled'),
         }
       ]
+    },
+    {
+      title: 'Appointments',
+      href: '/appointments',
+      icon: Calendar,
+      isActive: route().current('appointments.*'),
     },
     {
       title: 'NinjaOne',
@@ -190,6 +196,12 @@ export function AppSidebar() {
           isActive: component === 'Tickets/Index' && url.includes('status=closed,cancelled'),
         }
       ]
+    },
+    {
+      title: 'Appointments',
+      href: '/appointments',
+      icon: Calendar,
+      isActive: route().current('appointments.*'),
     },
   ];
 

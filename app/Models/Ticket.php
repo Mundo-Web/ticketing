@@ -88,6 +88,28 @@ class Ticket extends Model
         return $this->belongsTo(\App\Models\Doorman::class, 'created_by_doorman_id');
     }
 
+    // Relación con citas
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class)->orderBy('scheduled_for', 'desc');
+    }
+
+    // Cita activa (la más reciente no cancelada)
+    public function activeAppointment()
+    {
+        return $this->hasOne(Appointment::class)
+                    ->whereIn('status', [Appointment::STATUS_SCHEDULED, Appointment::STATUS_IN_PROGRESS])
+                    ->orderBy('scheduled_for', 'desc');
+    }
+
+    // Última cita completada
+    public function lastCompletedAppointment()
+    {
+        return $this->hasOne(Appointment::class)
+                    ->where('status', Appointment::STATUS_COMPLETED)
+                    ->orderBy('completed_at', 'desc');
+    }
+
     // Relación con comentarios
     public function comments()
     {
@@ -112,4 +134,21 @@ class Ticket extends Model
     public function isResolved() { return $this->status === self::STATUS_RESOLVED; }
     public function isClosed() { return $this->status === self::STATUS_CLOSED; }
     public function isCancelled() { return $this->status === self::STATUS_CANCELLED; }
+
+    // Métodos de ayuda para citas
+    public function canScheduleAppointment()
+    {
+        return $this->isInProgress() && $this->technical_id && !$this->activeAppointment;
+    }
+
+    public function hasActiveAppointment()
+    {
+        return $this->activeAppointment !== null;
+    }
+
+    public function needsOnSiteVisit()
+    {
+        // Ticket needs on-site visit if it's in progress and technician indicates remote resolution failed
+        return $this->isInProgress() && $this->technical_id;
+    }
 }

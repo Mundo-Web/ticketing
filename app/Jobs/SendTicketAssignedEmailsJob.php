@@ -24,7 +24,7 @@ class SendTicketAssignedEmailsJob implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(Ticket $ticket, User $assignee, User $assigner)
+    public function __construct(Ticket $ticket, Technical $assignee, User $assigner)
     {
         $this->ticket = $ticket;
         $this->assignee = $assignee;

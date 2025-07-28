@@ -47,8 +47,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Nuevas rutas para historial, asignación de técnico y cambio de estado (Kanban)
     Route::post('tickets/{ticket}/assign-technical', [TicketController::class, 'assignTechnical'])->name('tickets.assignTechnical');
     Route::post('tickets/{ticket}/add-history', [TicketController::class, 'addHistory'])->name('tickets.addHistory');
+    Route::post('tickets/{ticket}/add-member-feedback', [TicketController::class, 'addMemberFeedback'])->name('tickets.addMemberFeedback');
     Route::post('tickets/{ticket}/update-status', [TicketController::class, 'updateStatus'])->name('tickets.updateStatus');
     Route::get('tickets/assign-unassigned', [TicketController::class, 'assignUnassigned'])->name('tickets.assign-unassigned');
+
+    // Appointment Routes
+    Route::get('appointments', [\App\Http\Controllers\AppointmentController::class, 'index'])->name('appointments.index');
+    Route::get('appointments/{appointment}', [\App\Http\Controllers\AppointmentController::class, 'show'])->name('appointments.show');
+    Route::post('appointments', [\App\Http\Controllers\AppointmentController::class, 'store'])->name('appointments.store');
+    Route::put('appointments/{appointment}', [\App\Http\Controllers\AppointmentController::class, 'update'])->name('appointments.update');
+    Route::post('appointments/{appointment}/start', [\App\Http\Controllers\AppointmentController::class, 'start'])->name('appointments.start');
+    Route::post('appointments/{appointment}/complete', [\App\Http\Controllers\AppointmentController::class, 'complete'])->name('appointments.complete');
+    Route::post('appointments/{appointment}/cancel', [\App\Http\Controllers\AppointmentController::class, 'cancel'])->name('appointments.cancel');
+    Route::post('appointments/{appointment}/reschedule', [\App\Http\Controllers\AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
+    Route::get('technicals/{technical}/availability', [\App\Http\Controllers\AppointmentController::class, 'getTechnicalAvailability'])->name('technicals.availability');
 
 
     Route::get('/apartment/member/{id}/devices', [ApartmentController::class, 'apartmentMemberDevice'])
