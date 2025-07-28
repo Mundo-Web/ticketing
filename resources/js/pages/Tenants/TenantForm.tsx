@@ -2,19 +2,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tenant } from '@/types/models/Tenant';
-import { Trash2, Plus, User } from 'lucide-react';
+import { Trash2, Plus, User, ShieldPlus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface TenantFormProps {
     tenants: Tenant[];
     onTenantsChange: (tenants: Tenant[]) => void;
     errors: Record<string, string>;
+    apartmentId?: number;
+    onExportMembersNinjaOne?: (apartmentId?: number) => void;
 }
 
 export const TenantForm = ({
     tenants,
     onTenantsChange,
-    errors
+    errors,
+    apartmentId,
+    onExportMembersNinjaOne
 }: TenantFormProps) => {
     const [filePreviews, setFilePreviews] = useState<Record<number, string>>({});
     const [existingPhotos, setExistingPhotos] = useState<Record<number, string>>({});
@@ -114,14 +118,27 @@ export const TenantForm = ({
     return (
         <div className="space-y-8">
             <div className=" top-0 bg-background z-10 pb-4">
-                <Button 
-                    type="button"
-                    onClick={handleAddTenant}
-                    className="w-max h-12 rounded-xl shadow-sm hover:shadow-md transition-all"
-                >
-                    <Plus className="w-5 h-5 mr-2" />
-                    Add Member
-                </Button>
+                <div className="flex gap-2">
+                    <Button 
+                        type="button"
+                        onClick={handleAddTenant}
+                        className="w-max h-12 rounded-xl shadow-sm hover:shadow-md transition-all"
+                    >
+                        <Plus className="w-5 h-5 mr-2" />
+                        Add Member
+                    </Button>
+                    {/*onExportMembersNinjaOne && (
+                        <Button 
+                            type="button"
+                            onClick={() => onExportMembersNinjaOne(apartmentId)}
+                            variant="outline"
+                            className="w-max h-12 rounded-xl shadow-sm hover:shadow-md transition-all border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        >
+                            <ShieldPlus className="w-5 h-5 mr-2 text-blue-600" />
+                            Export Members NinjaOne
+                        </Button>
+                    )*/}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

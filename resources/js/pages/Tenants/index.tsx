@@ -3,10 +3,12 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, SharedData } from '@/types';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-    Plus, Edit, Trash2, ChevronRight, Laptop, UploadCloud, 
-    ChevronDown, ChevronLeft, Search, Filter, FileSpreadsheet, 
-    Download, Users, Mail, Phone, Crown, Shield, MapPinIcon, Ticket, KeyRound
+import {
+    Plus, Edit, Trash2, ChevronRight, Laptop, UploadCloud,
+    ChevronDown, ChevronLeft, Search, Filter, FileSpreadsheet,
+    Download, Users, Mail, Phone, Crown, Shield, MapPinIcon, Ticket, KeyRound,
+    ShieldPlus, MapPin,
+    DownloadCloud
 } from 'lucide-react';
 import * as XLSX from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -51,6 +53,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import ModalDispositivos from './ModalDispositivos';
 import { BuildingCombobox } from './ComboBox';
 import { Tenant } from '@/types/models/Tenant';
@@ -58,6 +61,7 @@ import { TenantForm } from './TenantForm';
 import { Apartment } from '@/types/models/Apartment';
 import TicketHistoryModal from '@/components/TicketHistoryModal';
 import _ from 'lodash';
+import axios from 'axios';
 
 // Extend Tenant type to include additional properties used in this component
 interface ExtendedTenant extends Tenant {
@@ -129,6 +133,98 @@ const styles = `
 .card-entrance {
     animation: cardEntrance 0.5s ease-out forwards;
 }
+
+/* Tooltip styles */
+.tooltip-trigger {
+    position: relative;
+}
+
+.tooltip-trigger::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #1f2937;
+    color: white;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.tooltip-trigger::after {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: #1f2937;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.tooltip-trigger:hover::before,
+.tooltip-trigger:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Custom tooltip animations */
+@keyframes tooltipSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.custom-tooltip-enter {
+    animation: tooltipSlideIn 0.2s ease-out forwards;
+}
+
+/* Enhanced button hover effects */
+.action-button {
+    transition: all 0.2s ease-in-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+.action-button:hover::before {
+    width: 100px;
+    height: 100px;
+}
+
+.action-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
 `;
 
 // Inject styles into head
@@ -182,7 +278,7 @@ interface Props {
 export default function Index({ apartments, brands, models, systems, name_devices, filters }: Props) {
     // Removing unused auth
     const { auth } = usePage<SharedData>().props;
-  
+
     // Debug inicial
     console.log('=== COMPONENT RENDERED ===');
     console.log('Apartments data:', apartments);
@@ -206,7 +302,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             const urlParams = new URLSearchParams(window.location.search);
             const sortBy = urlParams.get('sort_by');
             const sortDir = urlParams.get('sort_dir');
-            
+
             if (sortBy && sortDir) {
                 return [{
                     id: sortBy,
@@ -220,7 +316,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             desc: false
         }];
     });
-  
+
     // Removing unused viewMode
     // const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -235,7 +331,7 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [showDevicesModal, setShowDevicesModal] = useState(false);
     const [showTicketHistoryModal, setShowTicketHistoryModal] = useState(false);
     const [selectedTenantForTickets, setSelectedTenantForTickets] = useState<Tenant | null>(null);
-    
+
     // Nuevos estados para crear tickets
     const [showCreateTicketDevicesModal, setShowCreateTicketDevicesModal] = useState(false);
     const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
@@ -247,7 +343,7 @@ export default function Index({ apartments, brands, models, systems, name_device
     const [bulkFile, setBulkFile] = useState<File | null>(null);
     const [isBulkUploading, setIsBulkUploading] = useState(false);
     const [mapKey, setMapKey] = useState(0); // Para forzar re-render del mapa
-    
+
     // Estados para reset de contraseñas
     const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
     const [showBulkResetModal, setShowBulkResetModal] = useState(false);
@@ -328,7 +424,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             setIsSearching(true);
             const currentUrl = window.location.pathname + window.location.search;
             const url = new URL(currentUrl, window.location.origin);
-            
+
             // Detecta si el input tenía el foco
             const wasFocused = document.activeElement === searchInputRef.current;
 
@@ -337,10 +433,10 @@ export default function Index({ apartments, brands, models, systems, name_device
             } else {
                 url.searchParams.delete('search');
             }
-            
+
             // Resetear a la primera página cuando se busca
             url.searchParams.set('page', '1');
-            
+
             router.visit(url.toString(), {
                 preserveState: true,
                 preserveScroll: true,
@@ -435,13 +531,13 @@ export default function Index({ apartments, brands, models, systems, name_device
         if (!data.id) return;
 
         const formData = new FormData();
-        
+
         // Add CSRF token
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         if (csrfToken) {
             formData.append('_token', csrfToken);
         }
-        
+
         formData.append('_method', 'PUT');
         formData.append('name', data.name);
         formData.append('ubicacion', data.ubicacion);
@@ -519,11 +615,11 @@ export default function Index({ apartments, brands, models, systems, name_device
                 console.error('Full error object:', errors);
                 console.error('Error type:', typeof errors);
                 console.error('Error keys:', Object.keys(errors || {}));
-                
+
                 // Check for Laravel validation errors
                 if (errors && typeof errors === 'object') {
                     const errorMessages = [];
-                    
+
                     // Handle different error structures
                     if (errors.error) {
                         errorMessages.push(errors.error);
@@ -540,7 +636,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                             }
                         });
                     }
-                    
+
                     if (errorMessages.length > 0) {
                         toast.error(`Error deleting apartment: ${errorMessages.join(', ')}`);
                     } else {
@@ -581,13 +677,13 @@ export default function Index({ apartments, brands, models, systems, name_device
         console.log('Selected apartment for ticket creation:', selectedTenantForTicketCreation);
         console.log('User roles:', auth.user?.roles);
         console.log('=== END DEVICE SELECTED ===');
-        
+
         setSelectedDeviceForTicket(device);
         ticketForm.setData('device_id', device.id.toString());
-        
+
         // Verificar el rol del usuario para determinar qué campo usar
         const isAdminOrTechnical = auth.user?.roles?.includes('super-admin') || auth.user?.roles?.includes('technical');
-        
+
         if (isAdminOrTechnical) {
             // Para admin/technical usar tenant_id
             ticketForm.setData('tenant_id', selectedTenant?.id.toString() || '');
@@ -597,7 +693,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             ticketForm.setData('member_id', selectedTenant?.id.toString() || '');
             ticketForm.setData('tenant_id', ''); // Limpiar tenant_id
         }
-        
+
         setShowCreateTicketDevicesModal(false);
         setShowCreateTicketModal(true);
     };
@@ -620,91 +716,91 @@ export default function Index({ apartments, brands, models, systems, name_device
     };
 
     const getEmbedUrl = (locationLink: string): string => {
-    console.log('=== GENERATING EMBED URL ===');
-    console.log('Input location_link:', locationLink);
-    console.log('Building ID:', building?.id);
-    console.log('Google Maps API Key:', googleMapsApiKey ? 'Present' : 'Missing');
+        console.log('=== GENERATING EMBED URL ===');
+        console.log('Input location_link:', locationLink);
+        console.log('Building ID:', building?.id);
+        console.log('Google Maps API Key:', googleMapsApiKey ? 'Present' : 'Missing');
 
-    if (!locationLink?.trim()) {
-        console.warn('No location link provided');
-        return '';
-    }
-
-    if (!googleMapsApiKey) {
-        console.warn('No Google Maps API Key provided');
-        return '';
-    }
-
-    const cleanedLink = locationLink.trim();
-
-    // Si ya es un embed URL válido
-    if (cleanedLink.includes('/embed')) {
-        console.log('Using existing embed URL:', cleanedLink);
-        return cleanedLink;
-    }
-
-    // Coordenadas directas "lat, lng"
-    const coordsDirectMatch = cleanedLink.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
-    if (coordsDirectMatch) {
-        const lat = parseFloat(coordsDirectMatch[1]);
-        const lng = parseFloat(coordsDirectMatch[2]);
-
-        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-            // Usar /v1/place con coordenadas para mostrar el PIN/MARCADOR
-            const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${lat},${lng}&zoom=17`;
-            console.log('Generated embed URL for coordinates WITH PIN:', embedUrl);
-            return embedUrl;
-        } else {
-            console.warn('Invalid coordinates:', { lat, lng });
-        }
-    }
-
-    // Enlace acortado (maps.app.goo.gl o goo.gl/maps) — solo se puede usar como búsqueda
-    if (/maps\.app\.goo\.gl|goo\.gl\/maps/.test(cleanedLink)) {
-        const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(cleanedLink)}`;
-        console.log('Generated embed URL for short link (fallback as search):', embedUrl);
-        return embedUrl;
-    }
-
-    // URL de Google Maps completa
-    if (cleanedLink.includes('google.com/maps')) {
-        // Extraer el parámetro pb si existe
-        const pbMatch = cleanedLink.match(/pb=([^&]+)/);
-        if (pbMatch) {
-            const embedUrl = `https://www.google.com/maps/embed?pb=${pbMatch[1]}`;
-            console.log('Generated embed URL from pb parameter:', embedUrl);
-            return embedUrl;
+        if (!locationLink?.trim()) {
+            console.warn('No location link provided');
+            return '';
         }
 
-        // Extraer coordenadas del patrón @lat,lng,zoom
-        const coordsMatch = cleanedLink.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-        if (coordsMatch) {
-            const lat = parseFloat(coordsMatch[1]);
-            const lng = parseFloat(coordsMatch[2]);
+        if (!googleMapsApiKey) {
+            console.warn('No Google Maps API Key provided');
+            return '';
+        }
+
+        const cleanedLink = locationLink.trim();
+
+        // Si ya es un embed URL válido
+        if (cleanedLink.includes('/embed')) {
+            console.log('Using existing embed URL:', cleanedLink);
+            return cleanedLink;
+        }
+
+        // Coordenadas directas "lat, lng"
+        const coordsDirectMatch = cleanedLink.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+        if (coordsDirectMatch) {
+            const lat = parseFloat(coordsDirectMatch[1]);
+            const lng = parseFloat(coordsDirectMatch[2]);
 
             if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
                 // Usar /v1/place con coordenadas para mostrar el PIN/MARCADOR
                 const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${lat},${lng}&zoom=17`;
-                console.log('Generated embed URL from @ coordinates WITH PIN:', embedUrl);
+                console.log('Generated embed URL for coordinates WITH PIN:', embedUrl);
+                return embedUrl;
+            } else {
+                console.warn('Invalid coordinates:', { lat, lng });
+            }
+        }
+
+        // Enlace acortado (maps.app.goo.gl o goo.gl/maps) — solo se puede usar como búsqueda
+        if (/maps\.app\.goo\.gl|goo\.gl\/maps/.test(cleanedLink)) {
+            const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(cleanedLink)}`;
+            console.log('Generated embed URL for short link (fallback as search):', embedUrl);
+            return embedUrl;
+        }
+
+        // URL de Google Maps completa
+        if (cleanedLink.includes('google.com/maps')) {
+            // Extraer el parámetro pb si existe
+            const pbMatch = cleanedLink.match(/pb=([^&]+)/);
+            if (pbMatch) {
+                const embedUrl = `https://www.google.com/maps/embed?pb=${pbMatch[1]}`;
+                console.log('Generated embed URL from pb parameter:', embedUrl);
+                return embedUrl;
+            }
+
+            // Extraer coordenadas del patrón @lat,lng,zoom
+            const coordsMatch = cleanedLink.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+            if (coordsMatch) {
+                const lat = parseFloat(coordsMatch[1]);
+                const lng = parseFloat(coordsMatch[2]);
+
+                if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+                    // Usar /v1/place con coordenadas para mostrar el PIN/MARCADOR
+                    const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${lat},${lng}&zoom=17`;
+                    console.log('Generated embed URL from @ coordinates WITH PIN:', embedUrl);
+                    return embedUrl;
+                }
+            }
+
+            // Buscar place ID
+            const placeIdMatch = cleanedLink.match(/place\/([^/?#]+)/);
+            if (placeIdMatch) {
+                const placeId = placeIdMatch[1];
+                const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&place_id=${placeId}`;
+                console.log('Generated embed URL for place ID:', embedUrl);
                 return embedUrl;
             }
         }
 
-        // Buscar place ID
-        const placeIdMatch = cleanedLink.match(/place\/([^/?#]+)/);
-        if (placeIdMatch) {
-            const placeId = placeIdMatch[1];
-            const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&place_id=${placeId}`;
-            console.log('Generated embed URL for place ID:', embedUrl);
-            return embedUrl;
-        }
-    }
-
-    // Fallback: tratar como dirección
-    const fallbackEmbed = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(cleanedLink)}`;
-    console.log('Fallback embed URL (address or query):', fallbackEmbed);
-    return fallbackEmbed;
-};
+        // Fallback: tratar como dirección
+        const fallbackEmbed = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(cleanedLink)}`;
+        console.log('Fallback embed URL (address or query):', fallbackEmbed);
+        return fallbackEmbed;
+    };
 
 
     const toggleStatus = async (apartment: Apartment) => {
@@ -742,17 +838,17 @@ export default function Index({ apartments, brands, models, systems, name_device
         }
 
         const formData = new FormData();
-        
+
         // Add CSRF token
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         if (csrfToken) {
             formData.append('_token', csrfToken);
         }
-        
+
         formData.append('file', bulkFile);
 
         setIsBulkUploading(true);
-        
+
         router.post(route('buildings.apartments.bulk-upload', building.id), formData, {
             forceFormData: true,
             preserveScroll: true,
@@ -795,7 +891,7 @@ export default function Index({ apartments, brands, models, systems, name_device
 
     // Definición de columnas para la tabla
     const columns: ColumnDef<Apartment>[] = [
-           {
+        {
             accessorKey: "order",
             header: ({ column }) => {
                 return (
@@ -848,7 +944,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             },
             cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
         },
-     
+
         {
             id: "tenants_count",
             accessorFn: (row) => row.tenants?.length || 0,
@@ -884,7 +980,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                 );
             },
         },
-      
+
         {
             accessorKey: "status",
             header: ({ column }) => {
@@ -922,15 +1018,56 @@ export default function Index({ apartments, brands, models, systems, name_device
             enableHiding: false,
             cell: ({ row }) => {
                 const apartment = row.original;
-                
+
                 return (
                     <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(apartment)}>
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(apartment)}>
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="action-button hover:bg-green-50 hover:text-green-600 transition-all duration-200 h-8 w-8"
+                                    onClick={() => exportNinjaOneDevices('apartment')}
+                                >
+                                    <DownloadCloud className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Export NinjaOne devices</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="action-button hover:bg-amber-50 hover:text-amber-600 transition-all duration-200 h-8 w-8"
+                                    onClick={() => handleEdit(apartment)}
+                                >
+                                    <Edit className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Edit apartment</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="action-button hover:bg-red-50 hover:text-red-600 transition-all duration-200 h-8 w-8"
+                                    onClick={() => handleDelete(apartment)}
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Delete apartment</p>
+                            </TooltipContent>
+                        </Tooltip>
                     </div>
                 );
             },
@@ -952,10 +1089,10 @@ export default function Index({ apartments, brands, models, systems, name_device
     const handleSortingChange = (updaterOrValue: SortingState | ((old: SortingState) => SortingState)) => {
         const newSorting = typeof updaterOrValue === 'function' ? updaterOrValue(sorting) : updaterOrValue;
         setSorting(newSorting);
-        
+
         const currentUrl = window.location.pathname + window.location.search;
         const url = new URL(currentUrl, window.location.origin);
-        
+
         if (newSorting.length > 0) {
             const sort = newSorting[0];
             url.searchParams.set('sort_by', sort.id);
@@ -965,10 +1102,10 @@ export default function Index({ apartments, brands, models, systems, name_device
             url.searchParams.set('sort_by', 'order');
             url.searchParams.set('sort_dir', 'asc');
         }
-        
+
         // Resetear a la primera página cuando se cambia el ordenamiento
         url.searchParams.set('page', '1');
-        
+
         router.visit(url.toString(), {
             preserveState: true,
             preserveScroll: true,
@@ -1006,8 +1143,8 @@ export default function Index({ apartments, brands, models, systems, name_device
             .filter(column => column.getIsVisible() && column.id !== 'actions')
             .map(column => ({
                 id: column.id,
-                header: typeof column.columnDef.header === 'string' 
-                    ? column.columnDef.header 
+                header: typeof column.columnDef.header === 'string'
+                    ? column.columnDef.header
                     : column.id.charAt(0).toUpperCase() + column.id.slice(1)
             }));
 
@@ -1030,7 +1167,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                 }
                 return '';
             })
-            .join(',');
+                .join(',');
         }).join('\n');
 
         const csv = headers + rows;
@@ -1051,14 +1188,14 @@ export default function Index({ apartments, brands, models, systems, name_device
             // Create a new workbook
             const workbook = new XLSX.Workbook();
             const worksheet = workbook.addWorksheet('Apartments');
-            
+
             // Get visible columns
             const visibleColumns = table.getAllColumns()
                 .filter(column => column.getIsVisible() && column.id !== 'actions')
                 .map(column => ({
                     id: column.id,
-                    header: typeof column.columnDef.header === 'string' 
-                        ? column.columnDef.header 
+                    header: typeof column.columnDef.header === 'string'
+                        ? column.columnDef.header
                         : column.id.charAt(0).toUpperCase() + column.id.slice(1)
                 }));
 
@@ -1118,15 +1255,192 @@ export default function Index({ apartments, brands, models, systems, name_device
 
             // Generate buffer and save
             const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { 
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             });
-            
+
             saveAs(blob, `apartments_${new Date().toISOString().split('T')[0]}${filters?.search ? `_${filters.search}` : ''}.xlsx`);
             toast.success('Excel file exported successfully!');
         } catch (error) {
             console.error('Error exporting to Excel:', error);
             toast.error('Error exporting to Excel. Please try again.');
+        }
+    };
+
+    // Funciones para exportar dispositivos de NinjaOne
+    const exportNinjaOneDevices = async (exportType: 'all' | 'building' | 'apartment') => {
+        try {
+            let url = '';
+            let data = {};
+
+            switch (exportType) {
+                case 'all':
+                    // Exportar todos los dispositivos NinjaOne del sistema
+                    url = route('devices.export.ninjaone.all');
+                    data = {};
+                    toast.info('Exporting all NinjaOne devices...');
+                    break;
+                    
+                case 'building':
+                    // Exportar dispositivos NinjaOne de un building específico
+                    url = route('devices.export.ninjaone.building');
+                    data = {
+                        building_id: building.id
+                    };
+                    toast.info(`Exporting NinjaOne devices for building: ${building.name}...`);
+                    break;
+                    
+                case 'apartment':
+                    // Exportar dispositivos NinjaOne agrupados por apartamentos del building actual
+                    url = route('devices.export.ninjaone.apartments');
+                    data = {
+                        building_id: building.id,
+                        apartment_ids: apartments.data.map(apt => apt.id)
+                    };
+                    toast.info(`Exporting NinjaOne devices by apartments for building: ${building.name}...`);
+                    break;
+            }
+
+            console.log('=== EXPORT NINJAONE DEBUG ===');
+            console.log('Export type:', exportType);
+            console.log('URL:', url);
+            console.log('Data:', data);
+            console.log('Building:', building);
+            console.log('=== END DEBUG ===');
+
+            const response = await axios.post(url, data, {
+                responseType: 'blob',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                }
+            });
+
+            // Crear un blob y un enlace para descargar
+            const blob = new Blob([response.data], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            
+            // Nombre del archivo más descriptivo
+            let fileName = '';
+            switch (exportType) {
+                case 'all':
+                    fileName = `ninjaone-devices-all-${new Date().toISOString().split('T')[0]}.xlsx`;
+                    break;
+                case 'building':
+                    fileName = `ninjaone-devices-building-${building.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.xlsx`;
+                    break;
+                case 'apartment':
+                    fileName = `ninjaone-devices-apartments-${building.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.xlsx`;
+                    break;
+            }
+            
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+
+            toast.success(`NinjaOne devices exported successfully!`);
+        } catch (error: any) {
+            console.error('=== EXPORT ERROR DEBUG ===');
+            console.error('Full error:', error);
+            console.error('Error response:', error.response);
+            console.error('Error data:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+            console.error('Error message:', error.message);
+            console.error('=== END ERROR DEBUG ===');
+            
+            let errorMessage = 'Error exporting NinjaOne devices. Please try again.';
+            
+            if (error.response?.status === 404) {
+                errorMessage = 'Export route not found. Please contact support.';
+            } else if (error.response?.status === 403) {
+                errorMessage = 'You do not have permission to export NinjaOne devices.';
+            } else if (error.response?.status === 500) {
+                errorMessage = 'Server error occurred while exporting. Please try again later.';
+            } else if (error.response?.data) {
+                // Try to read the error blob as text
+                try {
+                    const errorText = await error.response.data.text();
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.message || errorMessage;
+                } catch (parseError) {
+                    console.error('Could not parse error response:', parseError);
+                }
+            }
+            
+            toast.error(errorMessage);
+        }
+    };
+
+    // Función específica para exportar dispositivos NinjaOne de Members/Tenants
+    const exportMembersNinjaOneDevices = async (apartmentId?: number, tenantId?: number) => {
+        try {
+            let url = '';
+            let data = {};
+            let toastMessage = '';
+
+            if (tenantId) {
+                // Exportar dispositivos de un tenant específico
+                url = route('devices.export.ninjaone.tenant');
+                data = {
+                    tenant_id: tenantId
+                };
+                toastMessage = 'Exporting NinjaOne devices for specific member...';
+            } else if (apartmentId) {
+                // Exportar dispositivos de todos los tenants de un apartamento específico
+                url = route('devices.export.ninjaone.apartment.members');
+                data = {
+                    apartment_id: apartmentId
+                };
+                toastMessage = 'Exporting NinjaOne devices for apartment members...';
+            } else {
+                // Exportar dispositivos de todos los members del building actual
+                url = route('devices.export.ninjaone.building.members');
+                data = {
+                    building_id: building.id
+                };
+                toastMessage = `Exporting NinjaOne devices for all members in building: ${building.name}...`;
+            }
+
+            toast.info(toastMessage);
+
+            const response = await axios.post(url, data, {
+                responseType: 'blob'
+            });
+
+            // Crear un blob y un enlace para descargar
+            const blob = new Blob([response.data], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            
+            // Nombre del archivo más descriptivo
+            let fileName = '';
+            if (tenantId) {
+                fileName = `ninjaone-devices-member-${tenantId}-${new Date().toISOString().split('T')[0]}.xlsx`;
+            } else if (apartmentId) {
+                fileName = `ninjaone-devices-apartment-${apartmentId}-members-${new Date().toISOString().split('T')[0]}.xlsx`;
+            } else {
+                fileName = `ninjaone-devices-building-${building.name.replace(/\s+/g, '-')}-members-${new Date().toISOString().split('T')[0]}.xlsx`;
+            }
+            
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+
+            toast.success('Members NinjaOne devices exported successfully!');
+        } catch (error) {
+            console.error('Error exporting members NinjaOne devices:', error);
+            toast.error('Error exporting members NinjaOne devices. Please try again.');
         }
     };
 
@@ -1142,13 +1456,13 @@ export default function Index({ apartments, brands, models, systems, name_device
     const handleSuperintendentUpdate = (e: React.FormEvent) => {
         e.preventDefault();
         const formData = new FormData();
-        
+
         // Add CSRF token
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         if (csrfToken) {
             formData.append('_token', csrfToken);
         }
-        
+
         formData.append('_method', 'PUT');
         formData.append('owner[id]', superintendentData!.id.toString());
         formData.append('owner[name]', superintendentData!.name);
@@ -1199,12 +1513,12 @@ export default function Index({ apartments, brands, models, systems, name_device
     const handleCreateDoorman = (e: React.FormEvent) => {
         e.preventDefault();
         setIsDoormanProcessing(true);
-        
+
         // Debug: Check if doormanData has the expected values
         console.log('=== DOORMAN CREATION DEBUG ===');
         console.log('doormanData:', doormanData);
         console.log('Building ID:', building.id);
-        
+
         // Try using regular object instead of FormData
         const postData = {
             _method: 'PUT',
@@ -1216,7 +1530,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                 shift: doormanData!.shift
             }
         };
-        
+
         // Debug: Log what we're sending
         console.log('Post data:', postData);
         console.log('=== END DEBUG ===');
@@ -1242,12 +1556,12 @@ export default function Index({ apartments, brands, models, systems, name_device
     const handleUpdateDoorman = (e: React.FormEvent) => {
         e.preventDefault();
         setIsDoormanProcessing(true);
-        
+
         // Debug: Check if doormanData has the expected values
         console.log('=== DOORMAN UPDATE DEBUG ===');
         console.log('doormanData:', doormanData);
         console.log('Building ID:', building.id);
-        
+
         // Use regular object instead of FormData (matching create method)
         const postData = {
             _method: 'PUT',
@@ -1260,7 +1574,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                 shift: doormanData!.shift
             }
         };
-        
+
         // Debug: Log what we're sending
         console.log('Update data:', postData);
         console.log('=== END UPDATE DEBUG ===');
@@ -1288,14 +1602,14 @@ export default function Index({ apartments, brands, models, systems, name_device
             toast.error('No doorman selected for deletion');
             return;
         }
-        
+
         setIsDoormanProcessing(true);
-        
+
         // Debug: Check if doormanData has the expected values
         console.log('=== DOORMAN DELETE DEBUG ===');
         console.log('doormanData:', doormanData);
         console.log('Building ID:', building.id);
-        
+
         // Use regular object instead of FormData (matching create method)
         const postData = {
             _method: 'PUT',
@@ -1304,12 +1618,12 @@ export default function Index({ apartments, brands, models, systems, name_device
                 id: doormanData.id
             }
         };
-        
+
         // Debug: Log what we're sending
         console.log('Delete data:', postData);
         console.log('Route:', route('buildings.update', building.id));
         console.log('=== END DELETE DEBUG ===');
-        
+
         // Usando ruta genérica del building para eliminar doorman
         router.post(route('buildings.update', building.id), postData, {
             preserveScroll: true,
@@ -1321,7 +1635,7 @@ export default function Index({ apartments, brands, models, systems, name_device
             },
             onError: (errors) => {
                 console.error('Doorman deletion errors:', errors);
-                
+
                 // More specific error handling
                 if (errors.message) {
                     toast.error(`Error deleting doorman: ${errors.message}`);
@@ -1349,7 +1663,7 @@ export default function Index({ apartments, brands, models, systems, name_device
         if (!selectedTenantForReset) return;
 
         setIsResettingPassword(true);
-        
+
         router.post(route('tenants.reset-password', selectedTenantForReset.id), {}, {
             preserveScroll: true,
             onSuccess: () => {
@@ -1374,7 +1688,7 @@ export default function Index({ apartments, brands, models, systems, name_device
         }
 
         setIsResettingPassword(true);
-        
+
         router.post(route('tenants.bulk-reset-passwords'), {
             tenant_ids: selectedTenantsForBulkReset
         }, {
@@ -1396,7 +1710,7 @@ export default function Index({ apartments, brands, models, systems, name_device
 
     const handleResetApartmentPasswords = (apartmentId: number) => {
         setIsResettingPassword(true);
-        
+
         router.post(route('apartments.reset-passwords', apartmentId), {}, {
             preserveScroll: true,
             onSuccess: () => {
@@ -1414,7 +1728,7 @@ export default function Index({ apartments, brands, models, systems, name_device
 
     const handleResetBuildingPasswords = () => {
         setIsResettingPassword(true);
-        
+
         router.post(route('buildings.reset-passwords', building.id), {}, {
             preserveScroll: true,
             onSuccess: () => {
@@ -1431,9 +1745,10 @@ export default function Index({ apartments, brands, models, systems, name_device
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Apartments" />
-            <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+        <TooltipProvider>
+            <AppLayout breadcrumbs={breadcrumbs}>
+                <Head title="Apartments" />
+                <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
                 <Card className='w-full border-none py-0 shadow-none'>
                     <CardContent className="p-0">
                         <BuildingCombobox
@@ -1447,7 +1762,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 console.log('=== CALLING ROUTER.VISIT ===');
                                 router.visit(route('buildings.apartments', id));
                             }}
-                           
+
                         />
                     </CardContent>
                 </Card>
@@ -1469,31 +1784,31 @@ export default function Index({ apartments, brands, models, systems, name_device
                             <UploadCloud className="w-5 h-5" />
                             <span className="hidden sm:block">Bulk Upload</span>
                         </Button>
-                        
+
                         {/* Botones de reset masivo - Solo para super-admin, owner, doorman */}
-                        {(auth.user?.roles?.includes('super-admin') || 
-                          auth.user?.roles?.includes('owner') || 
-                          auth.user?.roles?.includes('doorman')) && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button 
-                                        variant="outline" 
-                                        className="flex items-center gap-2 border-orange-300 hover:bg-orange-500 hover:text-white"
-                                        disabled={isResettingPassword}
-                                    >
-                                        <KeyRound className="w-5 h-5" />
-                                        <span className="hidden sm:block">Reset Passwords</span>
-                                        <ChevronDown className="ml-1 h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={handleResetBuildingPasswords}>
-                                        <KeyRound className="mr-2 h-4 w-4" />
-                                        Reset All Building Passwords
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
+                        {(auth.user?.roles?.includes('super-admin') ||
+                            auth.user?.roles?.includes('owner') ||
+                            auth.user?.roles?.includes('doorman')) && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className="flex items-center gap-2 border-orange-300 hover:bg-orange-500 hover:text-white"
+                                            disabled={isResettingPassword}
+                                        >
+                                            <KeyRound className="w-5 h-5" />
+                                            <span className="hidden sm:block">Reset Passwords</span>
+                                            <ChevronDown className="ml-1 h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={handleResetBuildingPasswords}>
+                                            <KeyRound className="mr-2 h-4 w-4" />
+                                            Reset All Building Passwords
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
                     </div>
                 </div>
 
@@ -1572,35 +1887,37 @@ export default function Index({ apartments, brands, models, systems, name_device
                                     </TabsContent>
 
                                     <TabsContent value="tenant" className="space-y-6">
-                                       <div className='h-[400px] max-h-[400px] overflow-y-auto'>
-                                       <TenantForm
-                                            tenants={data.tenants}
-                                            onTenantsChange={(tenants) => setData('tenants', tenants)}
-                                            errors={errors}
-                                        />
-                                       </div>
+                                        <div className='h-[400px] max-h-[400px] overflow-y-auto'>
+                                            <TenantForm
+                                                tenants={data.tenants}
+                                                onTenantsChange={(tenants) => setData('tenants', tenants)}
+                                                errors={errors}
+                                                apartmentId={currentApartment?.id}
+                                                onExportMembersNinjaOne={(apartmentId) => exportMembersNinjaOneDevices(apartmentId)}
+                                            />
+                                        </div>
                                     </TabsContent>
 
-                             
+
                                     <div className=" px-6 py-4 bg-card flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12"
-            onClick={() => setShowCreateModal(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={processing}
-            className="h-12"
-          >
-            {processing
-              ? (currentApartment ? 'Updating...' : 'Creating...')
-              : (currentApartment ? 'Update Apartment' : 'Create Apartment')}
-          </Button>
-        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="h-12"
+                                            onClick={() => setShowCreateModal(false)}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={processing}
+                                            className="h-12"
+                                        >
+                                            {processing
+                                                ? (currentApartment ? 'Updating...' : 'Creating...')
+                                                : (currentApartment ? 'Update Apartment' : 'Create Apartment')}
+                                        </Button>
+                                    </div>
                                 </form>
                             </Tabs>
                         </div>
@@ -1611,7 +1928,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                             <DialogHeader>
                                 <DialogTitle>Do you have unsaved changes?</DialogTitle>
                                 <DialogDescription>
-                                You have pending changes to the form. Are you sure you want to exit without saving?
+                                    You have pending changes to the form. Are you sure you want to exit without saving?
                                 </DialogDescription>
                             </DialogHeader>
                             <DialogFooter>
@@ -1793,7 +2110,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                             })}><Edit className="w-4 h-4" /></Button>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Contenido principal mejorado */}
                                     <div className="p-6">
                                         <div className="flex items-start gap-5">
@@ -1810,12 +2127,12 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                     {/* Ring animado */}
                                                     <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/40 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"></div>
                                                 </div>
-                                                
+
                                                 <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-gradient-to-br from-corporate-warm via-corporate-gold to-corporate-dark-brown rounded-full border-3 border-background shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                                                     <Crown className="w-4 h-4 text-white" />
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="flex-1 space-y-4">
                                                 <div>
                                                     <h3 className="text-xl font-bold text-foreground group-hover:text-corporate-gold transition-colors">{building.owner.name}</h3>
@@ -1824,9 +2141,9 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                         <p className="text-sm text-muted-foreground font-semibold">Property Owner</p>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div className="space-y-2">
-                                                    <a href={`mailto:${building.owner.email}`}  className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 px-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
+                                                    <a href={`mailto:${building.owner.email}`} className="flex items-center gap-3 text-sm group/item hover:bg-corporate-gold/5 px-3 rounded-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-corporate-gold/20">
                                                         <a href={`mailto:${building.owner.email}`} className="w-8 h-8 rounded-full bg-gradient-to-br from-corporate-gold/20 to-corporate-warm/20 flex items-center justify-center group-hover/item:from-corporate-gold/30 group-hover/item:to-corporate-warm/30 transition-all duration-300 group-hover/item:scale-110">
                                                             <Mail className="w-4 h-4 text-corporate-gold dark:text-corporate-gold-light" />
                                                         </a>
@@ -1947,15 +2264,15 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         </select>
                                     </div>
                                     <DialogFooter>
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
+                                        <Button
+                                            type="button"
+                                            variant="outline"
                                             onClick={() => setShowCreateDoorman(false)}
                                             disabled={isDoormanProcessing}
                                         >
                                             Cancel
                                         </Button>
-                                        <Button 
+                                        <Button
                                             type="submit"
                                             disabled={isDoormanProcessing}
                                         >
@@ -2028,15 +2345,15 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         </select>
                                     </div>
                                     <DialogFooter>
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
+                                        <Button
+                                            type="button"
+                                            variant="outline"
                                             onClick={() => setShowEditDoorman(false)}
                                             disabled={isDoormanProcessing}
                                         >
                                             Cancel
                                         </Button>
-                                        <Button 
+                                        <Button
                                             type="submit"
                                             disabled={isDoormanProcessing}
                                         >
@@ -2053,22 +2370,22 @@ export default function Index({ apartments, brands, models, systems, name_device
                                 <DialogHeader>
                                     <DialogTitle>Delete Doorman</DialogTitle>
                                     <DialogDescription>
-                                        Are you sure you want to delete <strong>{doormanData?.name}</strong>? 
+                                        Are you sure you want to delete <strong>{doormanData?.name}</strong>?
                                         This action cannot be undone.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <DialogFooter>
-                                    <Button 
-                                        type="button" 
-                                        variant="outline" 
+                                    <Button
+                                        type="button"
+                                        variant="outline"
                                         onClick={() => setShowDeleteDoorman(false)}
                                         disabled={isDoormanProcessing}
                                     >
                                         Cancel
                                     </Button>
-                                    <Button 
-                                        type="button" 
-                                        variant="destructive" 
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
                                         onClick={confirmDeleteDoorman}
                                         disabled={isDoormanProcessing}
                                     >
@@ -2094,35 +2411,35 @@ export default function Index({ apartments, brands, models, systems, name_device
                                     <Plus className="w-4 h-4" /> Add Doorman
                                 </Button>
                             </div>
-                            
+
                             {building.doormen && building.doormen.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {building.doormen.map((doorman: Doorman, index: number) => (
-                                        <Card 
-                                            key={doorman.id} 
+                                        <Card
+                                            key={doorman.id}
                                             className="group !p-0 overflow-hidden border-2 border-corporate-gold/20 hover:border-corporate-gold/40 transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-corporate-gold/5 dark:from-dark-brown dark:to-corporate-gold/10 relative"
                                             style={{ animationDelay: `${index * 150}ms` }}
                                         >
                                             {/* Action buttons - Always visible on mobile, hover on desktop */}
                                             <div className="absolute top-3 right-3 z-10 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="ghost" 
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
                                                     className="h-8 w-8 p-0 bg-white/80 hover:bg-white hover:text-primary-foreground shadow-sm border border-corporate-gold/20 hover:border-corporate-gold/40"
                                                     onClick={() => handleEditDoorman(doorman)}
                                                 >
                                                     <Edit className="w-3.5 h-3.5 text-corporate-gold" />
                                                 </Button>
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="ghost" 
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
                                                     className="h-8 w-8 p-0 bg-white/80 hover:bg-red-50 shadow-sm border border-red-200 hover:border-red-300"
                                                     onClick={() => handleDeleteDoorman(doorman)}
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5 text-red-500" />
                                                 </Button>
                                             </div>
-                                            
+
                                             <CardContent className="p-4">
                                                 {/* Avatar with status badge */}
                                                 <div className="relative mb-4">
@@ -2137,32 +2454,31 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                         />
                                                         {/* Ring animado en hover */}
                                                         <div className="absolute inset-0 rounded-full border-2 border-corporate-gold/30 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"></div>
-                                                        
+
                                                         {/* Shift indicator badge */}
                                                         <div className="absolute -bottom-1 -right-1">
-                                                            <div className={`w-5 h-5 rounded-full border-2 border-white shadow-sm ${
-                                                                doorman.shift.toLowerCase().includes('morning') ? 'bg-yellow-400' :
-                                                                doorman.shift.toLowerCase().includes('night') ? 'bg-blue-900' :
-                                                                'bg-orange-500'
-                                                            }`}></div>
+                                                            <div className={`w-5 h-5 rounded-full border-2 border-white shadow-sm ${doorman.shift.toLowerCase().includes('morning') ? 'bg-yellow-400' :
+                                                                    doorman.shift.toLowerCase().includes('night') ? 'bg-blue-900' :
+                                                                        'bg-orange-500'
+                                                                }`}></div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 {/* Doorman information */}
                                                 <div className="text-center space-y-2">
                                                     <h4 className="text-sm font-bold text-corporate-gold dark:text-corporate-gold-light line-clamp-1 group-hover:text-corporate-warm transition-colors">
                                                         {doorman.name}
                                                     </h4>
-                                                    
+
                                                     {/* Shift info with better styling */}
                                                     <div className="flex items-center justify-center gap-2">
-                                                       
+
                                                         <span className="text-xs font-medium text-muted-foreground capitalize">
                                                             {doorman.shift} Shift
                                                         </span>
                                                     </div>
-                                                    
+
                                                     {/* Email with icon */}
                                                     {doorman.email && (
                                                         <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
@@ -2170,7 +2486,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                             <span className="truncate max-w-[120px]">{doorman.email}</span>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Phone with icon */}
                                                     {doorman.phone && (
                                                         <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
@@ -2205,7 +2521,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                     {/* Decorative moving gradient */}
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-corporate-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -translate-x-full group-hover:translate-x-full duration-1000"></div>
                                 </div>
-                                
+
                                 {/* Contenedor del mapa mejorado */}
                                 <div className="relative overflow-hidden">
                                     <div className="aspect-video relative">
@@ -2231,10 +2547,10 @@ export default function Index({ apartments, brands, models, systems, name_device
                                             onError={() => console.log('Iframe failed to load')}
                                         />
                                     </div>
-                                    
+
                                     {/* Overlay con efectos mejorados */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                    
+
                                     {/* Corner accent */}
                                     <div className="absolute top-3 right-3 w-3 h-3 bg-corporate-gold/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-150"></div>
                                     <div className="absolute bottom-3 left-3 w-2 h-2 bg-corporate-warm/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:scale-125"></div>
@@ -2248,9 +2564,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                         <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-corporate-gold/5 dark:bg-corporate-gold/10 border border-corporate-gold/20 rounded-lg">
                             <div className="flex items-center gap-4 flex-1">
                                 <div className="relative">
-                                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
-                                        isSearching ? 'text-corporate-gold animate-pulse' : 'text-corporate-gold/60'
-                                    }`} />
+                                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isSearching ? 'text-corporate-gold animate-pulse' : 'text-corporate-gold/60'
+                                        }`} />
                                     <Input
                                         ref={searchInputRef}
                                         placeholder="Search apartments, members, locations..."
@@ -2275,7 +2590,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                         </button>
                                     )}
                                 </div>
-                               
+
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -2304,7 +2619,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                             ))}
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                                
+
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline" size="sm" className="border-corporate-gold/20 hover:bg-primary hover:border-corporate-gold">
@@ -2321,13 +2636,18 @@ export default function Index({ apartments, brands, models, systems, name_device
                                             <Download className="mr-2 h-4 w-4" />
                                             Export to Excel
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => exportNinjaOneDevices('building')}>
+                                            <ShieldPlus className="mr-2 h-4 w-4 " />
+                                            Export NinjaOne
+                                        </DropdownMenuItem>
+
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
                         </div>
 
                         {/* Advanced Data Table */}
-                        <div className="rounded-md border">
+                        <div className="rounded-md border mt-4">
                             <TableComponent>
                                 <TableHeader>
                                     {table.getHeaderGroups().map((headerGroup) => (
@@ -2387,7 +2707,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                             </div>
 
                             <div className="flex items-center gap-2">
-                               {/* <div className="flex items-center gap-2">
+                                {/* <div className="flex items-center gap-2">
                                     <span className="text-sm text-muted-foreground">Rows per page:</span>
                                     <select
                                         value={apartments.meta.per_page}
@@ -2402,70 +2722,70 @@ export default function Index({ apartments, brands, models, systems, name_device
                                     </select>
                                 </div> */}
 
-                                    <div className="flex items-center gap-1">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handlePageChange(1)}
-                                            disabled={apartments.meta.current_page === 1}
-                                            className="h-8 w-8 p-0"
-                                        >
-                                            <ChevronLeft className="h-4 w-4" />
-                                            <ChevronLeft className="h-4 w-4 -ml-2" />
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handlePageChange(apartments.meta.current_page - 1)}
-                                            disabled={apartments.meta.current_page === 1}
-                                            className="h-8 w-8 p-0"
-                                        >
-                                            <ChevronLeft className="h-4 w-4" />
-                                        </Button>
-                                        
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-sm text-muted-foreground">Page</span>
-                                            <input
-                                                type="number"
-                                                value={apartments.meta.current_page}
-                                                onChange={(e) => {
-                                                    const page = e.target.value ? Number(e.target.value) : 1;
-                                                    if (page >= 1 && page <= apartments.meta.last_page) {
-                                                        handlePageChange(page);
-                                                    }
-                                                }}
-                                                className="w-12 h-8 text-center border rounded text-sm bg-background"
-                                                min="1"
-                                                max={apartments.meta.last_page}
-                                            />
-                                            <span className="text-sm text-muted-foreground">of {apartments.meta.last_page}</span>
-                                        </div>
+                                <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(1)}
+                                        disabled={apartments.meta.current_page === 1}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                        <ChevronLeft className="h-4 w-4 -ml-2" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(apartments.meta.current_page - 1)}
+                                        disabled={apartments.meta.current_page === 1}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
 
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handlePageChange(apartments.meta.current_page + 1)}
-                                            disabled={apartments.meta.current_page === apartments.meta.last_page}
-                                            className="h-8 w-8 p-0"
-                                        >
-                                            <ChevronRight className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handlePageChange(apartments.meta.last_page)}
-                                            disabled={apartments.meta.current_page === apartments.meta.last_page}
-                                            className="h-8 w-8 p-0"
-                                        >
-                                            <ChevronRight className="h-4 w-4" />
-                                            <ChevronRight className="h-4 w-4 -ml-2" />
-                                        </Button>
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-sm text-muted-foreground">Page</span>
+                                        <input
+                                            type="number"
+                                            value={apartments.meta.current_page}
+                                            onChange={(e) => {
+                                                const page = e.target.value ? Number(e.target.value) : 1;
+                                                if (page >= 1 && page <= apartments.meta.last_page) {
+                                                    handlePageChange(page);
+                                                }
+                                            }}
+                                            className="w-12 h-8 text-center border rounded text-sm bg-background"
+                                            min="1"
+                                            max={apartments.meta.last_page}
+                                        />
+                                        <span className="text-sm text-muted-foreground">of {apartments.meta.last_page}</span>
                                     </div>
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(apartments.meta.current_page + 1)}
+                                        disabled={apartments.meta.current_page === apartments.meta.last_page}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(apartments.meta.last_page)}
+                                        disabled={apartments.meta.current_page === apartments.meta.last_page}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                        <ChevronRight className="h-4 w-4 -ml-2" />
+                                    </Button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
             {/* Modal for Device Selection */}
             <Dialog open={showCreateTicketDevicesModal} onOpenChange={setShowCreateTicketDevicesModal}>
@@ -2559,8 +2879,8 @@ export default function Index({ apartments, brands, models, systems, name_device
                     <form onSubmit={handleSubmitTicket} className="space-y-4">
                         <div>
                             <Label htmlFor="category">Category *</Label>
-                            <Select 
-                                value={ticketForm.data.category} 
+                            <Select
+                                value={ticketForm.data.category}
                                 onValueChange={(value) => ticketForm.setData('category', value)}
                             >
                                 <SelectTrigger>
@@ -2607,7 +2927,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                             )}
                         </div>
 
-                       {/* <div>
+                        {/* <div>
                             <Label htmlFor="priority">Priority</Label>
                             <Select 
                                 value={ticketForm.data.priority} 
@@ -2629,15 +2949,15 @@ export default function Index({ apartments, brands, models, systems, name_device
                         </div> */}
 
                         <div className="flex justify-end gap-2">
-                            <Button 
-                                type="button" 
-                                variant="outline" 
+                            <Button
+                                type="button"
+                                variant="outline"
                                 onClick={() => setShowCreateTicketModal(false)}
                             >
                                 Cancel
                             </Button>
-                            <Button 
-                                type="submit" 
+                            <Button
+                                type="submit"
                                 disabled={ticketForm.processing}
                             >
                                 {ticketForm.processing ? 'Creating...' : 'Create Ticket'}
@@ -2712,8 +3032,9 @@ export default function Index({ apartments, brands, models, systems, name_device
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-           
+
         </AppLayout>
+        </TooltipProvider>
     );
 }
 
@@ -2722,11 +3043,11 @@ export default function Index({ apartments, brands, models, systems, name_device
 // Definir tipos para mejor TypeScript
 interface TableCell {
     id: string;
-    column: { 
-        id: string; 
-        columnDef: { 
-            cell: (context: unknown) => React.ReactNode; 
-        } 
+    column: {
+        id: string;
+        columnDef: {
+            cell: (context: unknown) => React.ReactNode;
+        }
     };
     getContext: () => unknown;
 }
@@ -2756,13 +3077,13 @@ interface ApartmentRowExpandedProps {
 }
 
 // Componente de fila expandible para la tabla avanzada
-const ApartmentRowExpanded = ({ 
-    row, 
-    handleShowDevices, 
-    handleShowTicketHistory, 
+const ApartmentRowExpanded = ({
+    row,
+    handleShowDevices,
+    handleShowTicketHistory,
     handleResetPassword,
-    auth, 
-    setSelectedTenantForTicketCreation, 
+    auth,
+    setSelectedTenantForTicketCreation,
     setShowCreateTicketDevicesModal,
     setSelectedApartment,
     setSelectedTenant,
@@ -2775,7 +3096,7 @@ const ApartmentRowExpanded = ({
 
     return (
         <>
-            <TableRow 
+            <TableRow
                 data-state={row.getIsSelected() && "selected"}
                 className="hover:bg-muted/50 transition-colors group"
             >
@@ -2784,8 +3105,8 @@ const ApartmentRowExpanded = ({
                     if (cell.column.id === 'tenants_count') {
                         return (
                             <TableCell key={cell.id}>
-                                <div 
-                                    className="cursor-pointer hover:bg-muted/70 p-3 rounded-lg transition-all duration-200 group-hover:bg-muted/30" 
+                                <div
+                                    className="cursor-pointer hover:bg-muted/70 p-3 rounded-lg transition-all duration-200 group-hover:bg-muted/30"
                                     onClick={() => setExpanded(!expanded)}
                                 >
                                     <div className="flex items-center gap-3">
@@ -2803,7 +3124,7 @@ const ApartmentRowExpanded = ({
                                                 ${expanded ? 'rotate-90 scale-110' : 'hover:scale-105'}
                                             `} />
                                         </div>
-                                        
+
                                         {/* Enhanced member count display */}
                                         <div className="flex items-center gap-2">
                                             <div className={`
@@ -2818,7 +3139,7 @@ const ApartmentRowExpanded = ({
                                                 {apartment.tenants?.length === 1 ? 'member' : 'members'}
                                             </span>
                                         </div>
-                                        
+
                                         {/* Subtle indicator for expandable content */}
                                         {apartment.tenants && apartment.tenants.length > 0 && (
                                             <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -2832,7 +3153,7 @@ const ApartmentRowExpanded = ({
                             </TableCell>
                         );
                     }
-                    
+
                     return (
                         <TableCell key={cell.id}>
                             {cell.column.columnDef.cell ? flexRender(cell.column.columnDef.cell, cell.getContext() as object) : null}
@@ -2840,7 +3161,7 @@ const ApartmentRowExpanded = ({
                     );
                 })}
             </TableRow>
-            
+
             {/* Expanded members details row with enhanced animation */}
             {expanded && apartment.tenants && apartment.tenants.length > 0 && (
                 <TableRow className="border-b bg-gradient-to-r from-corporate-gold/5 to-corporate-gold/10 dark:from-corporate-gold/10 dark:to-corporate-gold/15">
@@ -2851,13 +3172,13 @@ const ApartmentRowExpanded = ({
                                 <Users className="w-4 h-4 text-corporate-gold" />
                                 <span>Apartment Members ({apartment.tenants?.length || 0})</span>
                             </div>
-                            
+
                             <div className="grid gap-4">
                                 {apartment.tenants?.map((tenant: ExtendedTenant, index: number) => (
-                                    <div 
-                                        key={tenant.id} 
+                                    <div
+                                        key={tenant.id}
                                         className="flex items-center justify-between gap-4 p-5 bg-background border border-corporate-gold/20 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:border-corporate-gold/40 group/member"
-                                        style={{ 
+                                        style={{
                                             animationDelay: `${index * 100}ms`,
                                             animation: 'fadeInUp 0.4s ease-out forwards'
                                         }}
@@ -2873,7 +3194,7 @@ const ApartmentRowExpanded = ({
                                                     }}
                                                 />
                                             </div>
-                                            
+
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-2">
                                                     <h4 className="font-bold text-corporate-gold dark:text-corporate-gold-light text-lg">{tenant.name}</h4>
@@ -2881,8 +3202,8 @@ const ApartmentRowExpanded = ({
                                                         Member
                                                     </span>
                                                 </div>
-                                                
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-1 gap-2 text-sm">
                                                     <a href={`mailto:${tenant.email}`} className="flex items-center gap-2 text-muted-foreground hover:text-corporate-gold transition-colors">
                                                         <div className="w-6 h-6 rounded-full bg-corporate-gold/20 flex items-center justify-center">
                                                             <Mail className="w-3 h-3 text-corporate-gold" />
@@ -2901,90 +3222,128 @@ const ApartmentRowExpanded = ({
 
                                         <div className="flex items-center gap-2">
                                             {/* Botón para crear tickets - Para todos los roles */}
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="flex items-center gap-2 hover:bg-corporate-gold hover:text-primary-foreground transition-all duration-300 border-corporate-gold/20 hover:border-corporate-gold group-hover/member:border-corporate-gold/40"
-                                                onClick={() => {
-                                                    console.log('=== CREATE TICKET BUTTON CLICKED ===');
-                                                    console.log('User role:', auth.user?.role);
-                                                    console.log('User roles array:', auth.user?.roles);
-                                                    console.log('Tenant:', tenant);
-                                                    console.log('Tenant devices:', tenant.devices);
-                                                    console.log('Tenant shared devices:', tenant.shared_devices);
-                                                    console.log('Apartment:', apartment);
-                                                    console.log('=== END CREATE TICKET BUTTON DEBUG ===');
-                                                    
-                                                    const userRoles = auth.user?.roles || [];
-                                                    const isSuperAdmin = userRoles.includes('superadmin') || userRoles.includes('super-admin');
-                                                    const isOwner = userRoles.includes('owner');
-                                                    const isDoorman = userRoles.includes('doorman');
-                                                    const isTechnical = userRoles.includes('technical');
-                                                    
-                                                    if (isSuperAdmin || isOwner || isDoorman || isTechnical) {
-                                                        // Todos los roles pueden crear tickets - diferencia está en el backend
-                                                        setSelectedApartment(apartment);
-                                                        setSelectedTenant(tenant);
-                                                        setSelectedDevices(tenant.devices || []);
-                                                        setSelectedShareDevices(tenant.shared_devices || []);
-                                                        setSelectedTenantForTicketCreation(apartment);
-                                                        setShowCreateTicketDevicesModal(true);
-                                                    }
-                                                }}
-                                            >
-                                                <Laptop className="w-4 h-4" />
-                                                <span className="font-bold text-base">
-                                                    {Number(tenant.devices?.length || 0) + Number(tenant.shared_devices?.length || 0)}
-                                                </span>
-                                                <span className="hidden sm:inline font-medium">Devices</span>
-                                            </Button>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex items-center gap-2 hover:bg-corporate-gold hover:text-primary-foreground transition-all duration-300 border-corporate-gold/20 hover:border-corporate-gold group-hover/member:border-corporate-gold/40"
+                                                        onClick={() => {
+                                                            console.log('=== CREATE TICKET BUTTON CLICKED ===');
+                                                            console.log('User roles array:', auth.user?.roles);
+                                                            console.log('Tenant:', tenant);
+                                                            console.log('Tenant devices:', tenant.devices);
+                                                            console.log('Tenant shared devices:', tenant.shared_devices);
+                                                            console.log('Apartment:', apartment);
+                                                            console.log('=== END CREATE TICKET BUTTON DEBUG ===');
+
+                                                            const userRoles = auth.user?.roles || [];
+                                                            const isSuperAdmin = userRoles.includes('superadmin') || userRoles.includes('super-admin');
+                                                            const isOwner = userRoles.includes('owner');
+                                                            const isDoorman = userRoles.includes('doorman');
+                                                            const isTechnical = userRoles.includes('technical');
+
+                                                            if (isSuperAdmin || isOwner || isDoorman || isTechnical) {
+                                                                // Todos los roles pueden crear tickets - diferencia está en el backend
+                                                                setSelectedApartment(apartment);
+                                                                setSelectedTenant(tenant);
+                                                                setSelectedDevices(tenant.devices || []);
+                                                                setSelectedShareDevices(tenant.shared_devices || []);
+                                                                setSelectedTenantForTicketCreation(apartment);
+                                                                setShowCreateTicketDevicesModal(true);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Laptop className="w-4 h-4" />
+                                                        <span className="font-bold text-base">
+                                                            {Number(tenant.devices?.length || 0) + Number(tenant.shared_devices?.length || 0)}
+                                                        </span>
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Create ticket - {Number(tenant.devices?.length || 0) + Number(tenant.shared_devices?.length || 0)} devices</p>
+                                                </TooltipContent>
+                                            </Tooltip>
 
                                             {/* Botón para administrar devices - Solo para super admin */}
                                             {(auth.user?.roles?.includes('super-admin') || auth.user?.roles?.includes('superadmin')) && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="flex items-center gap-2 hover:bg-purple-500 hover:text-white transition-all duration-300 border-purple-300 hover:border-purple-500"
-                                                    onClick={() => {
-                                                        console.log('=== MANAGE DEVICES BUTTON CLICKED ===');
-                                                        console.log('Super admin managing devices for tenant:', tenant);
-                                                        console.log('Apartment:', apartment);
-                                                        handleShowDevices(apartment, tenant);
-                                                    }}
-                                                >
-                                                    <Laptop className="w-4 h-4" />
-                                                    <span className="hidden sm:inline font-medium">Manage</span>
-                                                </Button>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="flex items-center gap-2 hover:bg-purple-500 hover:text-white transition-all duration-300 border-purple-300 hover:border-purple-500"
+                                                            onClick={() => {
+                                                                console.log('=== MANAGE DEVICES BUTTON CLICKED ===');
+                                                                console.log('Super admin managing devices for tenant:', tenant);
+                                                                console.log('Apartment:', apartment);
+                                                                handleShowDevices(apartment, tenant);
+                                                            }}
+                                                        >
+                                                            <Laptop className="w-4 h-4" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Manage devices</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
                                             )}
 
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="flex items-center gap-2 hover:bg-blue-500 hover:text-white transition-all duration-300 border-blue-300 hover:border-blue-500"
-                                                onClick={() => handleShowTicketHistory(tenant)}
-                                            >
-                                                <Ticket className="w-4 h-4" />
-                                                <span className="font-bold text-base">
-                                                    {tenant.tickets_count || 0}
-                                                </span>
-                                                <span className="hidden sm:inline font-medium">Tickets</span>
-                                            </Button>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex items-center gap-2 hover:bg-blue-500 hover:text-white transition-all duration-300 border-blue-300 hover:border-blue-500"
+                                                        onClick={() => handleShowTicketHistory(tenant)}
+                                                    >
+                                                        <Ticket className="w-4 h-4" />
+                                                        <span className="font-bold text-base">
+                                                            {tenant.tickets_count || 0}
+                                                        </span>
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>View ticket history - {tenant.tickets_count || 0} tickets</p>
+                                                </TooltipContent>
+                                            </Tooltip>
 
                                             {/* Botón Reset Password - Solo para super-admin, owner, doorman */}
-                                            {(auth.user?.roles?.includes('super-admin') || 
-                                              auth.user?.roles?.includes('owner') || 
-                                              auth.user?.roles?.includes('doorman')) && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="flex items-center gap-2 hover:bg-orange-500 hover:text-white transition-all duration-300 border-orange-300 hover:border-orange-500"
-                                                    onClick={() => handleResetPassword(tenant)}
-                                                    disabled={isResettingPassword}
-                                                >
-                                                    <KeyRound className="w-4 h-4" />
-                                                    <span className="hidden sm:inline font-medium">Reset Password</span>
-                                                </Button>
-                                            )}
+                                            {(auth.user?.roles?.includes('super-admin') ||
+                                                auth.user?.roles?.includes('owner') ||
+                                                auth.user?.roles?.includes('doorman')) && (
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="flex items-center gap-2 hover:bg-orange-500 hover:text-white transition-all duration-300 border-orange-300 hover:border-orange-500"
+                                                                onClick={() => handleResetPassword(tenant)}
+                                                                disabled={isResettingPassword}
+                                                            >
+                                                                <KeyRound className="w-4 h-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Reset password</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                )}
+
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        onClick={() => exportMembersNinjaOneDevices(undefined, tenant.id)}
+                                                    >
+                                                        <DownloadCloud className="h-4 w-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Export member devices</p>
+                                                </TooltipContent>
+                                            </Tooltip>
                                         </div>
                                     </div>
                                 ))}
