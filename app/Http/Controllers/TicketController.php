@@ -677,6 +677,22 @@ class TicketController extends Controller
             $validated['meta'] ?? null,
             $technicalId
         );
+        
+        // Check if this is an Inertia request
+        if ($request->header('X-Inertia')) {
+            // For Inertia requests, redirect back with success message
+            return redirect()->back()->with('success', 'History added');
+        }
+        
+        // For AJAX/fetch requests (not Inertia), return JSON
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'History added successfully',
+                'ticket' => $ticket->fresh(['histories.technical', 'user.tenant', 'device.tenants'])
+            ]);
+        }
+        
         // SIEMPRE redirige (no devuelvas JSON)
         return redirect()->back()->with('success', 'History added');
     }

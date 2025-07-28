@@ -2457,6 +2457,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         setHistoryAction("comment");
                                         // Refresca el ticket seleccionado para ver el nuevo historial
                                         refreshSelectedTicket(showHistoryModal.ticketId);
+                                        // También refrescar el kanban para mostrar los cambios
+                                        setRefreshKey(prev => prev + 1);
                                     },
                                     onError: () => {
                                         alert("Error adding history entry");
