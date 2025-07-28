@@ -3544,7 +3544,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 open={showScheduleAppointmentModal.open}
                 onOpenChange={(open) => setShowScheduleAppointmentModal({ open, ticketId: showScheduleAppointmentModal.ticketId })}
             >
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader className="pb-6">
                         <DialogTitle className="flex items-center gap-3 text-xl font-bold">
                             <div className="p-2 bg-blue-100 rounded-lg">
@@ -3556,8 +3556,9 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             Programa una visita técnica presencial para resolver este ticket.
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={submitScheduleAppointment} className="space-y-6">
-                        <div className="space-y-4">
+                    <div className="max-h-[55vh] overflow-y-auto pr-2">
+                        <form id="schedule-appointment-form" onSubmit={submitScheduleAppointment} className="space-y-6">
+                            <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-2">
                                     Título de la cita
@@ -3654,35 +3655,37 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                 />
                             </div>
                         </div>
-
-                        <DialogFooter className="pt-6 border-t border-slate-200">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setShowScheduleAppointmentModal({ open: false })}
-                                className="px-6 py-2.5"
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={schedulingAppointment}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
-                            >
-                                {schedulingAppointment ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        Agendando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Calendar className="w-4 h-4 mr-2" />
-                                        Agendar Cita
-                                    </>
-                                )}
-                            </Button>
-                        </DialogFooter>
                     </form>
+                    </div>
+
+                    <DialogFooter className="pt-6 border-t border-slate-200">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowScheduleAppointmentModal({ open: false })}
+                            className="px-6 py-2.5"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="submit"
+                            form="schedule-appointment-form"
+                            disabled={schedulingAppointment}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
+                        >
+                            {schedulingAppointment ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Agendando...
+                                </>
+                            ) : (
+                                <>
+                                    <Calendar className="w-4 h-4 mr-2" />
+                                    Agendar Cita
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 
@@ -3691,7 +3694,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 open={showAppointmentDetailsModal.open}
                 onOpenChange={(open) => setShowAppointmentDetailsModal({ open, appointment: showAppointmentDetailsModal.appointment })}
             >
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader className="pb-6">
                         <DialogTitle className="flex items-center gap-3 text-xl font-bold">
                             <div className="p-2 bg-blue-100 rounded-lg">
@@ -3704,6 +3707,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                         </DialogDescription>
                     </DialogHeader>
                     
+                    <div className="max-h-[55vh] overflow-y-auto pr-2">
                     {showAppointmentDetailsModal.appointment && (
                         <div className="space-y-6">
                             {/* Appointment Info */}
@@ -3883,6 +3887,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             )}
                         </div>
                     )}
+                    </div>
 
                     <DialogFooter className="pt-6 border-t border-slate-200">
                         <Button
