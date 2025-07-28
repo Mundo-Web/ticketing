@@ -2186,7 +2186,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                             <div className="flex items-center gap-2">
                                                                                 <Calendar className="w-4 h-4 text-blue-600" />
                                                                                 <span className="text-sm font-medium text-blue-800">
-                                                                                    Visita Agendada
+                                                                                    Scheduled Visit
                                                                                 </span>
                                                                             </div>
                                                                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -2194,11 +2194,11 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                     ? 'bg-blue-100 text-blue-800' 
                                                                                     : 'bg-yellow-100 text-yellow-800'
                                                                             }`}>
-                                                                                {selectedTicket.active_appointment.status === 'scheduled' ? 'Programada' : 'En Progreso'}
+                                                                                {selectedTicket.active_appointment.status === 'scheduled' ? 'Scheduled' : 'In Progress'}
                                                                             </span>
                                                                         </div>
                                                                         <p className="text-sm text-blue-700 mt-1">
-                                                                            {new Date(selectedTicket.active_appointment.scheduled_for).toLocaleString('es-ES')}
+                                                                            {new Date(selectedTicket.active_appointment.scheduled_for).toLocaleString('en-US')}
                                                                         </p>
                                                                         <p className="text-xs text-blue-600 mt-1">
                                                                             {selectedTicket.active_appointment.title}
@@ -3550,10 +3550,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             <div className="p-2 bg-blue-100 rounded-lg">
                                 <Calendar className="w-6 h-6 text-blue-600" />
                             </div>
-                            Agendar Visita Presencial
+                            Schedule On-Site Visit
                         </DialogTitle>
                         <DialogDescription className="text-base text-slate-600">
-                            Programa una visita técnica presencial para resolver este ticket.
+                            Schedule an on-site technical visit to resolve this ticket.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="max-h-[55vh] overflow-y-auto pr-2">
@@ -3561,46 +3561,46 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                    Título de la cita
+                                    Appointment Title
                                 </label>
                                 <Input
                                     value={appointmentForm.title}
                                     onChange={e => setAppointmentForm(prev => ({ ...prev, title: e.target.value }))}
                                     className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                                     required
-                                    placeholder="Ej: Visita técnica - Reparación de equipo"
+                                    placeholder="e.g., Technical Visit - Equipment Repair"
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                    Descripción
+                                    Description
                                 </label>
                                 <textarea
                                     value={appointmentForm.description}
                                     onChange={e => setAppointmentForm(prev => ({ ...prev, description: e.target.value }))}
                                     className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[100px] resize-none"
-                                    placeholder="Describe qué se realizará durante la visita..."
+                                    placeholder="Describe what will be performed during the visit..."
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                    Dirección de la visita
+                                    Visit Address
                                 </label>
                                 <Input
                                     value={appointmentForm.address}
                                     onChange={e => setAppointmentForm(prev => ({ ...prev, address: e.target.value }))}
                                     className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                                     required
-                                    placeholder="Dirección completa donde se realizará la visita"
+                                    placeholder="Complete address where the visit will take place"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                        Fecha y hora
+                                        Date and Time
                                     </label>
                                     <Input
                                         type="datetime-local"
@@ -3614,44 +3614,44 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                        Duración (minutos)
+                                        Duration (minutes)
                                     </label>
                                     <select
                                         value={appointmentForm.estimated_duration}
                                         onChange={e => setAppointmentForm(prev => ({ ...prev, estimated_duration: parseInt(e.target.value) }))}
                                         className="w-full border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                                     >
-                                        <option value={30}>30 minutos</option>
-                                        <option value={60}>1 hora</option>
-                                        <option value={90}>1.5 horas</option>
-                                        <option value={120}>2 horas</option>
-                                        <option value={180}>3 horas</option>
-                                        <option value={240}>4 horas</option>
+                                        <option value={30}>30 minutes</option>
+                                        <option value={60}>1 hour</option>
+                                        <option value={90}>1.5 hours</option>
+                                        <option value={120}>2 hours</option>
+                                        <option value={180}>3 hours</option>
+                                        <option value={240}>4 hours</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                    Instrucciones para el usuario
+                                    Instructions for User
                                 </label>
                                 <textarea
                                     value={appointmentForm.member_instructions}
                                     onChange={e => setAppointmentForm(prev => ({ ...prev, member_instructions: e.target.value }))}
                                     className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[80px] resize-none"
-                                    placeholder="Instrucciones especiales para el usuario (ej: tener el equipo disponible, preparar acceso, etc.)"
+                                    placeholder="Special instructions for the user (e.g., have equipment available, prepare access, etc.)"
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                    Notas internas
+                                    Internal Notes
                                 </label>
                                 <textarea
                                     value={appointmentForm.notes}
                                     onChange={e => setAppointmentForm(prev => ({ ...prev, notes: e.target.value }))}
                                     className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[80px] resize-none"
-                                    placeholder="Notas adicionales para el técnico..."
+                                    placeholder="Additional notes for the technician..."
                                 />
                             </div>
                         </div>
@@ -3665,7 +3665,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             onClick={() => setShowScheduleAppointmentModal({ open: false })}
                             className="px-6 py-2.5"
                         >
-                            Cancelar
+                            Cancel
                         </Button>
                         <Button
                             type="submit"
@@ -3676,12 +3676,12 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             {schedulingAppointment ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    Agendando...
+                                    Scheduling...
                                 </>
                             ) : (
                                 <>
                                     <Calendar className="w-4 h-4 mr-2" />
-                                    Agendar Cita
+                                    Schedule Appointment
                                 </>
                             )}
                         </Button>
@@ -3700,10 +3700,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             <div className="p-2 bg-blue-100 rounded-lg">
                                 <Calendar className="w-6 h-6 text-blue-600" />
                             </div>
-                            Gestionar Cita
+                            Manage Appointment
                         </DialogTitle>
                         <DialogDescription className="text-base text-slate-600">
-                            Administra los detalles y acciones de esta cita presencial.
+                            Manage the details and actions of this on-site appointment.
                         </DialogDescription>
                     </DialogHeader>
                     
@@ -3716,11 +3716,11 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     {showAppointmentDetailsModal.appointment.title}
                                 </h4>
                                 <div className="space-y-2 text-sm text-gray-600">
-                                    <p><strong>Fecha:</strong> {new Date(showAppointmentDetailsModal.appointment.scheduled_for).toLocaleString('es-ES')}</p>
-                                    <p><strong>Dirección:</strong> {showAppointmentDetailsModal.appointment.address}</p>
-                                    <p><strong>Estado:</strong> <span className="capitalize">{showAppointmentDetailsModal.appointment.status}</span></p>
+                                    <p><strong>Date:</strong> {new Date(showAppointmentDetailsModal.appointment.scheduled_for).toLocaleString('en-US')}</p>
+                                    <p><strong>Address:</strong> {showAppointmentDetailsModal.appointment.address}</p>
+                                    <p><strong>Status:</strong> <span className="capitalize">{showAppointmentDetailsModal.appointment.status}</span></p>
                                     {showAppointmentDetailsModal.appointment.description && (
-                                        <p><strong>Descripción:</strong> {showAppointmentDetailsModal.appointment.description}</p>
+                                        <p><strong>Description:</strong> {showAppointmentDetailsModal.appointment.description}</p>
                                     )}
                                 </div>
                             </div>
@@ -3734,32 +3734,32 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                 }} className="space-y-4">
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                            Notas de finalización *
+                                            Completion Notes *
                                         </label>
                                         <textarea
                                             value={appointmentActionForm.completion_notes}
                                             onChange={e => setAppointmentActionForm(prev => ({ ...prev, completion_notes: e.target.value }))}
                                             className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[100px] resize-none"
-                                            placeholder="Describe qué se realizó durante la visita y el resultado..."
+                                            placeholder="Describe what was performed during the visit and the result..."
                                             required
                                         />
                                     </div>
 
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                            Comentarios del usuario
+                                            User Comments
                                         </label>
                                         <textarea
                                             value={appointmentActionForm.member_feedback}
                                             onChange={e => setAppointmentActionForm(prev => ({ ...prev, member_feedback: e.target.value }))}
                                             className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[80px] resize-none"
-                                            placeholder="Comentarios o feedback del usuario..."
+                                            placeholder="User comments or feedback..."
                                         />
                                     </div>
 
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                            Calificación del servicio
+                                            Service Rating
                                         </label>
                                         <div className="flex gap-2">
                                             {[1, 2, 3, 4, 5].map(rating => (
@@ -3783,7 +3783,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         type="submit"
                                         className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
                                     >
-                                        Completar Visita
+                                        Complete Visit
                                     </button>
                                 </form>
                             )}
@@ -3798,13 +3798,13 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     }} className="space-y-4">
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                                Motivo de cancelación *
+                                                Cancellation Reason *
                                             </label>
                                             <textarea
                                                 value={appointmentActionForm.reason}
                                                 onChange={e => setAppointmentActionForm(prev => ({ ...prev, reason: e.target.value }))}
                                                 className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all duration-200 min-h-[80px] resize-none"
-                                                placeholder="Explica por qué se cancela la cita..."
+                                                placeholder="Explain why the appointment is being cancelled..."
                                                 required
                                             />
                                         </div>
@@ -3813,7 +3813,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             type="submit"
                                             className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
                                         >
-                                            Cancelar Cita
+                                            Cancel Appointment
                                         </button>
                                     </form>
 
@@ -3828,7 +3828,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     }} className="space-y-4 pt-4 border-t">
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                                Nueva fecha y hora
+                                                New Date and Time
                                             </label>
                                             <Input
                                                 type="datetime-local"
@@ -3844,7 +3844,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
                                             disabled={!appointmentActionForm.new_scheduled_for}
                                         >
-                                            Reagendar Cita
+                                            Reschedule Appointment
                                         </button>
                                     </form>
                                 </div>
@@ -3854,10 +3854,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             {showAppointmentDetailsModal.appointment.status === 'completed' && (
                                 <div className="space-y-4">
                                     <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                                        <h5 className="font-medium text-green-800 mb-2">Cita Completada</h5>
+                                        <h5 className="font-medium text-green-800 mb-2">Appointment Completed</h5>
                                         {showAppointmentDetailsModal.appointment.completion_notes && (
                                             <p className="text-sm text-green-700 mb-2">
-                                                <strong>Notas:</strong> {showAppointmentDetailsModal.appointment.completion_notes}
+                                                <strong>Notes:</strong> {showAppointmentDetailsModal.appointment.completion_notes}
                                             </p>
                                         )}
                                         {showAppointmentDetailsModal.appointment.member_feedback && (
@@ -3867,7 +3867,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         )}
                                         {showAppointmentDetailsModal.appointment.rating && (
                                             <div className="flex items-center gap-2">
-                                                <strong className="text-sm text-green-700">Calificación:</strong>
+                                                <strong className="text-sm text-green-700">Rating:</strong>
                                                 <div className="flex">
                                                     {[1, 2, 3, 4, 5].map(star => (
                                                         <Star
@@ -3896,7 +3896,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             onClick={() => setShowAppointmentDetailsModal({ open: false })}
                             className="w-full"
                         >
-                            Cerrar
+                            Close
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -3908,10 +3908,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                     <DialogHeader>
                         <DialogTitle className="text-xl font-semibold text-slate-900 flex items-center gap-2">
                             <Star className="w-5 h-5 text-yellow-500" />
-                            Califica tu experiencia
+                            Rate Your Experience
                         </DialogTitle>
                         <DialogDescription className="text-slate-600">
-                            Tu opinión nos ayuda a mejorar nuestro servicio
+                            Your feedback helps us improve our service
                         </DialogDescription>
                     </DialogHeader>
 
@@ -3919,7 +3919,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                         {/* Rating */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-3">
-                                ¿Qué tan satisfecho estás con la solución?
+                                How satisfied are you with the solution?
                             </label>
                             <div className="flex justify-center gap-2">
                                 {[1, 2, 3, 4, 5].map(star => (
@@ -3944,14 +3944,14 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                         {/* Comment */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Comentarios adicionales (opcional)
+                                Additional Comments (optional)
                             </label>
                             <textarea
                                 value={memberFeedback.comment}
                                 onChange={e => setMemberFeedback(prev => ({ ...prev, comment: e.target.value }))}
                                 className="w-full p-3 border border-slate-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 rows={4}
-                                placeholder="Comparte tu experiencia con el servicio recibido..."
+                                placeholder="Share your experience with the service received..."
                             />
                         </div>
 
@@ -3963,14 +3963,14 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                 onClick={() => setShowMemberFeedbackModal({ open: false })}
                                 className="flex-1"
                             >
-                                Cancelar
+                                Cancel
                             </Button>
                             <Button
                                 type="submit"
                                 className="flex-1 bg-blue-600 hover:bg-blue-700"
                                 disabled={memberFeedback.rating === 0}
                             >
-                                Enviar Feedback
+                                Send Feedback
                             </Button>
                         </div>
                     </form>
