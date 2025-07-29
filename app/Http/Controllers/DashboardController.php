@@ -10,6 +10,7 @@ use App\Models\Technical;
 use App\Models\Tenant;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -217,6 +218,71 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        // Próximas citas - filtradas por rol de usuario
+        $upcomingAppointments = collect();
+        if ($user->hasRole('technical')) {
+            // Técnicos ven solo sus citas
+            $technical = Technical::where('email', $user->email)->first();
+            if ($technical) {
+                $upcomingAppointments = Appointment::with([
+                    'ticket' => function($query) {
+                        $query->select('id', 'title', 'code', 'user_id');
+                    },
+                    'ticket.user' => function($query) {
+                        $query->select('id', 'name', 'email');
+                    },
+                    'technical' => function($query) {
+                        $query->select('id', 'name', 'email');
+                    }
+                ])
+                    ->where('technical_id', $technical->id)
+                    ->where('scheduled_for', '>=', Carbon::now())
+                    ->where('status', '!=', 'cancelled')
+                    ->orderBy('scheduled_for')
+                    ->limit(10)
+                    ->get();
+            }
+        } elseif ($user->hasRole('member')) {
+            // Miembros ven citas de sus tickets
+            $upcomingAppointments = Appointment::with([
+                'ticket' => function($query) {
+                    $query->select('id', 'title', 'code', 'user_id');
+                },
+                'ticket.user' => function($query) {
+                    $query->select('id', 'name', 'email');
+                },
+                'technical' => function($query) {
+                    $query->select('id', 'name', 'email');
+                }
+            ])
+                ->whereHas('ticket', function($query) use ($user) {
+                    $query->where('user_id', $user->id);
+                })
+                ->where('scheduled_for', '>=', Carbon::now())
+                ->where('status', '!=', 'cancelled')
+                ->orderBy('scheduled_for')
+                ->limit(10)
+                ->get();
+        } elseif ($isSuperAdmin) {
+            // Super admin ve todas las citas próximas
+            $upcomingAppointments = Appointment::with([
+                'ticket' => function($query) {
+                    $query->select('id', 'title', 'code', 'user_id');
+                },
+                'ticket.user' => function($query) {
+                    $query->select('id', 'name', 'email');
+                },
+                'technical' => function($query) {
+                    $query->select('id', 'name', 'email');
+                }
+            ])
+                ->where('scheduled_for', '>=', Carbon::now())
+                ->where('status', '!=', 'cancelled')
+                ->orderBy('scheduled_for')
+                ->limit(10)
+                ->get();
+        }
+
         return Inertia::render('dashboard', [
             'metrics' => [
                 'tickets' => [
@@ -268,6 +334,7 @@ class DashboardController extends Controller
                     ->limit(10)
                     ->get() : collect(),
                 'availableTechnicals' => $availableTechnicals,
+                'upcomingAppointments' => $upcomingAppointments,
             ]
         ]);
     }

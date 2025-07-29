@@ -1505,85 +1505,18 @@ export default function Dashboard() {
 
     // States for appointments
     const [appointments, setAppointments] = useState<AppointmentItem[]>(() => {
-        // Get upcoming appointments from props or create mock data
-        if (lists.upcomingAppointments && lists.upcomingAppointments.length > 0) {
-            return lists.upcomingAppointments;
-        }
-        
-        // Mock data for demonstration if no real appointments exist
-        const now = new Date();
-        return [
-            {
-                id: 1,
-                title: "Network Setup - Office Building",
-                description: "Install and configure network equipment",
-                address: "Building A, Floor 3, Apt 301",
-                scheduled_for: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
-                estimated_duration: 120,
-                status: "scheduled",
-                ticket: {
-                    id: 15,
-                    title: "Network connectivity issues",
-                    code: "TK-2025-015",
-                    user: {
-                        name: "John Doe",
-                        email: "john.doe@example.com"
-                    }
-                },
-                technical: {
-                    id: 1,
-                    name: "Alex Rodriguez",
-                    email: "alex@company.com"
-                }
-            },
-            {
-                id: 2,
-                title: "HVAC Maintenance Check",
-                description: "Routine maintenance and inspection",
-                address: "Building B, Floor 1, Apt 105",
-                scheduled_for: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(), // tomorrow
-                estimated_duration: 90,
-                status: "scheduled",
-                ticket: {
-                    id: 22,
-                    title: "Air conditioning not working",
-                    code: "TK-2025-022",
-                    user: {
-                        name: "Maria Garcia",
-                        email: "maria.garcia@example.com"
-                    }
-                },
-                technical: {
-                    id: 2,
-                    name: "Carlos Martinez",
-                    email: "carlos@company.com"
-                }
-            },
-            {
-                id: 3,
-                title: "Security Camera Installation",
-                description: "Install new security cameras in lobby",
-                address: "Main Building, Lobby Area",
-                scheduled_for: new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString(), // day after tomorrow
-                estimated_duration: 180,
-                status: "scheduled",
-                ticket: {
-                    id: 28,
-                    title: "Security upgrade request",
-                    code: "TK-2025-028",
-                    user: {
-                        name: "Building Manager",
-                        email: "manager@building.com"
-                    }
-                },
-                technical: {
-                    id: 1,
-                    name: "Alex Rodriguez",
-                    email: "alex@company.com"
-                }
-            }
-        ];
+        // Get real upcoming appointments from backend
+        console.log('Dashboard upcomingAppointments from backend:', lists.upcomingAppointments);
+        return lists.upcomingAppointments || [];
     });
+
+    // Update appointments when props change
+    useEffect(() => {
+        if (lists.upcomingAppointments) {
+            console.log('Updating appointments with new data:', lists.upcomingAppointments);
+            setAppointments(lists.upcomingAppointments);
+        }
+    }, [lists.upcomingAppointments]);
 
     // Calculate upcoming appointments count (next 7 days) - using useMemo for performance
     const upcomingAppointmentsCount = useMemo(() => {
@@ -1904,6 +1837,7 @@ export default function Dashboard() {
                                             <div className="p-4 text-center text-slate-500">
                                                 <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
                                                 <p className="text-sm">No upcoming appointments</p>
+                                                <p className="text-xs text-slate-400 mt-1">Schedule appointments from ticket details</p>
                                             </div>
                                         ) : (
                                             <div className="max-h-80 overflow-y-auto flex flex-col gap-2">
@@ -1927,26 +1861,25 @@ export default function Dashboard() {
                                                             onClick={() => viewAppointmentDetails(appointment.id)}
                                                         >
                                                             <div className="w-full p-3 flex items-start gap-3 dark:!text-slate-100">
-                                                                <div className={`p-2 rounded-lg ${statusConfig.color} flex-shrink-0`}>
-                                                                    <IconComponent className="h-4 w-4" />
-                                                                </div>
+                                                               
 
                                                                 <div className="flex-1 space-y-1 dark:!text-slate-100">
                                                                     <div className="flex items-center justify-between">
                                                                         <h4 className="text-sm font-semibold dark:!text-slate-100 text-slate-900">
                                                                             {appointment.title}
                                                                         </h4>
-                                                                        <div className="flex items-center gap-1">
-                                                                            <Clock className="h-3 w-3 text-slate-500" />
-                                                                            <span className="text-xs text-slate-500">
-                                                                                {dateTime.time}
-                                                                            </span>
-                                                                        </div>
+                                                                     
                                                                     </div>
 
                                                                     <div className="flex items-center gap-2 text-xs text-slate-600 dark:!text-slate-300">
                                                                         <Calendar className="h-3 w-3" />
                                                                         <span>{dateTime.date}</span>
+                                                                           <div className="flex items-center gap-1">
+                                                                            <Clock className="h-3 w-3 text-slate-500" />
+                                                                            <span className="text-xs text-slate-500">
+                                                                                {dateTime.time}
+                                                                            </span>
+                                                                        </div>
                                                                         <span>•</span>
                                                                         <User className="h-3 w-3" />
                                                                         <span>{appointment.technical.name}</span>
@@ -1969,9 +1902,7 @@ export default function Dashboard() {
                                                                     </div>
                                                                 </div>
 
-                                                                <div className="flex-shrink-0">
-                                                                    <Eye className="h-4 w-4 text-slate-400" />
-                                                                </div>
+                                                               
                                                             </div>
                                                         </DropdownMenuItem>
                                                     );
