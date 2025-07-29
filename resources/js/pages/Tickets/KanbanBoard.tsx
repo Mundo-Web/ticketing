@@ -243,9 +243,13 @@ export default function KanbanBoard(props: any) {
     const groupTickets = useCallback(() => {
         return statuses.reduce((acc: any, status) => {
             if (status.key === "recents") {
-                acc[status.key] = filteredTickets.filter((t: any) => t.status === "open");
+                acc[status.key] = filteredTickets
+                    .filter((t: any) => t.status === "open")
+                    .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
             } else {
-                acc[status.key] = filteredTickets.filter((t: any) => t.status === status.key);
+                acc[status.key] = filteredTickets
+                    .filter((t: any) => t.status === status.key)
+                    .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
             }
             return acc;
         }, {});

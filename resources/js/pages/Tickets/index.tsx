@@ -574,15 +574,57 @@ export default function TicketsIndex({
         } else {
             // Cambio directo para estados que no requieren comentario
             setStatusLoadingId(ticket.id);
+            
+            // ✨ Actualización optimista - actualizar UI inmediatamente
+            const updatedTicket = { ...ticket, status: newStatus };
+            
+            // Actualizar el ticket seleccionado si es el mismo
+            if (selectedTicket && selectedTicket.id === ticket.id) {
+                setSelectedTicket(updatedTicket);
+            }
+            
+            // Actualizar en la lista de tickets (para Kanban)
+            setData(prevData => ({
+                ...prevData,
+                allTickets: prevData.allTickets.map(t => 
+                    t.id === ticket.id ? updatedTicket : t
+                ),
+                tickets: {
+                    ...prevData.tickets,
+                    data: prevData.tickets.data.map(t => 
+                        t.id === ticket.id ? updatedTicket : t
+                    )
+                }
+            }));
+            
             router.put(
                 `/tickets/${ticket.id}`,
                 { status: newStatus },
                 {
                     preserveScroll: true,
                     onSuccess: () => {
+                        // Actualizar desde servidor para mantener sincronización
                         refreshSelectedTicket(ticket.id);
-                        // Forzar re-render del kanban
-                        setRefreshKey(prev => prev + 1);
+                        toast.success(`Ticket moved to ${newStatus}`);
+                    },
+                    onError: () => {
+                        // Revertir cambios optimistas en caso de error
+                        if (selectedTicket && selectedTicket.id === ticket.id) {
+                            setSelectedTicket(ticket);
+                        }
+                        setData(prevData => ({
+                            ...prevData,
+                            allTickets: prevData.allTickets.map(t => 
+                                t.id === ticket.id ? ticket : t
+                            ),
+                            tickets: {
+                                ...prevData.tickets,
+                                data: prevData.tickets.data.map(t => 
+                                    t.id === ticket.id ? ticket : t
+                                )
+                            }
+                        }));
+                        toast.error('Failed to update ticket status');
                     },
                     onFinish: () => setStatusLoadingId(null),
                 },
@@ -2059,6 +2101,12 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                     Created by Doorman: {selectedTicket.created_by_doorman.name}
                                                                 </span>
                                                             )}
+                                                            {selectedTicket.created_by_admin_id && selectedTicket.created_by_admin && (
+                                                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                                                                    <Shield className="w-3 h-3" />
+                                                                    Created by Admin: {selectedTicket.created_by_admin.name}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
 
@@ -2357,88 +2405,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                     </button>
                                                                 )}
 
-                                                                {/* Show Active Appointment Info */}
-                                                                {selectedTicket.active_appointment && (
-                                                                    <div className="w-full p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <Calendar className="w-4 h-4 text-blue-600" />
-                                                                                <span className="text-sm font-medium text-blue-800">
-                                                                                    Scheduled Visit
-                                                                                </span>
-                                                                            </div>
-                                                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                                                selectedTicket.active_appointment.status === 'scheduled' 
-                                                                                    ? 'bg-blue-100 text-blue-800'
-                                                                                    : selectedTicket.active_appointment.status === 'in_progress'
-                                                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                                                    : selectedTicket.active_appointment.status === 'awaiting_feedback'
-                                                                                    ? 'bg-purple-100 text-purple-800'
-                                                                                    : 'bg-green-100 text-green-800'
-                                                                            }`}>
-                                                                                {selectedTicket.active_appointment.status === 'scheduled' 
-                                                                                    ? 'Scheduled' 
-                                                                                    : selectedTicket.active_appointment.status === 'in_progress'
-                                                                                    ? 'In Progress' 
-                                                                                    : selectedTicket.active_appointment.status === 'awaiting_feedback'
-                                                                                    ? 'Awaiting Feedback'
-                                                                                    : 'Completed'}
-                                                                            </span>
-                                                                        </div>
-                                                                        <p className="text-sm text-blue-700 mt-1">
-                                                                            {formatLocalDateTime(selectedTicket.active_appointment.scheduled_for).date} {formatLocalDateTime(selectedTicket.active_appointment.scheduled_for).time}
-                                                                        </p>
-                                                                        <p className="text-xs text-blue-600 mt-1">
-                                                                            {selectedTicket.active_appointment.title}
-                                                                        </p>
-                                                                        
-                                                                        {/* Appointment Actions */}
-                                                                        <div className="flex gap-2 mt-3">
-                                                                            {/* Technical Actions */}
-                                                                            {(isTechnical || isTechnicalDefault || isSuperAdmin) && (
-                                                                                <>
-                                                                                    {selectedTicket.active_appointment.status === 'scheduled' && (
-                                                                                        <button
-                                                                                            onClick={() => handleAppointmentAction('start', selectedTicket.active_appointment.id)}
-                                                                                            className="text-xs px-3 py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg transition-colors font-medium"
-                                                                                        >
-                                                                                            <PlayCircle className="w-3 h-3 inline mr-1" />
-                                                                                            Start Visit
-                                                                                        </button>
-                                                                                    )}
-                                                                                    {selectedTicket.active_appointment.status === 'in_progress' && (
-                                                                                        <button
-                                                                                            onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
-                                                                                            className="text-xs px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors font-medium"
-                                                                                        >
-                                                                                            <CheckCircle className="w-3 h-3 inline mr-1" />
-                                                                                            Complete Visit
-                                                                                        </button>
-                                                                                    )}
-                                                                                </>
-                                                                            )}
-                                                                            
-                                                                            {/* Member Action */}
-                                                                            {isMember && selectedTicket.active_appointment.status === 'awaiting_feedback' && (
-                                                                                <button
-                                                                                    onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
-                                                                                    className="text-xs px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg transition-colors font-medium animate-pulse"
-                                                                                >
-                                                                                    <Star className="w-3 h-3 inline mr-1" />
-                                                                                    Provide Feedback
-                                                                                </button>
-                                                                            )}
-                                                                            
-                                                                            {/* Common View Details Button */}
-                                                                            <button
-                                                                                onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
-                                                                                className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded transition-colors"
-                                                                            >
-                                                                                View Details
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
+                                                               
                                                                 {getNextStatuses(selectedTicket.status).map((status) => (
                                                                     <button
                                                                         key={status}

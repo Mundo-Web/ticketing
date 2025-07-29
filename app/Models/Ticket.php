@@ -89,6 +89,11 @@ class Ticket extends Model
         return $this->belongsTo(\App\Models\Doorman::class, 'created_by_doorman_id');
     }
 
+    public function createdByAdmin()
+    {
+        return $this->belongsTo(User::class, 'created_by_admin_id');
+    }
+
     // Relación con citas
     public function appointments()
     {
