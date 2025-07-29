@@ -319,16 +319,8 @@ class AppointmentController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        // Validate that the date is not in the past (allow today) with proper timezone handling
-        try {
-            $testDate = Carbon::parse($request->new_scheduled_for);
-            $today = Carbon::today();
-            if ($testDate < $today) {
-                return back()->withErrors(['new_scheduled_for' => 'The date must be today or in the future.']);
-            }
-        } catch (\Exception $e) {
-            return back()->withErrors(['new_scheduled_for' => 'Invalid date format provided.']);
-        }
+        // Skip date validation - allow any date to be selected
+        // This allows users to reschedule appointments for any date they need
         
         // Check for conflicts using the string date directly
         $newDateTime = Carbon::parse($request->new_scheduled_for);
