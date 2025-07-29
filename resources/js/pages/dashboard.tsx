@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type PageProps } from '@/types';
 import { Head, usePage, router } from '@inertiajs/react';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -19,6 +19,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 // Icons
 import {
@@ -62,6 +68,23 @@ interface AppointmentItem {
         user: {
             name: string;
             email: string;
+        };
+        device: {
+            id: number;
+            name: string;
+            tenants: Array<{
+                id: number;
+                apartment: {
+                    id: number;
+                    name: string;
+                    building: {
+                        id: number;
+                        name: string;
+                        address: string;
+                        location_link: string;
+                    };
+                };
+            }>;
         };
     };
     technical: {
@@ -200,6 +223,7 @@ interface DashboardProps extends PageProps {
         }>;
         upcomingAppointments?: Array<AppointmentItem>;
     };
+    googleMapsApiKey: string;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -1363,13 +1387,14 @@ const exportProfessionalDashboard = async (metrics: Record<string, unknown>, cha
     });
 };
 
-export default function Dashboard() {
-    const { metrics, charts, lists } = usePage<DashboardProps>().props;
+export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: DashboardProps) {
     const pageProps = usePage().props as unknown as { auth: { user: { roles: { name: string }[]; technical?: { is_default: boolean } } } };
     const isSuperAdmin = pageProps?.auth?.user?.roles?.some((role) => role.name === 'super-admin') || false;
     const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false; const canAssignTickets = isSuperAdmin || isDefaultTechnical;
     // States for modals and UI
     const [showDevicesModal, setShowDevicesModal] = useState(false);
+    const [showLocationModal, setShowLocationModal] = useState(false);
+    const [selectedAppointment, setSelectedAppointment] = useState<AppointmentItem | null>(null);
     const buildingsContainerRef = useRef<HTMLDivElement>(null);
 
     // Estados para los nuevos componentes avanzados
@@ -1585,6 +1610,71 @@ export default function Dashboard() {
     // Navigate to appointments calendar
     const viewAllAppointments = () => {
         window.open('/appointments', '_blank');
+    };
+
+    // Function to show appointment location
+    const showAppointmentLocation = (appointment: AppointmentItem) => {
+        setSelectedAppointment(appointment);
+        setShowLocationModal(true);
+    };
+
+    // Function to close location modal
+    const closeLocationModal = useCallback(() => {
+        setShowLocationModal(false);
+        setSelectedAppointment(null);
+    }, []);
+
+    // Close modal with Escape key
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && showLocationModal) {
+                closeLocationModal();
+            }
+        };
+
+        if (showLocationModal) {
+            document.addEventListener('keydown', handleEscape);
+            return () => document.removeEventListener('keydown', handleEscape);
+        }
+    }, [showLocationModal, closeLocationModal]);
+
+    // Function to get Google Maps embed URL
+    const getEmbedUrl = (locationLink: string): string => {
+        if (!locationLink) return '';
+
+        if (locationLink.includes('maps.app.goo.gl')) {
+            return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=-10.916879,-74.883391&zoom=15`;
+        }
+
+        if (locationLink.includes('/embed')) return locationLink;
+
+        if (locationLink.includes('google.com/maps')) {
+            const coordsMatch = locationLink.match(/@([-0-9.]+),([-0-9.]+)/);
+            if (coordsMatch) {
+                return `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${coordsMatch[1]},${coordsMatch[2]}&zoom=15`;
+            }
+
+            const placeIdMatch = locationLink.match(/place\/([^/]+)/);
+            if (placeIdMatch) {
+                return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=place_id:${placeIdMatch[1]}`;
+            }
+        }
+
+        return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(locationLink)}`;
+    };
+
+    // Helper function to get building and apartment info from appointment
+    const getAppointmentLocation = (appointment: AppointmentItem) => {
+        const tenant = appointment.ticket.device?.tenants?.[0];
+        const apartment = tenant?.apartment;
+        const building = apartment?.building;
+        
+        return {
+            buildingName: building?.name || 'No building',
+            unitNumber: apartment?.name || 'N/A',
+            locationLink: building?.location_link || '',
+            building: building
+        };
     };
 
     // States for last update tracking
@@ -1840,71 +1930,113 @@ export default function Dashboard() {
                                                 <p className="text-xs text-slate-400 mt-1">Schedule appointments from ticket details</p>
                                             </div>
                                         ) : (
-                                            <div className="max-h-80 overflow-y-auto flex flex-col gap-2">
+                                            <div className="max-h-80 overflow-y-auto custom-scrollbar">
                                                 {appointments
                                                     .filter(appointment => {
                                                         const appointmentDate = new Date(appointment.scheduled_for);
                                                         const today = new Date();
-                                                        return appointmentDate >= today; // Show all future appointments
+                                                        return appointmentDate >= today;
                                                     })
                                                     .sort((a, b) => new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime())
                                                     .slice(0, 10)
                                                     .map((appointment: AppointmentItem) => {
                                                     const statusConfig = getAppointmentStatusConfig(appointment.status);
                                                     const dateTime = formatAppointmentDateTime(appointment.scheduled_for);
-                                                    const IconComponent = statusConfig.icon;
+                                                    const locationInfo = getAppointmentLocation(appointment);
                                                     
                                                     return (
-                                                        <DropdownMenuItem
-                                                            key={appointment.id}
-                                                            className="p-0 focus:bg-slate-50 dark:!text-slate-100 cursor-pointer"
-                                                            onClick={() => viewAppointmentDetails(appointment.id)}
-                                                        >
-                                                            <div className="w-full p-3 flex items-start gap-3 dark:!text-slate-100">
-                                                               
-
-                                                                <div className="flex-1 space-y-1 dark:!text-slate-100">
-                                                                    <div className="flex items-center justify-between">
-                                                                        <h4 className="text-sm font-semibold dark:!text-slate-100 text-slate-900">
-                                                                            {appointment.title}
-                                                                        </h4>
-                                                                     
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2 text-xs text-slate-600 dark:!text-slate-300">
-                                                                        <Calendar className="h-3 w-3" />
-                                                                        <span>{dateTime.date}</span>
-                                                                           <div className="flex items-center gap-1">
-                                                                            <Clock className="h-3 w-3 text-slate-500" />
-                                                                            <span className="text-xs text-slate-500">
-                                                                                {dateTime.time}
-                                                                            </span>
-                                                                        </div>
-                                                                        <span>•</span>
-                                                                        <User className="h-3 w-3" />
-                                                                        <span>{appointment.technical.name}</span>
-                                                                    </div>
-
-                                                                    {appointment.address && (
-                                                                        <div className="flex items-center gap-1 text-xs text-slate-500">
-                                                                            <MapPin className="h-3 w-3" />
-                                                                            <span className="truncate">{appointment.address}</span>
-                                                                        </div>
-                                                                    )}
-
-                                                                    <div className="flex items-center justify-between mt-2">
-                                                                        <Badge variant="outline" className={`text-xs ${statusConfig.color} border-0`}>
-                                                                            {statusConfig.label}
-                                                                        </Badge>
-                                                                        <span className="text-xs text-slate-500">
-                                                                            Ticket #{appointment.ticket.code}
+                                                        <div key={appointment.id} className="group relative">
+                                                            <DropdownMenuItem className="p-0 focus:bg-slate-50 dark:focus:bg-slate-800/50 cursor-pointer">
+                                                                <div className="w-full p-4 flex items-center gap-4">
+                                                                    {/* Date Circle */}
+                                                                    <div className="flex-shrink-0 w-20 h-20 rounded-full border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center">
+                                                                        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                                                                            {new Date(appointment.scheduled_for).toLocaleString('default', { weekday: 'short' }).toLowerCase()}
+                                                                        </span>
+                                                                        <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                                                                            {new Date(appointment.scheduled_for).getDate()}
+                                                                        </span>
+                                                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                                            {new Date(appointment.scheduled_for).toLocaleString('default', { month: 'short' })}
                                                                         </span>
                                                                     </div>
-                                                                </div>
 
-                                                               
-                                                            </div>
-                                                        </DropdownMenuItem>
+                                                                    {/* Main Content - Info Box */}
+                                                                    <div className="flex-1 p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                                        {/* Header with Technical and Member Info */}
+                                                                        <div className="space-y-1 mb-1.5">
+                                                                            <div className="flex items-center justify-between">
+                                                                                <div className="flex items-center gap-1.5">
+                                                                                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                                                                        Technical: {appointment.technical.name}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-1">
+                                                                                    {locationInfo.locationLink && (
+                                                                                        <Button
+                                                                                            variant="ghost"
+                                                                                            size="sm"
+                                                                                            className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                                                                                            onClick={(e) => {
+                                                                                                e.preventDefault();
+                                                                                                e.stopPropagation();
+                                                                                                showAppointmentLocation(appointment);
+                                                                                            }}
+                                                                                        >
+                                                                                            <MapPin className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                                                                        </Button>
+                                                                                    )}
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                                                        onClick={(e) => {
+                                                                                            e.preventDefault();
+                                                                                            e.stopPropagation();
+                                                                                            viewAppointmentDetails(appointment.id);
+                                                                                        }}
+                                                                                    >
+                                                                                        <Eye className="h-3 w-3 text-slate-600 dark:text-slate-400" />
+                                                                                    </Button>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="text-sm text-slate-700 dark:text-slate-300">
+                                                                                Member: {appointment.ticket.user?.name || "No Member"}
+                                                                            </div>
+                                                                        </div>
+                                                                        
+                                                                        {/* Building and Unit Info with Location Icon */}
+                                                                        <div className="flex items-center mb-1.5">
+                                                                            <div className="flex items-center gap-1 flex-1">
+                                                                                <MapPin className="h-4 w-4 text-red-500" />
+                                                                                <span className="text-sm font-medium text-primary-foreground hover:text-primary-foreground">
+                                                                                    Building: {locationInfo.buildingName} apartment {locationInfo.unitNumber}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* Time */}
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div className="flex items-center gap-1.5">
+                                                                                <Clock className="h-3.5 w-3.5 text-slate-500" />
+                                                                                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                                                    {dateTime.time}
+                                                                                </span>
+                                                                            </div>
+                                                                            <Badge 
+                                                                                variant="outline" 
+                                                                                className={`text-xs px-2 py-0.5 ${statusConfig.color} border-current`}
+                                                                            >
+                                                                                {statusConfig.label}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </DropdownMenuItem>
+                                                            
+                                                            {/* Separator */}
+                                                            <DropdownMenuSeparator className="my-0 last:hidden" />
+                                                        </div>
                                                     );
                                                 })}
                                             </div>
@@ -3262,6 +3394,103 @@ export default function Dashboard() {
                         </div>
                     </div>
                 )}
+
+                {/* Location Modal */}
+                <Dialog open={showLocationModal} onOpenChange={(open) => {
+                    if (!open) {
+                        closeLocationModal();
+                    } else {
+                        setShowLocationModal(open);
+                    }
+                }}>
+                    <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <MapPin className="h-5 w-5 text-blue-600" />
+                                Appointment Location - {selectedAppointment ? getAppointmentLocation(selectedAppointment).buildingName : ''}
+                            </DialogTitle>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute top-4 right-4 h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                onClick={closeLocationModal}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            {/* Appointment Details */}
+                            <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 space-y-2">
+                                <h4 className="font-semibold text-slate-900 dark:text-slate-100">
+                                    {selectedAppointment?.title}
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                        <Calendar className="h-4 w-4" />
+                                        <span>{selectedAppointment ? formatAppointmentDateTime(selectedAppointment.scheduled_for).date : ''}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                        <Clock className="h-4 w-4" />
+                                        <span>{selectedAppointment ? formatAppointmentDateTime(selectedAppointment.scheduled_for).time : ''}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                        <User className="h-4 w-4" />
+                                        <span>{selectedAppointment?.technical.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                        <Ticket className="h-4 w-4" />
+                                        <span>#{selectedAppointment?.ticket.code}</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-2 text-slate-600 dark:text-slate-300">
+                                    <Home className="h-4 w-4 mt-0.5" />
+                                    <div>
+                                        <div className="font-medium">{selectedAppointment ? getAppointmentLocation(selectedAppointment).buildingName : ''}</div>
+                                        <div className="text-xs text-slate-500">
+                                            Unit {selectedAppointment ? getAppointmentLocation(selectedAppointment).unitNumber : ''} • {selectedAppointment?.address}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Map */}
+                            <div className="w-full aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                                <iframe
+                                    src={getEmbedUrl(selectedAppointment ? getAppointmentLocation(selectedAppointment).locationLink : '')}
+                                    width="100%"
+                                    height="100%"
+                                    style={{ border: 0 }}
+                                    allowFullScreen
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                    className="w-full h-full"
+                                />
+                            </div>
+                            
+                            {/* Footer with Close Button */}
+                            <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                <Button
+                                    variant="outline"
+                                    onClick={closeLocationModal}
+                                    className="px-6"
+                                >
+                                    Close
+                                </Button>
+                                {selectedAppointment && getAppointmentLocation(selectedAppointment).locationLink && (
+                                    <Button
+                                        onClick={() => {
+                                            window.open(getAppointmentLocation(selectedAppointment).locationLink, '_blank');
+                                        }}
+                                        className="px-6"
+                                    >
+                                        <ExternalLink className="h-4 w-4 mr-2" />
+                                        Open in Google Maps
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </AppLayout>
         </TooltipProvider>
     );

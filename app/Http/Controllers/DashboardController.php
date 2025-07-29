@@ -226,10 +226,22 @@ class DashboardController extends Controller
             if ($technical) {
                 $upcomingAppointments = Appointment::with([
                     'ticket' => function($query) {
-                        $query->select('id', 'title', 'code', 'user_id');
+                        $query->select('id', 'title', 'code', 'user_id', 'device_id');
                     },
                     'ticket.user' => function($query) {
                         $query->select('id', 'name', 'email');
+                    },
+                    'ticket.device' => function($query) {
+                        $query->select('id', 'name');
+                    },
+                    'ticket.device.tenants' => function($query) {
+                        $query->select('tenants.id', 'tenants.apartment_id')->distinct();
+                    },
+                    'ticket.device.tenants.apartment' => function($query) {
+                        $query->select('id', 'buildings_id', 'name');
+                    },
+                    'ticket.device.tenants.apartment.building' => function($query) {
+                        $query->select('id', 'name', 'address', 'location_link');
                     },
                     'technical' => function($query) {
                         $query->select('id', 'name', 'email');
@@ -246,10 +258,22 @@ class DashboardController extends Controller
             // Miembros ven citas de sus tickets
             $upcomingAppointments = Appointment::with([
                 'ticket' => function($query) {
-                    $query->select('id', 'title', 'code', 'user_id');
+                    $query->select('id', 'title', 'code', 'user_id', 'device_id');
                 },
                 'ticket.user' => function($query) {
                     $query->select('id', 'name', 'email');
+                },
+                'ticket.device' => function($query) {
+                    $query->select('id', 'name');
+                },
+                'ticket.device.tenants' => function($query) {
+                    $query->select('tenants.id', 'tenants.apartment_id')->distinct();
+                },
+                'ticket.device.tenants.apartment' => function($query) {
+                    $query->select('id', 'buildings_id', 'name');
+                },
+                'ticket.device.tenants.apartment.building' => function($query) {
+                    $query->select('id', 'name', 'address', 'location_link');
                 },
                 'technical' => function($query) {
                     $query->select('id', 'name', 'email');
@@ -267,10 +291,22 @@ class DashboardController extends Controller
             // Super admin ve todas las citas próximas
             $upcomingAppointments = Appointment::with([
                 'ticket' => function($query) {
-                    $query->select('id', 'title', 'code', 'user_id');
+                    $query->select('id', 'title', 'code', 'user_id', 'device_id');
                 },
                 'ticket.user' => function($query) {
                     $query->select('id', 'name', 'email');
+                },
+                'ticket.device' => function($query) {
+                    $query->select('id', 'name');
+                },
+                'ticket.device.tenants' => function($query) {
+                    $query->select('tenants.id', 'tenants.apartment_id')->distinct();
+                },
+                'ticket.device.tenants.apartment' => function($query) {
+                    $query->select('id', 'buildings_id', 'name');
+                },
+                'ticket.device.tenants.apartment.building' => function($query) {
+                    $query->select('id', 'name', 'address', 'location_link');
                 },
                 'technical' => function($query) {
                     $query->select('id', 'name', 'email');
@@ -335,7 +371,8 @@ class DashboardController extends Controller
                     ->get() : collect(),
                 'availableTechnicals' => $availableTechnicals,
                 'upcomingAppointments' => $upcomingAppointments,
-            ]
+            ],
+            'googleMapsApiKey' => env('GMAPS_API_KEY'),
         ]);
     }
 }
