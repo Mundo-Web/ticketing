@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type PageProps } from '@/types';
 import { Head, usePage, router } from '@inertiajs/react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -27,7 +27,7 @@ import {
     Timer, Download, ExternalLink, RefreshCcw, FileSpreadsheet,
     Bell, Zap, UserPlus, AlertTriangle, X, User, Phone, Mail,
     Monitor, ChevronLeft, ChevronRight, Laptop, Check,
-    MessageSquare, Info, AlertOctagon
+    MessageSquare, Info, AlertOctagon, MapPin, PlayCircle, Eye
 } from 'lucide-react';
 
 // Charts
@@ -46,6 +46,30 @@ import DashboardFilterPanel from '@/components/dashboard/DashboardFilterPanel';
 import ExtendedKPIs from '@/components/dashboard/ExtendedKPIs';
 import AdvancedCharts from '@/components/dashboard/AdvancedCharts';
 import ExportData from '@/components/dashboard/ExportData';
+
+interface AppointmentItem {
+    id: number;
+    title: string;
+    description?: string;
+    address: string;
+    scheduled_for: string;
+    estimated_duration: number;
+    status: string;
+    ticket: {
+        id: number;
+        title: string;
+        code: string;
+        user: {
+            name: string;
+            email: string;
+        };
+    };
+    technical: {
+        id: number;
+        name: string;
+        email: string;
+    };
+}
 
 interface NotificationItem {
     id: number;
@@ -174,6 +198,7 @@ interface DashboardProps extends PageProps {
             name: string;
             is_default: boolean;
         }>;
+        upcomingAppointments?: Array<AppointmentItem>;
     };
 }
 
@@ -1478,6 +1503,157 @@ export default function Dashboard() {
         return initialNotifications.filter((n: NotificationItem) => !n.read).length;
     });
 
+    // States for appointments
+    const [appointments, setAppointments] = useState<AppointmentItem[]>(() => {
+        // Get upcoming appointments from props or create mock data
+        if (lists.upcomingAppointments && lists.upcomingAppointments.length > 0) {
+            return lists.upcomingAppointments;
+        }
+        
+        // Mock data for demonstration if no real appointments exist
+        const now = new Date();
+        return [
+            {
+                id: 1,
+                title: "Network Setup - Office Building",
+                description: "Install and configure network equipment",
+                address: "Building A, Floor 3, Apt 301",
+                scheduled_for: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
+                estimated_duration: 120,
+                status: "scheduled",
+                ticket: {
+                    id: 15,
+                    title: "Network connectivity issues",
+                    code: "TK-2025-015",
+                    user: {
+                        name: "John Doe",
+                        email: "john.doe@example.com"
+                    }
+                },
+                technical: {
+                    id: 1,
+                    name: "Alex Rodriguez",
+                    email: "alex@company.com"
+                }
+            },
+            {
+                id: 2,
+                title: "HVAC Maintenance Check",
+                description: "Routine maintenance and inspection",
+                address: "Building B, Floor 1, Apt 105",
+                scheduled_for: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(), // tomorrow
+                estimated_duration: 90,
+                status: "scheduled",
+                ticket: {
+                    id: 22,
+                    title: "Air conditioning not working",
+                    code: "TK-2025-022",
+                    user: {
+                        name: "Maria Garcia",
+                        email: "maria.garcia@example.com"
+                    }
+                },
+                technical: {
+                    id: 2,
+                    name: "Carlos Martinez",
+                    email: "carlos@company.com"
+                }
+            },
+            {
+                id: 3,
+                title: "Security Camera Installation",
+                description: "Install new security cameras in lobby",
+                address: "Main Building, Lobby Area",
+                scheduled_for: new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString(), // day after tomorrow
+                estimated_duration: 180,
+                status: "scheduled",
+                ticket: {
+                    id: 28,
+                    title: "Security upgrade request",
+                    code: "TK-2025-028",
+                    user: {
+                        name: "Building Manager",
+                        email: "manager@building.com"
+                    }
+                },
+                technical: {
+                    id: 1,
+                    name: "Alex Rodriguez",
+                    email: "alex@company.com"
+                }
+            }
+        ];
+    });
+
+    // Calculate upcoming appointments count (next 7 days) - using useMemo for performance
+    const upcomingAppointmentsCount = useMemo(() => {
+        const today = new Date();
+        const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        
+        return appointments.filter(appointment => {
+            const appointmentDate = new Date(appointment.scheduled_for);
+            return appointmentDate >= today && appointmentDate <= nextWeek && appointment.status === 'scheduled';
+        }).length;
+    }, [appointments]);
+
+    // Get status configuration for appointments
+    const getAppointmentStatusConfig = (status: string) => {
+        const config = {
+            scheduled: {
+                label: 'Scheduled',
+                color: 'text-blue-500 bg-blue-50',
+                icon: Calendar
+            },
+            in_progress: {
+                label: 'In Progress',
+                color: 'text-yellow-500 bg-yellow-50',
+                icon: PlayCircle
+            },
+            completed: {
+                label: 'Completed',
+                color: 'text-green-500 bg-green-50',
+                icon: CheckCircle
+            },
+            cancelled: {
+                label: 'Cancelled',
+                color: 'text-red-500 bg-red-50',
+                icon: X
+            },
+            rescheduled: {
+                label: 'Rescheduled',
+                color: 'text-gray-500 bg-gray-50',
+                icon: Clock
+            }
+        };
+        return config[status as keyof typeof config] || config.scheduled;
+    };
+
+    // Format date and time for appointments
+    const formatAppointmentDateTime = (dateString: string) => {
+        const date = new Date(dateString);
+        return {
+            date: date.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+            }),
+            time: date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        };
+    };
+
+    // Navigate to appointment details
+    const viewAppointmentDetails = (appointmentId: number) => {
+        window.open(`/appointments?appointment=${appointmentId}`, '_blank');
+    };
+
+    // Navigate to appointments calendar
+    const viewAllAppointments = () => {
+        window.open('/appointments', '_blank');
+    };
+
     // States for last update tracking
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [updateText, setUpdateText] = useState<string>('Updated just now');
@@ -1694,6 +1870,128 @@ export default function Dashboard() {
                             >
                                     <Download className="h-6 w-6" />
                                     Export </Button>
+
+                                {/* Appointments Dropdown */}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="lg" className="gap-4 h-14 px-8 shadow-xl text-lg relative">
+                                            <Calendar className="h-6 w-6" />
+                                            Appointments
+                                            {upcomingAppointmentsCount > 0 && (
+                                                <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center p-0">
+                                                    {upcomingAppointmentsCount}
+                                                </Badge>
+                                            )}
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-96 max-h-96 mt-4" align="end">
+                                        <DropdownMenuLabel className="flex items-center justify-between">
+                                            <span className="text-lg font-semibold">Upcoming Appointments</span>
+                                            {appointments.length > 0 && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={viewAllAppointments}
+                                                    className="text-xs"
+                                                >
+                                                    View Calendar
+                                                </Button>
+                                            )}
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+
+                                        {appointments.length === 0 ? (
+                                            <div className="p-4 text-center text-slate-500">
+                                                <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                <p className="text-sm">No upcoming appointments</p>
+                                            </div>
+                                        ) : (
+                                            <div className="max-h-80 overflow-y-auto flex flex-col gap-2">
+                                                {appointments
+                                                    .filter(appointment => {
+                                                        const appointmentDate = new Date(appointment.scheduled_for);
+                                                        const today = new Date();
+                                                        return appointmentDate >= today; // Show all future appointments
+                                                    })
+                                                    .sort((a, b) => new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime())
+                                                    .slice(0, 10)
+                                                    .map((appointment: AppointmentItem) => {
+                                                    const statusConfig = getAppointmentStatusConfig(appointment.status);
+                                                    const dateTime = formatAppointmentDateTime(appointment.scheduled_for);
+                                                    const IconComponent = statusConfig.icon;
+                                                    
+                                                    return (
+                                                        <DropdownMenuItem
+                                                            key={appointment.id}
+                                                            className="p-0 focus:bg-slate-50 dark:!text-slate-100 cursor-pointer"
+                                                            onClick={() => viewAppointmentDetails(appointment.id)}
+                                                        >
+                                                            <div className="w-full p-3 flex items-start gap-3 dark:!text-slate-100">
+                                                                <div className={`p-2 rounded-lg ${statusConfig.color} flex-shrink-0`}>
+                                                                    <IconComponent className="h-4 w-4" />
+                                                                </div>
+
+                                                                <div className="flex-1 space-y-1 dark:!text-slate-100">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <h4 className="text-sm font-semibold dark:!text-slate-100 text-slate-900">
+                                                                            {appointment.title}
+                                                                        </h4>
+                                                                        <div className="flex items-center gap-1">
+                                                                            <Clock className="h-3 w-3 text-slate-500" />
+                                                                            <span className="text-xs text-slate-500">
+                                                                                {dateTime.time}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-2 text-xs text-slate-600 dark:!text-slate-300">
+                                                                        <Calendar className="h-3 w-3" />
+                                                                        <span>{dateTime.date}</span>
+                                                                        <span>•</span>
+                                                                        <User className="h-3 w-3" />
+                                                                        <span>{appointment.technical.name}</span>
+                                                                    </div>
+
+                                                                    {appointment.address && (
+                                                                        <div className="flex items-center gap-1 text-xs text-slate-500">
+                                                                            <MapPin className="h-3 w-3" />
+                                                                            <span className="truncate">{appointment.address}</span>
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="flex items-center justify-between mt-2">
+                                                                        <Badge variant="outline" className={`text-xs ${statusConfig.color} border-0`}>
+                                                                            {statusConfig.label}
+                                                                        </Badge>
+                                                                        <span className="text-xs text-slate-500">
+                                                                            Ticket #{appointment.ticket.code}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex-shrink-0">
+                                                                    <Eye className="h-4 w-4 text-slate-400" />
+                                                                </div>
+                                                            </div>
+                                                        </DropdownMenuItem>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="p-0">
+                                            <Button 
+                                                variant="ghost" 
+                                                className="w-full justify-center py-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                onClick={viewAllAppointments}
+                                            >
+                                                <Calendar className="h-4 w-4 mr-2" />
+                                                View All Appointments
+                                            </Button>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
 
                                 {/* Notifications Dropdown */}
                                 <DropdownMenu>
