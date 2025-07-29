@@ -58,6 +58,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('appointments/{appointment}', [\App\Http\Controllers\AppointmentController::class, 'update'])->name('appointments.update');
     Route::post('appointments/{appointment}/start', [\App\Http\Controllers\AppointmentController::class, 'start'])->name('appointments.start');
     Route::post('appointments/{appointment}/complete', [\App\Http\Controllers\AppointmentController::class, 'complete'])->name('appointments.complete');
+    Route::post('appointments/{appointment}/member-feedback', [\App\Http\Controllers\AppointmentController::class, 'memberFeedback'])->name('appointments.member-feedback');
     Route::post('appointments/{appointment}/cancel', [\App\Http\Controllers\AppointmentController::class, 'cancel'])->name('appointments.cancel');
     Route::post('appointments/{appointment}/reschedule', [\App\Http\Controllers\AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
     Route::get('technicals/{technical}/availability', [\App\Http\Controllers\AppointmentController::class, 'getTechnicalAvailability'])->name('technicals.availability');

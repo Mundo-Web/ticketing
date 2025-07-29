@@ -398,6 +398,7 @@ export default function TicketsIndex({
         completion_notes: "",
         member_feedback: "",
         rating: 0,
+        service_rating: 0,
         reason: "",
         new_scheduled_for: ""
     });
@@ -418,6 +419,18 @@ export default function TicketsIndex({
     const isDoorman = (auth.user as any)?.roles?.includes("doorman");
     const isOwner = (auth.user as any)?.roles?.includes("owner");
     // isTechnicalDefault ahora viene del backend correctamente
+    
+    // Efecto para registrar cuando se abre el modal de cita
+    useEffect(() => {
+        if (showAppointmentDetailsModal.open && showAppointmentDetailsModal.appointment) {
+            console.log("Appointment modal opened:", {
+                appointmentId: showAppointmentDetailsModal.appointment.id,
+                status: showAppointmentDetailsModal.appointment.status,
+                isMember,
+                shouldShowFeedback: showAppointmentDetailsModal.appointment.status === 'awaiting_feedback' && isMember
+            });
+        }
+    }, [showAppointmentDetailsModal.open, showAppointmentDetailsModal.appointment, isMember]);
 
     // Estados para filtros de doorman y owner
     const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>('all');
@@ -920,8 +933,11 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
     const handleAppointmentAction = async (action: string, appointmentId: number, formData?: any) => {
         try {
+            // Map action to the correct route
+            const routeAction = action === 'member_feedback' ? 'member-feedback' : action;
+            
             // Using Inertia router for better CSRF handling
-            router.post(`/appointments/${appointmentId}/${action}`, formData || {}, {
+            router.post(`/appointments/${appointmentId}/${routeAction}`, formData || {}, {
                 preserveScroll: true,
                 onSuccess: (page) => {
                     const data = (page.props as any).flash || {};
@@ -929,7 +945,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                     // Show success notification with specific messages
                     const successMessages = {
                         'start': 'Visit started successfully!',
-                        'complete': 'Visit completed successfully!',
+                        'complete': 'Visit completed successfully! Waiting for member feedback.',
+                        'member_feedback': 'Thank you for your feedback!',
                         'cancel': 'Appointment cancelled successfully!',
                         'reschedule': 'Appointment rescheduled successfully!'
                     };
@@ -2228,6 +2245,91 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         )}
                                                     </div>
 
+                                                    {/* Scheduled Visit Section - VISIBLE TO ALL USERS */}
+                                                    {selectedTicket.active_appointment && (
+                                                        <div className="px-6 mb-4">
+                                                            <div className="w-full p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Calendar className="w-4 h-4 text-blue-600" />
+                                                                        <span className="text-sm font-medium text-blue-800">
+                                                                            Scheduled Visit
+                                                                        </span>
+                                                                    </div>
+                                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                                                        selectedTicket.active_appointment.status === 'scheduled' 
+                                                                            ? 'bg-blue-100 text-blue-800'
+                                                                            : selectedTicket.active_appointment.status === 'in_progress'
+                                                                            ? 'bg-yellow-100 text-yellow-800'
+                                                                            : selectedTicket.active_appointment.status === 'awaiting_feedback'
+                                                                            ? 'bg-purple-100 text-purple-800'
+                                                                            : 'bg-green-100 text-green-800'
+                                                                    }`}>
+                                                                        {selectedTicket.active_appointment.status === 'scheduled' 
+                                                                            ? 'Scheduled' 
+                                                                            : selectedTicket.active_appointment.status === 'in_progress'
+                                                                            ? 'In Progress' 
+                                                                            : selectedTicket.active_appointment.status === 'awaiting_feedback'
+                                                                            ? 'Awaiting Feedback'
+                                                                            : 'Completed'}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-sm text-blue-700 mt-1">
+                                                                    {formatLocalDateTime(selectedTicket.active_appointment.scheduled_for).date} {formatLocalDateTime(selectedTicket.active_appointment.scheduled_for).time}
+                                                                </p>
+                                                                <p className="text-xs text-blue-600 mt-1">
+                                                                    {selectedTicket.active_appointment.title}
+                                                                </p>
+                                                                
+                                                                {/* Appointment Actions */}
+                                                                <div className="flex gap-2 mt-3">
+                                                                    {/* Technical Actions */}
+                                                                    {(isTechnical || isTechnicalDefault || isSuperAdmin) && (
+                                                                        <>
+                                                                            {selectedTicket.active_appointment.status === 'scheduled' && (
+                                                                                <button
+                                                                                    onClick={() => handleAppointmentAction('start', selectedTicket.active_appointment.id)}
+                                                                                    className="text-xs px-3 py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg transition-colors font-medium"
+                                                                                >
+                                                                                    <PlayCircle className="w-3 h-3 inline mr-1" />
+                                                                                    Start Visit
+                                                                                </button>
+                                                                            )}
+                                                                            {selectedTicket.active_appointment.status === 'in_progress' && (
+                                                                                <button
+                                                                                    onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
+                                                                                    className="text-xs px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors font-medium"
+                                                                                >
+                                                                                    <CheckCircle className="w-3 h-3 inline mr-1" />
+                                                                                    Complete Visit
+                                                                                </button>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                    
+                                                                    {/* Member Action */}
+                                                                    {isMember && selectedTicket.active_appointment.status === 'awaiting_feedback' && (
+                                                                        <button
+                                                                            onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
+                                                                            className="text-xs px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg transition-colors font-medium animate-pulse"
+                                                                        >
+                                                                            <Star className="w-3 h-3 inline mr-1" />
+                                                                            Provide Feedback
+                                                                        </button>
+                                                                    )}
+                                                                    
+                                                                    {/* Common View Details Button */}
+                                                                    <button
+                                                                        onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
+                                                                        className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded transition-colors"
+                                                                    >
+                                                                        View Details
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
                                                     {/* Quick Actions */}
                                                     {(isTechnicalDefault || isSuperAdmin || selectedTicket.technical_id === auth.user?.id) && (
                                                         <div className="px-6">
@@ -2267,10 +2369,20 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                             </div>
                                                                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                                                                                 selectedTicket.active_appointment.status === 'scheduled' 
-                                                                                    ? 'bg-blue-100 text-blue-800' 
-                                                                                    : 'bg-yellow-100 text-yellow-800'
+                                                                                    ? 'bg-blue-100 text-blue-800'
+                                                                                    : selectedTicket.active_appointment.status === 'in_progress'
+                                                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                                                    : selectedTicket.active_appointment.status === 'awaiting_feedback'
+                                                                                    ? 'bg-purple-100 text-purple-800'
+                                                                                    : 'bg-green-100 text-green-800'
                                                                             }`}>
-                                                                                {selectedTicket.active_appointment.status === 'scheduled' ? 'Scheduled' : 'In Progress'}
+                                                                                {selectedTicket.active_appointment.status === 'scheduled' 
+                                                                                    ? 'Scheduled' 
+                                                                                    : selectedTicket.active_appointment.status === 'in_progress'
+                                                                                    ? 'In Progress' 
+                                                                                    : selectedTicket.active_appointment.status === 'awaiting_feedback'
+                                                                                    ? 'Awaiting Feedback'
+                                                                                    : 'Completed'}
                                                                             </span>
                                                                         </div>
                                                                         <p className="text-sm text-blue-700 mt-1">
@@ -2281,32 +2393,50 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         </p>
                                                                         
                                                                         {/* Appointment Actions */}
-                                                                        {(isTechnical || isTechnicalDefault || isSuperAdmin) && (
-                                                                            <div className="flex gap-2 mt-3">
-                                                                                {selectedTicket.active_appointment.status === 'scheduled' && (
-                                                                                    <button
-                                                                                        onClick={() => handleAppointmentAction('start', selectedTicket.active_appointment.id)}
-                                                                                        className="text-xs px-2 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded transition-colors"
-                                                                                    >
-                                                                                        Start Visit
-                                                                                    </button>
-                                                                                )}
-                                                                                {selectedTicket.active_appointment.status === 'in_progress' && (
-                                                                                    <button
-                                                                                        onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
-                                                                                        className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded transition-colors"
-                                                                                    >
-                                                                                        Complete Visit
-                                                                                    </button>
-                                                                                )}
+                                                                        <div className="flex gap-2 mt-3">
+                                                                            {/* Technical Actions */}
+                                                                            {(isTechnical || isTechnicalDefault || isSuperAdmin) && (
+                                                                                <>
+                                                                                    {selectedTicket.active_appointment.status === 'scheduled' && (
+                                                                                        <button
+                                                                                            onClick={() => handleAppointmentAction('start', selectedTicket.active_appointment.id)}
+                                                                                            className="text-xs px-3 py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg transition-colors font-medium"
+                                                                                        >
+                                                                                            <PlayCircle className="w-3 h-3 inline mr-1" />
+                                                                                            Start Visit
+                                                                                        </button>
+                                                                                    )}
+                                                                                    {selectedTicket.active_appointment.status === 'in_progress' && (
+                                                                                        <button
+                                                                                            onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
+                                                                                            className="text-xs px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors font-medium"
+                                                                                        >
+                                                                                            <CheckCircle className="w-3 h-3 inline mr-1" />
+                                                                                            Complete Visit
+                                                                                        </button>
+                                                                                    )}
+                                                                                </>
+                                                                            )}
+                                                                            
+                                                                            {/* Member Action */}
+                                                                            {isMember && selectedTicket.active_appointment.status === 'awaiting_feedback' && (
                                                                                 <button
                                                                                     onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
-                                                                                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded transition-colors"
+                                                                                    className="text-xs px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg transition-colors font-medium animate-pulse"
                                                                                 >
-                                                                                    View Details
+                                                                                    <Star className="w-3 h-3 inline mr-1" />
+                                                                                    Provide Feedback
                                                                                 </button>
-                                                                            </div>
-                                                                        )}
+                                                                            )}
+                                                                            
+                                                                            {/* Common View Details Button */}
+                                                                            <button
+                                                                                onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
+                                                                                className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded transition-colors"
+                                                                            >
+                                                                                View Details
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
                                                                 )}
                                                                 {getNextStatuses(selectedTicket.status).map((status) => (
@@ -3670,7 +3800,6 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     onChange={e => setAppointmentForm(prev => ({ ...prev, scheduled_for: e.target.value }))}
                                     className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                                     required
-                                    min={new Date().toISOString().slice(0, 16)}
                                 />
                             </div>
 
@@ -3849,8 +3978,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                 )}
                             </div>
 
-                            {/* Complete Appointment Form */}
-                            {showAppointmentDetailsModal.appointment.status === 'in_progress' && (
+                            {/* Complete Appointment Form - Technical Side */}
+                            {showAppointmentDetailsModal.appointment.status === 'in_progress' && (isTechnical || isSuperAdmin || !isMember) && (
                                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
                                     <div className="flex items-center gap-3 mb-6">
                                         <div className="p-2 bg-green-100 rounded-lg">
@@ -3858,13 +3987,15 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-bold text-green-900">Complete Visit</h3>
-                                            <p className="text-sm text-green-700">Mark this appointment as completed and provide feedback</p>
+                                            <p className="text-sm text-green-700">Mark this visit as completed. The member will provide their feedback separately.</p>
                                         </div>
                                     </div>
 
                                     <form onSubmit={async (e) => {
                                         e.preventDefault();
-                                        await handleAppointmentAction('complete', showAppointmentDetailsModal.appointment.id, appointmentActionForm);
+                                        await handleAppointmentAction('complete', showAppointmentDetailsModal.appointment.id, {
+                                            completion_notes: appointmentActionForm.completion_notes
+                                        });
                                         setShowAppointmentDetailsModal({ open: false });
                                     }} className="space-y-6">
                                         <div>
@@ -3880,30 +4011,73 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             />
                                         </div>
 
+                                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                <h4 className="font-semibold text-blue-900">Next Step</h4>
+                                            </div>
+                                            <p className="text-sm text-blue-700">
+                                                After you complete this visit, the member will be notified to provide their feedback and rating.
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                                            disabled={!appointmentActionForm.completion_notes.trim()}
+                                        >
+                                            <CheckCircle className="w-5 h-5" />
+                                            Complete Visit
+                                        </button>
+                                    </form>
+                                </div>
+                            )}
+
+                            {/* Member Feedback Form - Only for Members */}
+                            {showAppointmentDetailsModal.appointment && showAppointmentDetailsModal.appointment.status === 'awaiting_feedback' && isMember && (
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-2 bg-blue-100 rounded-lg">
+                                            <Star className="w-6 h-6 text-blue-600" />
+                                        </div>
                                         <div>
-                                            <label className="block text-sm font-semibold text-green-900 mb-3">
-                                                User Comments
+                                            <h3 className="text-lg font-bold text-blue-900">Provide Feedback</h3>
+                                            <p className="text-sm text-blue-700">Please rate the service and provide your comments</p>
+                                        </div>
+                                    </div>
+
+                                    <form onSubmit={async (e) => {
+                                        e.preventDefault();
+                                        await handleAppointmentAction('member_feedback', showAppointmentDetailsModal.appointment.id, {
+                                            member_feedback: appointmentActionForm.member_feedback,
+                                            service_rating: appointmentActionForm.service_rating
+                                        });
+                                        setShowAppointmentDetailsModal({ open: false });
+                                    }} className="space-y-6">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-blue-900 mb-3">
+                                                Your Comments
                                             </label>
                                             <textarea
                                                 value={appointmentActionForm.member_feedback}
                                                 onChange={e => setAppointmentActionForm(prev => ({ ...prev, member_feedback: e.target.value }))}
-                                                className="w-full border-2 border-green-200 rounded-xl px-4 py-3 text-base focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all duration-200 min-h-[100px] resize-none bg-white"
-                                                placeholder="Any comments or feedback from the user..."
+                                                className="w-full border-2 border-blue-200 rounded-xl px-4 py-3 text-base focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 min-h-[100px] resize-none bg-white"
+                                                placeholder="How was the service? Any comments or suggestions..."
                                             />
                                         </div>
 
                                         <div>
-                                            <label className="block text-sm font-semibold text-green-900 mb-3">
-                                                Service Rating
+                                            <label className="block text-sm font-semibold text-blue-900 mb-3">
+                                                Service Rating *
                                             </label>
-                                            <div className="flex gap-2 p-4 bg-white rounded-xl border border-green-200">
+                                            <div className="flex gap-2 p-4 bg-white rounded-xl border border-blue-200">
                                                 {[1, 2, 3, 4, 5].map(rating => (
                                                     <button
                                                         key={rating}
                                                         type="button"
-                                                        onClick={() => setAppointmentActionForm(prev => ({ ...prev, rating }))}
+                                                        onClick={() => setAppointmentActionForm(prev => ({ ...prev, service_rating: rating }))}
                                                         className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 ${
-                                                            appointmentActionForm.rating >= rating 
+                                                            appointmentActionForm.service_rating >= rating 
                                                                 ? 'text-yellow-500 bg-yellow-50' 
                                                                 : 'text-gray-300 hover:text-yellow-400 hover:bg-yellow-50'
                                                         }`}
@@ -3916,10 +4090,11 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                                         <button
                                             type="submit"
-                                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                                            disabled={!appointmentActionForm.service_rating}
                                         >
-                                            <CheckCircle className="w-5 h-5" />
-                                            Complete Visit
+                                            <Star className="w-5 h-5" />
+                                            Submit Feedback
                                         </button>
                                     </form>
                                 </div>
@@ -4048,7 +4223,6 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     value={appointmentActionForm.new_scheduled_for}
                                                     onChange={e => setAppointmentActionForm(prev => ({ ...prev, new_scheduled_for: e.target.value }))}
                                                     className="border-2 border-blue-200 h-12 rounded-xl px-4 py-3 text-base focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 bg-white"
-                                                    min={new Date().toISOString()}
                                                     required
                                                 />
                                             </div>

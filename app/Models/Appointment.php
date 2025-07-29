@@ -26,18 +26,18 @@ class Appointment extends Model
         'started_at',
         'completed_at',
         'member_feedback',
-        'rating'
+        'service_rating'
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
-        'member_feedback' => 'array',
     ];
 
     // Status constants
     public const STATUS_SCHEDULED = 'scheduled';
     public const STATUS_IN_PROGRESS = 'in_progress';
+    public const STATUS_AWAITING_FEEDBACK = 'awaiting_feedback';
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_CANCELLED = 'cancelled';
     public const STATUS_RESCHEDULED = 'rescheduled';

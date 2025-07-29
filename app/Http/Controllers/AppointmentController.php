@@ -178,7 +178,7 @@ class AppointmentController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'address' => 'sometimes|required|string',
-            'scheduled_for' => 'sometimes|required|date|after_or_equal:today',
+            'scheduled_for' => 'sometimes|required|date',
             'estimated_duration' => 'sometimes|required|integer|min:30|max:480',
             'member_instructions' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -226,14 +226,12 @@ class AppointmentController extends Controller
     }
 
     /**
-     * Complete an appointment
+     * Complete an appointment (Technical side - only completion notes)
      */
     public function complete(Request $request, Appointment $appointment)
     {
         $validator = Validator::make($request->all(), [
             'completion_notes' => 'required|string',
-            'member_feedback' => 'nullable|string',
-            'rating' => 'nullable|integer|min:1|max:5',
         ]);
 
         if ($validator->fails()) {
@@ -241,21 +239,88 @@ class AppointmentController extends Controller
         }
 
         try {
-            $appointment->complete(
-                $request->completion_notes,
-                $request->member_feedback ? ['comment' => $request->member_feedback] : null,
-                $request->rating
+            // Set status to awaiting_feedback and save completion notes
+            $appointment->update([
+                'status' => 'awaiting_feedback',
+                'completion_notes' => $request->completion_notes,
+                'completed_at' => now(),
+            ]);
+
+            // Add to appointment history via ticket
+            $appointment->ticket->addHistory(
+                'technical_completed',
+                'Technical completed visit',
+                [
+                    'completion_notes' => $request->completion_notes,
+                    'completed_by' => Auth::user()->name,
+                    'action' => 'technical_completed'
+                ]
             );
 
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Visita completada exitosamente',
+                    'message' => 'Visit completed. Waiting for member feedback.',
                     'appointment' => $appointment->fresh()
                 ]);
             }
 
-            return redirect()->back()->with('success', 'Appointment successfully completed');
+            return redirect()->back()->with('success', 'Visit completed successfully. Member will provide feedback.');
+        } catch (\Exception $e) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ], 400);
+            }
+
+            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Member feedback for completed appointment
+     */
+    public function memberFeedback(Request $request, Appointment $appointment)
+    {
+        $validator = Validator::make($request->all(), [
+            'member_feedback' => 'nullable|string',
+            'service_rating' => 'required|integer|min:1|max:5',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        try {
+            // Update appointment with member feedback and mark as completed
+            $appointment->update([
+                'status' => 'completed',
+                'member_feedback' => $request->member_feedback,
+                'service_rating' => $request->service_rating,
+            ]);
+
+            // Add to appointment history via ticket
+            $appointment->ticket->addHistory(
+                'member_feedback',
+                'Member provided feedback',
+                [
+                    'member_feedback' => $request->member_feedback,
+                    'service_rating' => $request->service_rating,
+                    'feedback_by' => Auth::user()->name,
+                    'action' => 'member_feedback'
+                ]
+            );
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Thank you for your feedback!',
+                    'appointment' => $appointment->fresh()
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'Thank you for your feedback! Appointment is now complete.');
         } catch (\Exception $e) {
             if (request()->expectsJson()) {
                 return response()->json([

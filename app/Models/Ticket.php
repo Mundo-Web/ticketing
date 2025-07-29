@@ -10,7 +10,8 @@ class Ticket extends Model
     //
     use HasFactory;
 
-
+    protected $appends = ['active_appointment'];
+    
     protected $fillable = [
         'user_id',
         'device_id',
@@ -98,8 +99,14 @@ class Ticket extends Model
     public function activeAppointment()
     {
         return $this->hasOne(Appointment::class)
-                    ->whereIn('status', [Appointment::STATUS_SCHEDULED, Appointment::STATUS_IN_PROGRESS])
+                    ->whereIn('status', [Appointment::STATUS_SCHEDULED, Appointment::STATUS_IN_PROGRESS, Appointment::STATUS_AWAITING_FEEDBACK])
                     ->orderBy('scheduled_for', 'desc');
+    }
+    
+    // Accessor para asegurar que active_appointment esté disponible
+    public function getActiveAppointmentAttribute()
+    {
+        return $this->activeAppointment()->first();
     }
 
     // Última cita completada
