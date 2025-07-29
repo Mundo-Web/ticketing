@@ -27,6 +27,7 @@ class Ticket extends Model
         'technical_id',
         'created_by_owner_id',
         'created_by_doorman_id',
+        'created_by_admin_id',
     ];
     // Boot: generar código único al crear
     protected static function boot()

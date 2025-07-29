@@ -418,6 +418,7 @@ class TicketController extends Controller
             'user.tenant.apartment.building', // Para saber quién creó el ticket y su info
             'createdByOwner', // Relación con Owner que creó el ticket
             'createdByDoorman', // Relación con Doorman que creó el ticket
+            'createdByAdmin', // Relación con Admin que creó el ticket
             'appointments', // Todas las citas del ticket
             'activeAppointment', // Cita activa actual
             'lastCompletedAppointment', // Última cita completada
