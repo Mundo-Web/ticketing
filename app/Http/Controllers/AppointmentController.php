@@ -44,7 +44,7 @@ class AppointmentController extends Controller
         // Super admin and technical default see all appointments
         
         $appointments = $appointmentsQuery->orderBy('scheduled_for')->get();
-        
+        //nuevo
         // Format appointments for calendar
         $calendarEvents = $appointments->map(function($appointment) {
             return [
