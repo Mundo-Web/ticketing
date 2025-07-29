@@ -48,6 +48,9 @@ import {
     Award,
     TrendingUp,
     Shield,
+    MapPin,
+    Ticket,
+    X,
     ShieldCheck,
     Wifi,
     HelpCircle,
@@ -55,10 +58,8 @@ import {
     LightbulbIcon,
     Filter,
     Users,
-    MapPin,
     Trash2,
     Bell,
-    X,
     Plus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -3618,49 +3619,16 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                    Visit Address
+                                    Date and Time
                                 </label>
                                 <Input
-                                    value={appointmentForm.address}
-                                    onChange={e => setAppointmentForm(prev => ({ ...prev, address: e.target.value }))}
+                                    type="datetime-local"
+                                    value={appointmentForm.scheduled_for}
+                                    onChange={e => setAppointmentForm(prev => ({ ...prev, scheduled_for: e.target.value }))}
                                     className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                                     required
-                                    placeholder="Complete address where the visit will take place"
+                                    min={new Date().toISOString().slice(0, 16)}
                                 />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                        Date and Time
-                                    </label>
-                                    <Input
-                                        type="datetime-local"
-                                        value={appointmentForm.scheduled_for}
-                                        onChange={e => setAppointmentForm(prev => ({ ...prev, scheduled_for: e.target.value }))}
-                                        className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
-                                        required
-                                        min={new Date().toISOString().slice(0, 16)}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                        Duration (minutes)
-                                    </label>
-                                    <select
-                                        value={appointmentForm.estimated_duration}
-                                        onChange={e => setAppointmentForm(prev => ({ ...prev, estimated_duration: parseInt(e.target.value) }))}
-                                        className="w-full border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
-                                    >
-                                        <option value={30}>30 minutes</option>
-                                        <option value={60}>1 hour</option>
-                                        <option value={90}>1.5 hours</option>
-                                        <option value={120}>2 hours</option>
-                                        <option value={180}>3 hours</option>
-                                        <option value={240}>4 hours</option>
-                                    </select>
-                                </div>
                             </div>
 
                             <div>
@@ -3726,192 +3694,391 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 open={showAppointmentDetailsModal.open}
                 onOpenChange={(open) => setShowAppointmentDetailsModal({ open, appointment: showAppointmentDetailsModal.appointment })}
             >
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader className="pb-6">
-                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                                <Calendar className="w-6 h-6 text-blue-600" />
+                <DialogContent className="sm:max-w-4xl max-h-[95vh] overflow-y-auto">
+                    <DialogHeader className="pb-6 border-b border-slate-200">
+                        <DialogTitle className="flex items-center gap-3 text-2xl font-bold">
+                            <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                                <Calendar className="w-7 h-7 text-white" />
                             </div>
-                            Manage Appointment
+                            <div>
+                                <div>Appointment Details</div>
+                                <div className="text-sm font-normal text-slate-600 mt-1">
+                                    Manage and track appointment progress
+                                </div>
+                            </div>
                         </DialogTitle>
-                        <DialogDescription className="text-base text-slate-600">
-                            Manage the details and actions of this on-site appointment.
-                        </DialogDescription>
                     </DialogHeader>
                     
-                    <div className="max-h-[55vh] overflow-y-auto pr-2">
+                    <div className="max-h-[70vh] overflow-y-auto pr-2">
                     {showAppointmentDetailsModal.appointment && (
-                        <div className="space-y-6">
-                            {/* Appointment Info */}
-                            <div className="p-4 bg-gray-50 rounded-lg">
-                                <h4 className="font-semibold text-gray-800 mb-2">
-                                    {showAppointmentDetailsModal.appointment.title}
-                                </h4>
-                                <div className="space-y-2 text-sm text-gray-600">
-                                    <p><strong>Date:</strong> {new Date(showAppointmentDetailsModal.appointment.scheduled_for).toLocaleString('en-US')}</p>
-                                    <p><strong>Address:</strong> {showAppointmentDetailsModal.appointment.address}</p>
-                                    <p><strong>Status:</strong> <span className="capitalize">{showAppointmentDetailsModal.appointment.status}</span></p>
-                                    {showAppointmentDetailsModal.appointment.description && (
-                                        <p><strong>Description:</strong> {showAppointmentDetailsModal.appointment.description}</p>
-                                    )}
+                        <div className="space-y-8">
+                            {/* Main Appointment Info Card */}
+                            <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                <div className="flex items-start justify-between mb-6">
+                                    <div className="flex-1">
+                                        <h3 className="text-xl font-bold text-slate-900 mb-2">
+                                            {showAppointmentDetailsModal.appointment.title}
+                                        </h3>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
+                                                showAppointmentDetailsModal.appointment.status === 'scheduled' 
+                                                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                                    : showAppointmentDetailsModal.appointment.status === 'in_progress'
+                                                    ? 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                                                    : showAppointmentDetailsModal.appointment.status === 'completed'
+                                                    ? 'bg-green-100 text-green-700 border border-green-200'
+                                                    : 'bg-red-100 text-red-700 border border-red-200'
+                                            }`}>
+                                                {showAppointmentDetailsModal.appointment.status === 'scheduled' && <Clock className="w-4 h-4" />}
+                                                {showAppointmentDetailsModal.appointment.status === 'in_progress' && <AlertCircle className="w-4 h-4" />}
+                                                {showAppointmentDetailsModal.appointment.status === 'completed' && <CheckCircle className="w-4 h-4" />}
+                                                {showAppointmentDetailsModal.appointment.status === 'cancelled' && <X className="w-4 h-4" />}
+                                                <span className="capitalize">{showAppointmentDetailsModal.appointment.status.replace('_', ' ')}</span>
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                {/* Details Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
+                                            <div className="p-2 bg-blue-100 rounded-lg">
+                                                <Calendar className="w-5 h-5 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-medium text-slate-600">Scheduled Date & Time</div>
+                                                <div className="text-base font-semibold text-slate-900">
+                                                    {new Date(showAppointmentDetailsModal.appointment.scheduled_for).toLocaleDateString('en-US', {
+                                                        weekday: 'long',
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric'
+                                                    })}
+                                                </div>
+                                                <div className="text-sm text-slate-600">
+                                                    {new Date(showAppointmentDetailsModal.appointment.scheduled_for).toLocaleTimeString('en-US', {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
+                                            <div className="p-2 bg-green-100 rounded-lg">
+                                                <MapPin className="w-5 h-5 text-green-600" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-medium text-slate-600">Location</div>
+                                                <div className="text-base font-semibold text-slate-900">
+                                                    {showAppointmentDetailsModal.appointment.address}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
+                                            <div className="p-2 bg-purple-100 rounded-lg">
+                                                <User className="w-5 h-5 text-purple-600" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-medium text-slate-600">Assigned Technician</div>
+                                                <div className="text-base font-semibold text-slate-900">
+                                                    {showAppointmentDetailsModal.appointment.technical?.name || 'Not assigned'}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
+                                            <div className="p-2 bg-orange-100 rounded-lg">
+                                                <Ticket className="w-5 h-5 text-orange-600" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-medium text-slate-600">Related Ticket</div>
+                                                <div className="text-base font-semibold text-slate-900">
+                                                    #{showAppointmentDetailsModal.appointment.ticket?.code || 'N/A'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Description */}
+                                {showAppointmentDetailsModal.appointment.description && (
+                                    <div className="mt-6 p-4 bg-white rounded-xl border border-slate-100">
+                                        <h4 className="text-sm font-medium text-slate-600 mb-2">Description</h4>
+                                        <p className="text-slate-900">{showAppointmentDetailsModal.appointment.description}</p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Complete Appointment Form */}
                             {showAppointmentDetailsModal.appointment.status === 'in_progress' && (
-                                <form onSubmit={async (e) => {
-                                    e.preventDefault();
-                                    await handleAppointmentAction('complete', showAppointmentDetailsModal.appointment.id, appointmentActionForm);
-                                    setShowAppointmentDetailsModal({ open: false });
-                                }} className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                            Completion Notes *
-                                        </label>
-                                        <textarea
-                                            value={appointmentActionForm.completion_notes}
-                                            onChange={e => setAppointmentActionForm(prev => ({ ...prev, completion_notes: e.target.value }))}
-                                            className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[100px] resize-none"
-                                            placeholder="Describe what was performed during the visit and the result..."
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                            User Comments
-                                        </label>
-                                        <textarea
-                                            value={appointmentActionForm.member_feedback}
-                                            onChange={e => setAppointmentActionForm(prev => ({ ...prev, member_feedback: e.target.value }))}
-                                            className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[80px] resize-none"
-                                            placeholder="User comments or feedback..."
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                            Service Rating
-                                        </label>
-                                        <div className="flex gap-2">
-                                            {[1, 2, 3, 4, 5].map(rating => (
-                                                <button
-                                                    key={rating}
-                                                    type="button"
-                                                    onClick={() => setAppointmentActionForm(prev => ({ ...prev, rating }))}
-                                                    className={`p-2 transition-colors ${
-                                                        appointmentActionForm.rating >= rating 
-                                                            ? 'text-yellow-500' 
-                                                            : 'text-gray-300 hover:text-yellow-400'
-                                                    }`}
-                                                >
-                                                    <Star className="w-6 h-6 fill-current" />
-                                                </button>
-                                            ))}
+                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-2 bg-green-100 rounded-lg">
+                                            <CheckCircle className="w-6 h-6 text-green-600" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-green-900">Complete Visit</h3>
+                                            <p className="text-sm text-green-700">Mark this appointment as completed and provide feedback</p>
                                         </div>
                                     </div>
 
-                                    <button
-                                        type="submit"
-                                        className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                                    >
-                                        Complete Visit
-                                    </button>
-                                </form>
-                            )}
-
-                            {/* Cancel Appointment Form */}
-                            {showAppointmentDetailsModal.appointment.status === 'scheduled' && (
-                                <div className="space-y-4">
                                     <form onSubmit={async (e) => {
                                         e.preventDefault();
-                                        await handleAppointmentAction('cancel', showAppointmentDetailsModal.appointment.id, { reason: appointmentActionForm.reason });
+                                        await handleAppointmentAction('complete', showAppointmentDetailsModal.appointment.id, appointmentActionForm);
                                         setShowAppointmentDetailsModal({ open: false });
-                                    }} className="space-y-4">
+                                    }} className="space-y-6">
                                         <div>
-                                            <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                                Cancellation Reason *
+                                            <label className="block text-sm font-semibold text-green-900 mb-3">
+                                                Completion Notes *
                                             </label>
                                             <textarea
-                                                value={appointmentActionForm.reason}
-                                                onChange={e => setAppointmentActionForm(prev => ({ ...prev, reason: e.target.value }))}
-                                                className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all duration-200 min-h-[80px] resize-none"
-                                                placeholder="Explain why the appointment is being cancelled..."
+                                                value={appointmentActionForm.completion_notes}
+                                                onChange={e => setAppointmentActionForm(prev => ({ ...prev, completion_notes: e.target.value }))}
+                                                className="w-full border-2 border-green-200 rounded-xl px-4 py-3 text-base focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all duration-200 min-h-[120px] resize-none bg-white"
+                                                placeholder="Describe what was performed during the visit and the outcome..."
                                                 required
                                             />
                                         </div>
 
-                                        <button
-                                            type="submit"
-                                            className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                                        >
-                                            Cancel Appointment
-                                        </button>
-                                    </form>
-
-                                    {/* Reschedule Form */}
-                                    <form onSubmit={async (e) => {
-                                        e.preventDefault();
-                                        await handleAppointmentAction('reschedule', showAppointmentDetailsModal.appointment.id, { 
-                                            new_scheduled_for: appointmentActionForm.new_scheduled_for,
-                                            reason: appointmentActionForm.reason 
-                                        });
-                                        setShowAppointmentDetailsModal({ open: false });
-                                    }} className="space-y-4 pt-4 border-t">
                                         <div>
-                                            <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                                New Date and Time
+                                            <label className="block text-sm font-semibold text-green-900 mb-3">
+                                                User Comments
                                             </label>
-                                            <Input
-                                                type="datetime-local"
-                                                value={appointmentActionForm.new_scheduled_for}
-                                                onChange={e => setAppointmentActionForm(prev => ({ ...prev, new_scheduled_for: e.target.value }))}
-                                                className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
-                                                min={new Date().toISOString().slice(0, 16)}
+                                            <textarea
+                                                value={appointmentActionForm.member_feedback}
+                                                onChange={e => setAppointmentActionForm(prev => ({ ...prev, member_feedback: e.target.value }))}
+                                                className="w-full border-2 border-green-200 rounded-xl px-4 py-3 text-base focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all duration-200 min-h-[100px] resize-none bg-white"
+                                                placeholder="Any comments or feedback from the user..."
                                             />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-green-900 mb-3">
+                                                Service Rating
+                                            </label>
+                                            <div className="flex gap-2 p-4 bg-white rounded-xl border border-green-200">
+                                                {[1, 2, 3, 4, 5].map(rating => (
+                                                    <button
+                                                        key={rating}
+                                                        type="button"
+                                                        onClick={() => setAppointmentActionForm(prev => ({ ...prev, rating }))}
+                                                        className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 ${
+                                                            appointmentActionForm.rating >= rating 
+                                                                ? 'text-yellow-500 bg-yellow-50' 
+                                                                : 'text-gray-300 hover:text-yellow-400 hover:bg-yellow-50'
+                                                        }`}
+                                                    >
+                                                        <Star className="w-8 h-8 fill-current" />
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
 
                                         <button
                                             type="submit"
-                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                                            disabled={!appointmentActionForm.new_scheduled_for}
+                                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
                                         >
-                                            Reschedule Appointment
+                                            <CheckCircle className="w-5 h-5" />
+                                            Complete Visit
                                         </button>
                                     </form>
+                                </div>
+                            )}
+
+                            {/* Cancel/Reschedule Appointment Forms */}
+                            {showAppointmentDetailsModal.appointment.status === 'scheduled' && (
+                                <div className="space-y-6">
+                                    {/* Cancel Section */}
+                                    <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-2xl p-6">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="p-2 bg-red-100 rounded-lg">
+                                                <X className="w-6 h-6 text-red-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-red-900">Cancel Appointment</h3>
+                                                <p className="text-sm text-red-700">Cancel this scheduled appointment</p>
+                                            </div>
+                                        </div>
+
+                                        <form onSubmit={async (e) => {
+                                            e.preventDefault();
+                                            await handleAppointmentAction('cancel', showAppointmentDetailsModal.appointment.id, { reason: appointmentActionForm.reason });
+                                            setShowAppointmentDetailsModal({ open: false });
+                                        }} className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-red-900 mb-3">
+                                                    Cancellation Reason *
+                                                </label>
+                                                <textarea
+                                                    value={appointmentActionForm.reason}
+                                                    onChange={e => setAppointmentActionForm(prev => ({ ...prev, reason: e.target.value }))}
+                                                    className="w-full border-2 border-red-200 rounded-xl px-4 py-3 text-base focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-all duration-200 min-h-[100px] resize-none bg-white"
+                                                    placeholder="Explain why the appointment is being cancelled..."
+                                                    required
+                                                />
+                                            </div>
+
+                                            <button
+                                                type="submit"
+                                                className="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                                            >
+                                                <X className="w-5 h-5" />
+                                                Cancel Appointment
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    {/* Reschedule Section */}
+                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="p-2 bg-blue-100 rounded-lg">
+                                                <Calendar className="w-6 h-6 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-blue-900">Reschedule Appointment</h3>
+                                                <p className="text-sm text-blue-700">Change the date and time of this appointment</p>
+                                            </div>
+                                        </div>
+
+                                        <form onSubmit={async (e) => {
+                                            e.preventDefault();
+                                            await handleAppointmentAction('reschedule', showAppointmentDetailsModal.appointment.id, { 
+                                                new_scheduled_for: appointmentActionForm.new_scheduled_for,
+                                                reason: appointmentActionForm.reason 
+                                            });
+                                            setShowAppointmentDetailsModal({ open: false });
+                                        }} className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-blue-900 mb-3">
+                                                    New Date and Time *
+                                                </label>
+                                                <Input
+                                                    type="datetime-local"
+                                                    value={appointmentActionForm.new_scheduled_for}
+                                                    onChange={e => setAppointmentActionForm(prev => ({ ...prev, new_scheduled_for: e.target.value }))}
+                                                    className="border-2 border-blue-200 h-12 rounded-xl px-4 py-3 text-base focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 bg-white"
+                                                    min={new Date().toISOString().slice(0, 16)}
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold text-blue-900 mb-3">
+                                                    Reason for Reschedule
+                                                </label>
+                                                <textarea
+                                                    value={appointmentActionForm.reason}
+                                                    onChange={e => setAppointmentActionForm(prev => ({ ...prev, reason: e.target.value }))}
+                                                    className="w-full border-2 border-blue-200 rounded-xl px-4 py-3 text-base focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 min-h-[80px] resize-none bg-white"
+                                                    placeholder="Optional: explain why you're rescheduling..."
+                                                />
+                                            </div>
+
+                                            <button
+                                                type="submit"
+                                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                                                disabled={!appointmentActionForm.new_scheduled_for}
+                                            >
+                                                <Calendar className="w-5 h-5" />
+                                                Reschedule Appointment
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             )}
 
                             {/* View Only for Completed Appointments */}
                             {showAppointmentDetailsModal.appointment.status === 'completed' && (
-                                <div className="space-y-4">
-                                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                                        <h5 className="font-medium text-green-800 mb-2">Appointment Completed</h5>
+                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl shadow-lg">
+                                            <CheckCircle className="w-7 h-7 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-green-900">Appointment Completed</h3>
+                                            <p className="text-sm text-green-700">This visit has been successfully completed</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
                                         {showAppointmentDetailsModal.appointment.completion_notes && (
-                                            <p className="text-sm text-green-700 mb-2">
-                                                <strong>Notes:</strong> {showAppointmentDetailsModal.appointment.completion_notes}
-                                            </p>
+                                            <div className="p-4 bg-white rounded-xl border border-green-200">
+                                                <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
+                                                    <FileText className="w-4 h-4" />
+                                                    Completion Notes
+                                                </h4>
+                                                <p className="text-green-800 leading-relaxed">
+                                                    {showAppointmentDetailsModal.appointment.completion_notes}
+                                                </p>
+                                            </div>
                                         )}
+
                                         {showAppointmentDetailsModal.appointment.member_feedback && (
-                                            <p className="text-sm text-green-700 mb-2">
-                                                <strong>Feedback:</strong> {showAppointmentDetailsModal.appointment.member_feedback.comment}
-                                            </p>
+                                            <div className="p-4 bg-white rounded-xl border border-green-200">
+                                                <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
+                                                    <MessageSquare className="w-4 h-4" />
+                                                    User Feedback
+                                                </h4>
+                                                <p className="text-green-800 leading-relaxed">
+                                                    {typeof showAppointmentDetailsModal.appointment.member_feedback === 'string' 
+                                                        ? showAppointmentDetailsModal.appointment.member_feedback 
+                                                        : showAppointmentDetailsModal.appointment.member_feedback?.comment || 'No feedback provided'}
+                                                </p>
+                                            </div>
                                         )}
+
                                         {showAppointmentDetailsModal.appointment.rating && (
-                                            <div className="flex items-center gap-2">
-                                                <strong className="text-sm text-green-700">Rating:</strong>
-                                                <div className="flex">
-                                                    {[1, 2, 3, 4, 5].map(star => (
-                                                        <Star
-                                                            key={star}
-                                                            className={`w-4 h-4 ${
-                                                                star <= showAppointmentDetailsModal.appointment.rating
-                                                                    ? 'text-yellow-500 fill-current'
-                                                                    : 'text-gray-300'
-                                                            }`}
-                                                        />
-                                                    ))}
+                                            <div className="p-4 bg-white rounded-xl border border-green-200">
+                                                <h4 className="text-sm font-semibold text-green-900 mb-3 flex items-center gap-2">
+                                                    <Star className="w-4 h-4" />
+                                                    Service Rating
+                                                </h4>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex">
+                                                        {[1, 2, 3, 4, 5].map(star => (
+                                                            <Star
+                                                                key={star}
+                                                                className={`w-6 h-6 ${
+                                                                    star <= showAppointmentDetailsModal.appointment.rating
+                                                                        ? 'text-yellow-500 fill-current'
+                                                                        : 'text-gray-300'
+                                                                }`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-lg font-bold text-green-900">
+                                                        {showAppointmentDetailsModal.appointment.rating}/5
+                                                    </span>
+                                                    <span className="text-sm text-green-700 px-3 py-1 bg-green-100 rounded-full">
+                                                        {showAppointmentDetailsModal.appointment.rating >= 4 ? 'Excellent' :
+                                                         showAppointmentDetailsModal.appointment.rating >= 3 ? 'Good' :
+                                                         showAppointmentDetailsModal.appointment.rating >= 2 ? 'Fair' : 'Poor'}
+                                                    </span>
                                                 </div>
+                                            </div>
+                                        )}
+
+                                        {showAppointmentDetailsModal.appointment.completed_at && (
+                                            <div className="p-4 bg-white rounded-xl border border-green-200">
+                                                <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
+                                                    <Clock className="w-4 h-4" />
+                                                    Completion Date
+                                                </h4>
+                                                <p className="text-green-800">
+                                                    {new Date(showAppointmentDetailsModal.appointment.completed_at).toLocaleDateString('en-US', {
+                                                        weekday: 'long',
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </p>
                                             </div>
                                         )}
                                     </div>

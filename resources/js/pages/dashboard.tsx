@@ -1395,6 +1395,7 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
     const [showDevicesModal, setShowDevicesModal] = useState(false);
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState<AppointmentItem | null>(null);
+    const [isAppointmentsOpen, setIsAppointmentsOpen] = useState(false);
     const buildingsContainerRef = useRef<HTMLDivElement>(null);
 
     // Estados para los nuevos componentes avanzados
@@ -1614,14 +1615,35 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
 
     // Function to show appointment location
     const showAppointmentLocation = (appointment: AppointmentItem) => {
-        setSelectedAppointment(appointment);
-        setShowLocationModal(true);
+        // Primero cerramos el dropdown para evitar conflictos de overlay
+        setIsAppointmentsOpen(false);
+        
+        // Pequeño delay para asegurar que el dropdown se cierre primero
+        setTimeout(() => {
+            setSelectedAppointment(appointment);
+            setShowLocationModal(true);
+        }, 100);
     };
 
     // Function to close location modal
     const closeLocationModal = useCallback(() => {
         setShowLocationModal(false);
-        setSelectedAppointment(null);
+        
+        // Pequeño delay para asegurar que el modal se cierre completamente
+        setTimeout(() => {
+            setSelectedAppointment(null);
+            
+            // Aseguramos que no haya overlays activos
+            document.body.classList.remove('overflow-hidden');
+            
+            // Eliminamos cualquier elemento .overlay residual
+            const overlays = document.querySelectorAll('[data-radix-portal]');
+            overlays.forEach(overlay => {
+                if (overlay.children.length === 0) {
+                    overlay.remove();
+                }
+            });
+        }, 150);
     }, []);
 
     // Close modal with Escape key
@@ -1895,7 +1917,10 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                                     Export </Button>
 
                                 {/* Appointments Dropdown */}
-                                <DropdownMenu>
+                                <DropdownMenu 
+                                    open={isAppointmentsOpen} 
+                                    onOpenChange={setIsAppointmentsOpen}
+                                >
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline" size="lg" className="gap-4 h-14 px-8 shadow-xl text-lg relative">
                                             <Calendar className="h-6 w-6" />
@@ -3396,27 +3421,18 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                 )}
 
                 {/* Location Modal */}
-                <Dialog open={showLocationModal} onOpenChange={(open) => {
-                    if (!open) {
-                        closeLocationModal();
-                    } else {
-                        setShowLocationModal(open);
-                    }
-                }}>
+                <Dialog 
+                    open={showLocationModal} 
+                    onOpenChange={(open) => {
+                        if (!open) closeLocationModal();
+                    }}
+                >
                     <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
                                 <MapPin className="h-5 w-5 text-blue-600" />
                                 Appointment Location - {selectedAppointment ? getAppointmentLocation(selectedAppointment).buildingName : ''}
                             </DialogTitle>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="absolute top-4 right-4 h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
-                                onClick={closeLocationModal}
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
                         </DialogHeader>
                         <div className="space-y-4">
                             {/* Appointment Details */}
@@ -3467,15 +3483,8 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                                 />
                             </div>
                             
-                            {/* Footer with Close Button */}
+                            {/* Footer with Action Button */}
                             <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                <Button
-                                    variant="outline"
-                                    onClick={closeLocationModal}
-                                    className="px-6"
-                                >
-                                    Close
-                                </Button>
                                 {selectedAppointment && getAppointmentLocation(selectedAppointment).locationLink && (
                                     <Button
                                         onClick={() => {
