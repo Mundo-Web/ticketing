@@ -98,7 +98,7 @@ class AppointmentController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'address' => 'nullable|string',
-            'scheduled_for' => 'required|date|after_or_equal:today',
+            'scheduled_for' => 'required|date',
             'estimated_duration' => 'required|integer|min:30|max:480', // 30 minutes to 8 hours
             'member_instructions' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -311,7 +311,7 @@ class AppointmentController extends Controller
     public function reschedule(Request $request, Appointment $appointment)
     {
         $validator = Validator::make($request->all(), [
-            'new_scheduled_for' => 'required|date|after_or_equal:today',
+            'new_scheduled_for' => 'required|date',
             'reason' => 'nullable|string|max:500', // Cambiar de required a nullable
         ]);
 
@@ -319,7 +319,7 @@ class AppointmentController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        // Validate that the date is not in the past (allow today)
+        // Validate that the date is not in the past (allow today) with proper timezone handling
         try {
             $testDate = Carbon::parse($request->new_scheduled_for);
             $today = Carbon::today();
