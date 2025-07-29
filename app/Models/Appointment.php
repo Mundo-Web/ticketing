@@ -30,7 +30,6 @@ class Appointment extends Model
     ];
 
     protected $casts = [
-        'scheduled_for' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'member_feedback' => 'array',
@@ -85,13 +84,13 @@ class Appointment extends Model
     // Accessors & Mutators
     public function getFormattedScheduledForAttribute()
     {
-        return $this->scheduled_for ? $this->scheduled_for->format('d/m/Y H:i') : null;
+        return $this->scheduled_for ? Carbon::parse($this->scheduled_for)->format('d/m/Y H:i') : null;
     }
 
     public function getEstimatedEndTimeAttribute()
     {
         return $this->scheduled_for ? 
-            $this->scheduled_for->addMinutes($this->estimated_duration) : null;
+            Carbon::parse($this->scheduled_for)->addMinutes($this->estimated_duration) : null;
     }
 
     public function getFormattedEstimatedEndTimeAttribute()
@@ -107,19 +106,19 @@ class Appointment extends Model
     // Helper methods
     public function isUpcoming()
     {
-        return $this->scheduled_for > Carbon::now() && $this->status === self::STATUS_SCHEDULED;
+        return Carbon::parse($this->scheduled_for) > Carbon::now() && $this->status === self::STATUS_SCHEDULED;
     }
 
     public function isToday()
     {
-        return $this->scheduled_for->isToday() && 
+        return Carbon::parse($this->scheduled_for)->isToday() && 
                in_array($this->status, [self::STATUS_SCHEDULED, self::STATUS_IN_PROGRESS]);
     }
 
     public function canStart()
     {
         return $this->status === self::STATUS_SCHEDULED && 
-               $this->scheduled_for <= Carbon::now()->addMinutes(15); // Can start 15 minutes early
+               Carbon::parse($this->scheduled_for) <= Carbon::now()->addMinutes(15); // Can start 15 minutes early
     }
 
     public function canComplete()
@@ -239,20 +238,30 @@ class Appointment extends Model
             throw new \Exception('No se puede reagendar esta cita en su estado actual.');
         }
 
-        $oldDate = $this->scheduled_for;
+        // Get the current date string before updating (no Carbon conversion)
+        $oldDateString = $this->scheduled_for;
+        $newDateString = is_string($newDateTime) ? $newDateTime : $newDateTime->format('Y-m-d H:i:s');
+        
+        // Parse dates only for formatting in history (not for storage)
+        $oldDateForHistory = Carbon::parse($oldDateString);
+        $newDateForHistory = Carbon::parse($newDateString);
         
         $this->update([
-            'scheduled_for' => $newDateTime,
+            'scheduled_for' => $newDateString, // Store as string, no conversion
             'status' => self::STATUS_SCHEDULED, // Reset to scheduled
             'notes' => $this->notes . ($reason ? "\n\nReagendada: {$reason}" : '')
         ]);
 
-        // Add history to ticket
+        // Add history to ticket - format dates only for display
         $this->ticket->addHistory(
             'appointment_rescheduled',
-            "Cita reagendada de {$oldDate->format('d/m/Y H:i')} a {$newDateTime->format('d/m/Y H:i')}" . 
+            "Cita reagendada de {$oldDateForHistory->format('d/m/Y H:i')} a {$newDateForHistory->format('d/m/Y H:i')}" . 
             ($reason ? " - {$reason}" : ''),
-            ['appointment_id' => $this->id, 'old_date' => $oldDate, 'new_date' => $newDateTime],
+            [
+                'appointment_id' => $this->id, 
+                'old_date' => $oldDateString, 
+                'new_date' => $newDateString
+            ],
             $this->technical_id
         );
 

@@ -8,6 +8,7 @@ use App\Models\Technical;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Inertia\Inertia;
 
@@ -318,9 +319,18 @@ class AppointmentController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $newDateTime = Carbon::parse($request->new_scheduled_for);
+        // Validate that the date is not in the past (we'll do basic validation here)
+        try {
+            $testDate = Carbon::parse($request->new_scheduled_for);
+            if ($testDate <= Carbon::now()) {
+                return back()->withErrors(['new_scheduled_for' => 'The date must be in the future.']);
+            }
+        } catch (\Exception $e) {
+            return back()->withErrors(['new_scheduled_for' => 'Invalid date format provided.']);
+        }
         
-        // Check for conflicts
+        // Check for conflicts using the string date directly
+        $newDateTime = Carbon::parse($request->new_scheduled_for);
         $estimatedEnd = $newDateTime->copy()->addMinutes($appointment->estimated_duration);
         
         $conflicts = Appointment::where('technical_id', $appointment->technical_id)
@@ -339,7 +349,7 @@ class AppointmentController extends Controller
         }
 
         try {
-            $appointment->reschedule($newDateTime, $request->reason);
+            $appointment->reschedule($request->new_scheduled_for, $request->reason);
 
             if (request()->expectsJson()) {
                 return response()->json([
@@ -385,7 +395,7 @@ class AppointmentController extends Controller
         $currentTime = $workStart->copy();
         
         foreach ($appointments as $appointment) {
-            $appointmentStart = $appointment->scheduled_for;
+            $appointmentStart = Carbon::parse($appointment->scheduled_for);
             $appointmentEnd = $appointmentStart->copy()->addMinutes($appointment->estimated_duration);
             
             // Add slots before this appointment

@@ -83,6 +83,41 @@ import NinjaOneAlertCard from '@/components/NinjaOneAlertCard';
 import { Device } from "@/types/models/Device"
 import { Tenant } from "@/types/models/Tenant";
 
+// Helper function to format dates consistently 
+const formatLocalDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    // Ensure we get the date formatted consistently regardless of timezone
+    return {
+        date: date.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        }),
+        time: date.toLocaleTimeString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false // Use 24-hour format for consistency
+        })
+    };
+};
+
+// Helper function for history display - same format for consistency
+const formatHistoryDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return {
+        date: date.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        }),
+        time: date.toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false
+        })
+    };
+};
+
 // Define available ticket categories here
 const TICKET_CATEGORIES = [
     "Hardware",
@@ -2239,7 +2274,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                             </span>
                                                                         </div>
                                                                         <p className="text-sm text-blue-700 mt-1">
-                                                                            {new Date(selectedTicket.active_appointment.scheduled_for).toLocaleString('en-US')}
+                                                                            {formatLocalDateTime(selectedTicket.active_appointment.scheduled_for).date} {formatLocalDateTime(selectedTicket.active_appointment.scheduled_for).time}
                                                                         </p>
                                                                         <p className="text-xs text-blue-600 mt-1">
                                                                             {selectedTicket.active_appointment.title}
@@ -2362,7 +2397,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                         {entry.technical?.name || entry.user?.name || 'Sistema'}
                                                                                     </span>
                                                                                     <span className="text-xs text-muted-foreground">
-                                                                                        {new Date(entry.created_at).toLocaleDateString()} a las {new Date(entry.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                                                                        {formatHistoryDateTime(entry.created_at).date} a las {formatHistoryDateTime(entry.created_at).time}
                                                                                     </span>
                                                                                     {entry.action && (
                                                                                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${entry.action?.includes('created') ? 'bg-blue-100 text-blue-800' :
@@ -2407,7 +2442,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                         {entry.user?.name || 'System'}
                                                                                     </span>
                                                                                     <span className="text-xs text-muted-foreground">
-                                                                                        {new Date(entry.created_at).toLocaleString()}
+                                                                                        {formatHistoryDateTime(entry.created_at).date} a las {formatHistoryDateTime(entry.created_at).time}
                                                                                     </span>
                                                                                 </div>
                                                                                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -2428,7 +2463,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                         {entry.user?.name || entry.technical?.name || 'System'}
                                                                                     </span>
                                                                                     <span className="text-xs text-muted-foreground">
-                                                                                        {new Date(entry.created_at).toLocaleString()}
+                                                                                        {formatHistoryDateTime(entry.created_at).date} a las {formatHistoryDateTime(entry.created_at).time}
                                                                                     </span>
                                                                                 </div>
                                                                                 <p className="text-xs text-muted-foreground leading-relaxed">                                                                                {entry.description}
@@ -3757,18 +3792,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             <div>
                                                 <div className="text-sm font-medium text-slate-600">Scheduled Date & Time</div>
                                                 <div className="text-base font-semibold text-slate-900">
-                                                    {new Date(showAppointmentDetailsModal.appointment.scheduled_for).toLocaleDateString('en-US', {
-                                                        weekday: 'long',
-                                                        year: 'numeric',
-                                                        month: 'long',
-                                                        day: 'numeric'
-                                                    })}
+                                                    {formatLocalDateTime(showAppointmentDetailsModal.appointment.scheduled_for).date}
                                                 </div>
                                                 <div className="text-sm text-slate-600">
-                                                    {new Date(showAppointmentDetailsModal.appointment.scheduled_for).toLocaleTimeString('en-US', {
-                                                        hour: '2-digit',
-                                                        minute: '2-digit'
-                                                    })}
+                                                    {formatLocalDateTime(showAppointmentDetailsModal.appointment.scheduled_for).time}
                                                 </div>
                                             </div>
                                         </div>
@@ -3960,19 +3987,50 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 return;
                                             }
                                             
+                                            // Validate that the selected date is in the future
+                                            const selectedDate = new Date(appointmentActionForm.new_scheduled_for);
+                                            const now = new Date();
+                                            
+                                            if (selectedDate <= now) {
+                                                toast.error('Please select a future date and time');
+                                                return;
+                                            }
+                                            
                                             try {
                                                 // Show loading notification
                                                 const loadingToast = toast.loading('Rescheduling appointment...');
                                                 
+                                                // Convert local datetime to proper format that Carbon can parse
+                                                const localDateTime = appointmentActionForm.new_scheduled_for;
+                                                
+                                                // Create a Date object and format it properly for backend
+                                                const dateObj = new Date(localDateTime);
+                                                
+                                                // Ensure we format the date in a consistent timezone-aware way
+                                                const year = dateObj.getFullYear();
+                                                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                                                const day = String(dateObj.getDate()).padStart(2, '0');
+                                                const hours = String(dateObj.getHours()).padStart(2, '0');
+                                                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                                                
+                                                // Format as YYYY-MM-DD HH:mm:ss for consistent backend parsing
+                                                const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:00`;
+                                                
                                                 await handleAppointmentAction('reschedule', showAppointmentDetailsModal.appointment.id, { 
-                                                    new_scheduled_for: appointmentActionForm.new_scheduled_for,
+                                                    new_scheduled_for: formattedDateTime,
                                                     reason: appointmentActionForm.reason || '' // Allow empty reason
                                                 });
                                                 
                                                 // Dismiss loading and show success
                                                 toast.dismiss(loadingToast);
                                                 toast.success('Appointment rescheduled successfully!');
-                                                appointmentActionForm.new_scheduled_for = '';
+                                                
+                                                // Clear form
+                                                setAppointmentActionForm(prev => ({ 
+                                                    ...prev, 
+                                                    new_scheduled_for: '',
+                                                    reason: ''
+                                                }));
                                                 appointmentActionForm.reason = '';
                                                 
                                                 setShowAppointmentDetailsModal({ open: false });
