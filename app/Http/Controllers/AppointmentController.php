@@ -96,7 +96,7 @@ class AppointmentController extends Controller
             'technical_id' => 'required|exists:technicals,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'address' => 'required|string',
+            'address' => 'nullable|string',
             'scheduled_for' => 'required|date|after:now',
             'estimated_duration' => 'required|integer|min:30|max:480', // 30 minutes to 8 hours
             'member_instructions' => 'nullable|string',
@@ -142,7 +142,7 @@ class AppointmentController extends Controller
             'scheduled_by' => $user->id,
             'title' => $request->title,
             'description' => $request->description,
-            'address' => $request->address,
+            'address' => $request->address ?: null, // Permitir null para address
             'scheduled_for' => $scheduledFor,
             'estimated_duration' => $request->estimated_duration,
             'member_instructions' => $request->member_instructions,
