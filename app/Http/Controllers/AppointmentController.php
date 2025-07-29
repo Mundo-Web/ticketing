@@ -111,7 +111,7 @@ class AppointmentController extends Controller
         
         // Verify ticket can have appointment scheduled
         if (!$ticket->canScheduleAppointment()) {
-            return back()->withErrors(['ticket' => 'No se puede agendar una cita para este ticket en su estado actual.']);
+            return back()->withErrors(['ticket' => 'Cannot schedule an appointment for this ticket in its current state.']);
         }
 
         $technical = Technical::findOrFail($request->technical_id);
@@ -132,7 +132,7 @@ class AppointmentController extends Controller
             })->exists();
 
         if ($conflicts) {
-            return back()->withErrors(['scheduled_for' => 'El técnico ya tiene una cita agendada en este horario.']);
+            return back()->withErrors(['scheduled_for' => 'The technician already has an appointment scheduled at this time.']);
         }
 
         // Create appointment
@@ -160,12 +160,12 @@ class AppointmentController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Cita agendada exitosamente',
+                'message' => 'Appointment successfully scheduled',
                 'appointment' => $appointment->load(['ticket', 'technical'])
             ]);
         }
 
-        return redirect()->back()->with('success', 'Cita agendada exitosamente');
+        return redirect()->back()->with('success', 'Appointment successfully scheduled');
     }
 
     /**
@@ -192,7 +192,7 @@ class AppointmentController extends Controller
             'estimated_duration', 'member_instructions', 'notes'
         ]));
 
-        return redirect()->back()->with('success', 'Cita actualizada exitosamente');
+        return redirect()->back()->with('success', 'Appointment successfully updated');
     }
 
     /**
@@ -211,7 +211,7 @@ class AppointmentController extends Controller
                 ]);
             }
 
-            return redirect()->back()->with('success', 'Visita iniciada exitosamente');
+            return redirect()->back()->with('success', 'Appointment successfully started');
         } catch (\Exception $e) {
             if (request()->expectsJson()) {
                 return response()->json([
@@ -254,7 +254,7 @@ class AppointmentController extends Controller
                 ]);
             }
 
-            return redirect()->back()->with('success', 'Visita completada exitosamente');
+            return redirect()->back()->with('success', 'Appointment successfully completed');
         } catch (\Exception $e) {
             if (request()->expectsJson()) {
                 return response()->json([
@@ -291,7 +291,7 @@ class AppointmentController extends Controller
                 ]);
             }
 
-            return redirect()->back()->with('success', 'Cita cancelada exitosamente');
+            return redirect()->back()->with('success', 'Appointment successfully cancelled');
         } catch (\Exception $e) {
             if (request()->expectsJson()) {
                 return response()->json([
@@ -311,7 +311,7 @@ class AppointmentController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'new_scheduled_for' => 'required|date|after:now',
-            'reason' => 'required|string|max:500',
+            'reason' => 'nullable|string|max:500', // Cambiar de required a nullable
         ]);
 
         if ($validator->fails()) {
@@ -335,7 +335,7 @@ class AppointmentController extends Controller
             })->exists();
 
         if ($conflicts) {
-            return back()->withErrors(['new_scheduled_for' => 'El técnico ya tiene una cita agendada en este horario.']);
+            return back()->withErrors(['new_scheduled_for' => 'The technician already has an appointment scheduled at this time.']);
         }
 
         try {
@@ -349,7 +349,7 @@ class AppointmentController extends Controller
                 ]);
             }
 
-            return redirect()->back()->with('success', 'Cita reagendada exitosamente');
+            return redirect()->back()->with('success', 'Appointment successfully rescheduled');
         } catch (\Exception $e) {
             if (request()->expectsJson()) {
                 return response()->json([

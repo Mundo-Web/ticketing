@@ -2813,7 +2813,7 @@ export default function Index({ apartments, brands, models, systems, name_device
                                                     <Laptop className="w-5 h-5 text-corporate-gold" />
                                                 </div>
                                                 <div>
-                                                    <div className="font-medium">{device.name || 'Unknown Device'}</div>
+                                                    <div className="font-medium">{device.name || device?.name_device?.name}</div>
                                                     <div className="text-sm text-muted-foreground">
                                                         {device.brand?.name} - {device.model?.name}
                                                     </div>

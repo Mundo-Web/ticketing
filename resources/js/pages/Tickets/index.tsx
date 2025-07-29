@@ -890,9 +890,17 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 preserveScroll: true,
                 onSuccess: (page) => {
                     const data = (page.props as any).flash || {};
-                    if (data.success || data.message) {
-                        toast.success(data.message || `${action} completed successfully`);
-                    }
+                    
+                    // Show success notification with specific messages
+                    const successMessages = {
+                        'start': 'Visit started successfully!',
+                        'complete': 'Visit completed successfully!',
+                        'cancel': 'Appointment cancelled successfully!',
+                        'reschedule': 'Appointment rescheduled successfully!'
+                    };
+                    
+                    const message = data.success || data.message || successMessages[action] || `${action} completed successfully`;
+                    toast.success(message);
                     
                     // Refresh selected ticket
                     if (selectedTicket) {
@@ -3947,11 +3955,31 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                                         <form onSubmit={async (e) => {
                                             e.preventDefault();
-                                            await handleAppointmentAction('reschedule', showAppointmentDetailsModal.appointment.id, { 
-                                                new_scheduled_for: appointmentActionForm.new_scheduled_for,
-                                                reason: appointmentActionForm.reason 
-                                            });
-                                            setShowAppointmentDetailsModal({ open: false });
+                                            if (!appointmentActionForm.new_scheduled_for) {
+                                                toast.error('Please select a new date and time');
+                                                return;
+                                            }
+                                            
+                                            try {
+                                                // Show loading notification
+                                                const loadingToast = toast.loading('Rescheduling appointment...');
+                                                
+                                                await handleAppointmentAction('reschedule', showAppointmentDetailsModal.appointment.id, { 
+                                                    new_scheduled_for: appointmentActionForm.new_scheduled_for,
+                                                    reason: appointmentActionForm.reason || '' // Allow empty reason
+                                                });
+                                                
+                                                // Dismiss loading and show success
+                                                toast.dismiss(loadingToast);
+                                                toast.success('Appointment rescheduled successfully!');
+                                                appointmentActionForm.new_scheduled_for = '';
+                                                appointmentActionForm.reason = '';
+                                                
+                                                setShowAppointmentDetailsModal({ open: false });
+                                            } catch (error) {
+                                                console.error('Error rescheduling appointment:', error);
+                                                toast.error('Failed to reschedule appointment');
+                                            }
                                         }} className="space-y-4">
                                             <div>
                                                 <label className="block text-sm font-semibold text-blue-900 mb-3">
@@ -3969,7 +3997,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                                             <div>
                                                 <label className="block text-sm font-semibold text-blue-900 mb-3">
-                                                    Reason for Reschedule
+                                                    Reason for Reschedule (Optional)
                                                 </label>
                                                 <textarea
                                                     value={appointmentActionForm.reason}
