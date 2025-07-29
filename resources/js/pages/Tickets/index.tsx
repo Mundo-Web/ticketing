@@ -4048,7 +4048,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     value={appointmentActionForm.new_scheduled_for}
                                                     onChange={e => setAppointmentActionForm(prev => ({ ...prev, new_scheduled_for: e.target.value }))}
                                                     className="border-2 border-blue-200 h-12 rounded-xl px-4 py-3 text-base focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 bg-white"
-                                                    min={new Date().toISOString().slice(0, 16)}
+                                                    min={new Date().toISOString()}
                                                     required
                                                 />
                                             </div>

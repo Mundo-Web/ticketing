@@ -50,8 +50,8 @@ class AppointmentController extends Controller
             return [
                 'id' => $appointment->id,
                 'title' => $appointment->title,
-                'start' => $appointment->scheduled_for->toISOString(),
-                'end' => $appointment->estimated_end_time->toISOString(),
+                'start' => $appointment->scheduled_for,
+                'end' => $appointment->estimated_end_time,
                 'backgroundColor' => $this->getStatusColor($appointment->status),
                 'borderColor' => $this->getStatusColor($appointment->status),
                 'textColor' => '#fff',
@@ -98,7 +98,7 @@ class AppointmentController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'address' => 'nullable|string',
-            'scheduled_for' => 'required|date|after:now',
+            'scheduled_for' => 'required|date|after_or_equal:today',
             'estimated_duration' => 'required|integer|min:30|max:480', // 30 minutes to 8 hours
             'member_instructions' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -178,7 +178,7 @@ class AppointmentController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'address' => 'sometimes|required|string',
-            'scheduled_for' => 'sometimes|required|date|after:now',
+            'scheduled_for' => 'sometimes|required|date|after_or_equal:today',
             'estimated_duration' => 'sometimes|required|integer|min:30|max:480',
             'member_instructions' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -311,7 +311,7 @@ class AppointmentController extends Controller
     public function reschedule(Request $request, Appointment $appointment)
     {
         $validator = Validator::make($request->all(), [
-            'new_scheduled_for' => 'required|date|after:now',
+            'new_scheduled_for' => 'required|date|after_or_equal:today',
             'reason' => 'nullable|string|max:500', // Cambiar de required a nullable
         ]);
 
@@ -319,11 +319,12 @@ class AppointmentController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        // Validate that the date is not in the past (we'll do basic validation here)
+        // Validate that the date is not in the past (allow today)
         try {
             $testDate = Carbon::parse($request->new_scheduled_for);
-            if ($testDate <= Carbon::now()) {
-                return back()->withErrors(['new_scheduled_for' => 'The date must be in the future.']);
+            $today = Carbon::today();
+            if ($testDate < $today) {
+                return back()->withErrors(['new_scheduled_for' => 'The date must be today or in the future.']);
             }
         } catch (\Exception $e) {
             return back()->withErrors(['new_scheduled_for' => 'Invalid date format provided.']);
