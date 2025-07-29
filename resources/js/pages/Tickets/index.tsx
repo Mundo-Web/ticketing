@@ -814,76 +814,108 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
         setSchedulingAppointment(true);
         
+        // Log the data being sent for debugging
+        const appointmentData = {
+            ticket_id: showScheduleAppointmentModal.ticketId,
+            technical_id: selectedTicket?.technical_id,
+            ...appointmentForm
+        };
+        
+        console.log('Sending appointment data:', appointmentData);
+        
         try {
-            const response = await fetch('/appointments', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                    'Accept': 'application/json'
+            // Using Inertia router for better CSRF handling
+            router.post('/appointments', appointmentData, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowScheduleAppointmentModal({ open: false });
+                    setAppointmentForm({
+                        title: "",
+                        description: "",
+                        address: "",
+                        scheduled_for: "",
+                        estimated_duration: 60,
+                        member_instructions: "",
+                        notes: ""
+                    });
+                    
+                    // Refresh selected ticket
+                    refreshSelectedTicket(showScheduleAppointmentModal.ticketId);
+                    
+                    toast.success('Appointment scheduled successfully');
                 },
-                body: JSON.stringify({
-                    ticket_id: showScheduleAppointmentModal.ticketId,
-                    technical_id: selectedTicket?.technical_id,
-                    ...appointmentForm
-                })
+                onError: (errors) => {
+                    console.error('Appointment scheduling errors:', errors);
+                    
+                    // Handle different types of errors
+                    if (errors.message && errors.message.includes('CSRF')) {
+                        toast.error('Session expired. Please refresh the page and try again.');
+                        setTimeout(() => window.location.reload(), 2000);
+                        return;
+                    }
+                    
+                    // Handle validation errors
+                    if (typeof errors === 'object' && errors !== null) {
+                        const errorMessages = Object.values(errors).flat();
+                        if (errorMessages.length > 0) {
+                            errorMessages.forEach(message => {
+                                if (typeof message === 'string') {
+                                    toast.error(message);
+                                }
+                            });
+                        } else {
+                            toast.error('Error scheduling appointment. Please check your data and try again.');
+                        }
+                    } else {
+                        toast.error('Error scheduling appointment');
+                    }
+                },
+                onFinish: () => {
+                    setSchedulingAppointment(false);
+                }
             });
-
-            const data = await response.json();
             
-            if (data.success) {
-                setShowScheduleAppointmentModal({ open: false });
-                setAppointmentForm({
-                    title: "",
-                    description: "",
-                    address: "",
-                    scheduled_for: "",
-                    estimated_duration: 60,
-                    member_instructions: "",
-                    notes: ""
-                });
-                
-                // Refresh selected ticket
-                refreshSelectedTicket(showScheduleAppointmentModal.ticketId);
-                
-                toast.success('Cita agendada exitosamente');
-            } else {
-                toast.error(data.message || 'Error al agendar la cita');
-            }
         } catch (error) {
             console.error('Error scheduling appointment:', error);
-            toast.error('Error al agendar la cita');
-        } finally {
+            toast.error('Error scheduling appointment');
             setSchedulingAppointment(false);
         }
     };
 
     const handleAppointmentAction = async (action: string, appointmentId: number, formData?: any) => {
         try {
-            const response = await fetch(`/appointments/${appointmentId}/${action}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                    'Accept': 'application/json'
+            // Using Inertia router for better CSRF handling
+            router.post(`/appointments/${appointmentId}/${action}`, formData || {}, {
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    const data = (page.props as any).flash || {};
+                    if (data.success || data.message) {
+                        toast.success(data.message || `${action} completed successfully`);
+                    }
+                    
+                    // Refresh selected ticket
+                    if (selectedTicket) {
+                        refreshSelectedTicket(selectedTicket.id);
+                    }
                 },
-                body: JSON.stringify(formData || {})
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                toast.success(data.message);
-                // Refresh selected ticket
-                if (selectedTicket) {
-                    refreshSelectedTicket(selectedTicket.id);
+                onError: (errors) => {
+                    console.error(`Error ${action} appointment:`, errors);
+                    
+                    if (typeof errors === 'object' && errors !== null) {
+                        const errorMessages = Object.values(errors).flat();
+                        errorMessages.forEach(message => {
+                            if (typeof message === 'string') {
+                                toast.error(message);
+                            }
+                        });
+                    } else {
+                        toast.error(`Error processing ${action} action`);
+                    }
                 }
-            } else {
-                toast.error(data.message || `Error al ${action} la cita`);
-            }
+            });
         } catch (error) {
             console.error(`Error ${action} appointment:`, error);
-            toast.error(`Error al ${action} la cita`);
+            toast.error(`Error processing ${action} action`);
         }
     };
 
