@@ -110,8 +110,8 @@ const formatHistoryDateTime = (dateString: string) => {
             month: '2-digit',
             year: 'numeric'
         }),
-        time: date.toLocaleTimeString('es-ES', { 
-            hour: '2-digit', 
+        time: date.toLocaleTimeString('es-ES', {
+            hour: '2-digit',
             minute: '2-digit',
             hour12: false
         })
@@ -312,19 +312,19 @@ function DeviceBadge({ device }: { device: any }) {
 }
 
 // Elegant Corporate Device Information Component
-export default function TicketsIndex({ 
-    tickets, 
-    allTickets, 
-    allTicketsUnfiltered, 
-    devicesOwn, 
-    devicesShared, 
+export default function TicketsIndex({
+    tickets,
+    allTickets,
+    allTicketsUnfiltered,
+    devicesOwn,
+    devicesShared,
     allDevices = [], // Default to empty array
-    memberData, 
-    apartmentData, 
-    buildingData, 
+    memberData,
+    apartmentData,
+    buildingData,
     statusFilter,
     allMembers,
-    allApartments 
+    allApartments
 }: TicketsProps) {
     // Dynamic breadcrumbs based on status filter
     const breadcrumbs: BreadcrumbItem[] = statusFilter
@@ -374,12 +374,12 @@ export default function TicketsIndex({
     const [submittingRating, setSubmittingRating] = useState(false);
     const [showDeviceStats, setShowDeviceStats] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState<{ open: boolean; ticket?: any }>({ open: false });
-    
+
     // Member feedback states
     const [showMemberFeedbackModal, setShowMemberFeedbackModal] = useState<{ open: boolean; ticketId?: number }>({ open: false });
     const [memberFeedback, setMemberFeedback] = useState({ comment: "", rating: 0 });
     const [submittingMemberFeedback, setSubmittingMemberFeedback] = useState(false);
-    
+
     // Appointment states
     const [showScheduleAppointmentModal, setShowScheduleAppointmentModal] = useState<{ open: boolean; ticketId?: number }>({ open: false });
     const [appointmentForm, setAppointmentForm] = useState({
@@ -402,7 +402,7 @@ export default function TicketsIndex({
         reason: "",
         new_scheduled_for: ""
     });
-    
+
     // NinjaOne Alerts States
     const [deviceAlerts, setDeviceAlerts] = useState<any[]>([]);
     const [loadingAlerts, setLoadingAlerts] = useState<Record<number, boolean>>({});
@@ -419,7 +419,7 @@ export default function TicketsIndex({
     const isDoorman = (auth.user as any)?.roles?.includes("doorman");
     const isOwner = (auth.user as any)?.roles?.includes("owner");
     // isTechnicalDefault ahora viene del backend correctamente
-    
+
     // Efecto para registrar cuando se abre el modal de cita
     useEffect(() => {
         if (showAppointmentDetailsModal.open && showAppointmentDetailsModal.appointment) {
@@ -440,35 +440,35 @@ export default function TicketsIndex({
     const getFilteredTicketsForDoormanOwner = () => {
         // FORZAR FILTRADO EN FRONTEND por building del usuario logueado
         let filtered = allTicketsUnfiltered; // Usar TODOS los tickets
-        
+
         // 1. FILTRAR POR BUILDING DEL USUARIO (Owner/Doorman)
         if (buildingData?.id) {
             filtered = filtered.filter((ticket: any) => {
                 // Verificar si el ticket pertenece al building del usuario
-                const ticketBuildingId = ticket.user?.tenant?.apartment?.building?.id || 
-                                       ticket.user?.tenant?.apartment?.buildings_id ||
-                                       ticket.device?.apartment?.building?.id ||
-                                       ticket.device?.apartment?.buildings_id;
+                const ticketBuildingId = ticket.user?.tenant?.apartment?.building?.id ||
+                    ticket.user?.tenant?.apartment?.buildings_id ||
+                    ticket.device?.apartment?.building?.id ||
+                    ticket.device?.apartment?.buildings_id;
                 return ticketBuildingId === buildingData.id;
             });
         }
-        
+
         // 2. Filtrar por member si está seleccionado
         if (selectedMemberFilter !== 'all') {
-            filtered = filtered.filter((ticket: any) => 
+            filtered = filtered.filter((ticket: any) =>
                 ticket.user?.id?.toString() === selectedMemberFilter ||
                 ticket.user?.tenant?.id?.toString() === selectedMemberFilter
             );
         }
-        
+
         // 3. Filtrar por apartment si está seleccionado
         if (selectedApartmentFilter !== 'all') {
-            filtered = filtered.filter((ticket: any) => 
+            filtered = filtered.filter((ticket: any) =>
                 ticket.user?.tenant?.apartment_id?.toString() === selectedApartmentFilter ||
                 ticket.device?.apartment_id?.toString() === selectedApartmentFilter
             );
         }
-        
+
         return filtered;
     };
 
@@ -484,7 +484,7 @@ export default function TicketsIndex({
                 const firstTenant = Array.isArray(device.tenants) && device.tenants.length > 0 ? device.tenants[0] : null;
                 const apartment = firstTenant?.apartment || null;
                 const building = apartment?.building || null;
-                
+
                 return {
                     ...device,
                     name: device.name || (device.name_device ? device.name_device.name : ''),
@@ -534,7 +534,7 @@ export default function TicketsIndex({
 
     const confirmDelete = () => {
         if (!showDeleteModal.ticket) return;
-        
+
         router.delete(`/tickets/${showDeleteModal.ticket.id}`, {
             preserveScroll: true,
             headers: {
@@ -574,29 +574,29 @@ export default function TicketsIndex({
         } else {
             // Cambio directo para estados que no requieren comentario
             setStatusLoadingId(ticket.id);
-            
+
             // ✨ Actualización optimista - actualizar UI inmediatamente
             const updatedTicket = { ...ticket, status: newStatus };
-            
+
             // Actualizar el ticket seleccionado si es el mismo
             if (selectedTicket && selectedTicket.id === ticket.id) {
                 setSelectedTicket(updatedTicket);
             }
-            
+
             // Actualizar en la lista de tickets (para Kanban)
             setData(prevData => ({
                 ...prevData,
-                allTickets: prevData.allTickets.map(t => 
+                allTickets: prevData.allTickets.map(t =>
                     t.id === ticket.id ? updatedTicket : t
                 ),
                 tickets: {
                     ...prevData.tickets,
-                    data: prevData.tickets.data.map(t => 
+                    data: prevData.tickets.data.map(t =>
                         t.id === ticket.id ? updatedTicket : t
                     )
                 }
             }));
-            
+
             router.put(
                 `/tickets/${ticket.id}`,
                 { status: newStatus },
@@ -614,12 +614,12 @@ export default function TicketsIndex({
                         }
                         setData(prevData => ({
                             ...prevData,
-                            allTickets: prevData.allTickets.map(t => 
+                            allTickets: prevData.allTickets.map(t =>
                                 t.id === ticket.id ? ticket : t
                             ),
                             tickets: {
                                 ...prevData.tickets,
-                                data: prevData.tickets.data.map(t => 
+                                data: prevData.tickets.data.map(t =>
                                     t.id === ticket.id ? ticket : t
                                 )
                             }
@@ -721,7 +721,7 @@ export default function TicketsIndex({
         try {
             const response = await fetch(`/ninjaone/alerts/${alertId}/acknowledge`, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                 },
@@ -740,7 +740,7 @@ export default function TicketsIndex({
         try {
             const response = await fetch(`/ninjaone/alerts/${alertId}/resolve`, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                 },
@@ -762,12 +762,12 @@ export default function TicketsIndex({
     // Load user device alerts for notifications
     const loadUserDeviceAlerts = async () => {
         if (!isMember) return; // Only for members
-        
+
         setLoadingUserAlerts(true);
         try {
             // Use the same endpoint that works in NinjaOne alerts index, but request JSON
             const response = await fetch('/ninjaone-alerts', {
-                headers: { 
+                headers: {
                     'Accept': 'application/json'
                 },
             });
@@ -775,7 +775,7 @@ export default function TicketsIndex({
                 const data = await response.json();
                 // Extract alerts from the JSON response
                 const alertsData = data.alerts?.data || [];
-                
+
                 // Convert to the format expected by notifications
                 const deviceAlerts = alertsData.map((alert: any) => ({
                     id: alert.id,
@@ -790,7 +790,7 @@ export default function TicketsIndex({
                     health_status: alert.severity, // For compatibility
                     issues_count: 1
                 }));
-                
+
                 setUserDeviceAlerts(deviceAlerts);
             }
         } catch (error) {
@@ -869,13 +869,13 @@ ${deviceAlert.description}
 Por favor, revise el dispositivo y complete los detalles adicionales si es necesario.`,
             tenant_id: "", // This will be auto-filled by backend for members
         });
-        
+
         // Open the create ticket modal
         setShowCreateModal(true);
-        
+
         // Show success message
         toast.success(`Formulario pre-llenado con datos de la alerta de ${deviceAlert.device_name}`);
-        
+
         // Remove this alert from notifications since user is creating a ticket
         setUserDeviceAlerts(prev => prev.filter(alert => alert.device_id !== deviceAlert.device_id));
     };
@@ -895,7 +895,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
             member_instructions: "Por favor, asegúrese de estar disponible en el horario acordado.",
             notes: ""
         });
-        
+
         setShowScheduleAppointmentModal({ open: true, ticketId });
     };
 
@@ -904,16 +904,16 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
         if (!showScheduleAppointmentModal.ticketId) return;
 
         setSchedulingAppointment(true);
-        
+
         // Log the data being sent for debugging
         const appointmentData = {
             ticket_id: showScheduleAppointmentModal.ticketId,
             technical_id: selectedTicket?.technical_id,
             ...appointmentForm
         };
-        
+
         console.log('Sending appointment data:', appointmentData);
-        
+
         try {
             // Using Inertia router for better CSRF handling
             router.post('/appointments', appointmentData, {
@@ -929,22 +929,22 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                         member_instructions: "",
                         notes: ""
                     });
-                    
+
                     // Refresh selected ticket
                     refreshSelectedTicket(showScheduleAppointmentModal.ticketId);
-                    
+
                     toast.success('Appointment scheduled successfully');
                 },
                 onError: (errors) => {
                     console.error('Appointment scheduling errors:', errors);
-                    
+
                     // Handle different types of errors
                     if (errors.message && errors.message.includes('CSRF')) {
                         toast.error('Session expired. Please refresh the page and try again.');
                         setTimeout(() => window.location.reload(), 2000);
                         return;
                     }
-                    
+
                     // Handle validation errors
                     if (typeof errors === 'object' && errors !== null) {
                         const errorMessages = Object.values(errors).flat();
@@ -965,7 +965,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                     setSchedulingAppointment(false);
                 }
             });
-            
+
         } catch (error) {
             console.error('Error scheduling appointment:', error);
             toast.error('Error scheduling appointment');
@@ -977,13 +977,13 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
         try {
             // Map action to the correct route
             const routeAction = action === 'member_feedback' ? 'member-feedback' : action;
-            
+
             // Using Inertia router for better CSRF handling
             router.post(`/appointments/${appointmentId}/${routeAction}`, formData || {}, {
                 preserveScroll: true,
                 onSuccess: (page) => {
                     const data = (page.props as any).flash || {};
-                    
+
                     // Show success notification with specific messages
                     const successMessages = {
                         'start': 'Visit started successfully!',
@@ -992,10 +992,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                         'cancel': 'Appointment cancelled successfully!',
                         'reschedule': 'Appointment rescheduled successfully!'
                     };
-                    
+
                     const message = data.success || data.message || successMessages[action] || `${action} completed successfully`;
                     toast.success(message);
-                    
+
                     // Refresh selected ticket
                     if (selectedTicket) {
                         refreshSelectedTicket(selectedTicket.id);
@@ -1003,7 +1003,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 },
                 onError: (errors) => {
                     console.error(`Error ${action} appointment:`, errors);
-                    
+
                     if (typeof errors === 'object' && errors !== null) {
                         const errorMessages = Object.values(errors).flat();
                         errorMessages.forEach(message => {
@@ -1033,7 +1033,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
         if (!showMemberFeedbackModal.ticketId || memberFeedback.rating === 0) return;
 
         setSubmittingMemberFeedback(true);
-        
+
         try {
             const response = await fetch(`/tickets/${showMemberFeedbackModal.ticketId}/add-member-feedback`, {
                 method: 'POST',
@@ -1050,14 +1050,14 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
             });
 
             const data = await response.json();
-            
+
             if (data.success) {
                 setShowMemberFeedbackModal({ open: false });
                 setMemberFeedback({ comment: "", rating: 0 });
-                
+
                 // Refresh selected ticket
                 refreshSelectedTicket(showMemberFeedbackModal.ticketId);
-                
+
                 toast.success('¡Gracias por tu feedback! Solo será visible para los administradores.');
             } else {
                 toast.error(data.message || 'Error al enviar feedback');
@@ -1085,14 +1085,14 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
     // Auto-refresh device alerts every 5 minutes for members
     useEffect(() => {
         if (!isMember) return;
-        
+
         const interval = setInterval(loadUserDeviceAlerts, 5 * 60 * 1000);
         return () => clearInterval(interval);
     }, [isMember]);
 
     // Filter tickets
     const userId = (usePage().props as any)?.auth?.user?.id;
-    
+
     // Memoized tickets que se actualizan cuando cambia refreshKey o los datos originales
     const memoizedTickets = useMemo(() => {
         return tickets.data; // Se recalcula cuando refreshKey cambia
@@ -1256,18 +1256,17 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             </p>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Alerts Button */}
                                     <div className="relative">
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             onClick={() => setShowNinjaOneNotifications(!showNinjaOneNotifications)}
-                                            className={`relative ${
-                                                userDeviceAlerts.length > 0 
-                                                    ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800' 
+                                            className={`relative ${userDeviceAlerts.length > 0
+                                                    ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800'
                                                     : 'bg-muted/50 hover:bg-muted text-muted-foreground border-muted dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
-                                            }`}
+                                                }`}
                                         >
                                             <Bell className="w-4 h-4" />
                                             {userDeviceAlerts.length > 0 && (
@@ -1276,7 +1275,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 </span>
                                             )}
                                         </Button>
-                                        
+
                                         {/* Notification Dropdown */}
                                         {showNinjaOneNotifications && (
                                             <div className="absolute right-0 top-full mt-2 w-96 bg-background dark:bg-gray-800 rounded-lg shadow-lg border border-border dark:border-gray-600 z-50">
@@ -1284,7 +1283,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     <h3 className="font-semibold text-foreground dark:text-gray-100">Device Alerts</h3>
                                                     <p className="text-sm text-muted-foreground dark:text-gray-400">NinjaOne device health notifications</p>
                                                 </div>
-                                                
+
                                                 <div className="max-h-96 overflow-y-auto">
                                                     {loadingUserAlerts ? (
                                                         <div className="p-4 text-center">
@@ -1300,15 +1299,14 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         userDeviceAlerts.map((alert, index) => (
                                                             <div key={index} className="p-4 border-b border-border hover:bg-muted/50">
                                                                 <div className="flex items-start gap-3">
-                                                                    <div className={`w-3 h-3 rounded-full mt-1 ${
-                                                                        alert.health_status === 'critical' ? 'bg-red-500' :
-                                                                        alert.health_status === 'offline' ? 'bg-gray-500' :
-                                                                        alert.health_status === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-                                                                    }`}></div>
+                                                                    <div className={`w-3 h-3 rounded-full mt-1 ${alert.health_status === 'critical' ? 'bg-red-500' :
+                                                                            alert.health_status === 'offline' ? 'bg-gray-500' :
+                                                                                alert.health_status === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+                                                                        }`}></div>
                                                                     <div className="flex-1">
                                                                         <div className="flex items-center justify-between">
                                                                             <h4 className="font-medium text-foreground">{alert.device_name}</h4>
-                                                                            <button 
+                                                                            <button
                                                                                 onClick={() => dismissDeviceAlert(alert.device_id)}
                                                                                 className="text-muted-foreground hover:text-foreground"
                                                                             >
@@ -1359,246 +1357,245 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 )}
 
                 {/* Devices Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                        {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
-                                            // Determinar el estado del dispositivo basado en tickets activos
-                                            const activeTickets = memberTickets.filter((ticket: any) => 
-                                                ticket.device_id === device.id && 
-                                                (ticket.status === 'open' || ticket.status === 'in_progress')
-                                            );
-                                            const hasActiveIssues = activeTickets.length > 0;
+                {isMember && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
+                            // Determinar el estado del dispositivo basado en tickets activos
+                            const activeTickets = memberTickets.filter((ticket: any) =>
+                                ticket.device_id === device.id &&
+                                (ticket.status === 'open' || ticket.status === 'in_progress')
+                            );
+                            const hasActiveIssues = activeTickets.length > 0;
 
-                                            return (
-                                                <div key={device.id} className="space-y-3">
-                                                    {/* Botón principal del dispositivo */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setData('device_id', device.id.toString());
-                                                            setShowCreateModal(true);
-                                                        }}
-                                                        className={`relative flex flex-row items-center bg-white border-2 rounded-xl shadow-md hover:shadow-xl p-5 w-full transition-all duration-300 group ${
-                                                            hasActiveIssues 
-                                                                ? 'border-amber-300 bg-amber-50/30 hover:border-amber-400 hover:bg-amber-50/50' 
-                                                                : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/30'
-                                                        }`}
-                                                    >
-                                                        {/* Estado del dispositivo */}
-                                                        <div className={`absolute top-4 right-4 w-3 h-3 rounded-full shadow-sm ${
-                                                            hasActiveIssues ? 'bg-amber-400' : 'bg-green-400'
-                                                        }`}></div>
+                            return (
+                                <div key={device.id} className="space-y-3">
+                                    {/* Botón principal del dispositivo */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setData('device_id', device.id.toString());
+                                            setShowCreateModal(true);
+                                        }}
+                                        className={`relative flex flex-row items-center bg-white border-2 rounded-xl shadow-md hover:shadow-xl p-5 w-full transition-all duration-300 group ${hasActiveIssues
+                                                ? 'border-amber-300 bg-amber-50/30 hover:border-amber-400 hover:bg-amber-50/50'
+                                                : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/30'
+                                            }`}
+                                    >
+                                        {/* Estado del dispositivo */}
+                                        <div className={`absolute top-4 right-4 w-3 h-3 rounded-full shadow-sm ${hasActiveIssues ? 'bg-amber-400' : 'bg-green-400'
+                                            }`}></div>
 
-                                                        {/* Icono principal */}
-                                                        <div className={`w-16 h-16 rounded-xl flex items-center justify-center mr-5 flex-shrink-0 transition-colors duration-300 ${
-                                                            hasActiveIssues 
-                                                                ? 'bg-amber-100 text-amber-600 group-hover:bg-amber-200' 
-                                                                : 'bg-blue-100 text-blue-600 group-hover:bg-blue-200'
-                                                        }`}>
-                                                            {device.icon_id ? (
-                                                                <DeviceIcon deviceIconId={device.icon_id} size={32} />
-                                                            ) : (
-                                                                <Monitor className="w-8 h-8" />
-                                                            )}
+                                        {/* Icono principal */}
+                                        <div className={`w-16 h-16 rounded-xl flex items-center justify-center mr-5 flex-shrink-0 transition-colors duration-300 ${hasActiveIssues
+                                                ? 'bg-amber-100 text-amber-600 group-hover:bg-amber-200'
+                                                : 'bg-blue-100 text-blue-600 group-hover:bg-blue-200'
+                                            }`}>
+                                            {device.icon_id ? (
+                                                <DeviceIcon deviceIconId={device.icon_id} size={32} />
+                                            ) : (
+                                                <Monitor className="w-8 h-8" />
+                                            )}
+                                        </div>
+
+                                        {/* Información principal del dispositivo */}
+                                        <div className="flex-1 min-w-0 space-y-3">
+                                            {/* Encabezado con nombre */}
+                                            <div className="flex items-start justify-between">
+                                                <h3 className="font-bold text-slate-800 text-lg truncate pr-2 leading-tight">
+                                                    {device.name_device?.name || device.name || `Device #${device.id}`}
+                                                </h3>
+                                            </div>
+
+                                            {/* Fila 1: Marca, Modelo y Sistema */}
+                                            <div className="flex flex-wrap gap-2">
+                                                {device.brand && (
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                                        <Tag className="w-3 h-3 mr-1" />
+                                                        {device.brand.name}
+                                                    </span>
+                                                )}
+                                                {device.model && (
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                                        <Smartphone className="w-3 h-3 mr-1" />
+                                                        {device.model.name}
+                                                    </span>
+                                                )}
+                                                {device.system && (
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                                                        <Settings className="w-3 h-3 mr-1" />
+                                                        {device.system.name}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Fila 2: Ubicación */}
+                                            {device.ubicacion && (
+                                                <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                                                    <Home className="w-4 h-4 mr-2 text-slate-500" />
+                                                    <span className="truncate font-medium">
+                                                        {device.ubicacion}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {/* Fila 3: Estado del dispositivo y usuarios */}
+                                            <div className="flex items-center justify-between">
+                                                {/* Estado */}
+                                                <div className="flex-1 mr-4">
+                                                    {hasActiveIssues ? (
+                                                        <div className="flex items-center text-sm text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200">
+                                                            <AlertCircle className="w-4 h-4 mr-2" />
+                                                            <span className="font-medium">{activeTickets.length} issue{activeTickets.length !== 1 ? 's' : ''}</span>
                                                         </div>
-
-                                                        {/* Información principal del dispositivo */}
-                                                        <div className="flex-1 min-w-0 space-y-3">
-                                                            {/* Encabezado con nombre */}
-                                                            <div className="flex items-start justify-between">
-                                                                <h3 className="font-bold text-slate-800 text-lg truncate pr-2 leading-tight">
-                                                                    {device.name_device?.name || device.name || `Device #${device.id}`}
-                                                                </h3>
-                                                            </div>
-
-                                                            {/* Fila 1: Marca, Modelo y Sistema */}
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {device.brand && (
-                                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                                                                        <Tag className="w-3 h-3 mr-1" />
-                                                                        {device.brand.name}
-                                                                    </span>
-                                                                )}
-                                                                {device.model && (
-                                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
-                                                                        <Smartphone className="w-3 h-3 mr-1" />
-                                                                        {device.model.name}
-                                                                    </span>
-                                                                )}
-                                                                {device.system && (
-                                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                                                                        <Settings className="w-3 h-3 mr-1" />
-                                                                        {device.system.name}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-
-                                                            {/* Fila 2: Ubicación */}
-                                                            {device.ubicacion && (
-                                                                <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
-                                                                    <Home className="w-4 h-4 mr-2 text-slate-500" />
-                                                                    <span className="truncate font-medium">
-                                                                        {device.ubicacion}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Fila 3: Estado del dispositivo y usuarios */}
-                                                            <div className="flex items-center justify-between">
-                                                                {/* Estado */}
-                                                                <div className="flex-1 mr-4">
-                                                                    {hasActiveIssues ? (
-                                                                        <div className="flex items-center text-sm text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200">
-                                                                            <AlertCircle className="w-4 h-4 mr-2" />
-                                                                            <span className="font-medium">{activeTickets.length} issue{activeTickets.length !== 1 ? 's' : ''}</span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="flex items-center text-sm text-green-700 bg-green-100 px-3 py-1.5 rounded-lg border border-green-200">
-                                                                            <CheckCircle className="w-4 h-4 mr-2" />
-                                                                            <span className="font-medium">Working</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-
-                                                                {/* Usuarios y botón de acción */}
-                                                                <div className="flex items-center gap-3">
-                                                                    {/* Usuarios */}
-                                                                    <div className="flex items-center -space-x-1">
-                                                                        {/* Dueño */}
-                                                                        {device.owner && (
-                                                                            <TooltipProvider key={device.owner[0].id}>
-                                                                                <Tooltip>
-                                                                                    <TooltipTrigger>
-                                                                                        <img
-                                                                                            src={`/storage/${device.owner[0].photo}`}
-                                                                                            alt={device.owner[0].name}
-                                                                                            title={`Owner: ${device.owner[0].name}`}
-                                                                                            className="w-7 h-7 object-cover rounded-full border-2 border-yellow-400 hover:border-yellow-500 transition-colors"
-                                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                                                e.currentTarget.src = '/images/default-user.png';
-                                                                                            }}
-                                                                                        />
-                                                                                    </TooltipTrigger>
-                                                                                    <TooltipContent>
-                                                                                        <p>Owner: {device.owner[0].name}</p>
-                                                                                    </TooltipContent>
-                                                                                </Tooltip>
-                                                                            </TooltipProvider>
-                                                                        )}
-                                                                        {/* Compartido con */}
-                                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.slice(0, 2).map((tenant: any) => (
-                                                                            <TooltipProvider key={tenant.id}>
-                                                                                <Tooltip>
-                                                                                    <TooltipTrigger>
-                                                                                        <img
-                                                                                            src={`/storage/${tenant.photo}`}
-                                                                                            alt={tenant.name}
-                                                                                            title={`Shared with: ${tenant.name}`}
-                                                                                            className="w-7 h-7 object-cover rounded-full border-2 border-blue-400 hover:border-blue-500 transition-colors"
-                                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                                                e.currentTarget.src = '/images/default-user.png';
-                                                                                            }}
-                                                                                        />
-                                                                                    </TooltipTrigger>
-                                                                                    <TooltipContent>
-                                                                                        <p>Shared with: {tenant.name}</p>
-                                                                                    </TooltipContent>
-                                                                                </Tooltip>
-                                                                            </TooltipProvider>
-                                                                        ))}
-                                                                        {/* Mostrar +N si hay más usuarios */}
-                                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 2 && (
-                                                                            <div className="w-7 h-7 bg-slate-200 rounded-full border-2 border-slate-400 flex items-center justify-center hover:bg-slate-300 transition-colors">
-                                                                                <span className="text-xs font-bold text-slate-600">
-                                                                                    +{device.shared_with.length - 2}
-                                                                                </span>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-
-                                                                    {/* Botón de acción */}
-                                                                    <div className="flex items-center justify-center w-9 h-9 bg-primary/10 rounded-full group-hover:bg-primary/20 group-hover:scale-105 transition-all duration-300 flex-shrink-0">
-                                                                        <span className="text-primary text-lg font-bold">+</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Indicador de hover */}
-                                                        <div className="absolute inset-0 bg-gradient-to-r from-primary/0 to-primary/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                                                    </button>
-
-                                                    {/* NinjaOne Integration - Solo mostrar si el dispositivo tiene integración habilitada */}
-                                                    {device.ninjaone_enabled && (
-                                                        <div className="space-y-2">
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    toggleDeviceAlerts(device.id);
-                                                                }}
-                                                                className="w-full flex items-center justify-between px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm"
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    <Shield className="w-4 h-4 text-blue-600" />
-                                                                    <span className="font-medium text-blue-800">NinjaOne Alerts</span>
-                                                                    {deviceAlerts.filter(alert => alert.device_id === device.id && alert.status !== 'resolved').length > 0 && (
-                                                                        <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">
-                                                                            {deviceAlerts.filter(alert => alert.device_id === device.id && alert.status !== 'resolved').length}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <div className={`transition-transform ${showNinjaOneAlerts[device.id] ? 'rotate-180' : ''}`}>
-                                                                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                                    </svg>
-                                                                </div>
-                                                            </button>
-
-                                                            {/* Mostrar alertas cuando están expandidas */}
-                                                            {showNinjaOneAlerts[device.id] && (
-                                                                <div className="space-y-2 pl-4">
-                                                                    {loadingAlerts[device.id] ? (
-                                                                        <div className="flex items-center justify-center py-4">
-                                                                            <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                                                                            <span className="ml-2 text-sm text-gray-600">Loading alerts...</span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <>
-                                                                            {deviceAlerts.filter(alert => alert.device_id === device.id).length === 0 ? (
-                                                                                <div className="text-center py-4 text-sm text-gray-500">
-                                                                                    <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                                                                                    No active alerts for this device
-                                                                                </div>
-                                                                            ) : (
-                                                                                deviceAlerts
-                                                                                    .filter(alert => alert.device_id === device.id)
-                                                                                    .map(alert => (
-                                                                                        <NinjaOneAlertCard
-                                                                                            key={alert.id}
-                                                                                            alert={alert}
-                                                                                            onAcknowledge={acknowledgeAlert}
-                                                                                            onResolve={resolveAlert}
-                                                                                            onCreateTicket={createTicketFromAlert}
-                                                                                            showActions={true}
-                                                                                        />
-                                                                                    ))
-                                                                            )}
-                                                                        </>
-                                                                    )}
-                                                                </div>
-                                                            )}
+                                                    ) : (
+                                                        <div className="flex items-center text-sm text-green-700 bg-green-100 px-3 py-1.5 rounded-lg border border-green-200">
+                                                            <CheckCircle className="w-4 h-4 mr-2" />
+                                                            <span className="font-medium">Working</span>
                                                         </div>
                                                     )}
                                                 </div>
-                                            )
-                                        }) : (
-                                            <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400">
-                                                <Monitor className="w-16 h-16 mb-3 text-slate-300" />
-                                                <p className="text-lg font-medium text-slate-600">No devices registered</p>
-                                                <p className="text-sm text-slate-500">Contact your administrator to register devices</p>
+
+                                                {/* Usuarios y botón de acción */}
+                                                <div className="flex items-center gap-3">
+                                                    {/* Usuarios */}
+                                                    <div className="flex items-center -space-x-1">
+                                                        {/* Dueño */}
+                                                        {device.owner && (
+                                                            <TooltipProvider key={device.owner[0].id}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger>
+                                                                        <img
+                                                                            src={`/storage/${device.owner[0].photo}`}
+                                                                            alt={device.owner[0].name}
+                                                                            title={`Owner: ${device.owner[0].name}`}
+                                                                            className="w-7 h-7 object-cover rounded-full border-2 border-yellow-400 hover:border-yellow-500 transition-colors"
+                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                e.currentTarget.src = '/images/default-user.png';
+                                                                            }}
+                                                                        />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Owner: {device.owner[0].name}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        )}
+                                                        {/* Compartido con */}
+                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.slice(0, 2).map((tenant: any) => (
+                                                            <TooltipProvider key={tenant.id}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger>
+                                                                        <img
+                                                                            src={`/storage/${tenant.photo}`}
+                                                                            alt={tenant.name}
+                                                                            title={`Shared with: ${tenant.name}`}
+                                                                            className="w-7 h-7 object-cover rounded-full border-2 border-blue-400 hover:border-blue-500 transition-colors"
+                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                e.currentTarget.src = '/images/default-user.png';
+                                                                            }}
+                                                                        />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Shared with: {tenant.name}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        ))}
+                                                        {/* Mostrar +N si hay más usuarios */}
+                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 2 && (
+                                                            <div className="w-7 h-7 bg-slate-200 rounded-full border-2 border-slate-400 flex items-center justify-center hover:bg-slate-300 transition-colors">
+                                                                <span className="text-xs font-bold text-slate-600">
+                                                                    +{device.shared_with.length - 2}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Botón de acción */}
+                                                    <div className="flex items-center justify-center w-9 h-9 bg-primary/10 rounded-full group-hover:bg-primary/20 group-hover:scale-105 transition-all duration-300 flex-shrink-0">
+                                                        <span className="text-primary text-lg font-bold">+</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
+                                        </div>
+
+                                        {/* Indicador de hover */}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-primary/0 to-primary/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                                    </button>
+
+                                    {/* NinjaOne Integration - Solo mostrar si el dispositivo tiene integración habilitada */}
+                                    {device.ninjaone_enabled && (
+                                        <div className="space-y-2">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleDeviceAlerts(device.id);
+                                                }}
+                                                className="w-full flex items-center justify-between px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Shield className="w-4 h-4 text-blue-600" />
+                                                    <span className="font-medium text-blue-800">NinjaOne Alerts</span>
+                                                    {deviceAlerts.filter(alert => alert.device_id === device.id && alert.status !== 'resolved').length > 0 && (
+                                                        <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+                                                            {deviceAlerts.filter(alert => alert.device_id === device.id && alert.status !== 'resolved').length}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className={`transition-transform ${showNinjaOneAlerts[device.id] ? 'rotate-180' : ''}`}>
+                                                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </div>
+                                            </button>
+
+                                            {/* Mostrar alertas cuando están expandidas */}
+                                            {showNinjaOneAlerts[device.id] && (
+                                                <div className="space-y-2 pl-4">
+                                                    {loadingAlerts[device.id] ? (
+                                                        <div className="flex items-center justify-center py-4">
+                                                            <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                                                            <span className="ml-2 text-sm text-gray-600">Loading alerts...</span>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            {deviceAlerts.filter(alert => alert.device_id === device.id).length === 0 ? (
+                                                                <div className="text-center py-4 text-sm text-gray-500">
+                                                                    <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                                                                    No active alerts for this device
+                                                                </div>
+                                                            ) : (
+                                                                deviceAlerts
+                                                                    .filter(alert => alert.device_id === device.id)
+                                                                    .map(alert => (
+                                                                        <NinjaOneAlertCard
+                                                                            key={alert.id}
+                                                                            alert={alert}
+                                                                            onAcknowledge={acknowledgeAlert}
+                                                                            onResolve={resolveAlert}
+                                                                            onCreateTicket={createTicketFromAlert}
+                                                                            showActions={true}
+                                                                        />
+                                                                    ))
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        }) : (
+                            <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400">
+                                <Monitor className="w-16 h-16 mb-3 text-slate-300" />
+                                <p className="text-lg font-medium text-slate-600">No devices registered</p>
+                                <p className="text-sm text-slate-500">Contact your administrator to register devices</p>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className="px-6 py-8">
                     <div className={`grid grid-cols-1 xl:grid-cols-12 gap-8`}>
@@ -1624,7 +1621,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         </p>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div className="flex flex-col sm:flex-row gap-3 min-w-0 flex-1 xl:flex-initial xl:max-w-md">
                                                     {/* Filtro por Member */}
                                                     <div className="flex flex-col gap-2 min-w-0 flex-1">
@@ -1690,8 +1687,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         </CardContent>
                                     </Card>
 
-                                  
-                                    
+
+
                                     <div className="kanban-container flex w-full min-h-[500px] overflow-x-scroll">
                                         <KanbanBoard
                                             tickets={getFilteredTicketsForDoormanOwner()}
@@ -1738,8 +1735,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         )}
                                                     </div>
                                                 </div>
-                                                <Button 
-                                                    variant="outline" 
+                                                <Button
+                                                    variant="outline"
                                                     size="sm"
                                                     onClick={() => {
                                                         setSelectedMemberFilter('all');
@@ -1755,7 +1752,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                 </>
                             ) : (isTechnicalDefault || isSuperAdmin || isTechnical) ? (
                                 <>
-                                   
+
                                     <div className="kanban-container flex w-full min-h-[500px] overflow-x-scroll">
                                         <KanbanBoard
                                             tickets={statusFilter ? allTickets : (allTicketsUnfiltered.length > 0 ? allTicketsUnfiltered : allTickets)}
@@ -1905,8 +1902,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             <Card
                                                 key={ticket.id}
                                                 className={`cursor-pointer transition-all hover:shadow-lg  ${selectedTicket?.id === ticket.id
-                                                        ? 'border-primary bg-blue-50/50'
-                                                        : ' '
+                                                    ? 'border-primary bg-blue-50/50'
+                                                    : ' '
                                                     }`}
                                                 onClick={() => handleSelectTicket(ticket)}
                                             >
@@ -1969,7 +1966,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     <p className="text-blue-100 text-sm font-medium">Complete ticket information & timeline</p>
                                                 </div>
                                             </div>
-                                           
+
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-0">
@@ -2007,14 +2004,14 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                 <StatusBadge status={selectedTicket.status} />
                                                             </div>
                                                         </div>
-                                                        
+
                                                         {/* 🏷️ Enhanced Badges Row */}
                                                         <div className="flex flex-wrap items-center gap-3">
                                                             <CategoryBadge category={selectedTicket.category} />
                                                             <span className="text-xs text-slate-500 font-mono bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
                                                                 {selectedTicket.code}
                                                             </span>
-                                                            
+
                                                             {/* 👤 Creator Badges - Enhanced */}
                                                             {selectedTicket.created_by_owner_id && selectedTicket.created_by_owner && (
                                                                 <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-200 shadow-sm">
@@ -2053,7 +2050,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                     <p className="text-sm text-slate-600">Technical specifications and details</p>
                                                                 </div>
                                                             </div>
-                                                            
+
                                                             {/* 🏷️ Enhanced Device Badges Grid */}
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                                 <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
@@ -2069,7 +2066,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         </p>
                                                                     </div>
                                                                 </div>
-                                                                
+
                                                                 {selectedTicket.device.brand && (
                                                                     <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
                                                                         <Tag className="w-4 h-4 text-emerald-600" />
@@ -2079,7 +2076,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         </div>
                                                                     </div>
                                                                 )}
-                                                                
+
                                                                 {selectedTicket.device.model && (
                                                                     <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
                                                                         <Smartphone className="w-4 h-4 text-purple-600" />
@@ -2089,7 +2086,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         </div>
                                                                     </div>
                                                                 )}
-                                                                
+
                                                                 {selectedTicket.device.system && (
                                                                     <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
                                                                         <Settings className="w-4 h-4 text-orange-600" />
@@ -2099,7 +2096,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         </div>
                                                                     </div>
                                                                 )}
-                                                                
+
                                                                 {selectedTicket.device.ubicacion && (
                                                                     <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
                                                                         <Home className="w-4 h-4 text-indigo-600" />
@@ -2259,22 +2256,21 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                             Scheduled Visit
                                                                         </span>
                                                                     </div>
-                                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                                        selectedTicket.active_appointment.status === 'scheduled' 
+                                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${selectedTicket.active_appointment.status === 'scheduled'
                                                                             ? 'bg-blue-100 text-blue-800'
                                                                             : selectedTicket.active_appointment.status === 'in_progress'
-                                                                            ? 'bg-yellow-100 text-yellow-800'
-                                                                            : selectedTicket.active_appointment.status === 'awaiting_feedback'
-                                                                            ? 'bg-purple-100 text-purple-800'
-                                                                            : 'bg-green-100 text-green-800'
-                                                                    }`}>
-                                                                        {selectedTicket.active_appointment.status === 'scheduled' 
-                                                                            ? 'Scheduled' 
+                                                                                ? 'bg-yellow-100 text-yellow-800'
+                                                                                : selectedTicket.active_appointment.status === 'awaiting_feedback'
+                                                                                    ? 'bg-purple-100 text-purple-800'
+                                                                                    : 'bg-green-100 text-green-800'
+                                                                        }`}>
+                                                                        {selectedTicket.active_appointment.status === 'scheduled'
+                                                                            ? 'Scheduled'
                                                                             : selectedTicket.active_appointment.status === 'in_progress'
-                                                                            ? 'In Progress' 
-                                                                            : selectedTicket.active_appointment.status === 'awaiting_feedback'
-                                                                            ? 'Awaiting Feedback'
-                                                                            : 'Completed'}
+                                                                                ? 'In Progress'
+                                                                                : selectedTicket.active_appointment.status === 'awaiting_feedback'
+                                                                                    ? 'Awaiting Feedback'
+                                                                                    : 'Completed'}
                                                                     </span>
                                                                 </div>
                                                                 <p className="text-sm text-blue-700 mt-1">
@@ -2283,7 +2279,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                 <p className="text-xs text-blue-600 mt-1">
                                                                     {selectedTicket.active_appointment.title}
                                                                 </p>
-                                                                
+
                                                                 {/* Appointment Actions */}
                                                                 <div className="flex gap-2 mt-3">
                                                                     {/* Technical Actions */}
@@ -2309,7 +2305,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                             )}
                                                                         </>
                                                                     )}
-                                                                    
+
                                                                     {/* Member Action */}
                                                                     {isMember && selectedTicket.active_appointment.status === 'awaiting_feedback' && (
                                                                         <button
@@ -2320,7 +2316,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                             Provide Feedback
                                                                         </button>
                                                                     )}
-                                                                    
+
                                                                     {/* Common View Details Button */}
                                                                     <button
                                                                         onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
@@ -2348,7 +2344,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                     <MessageSquare className="w-4 h-4" />
                                                                     Add Comment
                                                                 </button>
-                                                                
+
                                                                 {/* Schedule Appointment Button - only for technicians working on the ticket */}
                                                                 {selectedTicket.status === 'in_progress' && selectedTicket.technical_id && !selectedTicket.active_appointment && (isTechnical || isTechnicalDefault || isSuperAdmin) && (
                                                                     <button
@@ -2360,7 +2356,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                     </button>
                                                                 )}
 
-                                                               
+
                                                                 {getNextStatuses(selectedTicket.status).map((status) => (
                                                                     <button
                                                                         key={status}
@@ -2412,41 +2408,40 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         </div>
                                                     )}
 
-                                                    {/* 📅 Enhanced Visual Timeline for Members */}
-                                                    {isMember && selectedTicket.histories && selectedTicket.histories.length > 0 && (
+                                                    {/* 📅 Enhanced Visual Timeline for All Users */}
+                                                    {selectedTicket.histories && selectedTicket.histories.length > 0 && (
                                                         <div className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 border-b border-indigo-200">
                                                             <div className="flex items-center gap-3 mb-6">
-                                                                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                                                                    <Clock className="w-5 h-5 text-white" />
+                                                                <div className="w-10 h-10 bg-gradient-to-br from-primary to-card rounded-xl flex items-center justify-center shadow-lg">
+                                                                    <Clock className="w-5 h-5 text-primary-foreground" />
                                                                 </div>
                                                                 <div>
                                                                     <h4 className="text-lg font-bold text-slate-900">Timeline</h4>
                                                                     <p className="text-sm text-slate-600">Complete ticket activity history</p>
                                                                 </div>
                                                             </div>
-                                                            
+
                                                             <div className="relative">
                                                                 {/* ✨ Enhanced Vertical Line */}
-                                                                <div className="absolute left-6 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-300 via-purple-300 to-pink-300 rounded-full"></div>
+                                                                <div className="absolute left-6 top-0 bottom-0 w-1 bg-gradient-to-b from-sidebar-accent via-secondary to-card rounded-full"></div>
 
                                                                 <div className="space-y-6">
                                                                     {[...selectedTicket.histories].reverse().map((entry: any, index: number) => (
                                                                         <div key={index} className="relative flex items-start gap-6">
                                                                             {/* 🎯 Enhanced Status Icons */}
-                                                                            <div className={`relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg border-4 border-white ${
-                                                                                entry.action?.includes('created') ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
-                                                                                entry.action?.includes('assigned') ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
-                                                                                entry.action?.includes('in_progress') ? 'bg-gradient-to-br from-amber-500 to-orange-500' :
-                                                                                entry.action?.includes('resolved') ? 'bg-gradient-to-br from-green-500 to-emerald-600' :
-                                                                                entry.action?.includes('closed') ? 'bg-gradient-to-br from-gray-500 to-slate-600' :
-                                                                                'bg-gradient-to-br from-indigo-500 to-purple-600'
-                                                                            }`}>
+                                                                            <div className={`relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg border-4 border-white ${entry.action?.includes('created') ? 'bg-gradient-to-br from-primary to-secondary' :
+                                                                                    entry.action?.includes('assigned') ? 'bg-gradient-to-br from-primary to-secondary' :
+                                                                                        entry.action?.includes('in_progress') ? 'bg-gradient-to-br from-primary to-secondary' :
+                                                                                            entry.action?.includes('resolved') ? 'bg-gradient-to-br from-primary to-secondary' :
+                                                                                                entry.action?.includes('closed') ? 'bg-gradient-to-br from-primary to-secondary' :
+                                                                                                    'bg-gradient-to-br from-primary to-secondary'
+                                                                                }`}>
                                                                                 {entry.action?.includes('created') ? <AlertCircle className="w-5 h-5 text-white" /> :
-                                                                                entry.action?.includes('assigned') ? <UserCheck className="w-5 h-5 text-white" /> :
-                                                                                entry.action?.includes('in_progress') ? <Clock className="w-5 h-5 text-white" /> :
-                                                                                entry.action?.includes('resolved') ? <CheckCircle className="w-5 h-5 text-white" /> :
-                                                                                entry.action?.includes('closed') ? <XCircle className="w-5 h-5 text-white" /> :
-                                                                                <MessageSquare className="w-5 h-5 text-white" />}
+                                                                                    entry.action?.includes('assigned') ? <UserCheck className="w-5 h-5 text-white" /> :
+                                                                                        entry.action?.includes('in_progress') ? <Clock className="w-5 h-5 text-white" /> :
+                                                                                            entry.action?.includes('resolved') ? <CheckCircle className="w-5 h-5 text-white" /> :
+                                                                                                entry.action?.includes('closed') ? <XCircle className="w-5 h-5 text-white" /> :
+                                                                                                    <MessageSquare className="w-5 h-5 text-white" />}
                                                                             </div>
 
                                                                             {/* 💫 Enhanced Content Card */}
@@ -2460,14 +2455,13 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                             {formatHistoryDateTime(entry.created_at).date} • {formatHistoryDateTime(entry.created_at).time}
                                                                                         </span>
                                                                                         {entry.action && (
-                                                                                            <span className={`text-xs px-3 py-1 rounded-full font-semibold shadow-sm ${
-                                                                                                entry.action?.includes('created') ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                                                                                                entry.action?.includes('assigned') ? 'bg-purple-100 text-purple-800 border border-purple-200' :
-                                                                                                entry.action?.includes('in_progress') ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                                                                                                entry.action?.includes('resolved') ? 'bg-green-100 text-green-800 border border-green-200' :
-                                                                                                entry.action?.includes('closed') ? 'bg-gray-100 text-gray-800 border border-gray-200' :
-                                                                                                'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                                                                                            }`}>
+                                                                                            <span className={`text-xs px-3 py-1 rounded-full font-semibold shadow-sm ${entry.action?.includes('created') ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                                                                                    entry.action?.includes('assigned') ? 'bg-purple-100 text-purple-800 border border-purple-200' :
+                                                                                                        entry.action?.includes('in_progress') ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                                                                                                            entry.action?.includes('resolved') ? 'bg-green-100 text-green-800 border border-green-200' :
+                                                                                                                entry.action?.includes('closed') ? 'bg-gray-100 text-gray-800 border border-gray-200' :
+                                                                                                                    'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                                                                                                }`}>
                                                                                                 {entry.action.replaceAll('_', ' ').replaceAll('status change ', '')}
                                                                                             </span>
                                                                                         )}
@@ -2480,71 +2474,6 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         </div>
                                                                     ))}
                                                                 </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Ticket History - Solo para técnicos */}
-                                                    {!isMember && (
-                                                        <div className="px-6 pb-6">
-                                                            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                                                                <Clock className="w-4 h-4 text-muted-foreground" />
-                                                                Complete Activity History
-                                                            </h4>
-                                                            <div className="space-y-3 max-h-96 overflow-y-auto">
-                                                                {selectedTicket.history && selectedTicket.history.length > 0 ? (
-                                                                    [...selectedTicket.history].reverse().map((entry: any, index: number) => (
-                                                                        <div key={index} className="flex gap-3 p-3 bg-muted/30 rounded-lg">
-                                                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                                                                                <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                                                                            </div>
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <div className="flex items-center gap-2 mb-1">
-                                                                                    <span className="text-xs font-medium text-foreground">
-                                                                                        {entry.user?.name || 'System'}
-                                                                                    </span>
-                                                                                    <span className="text-xs text-muted-foreground">
-                                                                                        {formatHistoryDateTime(entry.created_at).date} a las {formatHistoryDateTime(entry.created_at).time}
-                                                                                    </span>
-                                                                                </div>
-                                                                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                                                                    {entry.description}
-                                                                                </p>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))
-                                                                ) : selectedTicket.histories && selectedTicket.histories.length > 0 ? (
-                                                                    [...selectedTicket.histories].reverse().map((entry: any, index: number) => (
-                                                                        <div key={index} className="flex gap-3 p-3 bg-muted/30 rounded-lg">
-                                                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                                                                                <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                                                                            </div>
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <div className="flex items-center gap-2 mb-1">
-                                                                                    <span className="text-xs font-medium text-foreground">
-                                                                                        {entry.user?.name || entry.technical?.name || 'System'}
-                                                                                    </span>
-                                                                                    <span className="text-xs text-muted-foreground">
-                                                                                        {formatHistoryDateTime(entry.created_at).date} a las {formatHistoryDateTime(entry.created_at).time}
-                                                                                    </span>
-                                                                                </div>
-                                                                                <p className="text-xs text-muted-foreground leading-relaxed">                                                                                {entry.description}
-                                                                                </p>
-                                                                                {entry.action && (
-                                                                                    <span className="inline-block mt-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
-                                                                                        {entry.action.replaceAll('_', ' ')}
-                                                                                    </span>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    ))
-                                                                ) : (
-                                                                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                                                                        <MessageSquare className="w-12 h-12 mb-3 text-muted-foreground/50" />
-                                                                        <p className="text-sm font-medium">No activity yet</p>
-                                                                        <p className="text-xs text-center">Comments and updates will appear here</p>
-                                                                    </div>
-                                                                )}
                                                             </div>
                                                         </div>
                                                     )}
@@ -2744,8 +2673,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         <div
                                             key={t.id}
                                             className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${assignTechnicalId === t.id
-                                                    ? 'border-purple-500 bg-purple-50 shadow-md'
-                                                    : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-25'
+                                                ? 'border-purple-500 bg-purple-50 shadow-md'
+                                                : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-25'
                                                 }`}
                                             onClick={() => setAssignTechnicalId(t.id)}
                                         >
@@ -2777,8 +2706,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 )}
                                             </div>
                                             <div className={`w-4 h-4 rounded-full border-2 ${assignTechnicalId === t.id
-                                                    ? 'border-purple-500 bg-purple-500'
-                                                    : 'border-slate-300'
+                                                ? 'border-purple-500 bg-purple-500'
+                                                : 'border-slate-300'
                                                 }`}>
                                                 {assignTechnicalId === t.id && (
                                                     <div className="w-full h-full rounded-full bg-purple-500"></div>
@@ -2885,7 +2814,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         deviceOptions.map((d: any) => (
                                             <option key={d.id} value={d.id}>
                                                 {d.name_device?.name || d.name || `Device #${d.id}`}
-                                                {(isSuperAdmin || isTechnicalDefault) && d.building_name && d.apartment_name && 
+                                                {(isSuperAdmin || isTechnicalDefault) && d.building_name && d.apartment_name &&
                                                     ` - ${d.building_name} / ${d.apartment_name}`
                                                 }
                                             </option>
@@ -3295,8 +3224,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             type="button"
                                             onClick={() => setTicketRating(star)}
                                             className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${star <= ticketRating
-                                                    ? 'bg-yellow-100 text-yellow-500 scale-110'
-                                                    : 'bg-gray-100 text-gray-400 hover:bg-yellow-50 hover:text-yellow-400'
+                                                ? 'bg-yellow-100 text-yellow-500 scale-110'
+                                                : 'bg-gray-100 text-gray-400 hover:bg-yellow-50 hover:text-yellow-400'
                                                 }`}
                                         >
                                             <Star className={`w-6 h-6 ${star <= ticketRating ? 'fill-current' : ''}`} />
@@ -3654,7 +3583,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             Confirmar eliminación
                         </DialogTitle>
                         <DialogDescription className="text-sm text-gray-500">
-                            ¿Estás seguro de que deseas eliminar el ticket #{showDeleteModal.ticket?.id}? 
+                            ¿Estás seguro de que deseas eliminar el ticket #{showDeleteModal.ticket?.id}?
                             Esta acción no se puede deshacer.
                         </DialogDescription>
                     </DialogHeader>
@@ -3697,69 +3626,69 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                     <div className="max-h-[55vh] overflow-y-auto pr-2">
                         <form id="schedule-appointment-form" onSubmit={submitScheduleAppointment} className="space-y-6">
                             <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                    Appointment Title
-                                </label>
-                                <Input
-                                    value={appointmentForm.title}
-                                    onChange={e => setAppointmentForm(prev => ({ ...prev, title: e.target.value }))}
-                                    className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
-                                    required
-                                    placeholder="e.g., Technical Visit - Equipment Repair"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-800 mb-2">
+                                        Appointment Title
+                                    </label>
+                                    <Input
+                                        value={appointmentForm.title}
+                                        onChange={e => setAppointmentForm(prev => ({ ...prev, title: e.target.value }))}
+                                        className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                                        required
+                                        placeholder="e.g., Technical Visit - Equipment Repair"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                    Description
-                                </label>
-                                <textarea
-                                    value={appointmentForm.description}
-                                    onChange={e => setAppointmentForm(prev => ({ ...prev, description: e.target.value }))}
-                                    className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[100px] resize-none"
-                                    placeholder="Describe what will be performed during the visit..."
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-800 mb-2">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        value={appointmentForm.description}
+                                        onChange={e => setAppointmentForm(prev => ({ ...prev, description: e.target.value }))}
+                                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[100px] resize-none"
+                                        placeholder="Describe what will be performed during the visit..."
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                    Date and Time
-                                </label>
-                                <Input
-                                    type="datetime-local"
-                                    value={appointmentForm.scheduled_for}
-                                    onChange={e => setAppointmentForm(prev => ({ ...prev, scheduled_for: e.target.value }))}
-                                    className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
-                                    required
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-800 mb-2">
+                                        Date and Time
+                                    </label>
+                                    <Input
+                                        type="datetime-local"
+                                        value={appointmentForm.scheduled_for}
+                                        onChange={e => setAppointmentForm(prev => ({ ...prev, scheduled_for: e.target.value }))}
+                                        className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                                        required
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                    Instructions for User
-                                </label>
-                                <textarea
-                                    value={appointmentForm.member_instructions}
-                                    onChange={e => setAppointmentForm(prev => ({ ...prev, member_instructions: e.target.value }))}
-                                    className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[80px] resize-none"
-                                    placeholder="Special instructions for the user (e.g., have equipment available, prepare access, etc.)"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-800 mb-2">
+                                        Instructions for User
+                                    </label>
+                                    <textarea
+                                        value={appointmentForm.member_instructions}
+                                        onChange={e => setAppointmentForm(prev => ({ ...prev, member_instructions: e.target.value }))}
+                                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[80px] resize-none"
+                                        placeholder="Special instructions for the user (e.g., have equipment available, prepare access, etc.)"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-800 mb-2">
-                                    Internal Notes
-                                </label>
-                                <textarea
-                                    value={appointmentForm.notes}
-                                    onChange={e => setAppointmentForm(prev => ({ ...prev, notes: e.target.value }))}
-                                    className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[80px] resize-none"
-                                    placeholder="Additional notes for the technician..."
-                                />
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-800 mb-2">
+                                        Internal Notes
+                                    </label>
+                                    <textarea
+                                        value={appointmentForm.notes}
+                                        onChange={e => setAppointmentForm(prev => ({ ...prev, notes: e.target.value }))}
+                                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 min-h-[80px] resize-none"
+                                        placeholder="Additional notes for the technician..."
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
                     </div>
 
                     <DialogFooter className="pt-6 border-t border-slate-200">
@@ -3812,472 +3741,469 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             </div>
                         </DialogTitle>
                     </DialogHeader>
-                    
+
                     <div className="max-h-[70vh] overflow-y-auto pr-2">
-                    {showAppointmentDetailsModal.appointment && (
-                        <div className="space-y-8">
-                            {/* Main Appointment Info Card */}
-                            <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                                <div className="flex items-start justify-between mb-6">
-                                    <div className="flex-1">
-                                        <h3 className="text-xl font-bold text-slate-900 mb-2">
-                                            {showAppointmentDetailsModal.appointment.title}
-                                        </h3>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
-                                                showAppointmentDetailsModal.appointment.status === 'scheduled' 
-                                                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                                    : showAppointmentDetailsModal.appointment.status === 'in_progress'
-                                                    ? 'bg-yellow-100 text-yellow-700 border border-yellow-200'
-                                                    : showAppointmentDetailsModal.appointment.status === 'completed'
-                                                    ? 'bg-green-100 text-green-700 border border-green-200'
-                                                    : 'bg-red-100 text-red-700 border border-red-200'
-                                            }`}>
-                                                {showAppointmentDetailsModal.appointment.status === 'scheduled' && <Clock className="w-4 h-4" />}
-                                                {showAppointmentDetailsModal.appointment.status === 'in_progress' && <AlertCircle className="w-4 h-4" />}
-                                                {showAppointmentDetailsModal.appointment.status === 'completed' && <CheckCircle className="w-4 h-4" />}
-                                                {showAppointmentDetailsModal.appointment.status === 'cancelled' && <X className="w-4 h-4" />}
-                                                <span className="capitalize">{showAppointmentDetailsModal.appointment.status.replace('_', ' ')}</span>
-                                            </span>
+                        {showAppointmentDetailsModal.appointment && (
+                            <div className="space-y-8">
+                                {/* Main Appointment Info Card */}
+                                <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                    <div className="flex items-start justify-between mb-6">
+                                        <div className="flex-1">
+                                            <h3 className="text-xl font-bold text-slate-900 mb-2">
+                                                {showAppointmentDetailsModal.appointment.title}
+                                            </h3>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${showAppointmentDetailsModal.appointment.status === 'scheduled'
+                                                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                                        : showAppointmentDetailsModal.appointment.status === 'in_progress'
+                                                            ? 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                                                            : showAppointmentDetailsModal.appointment.status === 'completed'
+                                                                ? 'bg-green-100 text-green-700 border border-green-200'
+                                                                : 'bg-red-100 text-red-700 border border-red-200'
+                                                    }`}>
+                                                    {showAppointmentDetailsModal.appointment.status === 'scheduled' && <Clock className="w-4 h-4" />}
+                                                    {showAppointmentDetailsModal.appointment.status === 'in_progress' && <AlertCircle className="w-4 h-4" />}
+                                                    {showAppointmentDetailsModal.appointment.status === 'completed' && <CheckCircle className="w-4 h-4" />}
+                                                    {showAppointmentDetailsModal.appointment.status === 'cancelled' && <X className="w-4 h-4" />}
+                                                    <span className="capitalize">{showAppointmentDetailsModal.appointment.status.replace('_', ' ')}</span>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
+
+                                    {/* Details Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
+                                                <div className="p-2 bg-blue-100 rounded-lg">
+                                                    <Calendar className="w-5 h-5 text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-medium text-slate-600">Scheduled Date & Time</div>
+                                                    <div className="text-base font-semibold text-slate-900">
+                                                        {formatLocalDateTime(showAppointmentDetailsModal.appointment.scheduled_for).date}
+                                                    </div>
+                                                    <div className="text-sm text-slate-600">
+                                                        {formatLocalDateTime(showAppointmentDetailsModal.appointment.scheduled_for).time}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
+                                                <div className="p-2 bg-green-100 rounded-lg">
+                                                    <MapPin className="w-5 h-5 text-green-600" />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-medium text-slate-600">Location</div>
+                                                    <div className="text-base font-semibold text-slate-900">
+                                                        {showAppointmentDetailsModal.appointment.address}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
+                                                <div className="p-2 bg-purple-100 rounded-lg">
+                                                    <User className="w-5 h-5 text-purple-600" />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-medium text-slate-600">Assigned Technician</div>
+                                                    <div className="text-base font-semibold text-slate-900">
+                                                        {showAppointmentDetailsModal.appointment.technical?.name || 'Not assigned'}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
+                                                <div className="p-2 bg-orange-100 rounded-lg">
+                                                    <Ticket className="w-5 h-5 text-orange-600" />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-medium text-slate-600">Related Ticket</div>
+                                                    <div className="text-base font-semibold text-slate-900">
+                                                        #{showAppointmentDetailsModal.appointment.ticket?.code || 'N/A'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Description */}
+                                    {showAppointmentDetailsModal.appointment.description && (
+                                        <div className="mt-6 p-4 bg-white rounded-xl border border-slate-100">
+                                            <h4 className="text-sm font-medium text-slate-600 mb-2">Description</h4>
+                                            <p className="text-slate-900">{showAppointmentDetailsModal.appointment.description}</p>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Details Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
-                                            <div className="p-2 bg-blue-100 rounded-lg">
-                                                <Calendar className="w-5 h-5 text-blue-600" />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-medium text-slate-600">Scheduled Date & Time</div>
-                                                <div className="text-base font-semibold text-slate-900">
-                                                    {formatLocalDateTime(showAppointmentDetailsModal.appointment.scheduled_for).date}
-                                                </div>
-                                                <div className="text-sm text-slate-600">
-                                                    {formatLocalDateTime(showAppointmentDetailsModal.appointment.scheduled_for).time}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
-                                            <div className="p-2 bg-green-100 rounded-lg">
-                                                <MapPin className="w-5 h-5 text-green-600" />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-medium text-slate-600">Location</div>
-                                                <div className="text-base font-semibold text-slate-900">
-                                                    {showAppointmentDetailsModal.appointment.address}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
-                                            <div className="p-2 bg-purple-100 rounded-lg">
-                                                <User className="w-5 h-5 text-purple-600" />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-medium text-slate-600">Assigned Technician</div>
-                                                <div className="text-base font-semibold text-slate-900">
-                                                    {showAppointmentDetailsModal.appointment.technical?.name || 'Not assigned'}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
-                                            <div className="p-2 bg-orange-100 rounded-lg">
-                                                <Ticket className="w-5 h-5 text-orange-600" />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-medium text-slate-600">Related Ticket</div>
-                                                <div className="text-base font-semibold text-slate-900">
-                                                    #{showAppointmentDetailsModal.appointment.ticket?.code || 'N/A'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Description */}
-                                {showAppointmentDetailsModal.appointment.description && (
-                                    <div className="mt-6 p-4 bg-white rounded-xl border border-slate-100">
-                                        <h4 className="text-sm font-medium text-slate-600 mb-2">Description</h4>
-                                        <p className="text-slate-900">{showAppointmentDetailsModal.appointment.description}</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Complete Appointment Form - Technical Side */}
-                            {showAppointmentDetailsModal.appointment.status === 'in_progress' && (isTechnical || isSuperAdmin || !isMember) && (
-                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="p-2 bg-green-100 rounded-lg">
-                                            <CheckCircle className="w-6 h-6 text-green-600" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-bold text-green-900">Complete Visit</h3>
-                                            <p className="text-sm text-green-700">Mark this visit as completed. The member will provide their feedback separately.</p>
-                                        </div>
-                                    </div>
-
-                                    <form onSubmit={async (e) => {
-                                        e.preventDefault();
-                                        await handleAppointmentAction('complete', showAppointmentDetailsModal.appointment.id, {
-                                            completion_notes: appointmentActionForm.completion_notes
-                                        });
-                                        setShowAppointmentDetailsModal({ open: false });
-                                    }} className="space-y-6">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-green-900 mb-3">
-                                                Completion Notes *
-                                            </label>
-                                            <textarea
-                                                value={appointmentActionForm.completion_notes}
-                                                onChange={e => setAppointmentActionForm(prev => ({ ...prev, completion_notes: e.target.value }))}
-                                                className="w-full border-2 border-green-200 rounded-xl px-4 py-3 text-base focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all duration-200 min-h-[120px] resize-none bg-white"
-                                                placeholder="Describe what was performed during the visit and the outcome..."
-                                                required
-                                            />
-                                        </div>
-
-                                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                                <h4 className="font-semibold text-blue-900">Next Step</h4>
-                                            </div>
-                                            <p className="text-sm text-blue-700">
-                                                After you complete this visit, the member will be notified to provide their feedback and rating.
-                                            </p>
-                                        </div>
-
-                                        <button
-                                            type="submit"
-                                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
-                                            disabled={!appointmentActionForm.completion_notes.trim()}
-                                        >
-                                            <CheckCircle className="w-5 h-5" />
-                                            Complete Visit
-                                        </button>
-                                    </form>
-                                </div>
-                            )}
-
-                            {/* Member Feedback Form - Only for Members */}
-                            {showAppointmentDetailsModal.appointment && showAppointmentDetailsModal.appointment.status === 'awaiting_feedback' && isMember && (
-                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="p-2 bg-blue-100 rounded-lg">
-                                            <Star className="w-6 h-6 text-blue-600" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-bold text-blue-900">Provide Feedback</h3>
-                                            <p className="text-sm text-blue-700">Please rate the service and provide your comments</p>
-                                        </div>
-                                    </div>
-
-                                    <form onSubmit={async (e) => {
-                                        e.preventDefault();
-                                        await handleAppointmentAction('member_feedback', showAppointmentDetailsModal.appointment.id, {
-                                            member_feedback: appointmentActionForm.member_feedback,
-                                            service_rating: appointmentActionForm.service_rating
-                                        });
-                                        setShowAppointmentDetailsModal({ open: false });
-                                    }} className="space-y-6">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-blue-900 mb-3">
-                                                Your Comments
-                                            </label>
-                                            <textarea
-                                                value={appointmentActionForm.member_feedback}
-                                                onChange={e => setAppointmentActionForm(prev => ({ ...prev, member_feedback: e.target.value }))}
-                                                className="w-full border-2 border-blue-200 rounded-xl px-4 py-3 text-base focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 min-h-[100px] resize-none bg-white"
-                                                placeholder="How was the service? Any comments or suggestions..."
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-blue-900 mb-3">
-                                                Service Rating *
-                                            </label>
-                                            <div className="flex gap-2 p-4 bg-white rounded-xl border border-blue-200">
-                                                {[1, 2, 3, 4, 5].map(rating => (
-                                                    <button
-                                                        key={rating}
-                                                        type="button"
-                                                        onClick={() => setAppointmentActionForm(prev => ({ ...prev, service_rating: rating }))}
-                                                        className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 ${
-                                                            appointmentActionForm.service_rating >= rating 
-                                                                ? 'text-yellow-500 bg-yellow-50' 
-                                                                : 'text-gray-300 hover:text-yellow-400 hover:bg-yellow-50'
-                                                        }`}
-                                                    >
-                                                        <Star className="w-8 h-8 fill-current" />
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            type="submit"
-                                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
-                                            disabled={!appointmentActionForm.service_rating}
-                                        >
-                                            <Star className="w-5 h-5" />
-                                            Submit Feedback
-                                        </button>
-                                    </form>
-                                </div>
-                            )}
-
-                            {/* Cancel/Reschedule Appointment Forms */}
-                            {showAppointmentDetailsModal.appointment.status === 'scheduled' && (
-                                <div className="space-y-6">
-                                    {/* Cancel Section */}
-                                    <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-2xl p-6">
+                                {/* Complete Appointment Form - Technical Side */}
+                                {showAppointmentDetailsModal.appointment.status === 'in_progress' && (isTechnical || isSuperAdmin || !isMember) && (
+                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
                                         <div className="flex items-center gap-3 mb-6">
-                                            <div className="p-2 bg-red-100 rounded-lg">
-                                                <X className="w-6 h-6 text-red-600" />
+                                            <div className="p-2 bg-green-100 rounded-lg">
+                                                <CheckCircle className="w-6 h-6 text-green-600" />
                                             </div>
                                             <div>
-                                                <h3 className="text-lg font-bold text-red-900">Cancel Appointment</h3>
-                                                <p className="text-sm text-red-700">Cancel this scheduled appointment</p>
+                                                <h3 className="text-lg font-bold text-green-900">Complete Visit</h3>
+                                                <p className="text-sm text-green-700">Mark this visit as completed. The member will provide their feedback separately.</p>
                                             </div>
                                         </div>
 
                                         <form onSubmit={async (e) => {
                                             e.preventDefault();
-                                            await handleAppointmentAction('cancel', showAppointmentDetailsModal.appointment.id, { reason: appointmentActionForm.reason });
+                                            await handleAppointmentAction('complete', showAppointmentDetailsModal.appointment.id, {
+                                                completion_notes: appointmentActionForm.completion_notes
+                                            });
                                             setShowAppointmentDetailsModal({ open: false });
-                                        }} className="space-y-4">
+                                        }} className="space-y-6">
                                             <div>
-                                                <label className="block text-sm font-semibold text-red-900 mb-3">
-                                                    Cancellation Reason *
+                                                <label className="block text-sm font-semibold text-green-900 mb-3">
+                                                    Completion Notes *
                                                 </label>
                                                 <textarea
-                                                    value={appointmentActionForm.reason}
-                                                    onChange={e => setAppointmentActionForm(prev => ({ ...prev, reason: e.target.value }))}
-                                                    className="w-full border-2 border-red-200 rounded-xl px-4 py-3 text-base focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-all duration-200 min-h-[100px] resize-none bg-white"
-                                                    placeholder="Explain why the appointment is being cancelled..."
+                                                    value={appointmentActionForm.completion_notes}
+                                                    onChange={e => setAppointmentActionForm(prev => ({ ...prev, completion_notes: e.target.value }))}
+                                                    className="w-full border-2 border-green-200 rounded-xl px-4 py-3 text-base focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all duration-200 min-h-[120px] resize-none bg-white"
+                                                    placeholder="Describe what was performed during the visit and the outcome..."
                                                     required
                                                 />
+                                            </div>
+
+                                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                    <h4 className="font-semibold text-blue-900">Next Step</h4>
+                                                </div>
+                                                <p className="text-sm text-blue-700">
+                                                    After you complete this visit, the member will be notified to provide their feedback and rating.
+                                                </p>
                                             </div>
 
                                             <button
                                                 type="submit"
-                                                className="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                                                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                                                disabled={!appointmentActionForm.completion_notes.trim()}
                                             >
-                                                <X className="w-5 h-5" />
-                                                Cancel Appointment
+                                                <CheckCircle className="w-5 h-5" />
+                                                Complete Visit
                                             </button>
                                         </form>
                                     </div>
+                                )}
 
-                                    {/* Reschedule Section */}
+                                {/* Member Feedback Form - Only for Members */}
+                                {showAppointmentDetailsModal.appointment && showAppointmentDetailsModal.appointment.status === 'awaiting_feedback' && isMember && (
                                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
                                         <div className="flex items-center gap-3 mb-6">
                                             <div className="p-2 bg-blue-100 rounded-lg">
-                                                <Calendar className="w-6 h-6 text-blue-600" />
+                                                <Star className="w-6 h-6 text-blue-600" />
                                             </div>
                                             <div>
-                                                <h3 className="text-lg font-bold text-blue-900">Reschedule Appointment</h3>
-                                                <p className="text-sm text-blue-700">Change the date and time of this appointment</p>
+                                                <h3 className="text-lg font-bold text-blue-900">Provide Feedback</h3>
+                                                <p className="text-sm text-blue-700">Please rate the service and provide your comments</p>
                                             </div>
                                         </div>
 
                                         <form onSubmit={async (e) => {
                                             e.preventDefault();
-                                            if (!appointmentActionForm.new_scheduled_for) {
-                                                toast.error('Please select a new date and time');
-                                                return;
-                                            }
-                                            
-                                            // Validate that the selected date is in the future
-                                            const selectedDate = new Date(appointmentActionForm.new_scheduled_for);
-                                            const now = new Date();
-                                            
-                                            if (selectedDate <= now) {
-                                                toast.error('Please select a future date and time');
-                                                return;
-                                            }
-                                            
-                                            try {
-                                                // Show loading notification
-                                                const loadingToast = toast.loading('Rescheduling appointment...');
-                                                
-                                                // Convert local datetime to proper format that Carbon can parse
-                                                const localDateTime = appointmentActionForm.new_scheduled_for;
-                                                
-                                                // Create a Date object and format it properly for backend
-                                                const dateObj = new Date(localDateTime);
-                                                
-                                                // Ensure we format the date in a consistent timezone-aware way
-                                                const year = dateObj.getFullYear();
-                                                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                                                const day = String(dateObj.getDate()).padStart(2, '0');
-                                                const hours = String(dateObj.getHours()).padStart(2, '0');
-                                                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                                                
-                                                // Format as YYYY-MM-DD HH:mm:ss for consistent backend parsing
-                                                const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:00`;
-                                                
-                                                await handleAppointmentAction('reschedule', showAppointmentDetailsModal.appointment.id, { 
-                                                    new_scheduled_for: formattedDateTime,
-                                                    reason: appointmentActionForm.reason || '' // Allow empty reason
-                                                });
-                                                
-                                                // Dismiss loading and show success
-                                                toast.dismiss(loadingToast);
-                                                toast.success('Appointment rescheduled successfully!');
-                                                
-                                                // Clear form
-                                                setAppointmentActionForm(prev => ({ 
-                                                    ...prev, 
-                                                    new_scheduled_for: '',
-                                                    reason: ''
-                                                }));
-                                                appointmentActionForm.reason = '';
-                                                
-                                                setShowAppointmentDetailsModal({ open: false });
-                                            } catch (error) {
-                                                console.error('Error rescheduling appointment:', error);
-                                                toast.error('Failed to reschedule appointment');
-                                            }
-                                        }} className="space-y-4">
+                                            await handleAppointmentAction('member_feedback', showAppointmentDetailsModal.appointment.id, {
+                                                member_feedback: appointmentActionForm.member_feedback,
+                                                service_rating: appointmentActionForm.service_rating
+                                            });
+                                            setShowAppointmentDetailsModal({ open: false });
+                                        }} className="space-y-6">
                                             <div>
                                                 <label className="block text-sm font-semibold text-blue-900 mb-3">
-                                                    New Date and Time *
+                                                    Your Comments
                                                 </label>
-                                                <Input
-                                                    type="datetime-local"
-                                                    value={appointmentActionForm.new_scheduled_for}
-                                                    onChange={e => setAppointmentActionForm(prev => ({ ...prev, new_scheduled_for: e.target.value }))}
-                                                    className="border-2 border-blue-200 h-12 rounded-xl px-4 py-3 text-base focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 bg-white"
-                                                    required
+                                                <textarea
+                                                    value={appointmentActionForm.member_feedback}
+                                                    onChange={e => setAppointmentActionForm(prev => ({ ...prev, member_feedback: e.target.value }))}
+                                                    className="w-full border-2 border-blue-200 rounded-xl px-4 py-3 text-base focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 min-h-[100px] resize-none bg-white"
+                                                    placeholder="How was the service? Any comments or suggestions..."
                                                 />
                                             </div>
 
                                             <div>
                                                 <label className="block text-sm font-semibold text-blue-900 mb-3">
-                                                    Reason for Reschedule (Optional)
+                                                    Service Rating *
                                                 </label>
-                                                <textarea
-                                                    value={appointmentActionForm.reason}
-                                                    onChange={e => setAppointmentActionForm(prev => ({ ...prev, reason: e.target.value }))}
-                                                    className="w-full border-2 border-blue-200 rounded-xl px-4 py-3 text-base focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 min-h-[80px] resize-none bg-white"
-                                                    placeholder="Optional: explain why you're rescheduling..."
-                                                />
+                                                <div className="flex gap-2 p-4 bg-white rounded-xl border border-blue-200">
+                                                    {[1, 2, 3, 4, 5].map(rating => (
+                                                        <button
+                                                            key={rating}
+                                                            type="button"
+                                                            onClick={() => setAppointmentActionForm(prev => ({ ...prev, service_rating: rating }))}
+                                                            className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 ${appointmentActionForm.service_rating >= rating
+                                                                    ? 'text-yellow-500 bg-yellow-50'
+                                                                    : 'text-gray-300 hover:text-yellow-400 hover:bg-yellow-50'
+                                                                }`}
+                                                        >
+                                                            <Star className="w-8 h-8 fill-current" />
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
 
                                             <button
                                                 type="submit"
                                                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
-                                                disabled={!appointmentActionForm.new_scheduled_for}
+                                                disabled={!appointmentActionForm.service_rating}
                                             >
-                                                <Calendar className="w-5 h-5" />
-                                                Reschedule Appointment
+                                                <Star className="w-5 h-5" />
+                                                Submit Feedback
                                             </button>
                                         </form>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* View Only for Completed Appointments */}
-                            {showAppointmentDetailsModal.appointment.status === 'completed' && (
-                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl shadow-lg">
-                                            <CheckCircle className="w-7 h-7 text-white" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold text-green-900">Appointment Completed</h3>
-                                            <p className="text-sm text-green-700">This visit has been successfully completed</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        {showAppointmentDetailsModal.appointment.completion_notes && (
-                                            <div className="p-4 bg-white rounded-xl border border-green-200">
-                                                <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
-                                                    <FileText className="w-4 h-4" />
-                                                    Completion Notes
-                                                </h4>
-                                                <p className="text-green-800 leading-relaxed">
-                                                    {showAppointmentDetailsModal.appointment.completion_notes}
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        {showAppointmentDetailsModal.appointment.member_feedback && (
-                                            <div className="p-4 bg-white rounded-xl border border-green-200">
-                                                <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
-                                                    <MessageSquare className="w-4 h-4" />
-                                                    User Feedback
-                                                </h4>
-                                                <p className="text-green-800 leading-relaxed">
-                                                    {typeof showAppointmentDetailsModal.appointment.member_feedback === 'string' 
-                                                        ? showAppointmentDetailsModal.appointment.member_feedback 
-                                                        : showAppointmentDetailsModal.appointment.member_feedback?.comment || 'No feedback provided'}
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        {showAppointmentDetailsModal.appointment.rating && (
-                                            <div className="p-4 bg-white rounded-xl border border-green-200">
-                                                <h4 className="text-sm font-semibold text-green-900 mb-3 flex items-center gap-2">
-                                                    <Star className="w-4 h-4" />
-                                                    Service Rating
-                                                </h4>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex">
-                                                        {[1, 2, 3, 4, 5].map(star => (
-                                                            <Star
-                                                                key={star}
-                                                                className={`w-6 h-6 ${
-                                                                    star <= showAppointmentDetailsModal.appointment.rating
-                                                                        ? 'text-yellow-500 fill-current'
-                                                                        : 'text-gray-300'
-                                                                }`}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                    <span className="text-lg font-bold text-green-900">
-                                                        {showAppointmentDetailsModal.appointment.rating}/5
-                                                    </span>
-                                                    <span className="text-sm text-green-700 px-3 py-1 bg-green-100 rounded-full">
-                                                        {showAppointmentDetailsModal.appointment.rating >= 4 ? 'Excellent' :
-                                                         showAppointmentDetailsModal.appointment.rating >= 3 ? 'Good' :
-                                                         showAppointmentDetailsModal.appointment.rating >= 2 ? 'Fair' : 'Poor'}
-                                                    </span>
+                                {/* Cancel/Reschedule Appointment Forms */}
+                                {showAppointmentDetailsModal.appointment.status === 'scheduled' && (
+                                    <div className="space-y-6">
+                                        {/* Cancel Section */}
+                                        <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-2xl p-6">
+                                            <div className="flex items-center gap-3 mb-6">
+                                                <div className="p-2 bg-red-100 rounded-lg">
+                                                    <X className="w-6 h-6 text-red-600" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-red-900">Cancel Appointment</h3>
+                                                    <p className="text-sm text-red-700">Cancel this scheduled appointment</p>
                                                 </div>
                                             </div>
-                                        )}
 
-                                        {showAppointmentDetailsModal.appointment.completed_at && (
-                                            <div className="p-4 bg-white rounded-xl border border-green-200">
-                                                <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
-                                                    <Clock className="w-4 h-4" />
-                                                    Completion Date
-                                                </h4>
-                                                <p className="text-green-800">
-                                                    {new Date(showAppointmentDetailsModal.appointment.completed_at).toLocaleDateString('en-US', {
-                                                        weekday: 'long',
-                                                        year: 'numeric',
-                                                        month: 'long',
-                                                        day: 'numeric',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit'
-                                                    })}
-                                                </p>
+                                            <form onSubmit={async (e) => {
+                                                e.preventDefault();
+                                                await handleAppointmentAction('cancel', showAppointmentDetailsModal.appointment.id, { reason: appointmentActionForm.reason });
+                                                setShowAppointmentDetailsModal({ open: false });
+                                            }} className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-red-900 mb-3">
+                                                        Cancellation Reason *
+                                                    </label>
+                                                    <textarea
+                                                        value={appointmentActionForm.reason}
+                                                        onChange={e => setAppointmentActionForm(prev => ({ ...prev, reason: e.target.value }))}
+                                                        className="w-full border-2 border-red-200 rounded-xl px-4 py-3 text-base focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-all duration-200 min-h-[100px] resize-none bg-white"
+                                                        placeholder="Explain why the appointment is being cancelled..."
+                                                        required
+                                                    />
+                                                </div>
+
+                                                <button
+                                                    type="submit"
+                                                    className="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                                                >
+                                                    <X className="w-5 h-5" />
+                                                    Cancel Appointment
+                                                </button>
+                                            </form>
+                                        </div>
+
+                                        {/* Reschedule Section */}
+                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
+                                            <div className="flex items-center gap-3 mb-6">
+                                                <div className="p-2 bg-blue-100 rounded-lg">
+                                                    <Calendar className="w-6 h-6 text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-blue-900">Reschedule Appointment</h3>
+                                                    <p className="text-sm text-blue-700">Change the date and time of this appointment</p>
+                                                </div>
                                             </div>
-                                        )}
+
+                                            <form onSubmit={async (e) => {
+                                                e.preventDefault();
+                                                if (!appointmentActionForm.new_scheduled_for) {
+                                                    toast.error('Please select a new date and time');
+                                                    return;
+                                                }
+
+                                                // Validate that the selected date is in the future
+                                                const selectedDate = new Date(appointmentActionForm.new_scheduled_for);
+                                                const now = new Date();
+
+                                                if (selectedDate <= now) {
+                                                    toast.error('Please select a future date and time');
+                                                    return;
+                                                }
+
+                                                try {
+                                                    // Show loading notification
+                                                    const loadingToast = toast.loading('Rescheduling appointment...');
+
+                                                    // Convert local datetime to proper format that Carbon can parse
+                                                    const localDateTime = appointmentActionForm.new_scheduled_for;
+
+                                                    // Create a Date object and format it properly for backend
+                                                    const dateObj = new Date(localDateTime);
+
+                                                    // Ensure we format the date in a consistent timezone-aware way
+                                                    const year = dateObj.getFullYear();
+                                                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                                                    const day = String(dateObj.getDate()).padStart(2, '0');
+                                                    const hours = String(dateObj.getHours()).padStart(2, '0');
+                                                    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+
+                                                    // Format as YYYY-MM-DD HH:mm:ss for consistent backend parsing
+                                                    const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:00`;
+
+                                                    await handleAppointmentAction('reschedule', showAppointmentDetailsModal.appointment.id, {
+                                                        new_scheduled_for: formattedDateTime,
+                                                        reason: appointmentActionForm.reason || '' // Allow empty reason
+                                                    });
+
+                                                    // Dismiss loading and show success
+                                                    toast.dismiss(loadingToast);
+                                                    toast.success('Appointment rescheduled successfully!');
+
+                                                    // Clear form
+                                                    setAppointmentActionForm(prev => ({
+                                                        ...prev,
+                                                        new_scheduled_for: '',
+                                                        reason: ''
+                                                    }));
+                                                    appointmentActionForm.reason = '';
+
+                                                    setShowAppointmentDetailsModal({ open: false });
+                                                } catch (error) {
+                                                    console.error('Error rescheduling appointment:', error);
+                                                    toast.error('Failed to reschedule appointment');
+                                                }
+                                            }} className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-blue-900 mb-3">
+                                                        New Date and Time *
+                                                    </label>
+                                                    <Input
+                                                        type="datetime-local"
+                                                        value={appointmentActionForm.new_scheduled_for}
+                                                        onChange={e => setAppointmentActionForm(prev => ({ ...prev, new_scheduled_for: e.target.value }))}
+                                                        className="border-2 border-blue-200 h-12 rounded-xl px-4 py-3 text-base focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 bg-white"
+                                                        required
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-blue-900 mb-3">
+                                                        Reason for Reschedule (Optional)
+                                                    </label>
+                                                    <textarea
+                                                        value={appointmentActionForm.reason}
+                                                        onChange={e => setAppointmentActionForm(prev => ({ ...prev, reason: e.target.value }))}
+                                                        className="w-full border-2 border-blue-200 rounded-xl px-4 py-3 text-base focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 min-h-[80px] resize-none bg-white"
+                                                        placeholder="Optional: explain why you're rescheduling..."
+                                                    />
+                                                </div>
+
+                                                <button
+                                                    type="submit"
+                                                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                                                    disabled={!appointmentActionForm.new_scheduled_for}
+                                                >
+                                                    <Calendar className="w-5 h-5" />
+                                                    Reschedule Appointment
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                )}
+
+                                {/* View Only for Completed Appointments */}
+                                {showAppointmentDetailsModal.appointment.status === 'completed' && (
+                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl shadow-lg">
+                                                <CheckCircle className="w-7 h-7 text-white" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-green-900">Appointment Completed</h3>
+                                                <p className="text-sm text-green-700">This visit has been successfully completed</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            {showAppointmentDetailsModal.appointment.completion_notes && (
+                                                <div className="p-4 bg-white rounded-xl border border-green-200">
+                                                    <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
+                                                        <FileText className="w-4 h-4" />
+                                                        Completion Notes
+                                                    </h4>
+                                                    <p className="text-green-800 leading-relaxed">
+                                                        {showAppointmentDetailsModal.appointment.completion_notes}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {showAppointmentDetailsModal.appointment.member_feedback && (
+                                                <div className="p-4 bg-white rounded-xl border border-green-200">
+                                                    <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
+                                                        <MessageSquare className="w-4 h-4" />
+                                                        User Feedback
+                                                    </h4>
+                                                    <p className="text-green-800 leading-relaxed">
+                                                        {typeof showAppointmentDetailsModal.appointment.member_feedback === 'string'
+                                                            ? showAppointmentDetailsModal.appointment.member_feedback
+                                                            : showAppointmentDetailsModal.appointment.member_feedback?.comment || 'No feedback provided'}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {showAppointmentDetailsModal.appointment.rating && (
+                                                <div className="p-4 bg-white rounded-xl border border-green-200">
+                                                    <h4 className="text-sm font-semibold text-green-900 mb-3 flex items-center gap-2">
+                                                        <Star className="w-4 h-4" />
+                                                        Service Rating
+                                                    </h4>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex">
+                                                            {[1, 2, 3, 4, 5].map(star => (
+                                                                <Star
+                                                                    key={star}
+                                                                    className={`w-6 h-6 ${star <= showAppointmentDetailsModal.appointment.rating
+                                                                            ? 'text-yellow-500 fill-current'
+                                                                            : 'text-gray-300'
+                                                                        }`}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-lg font-bold text-green-900">
+                                                            {showAppointmentDetailsModal.appointment.rating}/5
+                                                        </span>
+                                                        <span className="text-sm text-green-700 px-3 py-1 bg-green-100 rounded-full">
+                                                            {showAppointmentDetailsModal.appointment.rating >= 4 ? 'Excellent' :
+                                                                showAppointmentDetailsModal.appointment.rating >= 3 ? 'Good' :
+                                                                    showAppointmentDetailsModal.appointment.rating >= 2 ? 'Fair' : 'Poor'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {showAppointmentDetailsModal.appointment.completed_at && (
+                                                <div className="p-4 bg-white rounded-xl border border-green-200">
+                                                    <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
+                                                        <Clock className="w-4 h-4" />
+                                                        Completion Date
+                                                    </h4>
+                                                    <p className="text-green-800">
+                                                        {new Date(showAppointmentDetailsModal.appointment.completed_at).toLocaleDateString('en-US', {
+                                                            weekday: 'long',
+                                                            year: 'numeric',
+                                                            month: 'long',
+                                                            day: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <DialogFooter className="pt-6 border-t border-slate-200">
@@ -4321,11 +4247,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         className="p-1 hover:scale-110 transition-transform"
                                     >
                                         <Star
-                                            className={`w-8 h-8 ${
-                                                star <= memberFeedback.rating
+                                            className={`w-8 h-8 ${star <= memberFeedback.rating
                                                     ? 'text-yellow-500 fill-current'
                                                     : 'text-gray-300 hover:text-yellow-400'
-                                            }`}
+                                                }`}
                                         />
                                     </button>
                                 ))}
