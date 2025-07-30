@@ -1197,243 +1197,169 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
             <div className="flex flex-col gap-6 p-6">
 
 
-                {/* Header Section */}
+                {/* Header Section - Ultra Compact */}
                 {isMember && (
-                    <><div className="border-b bg-background border-slate-200 sticky top-0 z-20">
-                        <div className="px-6 py-6">
-                            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                                <div className="min-w-max">
-                                    <h1 className="text-3xl font-extrabold text-accent flex items-center gap-2">
-                                        <CheckCircle className="w-7 h-7 text-accent" />
-                                        Ticket Management
-                                    </h1>
-                                    <p className="text-slate-600 mt-1 mb-4">
-                                        Select a device to report an issue or search tickets.
-                                    </p>
-                             
-
+                    <div className="border-b bg-background dark:bg-gray-900 border-slate-200 dark:border-gray-700 sticky top-0 z-20">
+                        <div className="px-6 py-3">
+                            <div className="flex items-center justify-between gap-6">
+                                {/* Left: Title */}
+                                <div className="flex items-center gap-3">
+                                    <CheckCircle className="w-6 h-6 text-primary dark:text-primary" />
+                                    <h1 className="text-xl font-bold text-accent dark:text-accent">Ticket Management</h1>
                                 </div>
-                                {/* Panel Personal del Tenant Mejorado */}
-                                <div className="flex w-full  gap-4 items-center justify-end">
-                                      {/* Dashboard Rápido */}
-                                    <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
-                                        {/* Last Ticket */}
-                                        <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer"
-                                            onClick={() => setShowDeviceStats(true)}>
-                                            <div className="flex flex-col items-center gap-1">
-                                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                                    <Clock className="w-4 h-4 text-blue-600" />
-                                                </div>
-                                                <span className="text-xs text-slate-600">Last Ticket</span>
-                                                <span className="text-lg font-bold text-blue-600">
-                                                    {memberTickets.length > 0 ? memberTickets[0]?.code?.slice(-3) || '000' : '---'}
-                                                </span>
-                                            </div>
-                                        </Card>
 
-                                        {/* Device Status */}
-                                        <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer"
-                                            onClick={() => setShowDeviceStats(true)}>
-                                            <div className="flex flex-col items-center gap-1">
-                                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                                    <Monitor className="w-4 h-4 text-green-600" />
-                                                </div>
-                                                <span className="text-xs text-slate-600">Devices</span>
-                                                <span className="text-lg font-bold text-green-600">
-                                                    {deviceOptions.length}
-                                                </span>
-                                            </div>
-                                        </Card>
-
-                                        {/* Active Tickets */}
-                                        <Card className="p-3 text-center hover:shadow-md transition-shadow">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                                                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                                                </div>
-                                                <span className="text-xs text-slate-600">Active</span>
-                                                <span className="text-lg font-bold text-amber-600">
-                                                    {memberTickets.filter((t: any) => t.status === 'open' || t.status === 'in_progress').length}
-                                                </span>
-                                            </div>
-                                        </Card>
+                                {/* Center: Quick Stats */}
+                                <div className="flex items-center gap-6">
+                                    <button
+                                        onClick={() => setShowDeviceStats(true)}
+                                        className="flex items-center gap-1 text-sm bg-primary/10 dark:bg-primary/20 px-3 py-2 rounded-lg border border-primary/20 dark:border-primary/30 hover:bg-primary/20 dark:hover:bg-primary/30 transition-colors cursor-pointer"
+                                    >
+                                        <Clock className="w-4 h-4 text-primary dark:text-primary" />
+                                        <span className="text-xs text-slate-600 dark:text-slate-400">Last:</span>
+                                        <span className="font-bold text-primary dark:text-primary">
+                                            {memberTickets.length > 0 ? memberTickets[0]?.code?.slice(-3) || '000' : '---'}
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={() => setShowDeviceStats(true)}
+                                        className="flex items-center gap-1 text-sm bg-secondary/10 dark:bg-secondary/20 px-3 py-2 rounded-lg border border-secondary/20 dark:border-secondary/30 hover:bg-secondary/20 dark:hover:bg-secondary/30 transition-colors cursor-pointer"
+                                    >
+                                        <Monitor className="w-4 h-4 text-secondary dark:text-secondary" />
+                                        <span className="text-xs text-slate-600 dark:text-slate-400">Devices:</span>
+                                        <span className="font-bold text-secondary dark:text-secondary">{deviceOptions.length}</span>
+                                    </button>
+                                    <div className="flex items-center gap-1 text-sm bg-accent/10 dark:bg-accent/20 px-3 py-2 rounded-lg border border-accent/20 dark:border-accent/30">
+                                        <AlertCircle className="w-4 h-4 text-accent dark:text-accent" />
+                                        <span className="text-xs text-slate-600 dark:text-slate-400">Active:</span>
+                                        <span className="font-bold text-accent dark:text-accent">
+                                            {memberTickets.filter((t: any) => t.status === 'open' || t.status === 'in_progress').length}
+                                        </span>
                                     </div>
-                                    {/* Información del Usuario */}
-                                    <div className="flex items-center gap-3 min-w-max">
-                                        <div className="relative">
-                                            <img
-                                                src={`/storage/${memberData?.photo}`}
-                                                alt={memberData?.name}
-                                                className="w-16 h-16 rounded-full border-2 border-primary object-cover shadow-lg"
-                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                    e.currentTarget.src = '/images/default-user.png';
-                                                }}
-                                            />
-                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                                                <Shield className="w-3 h-3 text-white" />
-                                            </div>
-                                        </div>
+                                </div>
+
+                                {/* Right: User Info & Alerts */}
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <img
+                                            src={`/storage/${memberData?.photo}`}
+                                            alt={memberData?.name}
+                                            className="w-8 h-8 rounded-full border border-primary dark:border-primary object-cover"
+                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                e.currentTarget.src = '/images/default-user.png';
+                                            }}
+                                        />
                                         <div className="text-right">
-                                            <h1 className="text-2xl font-bold text-accent">
-                                                {memberData?.name}
-                                            </h1>
-                                            <p className="text-slate-600 text-sm flex items-center gap-1">
+                                            <p className="text-sm font-medium text-accent dark:text-accent">{memberData?.name}</p>
+                                            <p className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1">
                                                 <Home className="w-3 h-3" />
-                                                {apartmentData?.name} | {buildingData?.name}
+                                                {apartmentData?.name}
                                             </p>
                                         </div>
+                                    </div>
+                                    
+                                    {/* Alerts Button */}
+                                    <div className="relative">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setShowNinjaOneNotifications(!showNinjaOneNotifications)}
+                                            className={`relative ${
+                                                userDeviceAlerts.length > 0 
+                                                    ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800' 
+                                                    : 'bg-muted/50 hover:bg-muted text-muted-foreground border-muted dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
+                                            }`}
+                                        >
+                                            <Bell className="w-4 h-4" />
+                                            {userDeviceAlerts.length > 0 && (
+                                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                                    {userDeviceAlerts.length}
+                                                </span>
+                                            )}
+                                        </Button>
                                         
-                                        {/* NinjaOne Device Alerts Notification */}
-                                        <div className="relative">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => setShowNinjaOneNotifications(!showNinjaOneNotifications)}
-                                                className={`relative ${
-                                                    userDeviceAlerts.length > 0 
-                                                        ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200' 
-                                                        : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-200'
-                                                }`}
-                                            >
-                                                <Bell className="w-4 h-4" />
-                                                {userDeviceAlerts.length > 0 && (
-                                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                                        {userDeviceAlerts.length}
-                                                    </span>
-                                                )}
-                                            </Button>
-                                            
-                                            {/* Notification Dropdown */}
-                                            {showNinjaOneNotifications && (
-                                                <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                                                    <div className="p-4 border-b border-gray-200">
-                                                        <h3 className="font-semibold text-gray-900">Device Alerts</h3>
-                                                        <p className="text-sm text-gray-600">NinjaOne device health notifications</p>
-                                                    </div>
-                                                    
-                                                    <div className="max-h-96 overflow-y-auto">
-                                                        {loadingUserAlerts ? (
-                                                            <div className="p-4 text-center">
-                                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                                                                <p className="text-sm text-gray-600 mt-2">Loading alerts...</p>
-                                                            </div>
-                                                        ) : userDeviceAlerts.length === 0 ? (
-                                                            <div className="p-4 text-center text-gray-500">
-                                                                <Shield className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                                                                <p className="text-sm">All your devices are healthy!</p>
-                                                            </div>
-                                                        ) : (
-                                                            userDeviceAlerts.map((alert, index) => (
-                                                                <div key={index} className="p-4 border-b border-gray-100 hover:bg-gray-50">
-                                                                    <div className="flex items-start gap-3">
-                                                                        <div className={`w-3 h-3 rounded-full mt-1 ${
-                                                                            alert.health_status === 'critical' ? 'bg-red-500' :
-                                                                            alert.health_status === 'offline' ? 'bg-gray-500' :
-                                                                            alert.health_status === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-                                                                        }`}></div>
-                                                                        <div className="flex-1">
-                                                                            <div className="flex items-center justify-between">
-                                                                                <h4 className="font-medium text-gray-900">{alert.device_name}</h4>
-                                                                                <button 
-                                                                                    onClick={() => dismissDeviceAlert(alert.device_id)}
-                                                                                    className="text-gray-400 hover:text-gray-600"
-                                                                                >
-                                                                                    <X className="w-4 h-4" />
-                                                                                </button>
-                                                                            </div>
-                                                                            <p className="text-sm text-gray-600 capitalize">
-                                                                                Status: {alert.health_status}
+                                        {/* Notification Dropdown */}
+                                        {showNinjaOneNotifications && (
+                                            <div className="absolute right-0 top-full mt-2 w-96 bg-background dark:bg-gray-800 rounded-lg shadow-lg border border-border dark:border-gray-600 z-50">
+                                                <div className="p-4 border-b border-border dark:border-gray-600">
+                                                    <h3 className="font-semibold text-foreground dark:text-gray-100">Device Alerts</h3>
+                                                    <p className="text-sm text-muted-foreground dark:text-gray-400">NinjaOne device health notifications</p>
+                                                </div>
+                                                
+                                                <div className="max-h-96 overflow-y-auto">
+                                                    {loadingUserAlerts ? (
+                                                        <div className="p-4 text-center">
+                                                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                                                            <p className="text-sm text-muted-foreground mt-2">Loading alerts...</p>
+                                                        </div>
+                                                    ) : userDeviceAlerts.length === 0 ? (
+                                                        <div className="p-4 text-center text-muted-foreground">
+                                                            <Shield className="w-8 h-8 mx-auto mb-2 text-secondary" />
+                                                            <p className="text-sm">All your devices are healthy!</p>
+                                                        </div>
+                                                    ) : (
+                                                        userDeviceAlerts.map((alert, index) => (
+                                                            <div key={index} className="p-4 border-b border-border hover:bg-muted/50">
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className={`w-3 h-3 rounded-full mt-1 ${
+                                                                        alert.health_status === 'critical' ? 'bg-red-500' :
+                                                                        alert.health_status === 'offline' ? 'bg-gray-500' :
+                                                                        alert.health_status === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+                                                                    }`}></div>
+                                                                    <div className="flex-1">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <h4 className="font-medium text-foreground">{alert.device_name}</h4>
+                                                                            <button 
+                                                                                onClick={() => dismissDeviceAlert(alert.device_id)}
+                                                                                className="text-muted-foreground hover:text-foreground"
+                                                                            >
+                                                                                <X className="w-4 h-4" />
+                                                                            </button>
+                                                                        </div>
+                                                                        <p className="text-sm text-muted-foreground capitalize">
+                                                                            Status: {alert.health_status}
+                                                                        </p>
+                                                                        {alert.issues_count > 0 && (
+                                                                            <p className="text-sm text-red-600 dark:text-red-400">
+                                                                                {alert.issues_count} issue{alert.issues_count > 1 ? 's' : ''} detected
                                                                             </p>
-                                                                            {alert.issues_count > 0 && (
-                                                                                <p className="text-sm text-red-600">
-                                                                                    {alert.issues_count} issue{alert.issues_count > 1 ? 's' : ''} detected
-                                                                                </p>
-                                                                            )}
-                                                                            <div className="mt-2 flex gap-2">
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    onClick={() => createTicketFromDeviceAlert(alert)}
-                                                                                    disabled={creatingTicketFromAlert === alert.device_id}
-                                                                                    className="text-xs"
-                                                                                >
-                                                                                    {creatingTicketFromAlert === alert.device_id ? (
-                                                                                        <>
-                                                                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                                                                                            Creating...
-                                                                                        </>
-                                                                                    ) : (
-                                                                                        <>
-                                                                                            <Plus className="w-3 h-3 mr-1" />
-                                                                                            Create Ticket
-                                                                                        </>
-                                                                                    )}
-                                                                                </Button>
-                                                                            </div>
+                                                                        )}
+                                                                        <div className="mt-2 flex gap-2">
+                                                                            <Button
+                                                                                size="sm"
+                                                                                onClick={() => createTicketFromDeviceAlert(alert)}
+                                                                                disabled={creatingTicketFromAlert === alert.device_id}
+                                                                                className="text-xs"
+                                                                            >
+                                                                                {creatingTicketFromAlert === alert.device_id ? (
+                                                                                    <>
+                                                                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                                                                        Creating...
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <Plus className="w-3 h-3 mr-1" />
+                                                                                        Create Ticket
+                                                                                    </>
+                                                                                )}
+                                                                            </Button>
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                            ))
-                                                        )}
-                                                    </div>
+                                                            </div>
+                                                        ))
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                  
-
-                                    {/* Acciones Rápidas  <div className="flex gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setShowHelpModal(true)}
-                                            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
-                                        >
-                                            <HelpCircle className="w-4 h-4 mr-1" />
-                                            Ayuda
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => window.open('tel:+1234567890', '_self')}
-                                            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                                        >
-                                            <PhoneCall className="w-4 h-4 mr-1" />
-                                            Llamar
-                                        </Button>
-                                    </div>*/}
-                                   
-
-                                    {/* Consejo del Mes   {memberTickets.filter((t: any) => new Date(t.created_at).getMonth() === new Date().getMonth()).length === 0 && (
-                                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 max-w-md">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Award className="w-4 h-4 text-green-600" />
-                                                <span className="text-sm font-semibold text-green-800">¡Felicitaciones!</span>
                                             </div>
-                                            <p className="text-xs text-green-700">
-                                                Este mes no has reportado incidencias. ¡Excelente trabajo!
-                                            </p>
-                                        </div>
-                                    )}*/}
-                                  
-
-                                    {/* Sugerencia de Mantenimiento 
-                                     <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 max-w-md">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <LightbulbIcon className="w-4 h-4 text-blue-600" />
-                                            <span className="text-sm font-semibold text-blue-800">Consejo del mes</span>
-                                        </div>
-                                        <p className="text-xs text-blue-700">
-                                            Reinicia tu router cada 2 semanas para mantener una conexión óptima.
-                                        </p>
-                                    </div> */}
-                                   
-
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                )}
+
+                {/* Devices Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                         {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
                                             // Determinar el estado del dispositivo basado en tickets activos
                                             const activeTickets = memberTickets.filter((ticket: any) => 
@@ -1673,9 +1599,6 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             </div>
                                         )}
                                     </div>
-                    </>
-                    
-                )}
 
                 <div className="px-6 py-8">
                     <div className={`grid grid-cols-1 xl:grid-cols-12 gap-8`}>
