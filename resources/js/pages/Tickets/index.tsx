@@ -2027,29 +2027,26 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                         {/* Sidebar - Ticket Details */}
                         <div className={`${isMember ? "xl:col-span-4" : "xl:col-span-4"}`}>
                             <div className="sticky top-8  rounded-lg shadow-2xl">
-                                <Card className="shadow-2xl border-0 bg-gradient-to-br from-background via-sidebar to-muted overflow-hidden">
-                                    <CardHeader className="border-b-2 border-primary text-primary-foreground pb-6 relative overflow-hidden">
+                                <Card className="!pt-0 shadow-xl border-0 bg-gradient-to-br from-white via-slate-50 to-blue-50 overflow-hidden">
+                                    <CardHeader className="pt-6 bg-gradient-to-r from-secondary-foreground via-primary to-primary-foreground text-white pb-6 relative overflow-hidden">
                                         {/* Elegant Background Pattern */}
-                                        <div className="absolute inset-0 "></div>
-                                        <div className="absolute top-0 right-0 w-32 h-32  rounded-full transform translate-x-16 -translate-y-16"></div>
+                                        <div className="absolute inset-0 opacity-20">
+                                            <div className="w-full h-full bg-gradient-to-br from-white/5 to-primary/5"></div>
+                                        </div>
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-secondary-foreground to-secondary rounded-full transform translate-x-16 -translate-y-16"></div>
+                                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-secondary-foreground to-primary rounded-full transform -translate-x-12 translate-y-12"></div>
 
                                         <div className="relative z-10 flex items-center justify-between">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-xl backdrop-blur-sm border border-primary-foreground/20 flex items-center justify-center">
-                                                    <Eye className="w-6 h-6 text-primary-foreground" />
+                                                <div className="w-14 h-14 bg-gradient-to-br from-secondary to-primary-foreground rounded-2xl shadow-lg flex items-center justify-center">
+                                                    <Eye className="w-7 h-7 text-white" />
                                                 </div>
                                                 <div>
-                                                    <h2 className="text-xl font-black">Ticket Details</h2>
-                                                    <p className="text-primary-foreground/80 text-sm font-medium">Complete ticket information</p>
+                                                    <h2 className="text-2xl font-bold tracking-tight">Ticket Details</h2>
+                                                    <p className="text-blue-100 text-sm font-medium">Complete ticket information & timeline</p>
                                                 </div>
                                             </div>
-                                            {/*selectedTicket && (
-                                                <div className="text-right">
-                                                    <span className="text-sm bg-primary-foreground/10 backdrop-blur-sm px-4 py-2 rounded-xl border border-primary-foreground/20 font-mono text-primary-foreground/90">
-                                                        ID #{selectedTicket.id}
-                                                    </span>
-                                                </div>
-                                            )*/}
+                                           
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-0">
@@ -2072,86 +2069,121 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                                             {selectedTicket && !selectedTicketLoading && (
                                                 <div className="space-y-6">
-                                                    {/* Ticket Title & Status */}
-                                                    <div className="p-6 border-b border-border">
-                                                        <div className="flex items-start justify-between mb-3">
-                                                            <h3 className="text-lg font-bold text-foreground leading-tight pr-4">
-                                                                {selectedTicket.title}
-                                                            </h3>
-                                                            <StatusBadge status={selectedTicket.status} />
+                                                    {/* 🎫 Ticket Title & Status - Enhanced */}
+                                                    <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50">
+                                                        <div className="flex items-start justify-between mb-4">
+                                                            <div className="flex-1 pr-4">
+                                                                <h3 className="text-xl font-bold text-slate-900 leading-tight mb-2">
+                                                                    {selectedTicket.title}
+                                                                </h3>
+                                                                <p className="text-slate-600 leading-relaxed line-clamp-3">
+                                                                    {selectedTicket.description}
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex-shrink-0">
+                                                                <StatusBadge status={selectedTicket.status} />
+                                                            </div>
                                                         </div>
-                                                        <p className="text-sm text-muted-foreground line-clamp-3">
-                                                            {selectedTicket.description}
-                                                        </p>
-                                                        <div className="flex items-center gap-2 mt-3">
+                                                        
+                                                        {/* 🏷️ Enhanced Badges Row */}
+                                                        <div className="flex flex-wrap items-center gap-3">
                                                             <CategoryBadge category={selectedTicket.category} />
-                                                            <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
+                                                            <span className="text-xs text-slate-500 font-mono bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
                                                                 {selectedTicket.code}
                                                             </span>
-                                                            {/* Badge para mostrar si fue creado por Owner o Doorman */}
+                                                            
+                                                            {/* 👤 Creator Badges - Enhanced */}
                                                             {selectedTicket.created_by_owner_id && selectedTicket.created_by_owner && (
-                                                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200">
-                                                                    <Building2 className="w-3 h-3" />
-                                                                    Created by Owner: {selectedTicket.created_by_owner.name}
+                                                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-200 shadow-sm">
+                                                                    <Building2 className="w-3.5 h-3.5" />
+                                                                    Owner: {selectedTicket.created_by_owner.name}
                                                                 </span>
                                                             )}
                                                             {selectedTicket.created_by_doorman_id && selectedTicket.created_by_doorman && (
-                                                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                                                    <ShieldCheck className="w-3 h-3" />
-                                                                    Created by Doorman: {selectedTicket.created_by_doorman.name}
+                                                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-200 shadow-sm">
+                                                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                                                    Doorman: {selectedTicket.created_by_doorman.name}
                                                                 </span>
                                                             )}
                                                             {selectedTicket.created_by_admin_id && selectedTicket.created_by_admin && (
-                                                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
-                                                                    <Shield className="w-3 h-3" />
-                                                                    Created by Admin: {selectedTicket.created_by_admin.name}
+                                                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-800 border border-purple-200 shadow-sm">
+                                                                    <Shield className="w-3.5 h-3.5" />
+                                                                    Admin: {selectedTicket.created_by_admin.name}
                                                                 </span>
                                                             )}
                                                         </div>
                                                     </div>
 
-                                                    {/* Device Information - Compact Badges Row */}
+                                                    {/* 💻 Device Information - Modern Card */}
                                                     {selectedTicket.device && (
-                                                        <div className="px-6">
-                                                            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                                                                {selectedTicket.device.icon_id ? (
-                                                                    <DeviceIcon deviceIconId={selectedTicket.device.icon_id} size={16} />
-                                                                ) : (
-                                                                    <Monitor className="w-4 h-4 text-primary" />
-                                                                )}
-                                                                Device Information
-                                                            </h4>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-medium border border-primary/20">
-                                                                    {selectedTicket.device?.icon_id ? (
-                                                                        <DeviceIcon deviceIconId={selectedTicket.device.icon_id} size={12} />
+                                                        <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-blue-200">
+                                                            <div className="flex items-center gap-3 mb-4">
+                                                                <div className="w-10 h-10 bg-gradient-to-br from-primary to-card rounded-xl flex items-center justify-center shadow-lg">
+                                                                    {selectedTicket.device.icon_id ? (
+                                                                        <DeviceIcon deviceIconId={selectedTicket.device.icon_id} size={20} />
                                                                     ) : (
-                                                                        <Cpu className="w-3 h-3" />
+                                                                        <Monitor className="w-5 h-5 text-white" />
                                                                     )}
-                                                                    {selectedTicket.device.name_device?.name || selectedTicket.device.name || 'Unknown Device'}
                                                                 </div>
+                                                                <div>
+                                                                    <h4 className="text-lg font-bold text-slate-900">Device Information</h4>
+                                                                    <p className="text-sm text-slate-600">Technical specifications and details</p>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* 🏷️ Enhanced Device Badges Grid */}
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
+                                                                    {selectedTicket.device?.icon_id ? (
+                                                                        <DeviceIcon deviceIconId={selectedTicket.device.icon_id} size={16} />
+                                                                    ) : (
+                                                                        <Cpu className="w-4 h-4 text-blue-600" />
+                                                                    )}
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Device</p>
+                                                                        <p className="font-semibold text-slate-900 truncate">
+                                                                            {selectedTicket.device.name_device?.name || selectedTicket.device.name || 'Unknown Device'}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                
                                                                 {selectedTicket.device.brand && (
-                                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary/10 text-secondary-foreground rounded-full text-xs font-medium border border-secondary/20">
-                                                                        <Tag className="w-3 h-3" />
-                                                                        {selectedTicket.device.brand.name}
+                                                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
+                                                                        <Tag className="w-4 h-4 text-emerald-600" />
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Brand</p>
+                                                                            <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.brand.name}</p>
+                                                                        </div>
                                                                     </div>
                                                                 )}
+                                                                
                                                                 {selectedTicket.device.model && (
-                                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 text-primary-foreground rounded-full text-xs font-medium border border-accent/20">
-                                                                        <Smartphone className="w-3 h-3" />
-                                                                        {selectedTicket.device.model.name}
+                                                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
+                                                                        <Smartphone className="w-4 h-4 text-purple-600" />
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Model</p>
+                                                                            <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.model.name}</p>
+                                                                        </div>
                                                                     </div>
                                                                 )}
+                                                                
                                                                 {selectedTicket.device.system && (
-                                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted text-primary-foreground rounded-full text-xs font-medium border border-border">
-                                                                        <Settings className="w-3 h-3" />
-                                                                        {selectedTicket.device.system.name}
+                                                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
+                                                                        <Settings className="w-4 h-4 text-orange-600" />
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">System</p>
+                                                                            <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.system.name}</p>
+                                                                        </div>
                                                                     </div>
                                                                 )}
-                                                                {  selectedTicket.device.ubicacion && (
-                                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-200">
-                                                                        <Home className="w-3 h-3" />
-                                                                        {selectedTicket.device.ubicacion}
+                                                                
+                                                                {selectedTicket.device.ubicacion && (
+                                                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
+                                                                        <Home className="w-4 h-4 text-indigo-600" />
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Location</p>
+                                                                            <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.ubicacion}</p>
+                                                                        </div>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -2457,60 +2489,70 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         </div>
                                                     )}
 
-                                                    {/* Línea de Tiempo Visual del Ticket */}
+                                                    {/* 📅 Enhanced Visual Timeline for Members */}
                                                     {isMember && selectedTicket.histories && selectedTicket.histories.length > 0 && (
-                                                        <div className="px-6">
-                                                            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                                                                <Clock className="w-4 h-4 text-indigo-600" />
-                                                                Línea de Tiempo
-                                                            </h4>
+                                                        <div className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 border-b border-indigo-200">
+                                                            <div className="flex items-center gap-3 mb-6">
+                                                                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                                                                    <Clock className="w-5 h-5 text-white" />
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="text-lg font-bold text-slate-900">Timeline</h4>
+                                                                    <p className="text-sm text-slate-600">Complete ticket activity history</p>
+                                                                </div>
+                                                            </div>
+                                                            
                                                             <div className="relative">
-                                                                {/* Línea vertical */}
-                                                                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-200 to-indigo-100"></div>
+                                                                {/* ✨ Enhanced Vertical Line */}
+                                                                <div className="absolute left-6 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-300 via-purple-300 to-pink-300 rounded-full"></div>
 
-                                                                <div className="space-y-4">
+                                                                <div className="space-y-6">
                                                                     {[...selectedTicket.histories].reverse().map((entry: any, index: number) => (
-                                                                        <div key={index} className="relative flex items-start gap-4">
-                                                                            {/* Icono de estado */}
-                                                                            <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-2 ${entry.action?.includes('created') ? 'bg-blue-100 border-blue-300' :
-                                                                                    entry.action?.includes('assigned') ? 'bg-purple-100 border-purple-300' :
-                                                                                        entry.action?.includes('in_progress') ? 'bg-amber-100 border-amber-300' :
-                                                                                            entry.action?.includes('resolved') ? 'bg-green-100 border-green-300' :
-                                                                                                entry.action?.includes('closed') ? 'bg-gray-100 border-gray-300' :
-                                                                                                    'bg-indigo-100 border-indigo-300'
-                                                                                }`}>
-                                                                                {entry.action?.includes('created') ? <AlertCircle className="w-4 h-4 text-blue-600" /> :
-                                                                                    entry.action?.includes('assigned') ? <UserCheck className="w-4 h-4 text-purple-600" /> :
-                                                                                        entry.action?.includes('in_progress') ? <Clock className="w-4 h-4 text-amber-600" /> :
-                                                                                            entry.action?.includes('resolved') ? <CheckCircle className="w-4 h-4 text-green-600" /> :
-                                                                                                entry.action?.includes('closed') ? <XCircle className="w-4 h-4 text-gray-600" /> :
-                                                                                                    <MessageSquare className="w-4 h-4 text-indigo-600" />}
+                                                                        <div key={index} className="relative flex items-start gap-6">
+                                                                            {/* 🎯 Enhanced Status Icons */}
+                                                                            <div className={`relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg border-4 border-white ${
+                                                                                entry.action?.includes('created') ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                                                                                entry.action?.includes('assigned') ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                                                                                entry.action?.includes('in_progress') ? 'bg-gradient-to-br from-amber-500 to-orange-500' :
+                                                                                entry.action?.includes('resolved') ? 'bg-gradient-to-br from-green-500 to-emerald-600' :
+                                                                                entry.action?.includes('closed') ? 'bg-gradient-to-br from-gray-500 to-slate-600' :
+                                                                                'bg-gradient-to-br from-indigo-500 to-purple-600'
+                                                                            }`}>
+                                                                                {entry.action?.includes('created') ? <AlertCircle className="w-5 h-5 text-white" /> :
+                                                                                entry.action?.includes('assigned') ? <UserCheck className="w-5 h-5 text-white" /> :
+                                                                                entry.action?.includes('in_progress') ? <Clock className="w-5 h-5 text-white" /> :
+                                                                                entry.action?.includes('resolved') ? <CheckCircle className="w-5 h-5 text-white" /> :
+                                                                                entry.action?.includes('closed') ? <XCircle className="w-5 h-5 text-white" /> :
+                                                                                <MessageSquare className="w-5 h-5 text-white" />}
                                                                             </div>
 
-                                                                            {/* Contenido */}
-                                                                            <div className="flex-1 min-w-0 pb-4">
-                                                                                <div className="flex items-center gap-2 mb-1">
-                                                                                    <span className="text-sm font-medium text-foreground">
-                                                                                        {entry.technical?.name || entry.user?.name || 'Sistema'}
-                                                                                    </span>
-                                                                                    <span className="text-xs text-muted-foreground">
-                                                                                        {formatHistoryDateTime(entry.created_at).date} a las {formatHistoryDateTime(entry.created_at).time}
-                                                                                    </span>
-                                                                                    {entry.action && (
-                                                                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${entry.action?.includes('created') ? 'bg-blue-100 text-blue-800' :
-                                                                                                entry.action?.includes('assigned') ? 'bg-purple-100 text-purple-800' :
-                                                                                                    entry.action?.includes('in_progress') ? 'bg-amber-100 text-amber-800' :
-                                                                                                        entry.action?.includes('resolved') ? 'bg-green-100 text-green-800' :
-                                                                                                            entry.action?.includes('closed') ? 'bg-gray-100 text-gray-800' :
-                                                                                                                'bg-indigo-100 text-indigo-800'
-                                                                                            }`}>
-                                                                                            {entry.action.replaceAll('_', ' ').replaceAll('status change ', '')}
+                                                                            {/* 💫 Enhanced Content Card */}
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="bg-white rounded-2xl p-5 shadow-lg border border-white/60 backdrop-blur-sm">
+                                                                                    <div className="flex flex-wrap items-center gap-3 mb-3">
+                                                                                        <span className="font-semibold text-slate-900">
+                                                                                            {entry.technical?.name || entry.user?.name || 'Sistema'}
                                                                                         </span>
-                                                                                    )}
+                                                                                        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                                                                                            {formatHistoryDateTime(entry.created_at).date} • {formatHistoryDateTime(entry.created_at).time}
+                                                                                        </span>
+                                                                                        {entry.action && (
+                                                                                            <span className={`text-xs px-3 py-1 rounded-full font-semibold shadow-sm ${
+                                                                                                entry.action?.includes('created') ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                                                                                entry.action?.includes('assigned') ? 'bg-purple-100 text-purple-800 border border-purple-200' :
+                                                                                                entry.action?.includes('in_progress') ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                                                                                                entry.action?.includes('resolved') ? 'bg-green-100 text-green-800 border border-green-200' :
+                                                                                                entry.action?.includes('closed') ? 'bg-gray-100 text-gray-800 border border-gray-200' :
+                                                                                                'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                                                                                            }`}>
+                                                                                                {entry.action.replaceAll('_', ' ').replaceAll('status change ', '')}
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <p className="text-slate-700 leading-relaxed">
+                                                                                        {entry.description}
+                                                                                    </p>
                                                                                 </div>
-                                                                                <p className="text-sm text-muted-foreground leading-relaxed">
-                                                                                    {entry.description}
-                                                                                </p>
                                                                             </div>
                                                                         </div>
                                                                     ))}
