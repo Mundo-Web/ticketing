@@ -1356,217 +1356,233 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                     </div>
                 )}
 
-                {/* Devices Section */}
+                {/* Devices Section - Ultra Professional Design */}
                 {isMember && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
-                            // Determinar el estado del dispositivo basado en tickets activos
-                            const activeTickets = memberTickets.filter((ticket: any) =>
-                                ticket.device_id === device.id &&
-                                (ticket.status === 'open' || ticket.status === 'in_progress')
-                            );
-                            const hasActiveIssues = activeTickets.length > 0;
+                    <div className="space-y-8">
+                     
 
-                            return (
-                                <div key={device.id} className="space-y-3">
-                                    {/* Botón principal del dispositivo */}
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setData('device_id', device.id.toString());
-                                            setShowCreateModal(true);
-                                        }}
-                                        className={`relative flex flex-row items-center bg-white border-2 rounded-xl shadow-md hover:shadow-xl p-5 w-full transition-all duration-300 group ${hasActiveIssues
-                                                ? 'border-amber-300 bg-amber-50/30 hover:border-amber-400 hover:bg-amber-50/50'
-                                                : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/30'
-                                            }`}
-                                    >
-                                        {/* Estado del dispositivo */}
-                                        <div className={`absolute top-4 right-4 w-3 h-3 rounded-full shadow-sm ${hasActiveIssues ? 'bg-amber-400' : 'bg-green-400'
-                                            }`}></div>
+                        {/* Premium Devices Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {deviceOptions.length > 0 ? deviceOptions.map((device: any) => {
+                                // Determinar el estado del dispositivo basado en tickets activos
+                                const activeTickets = memberTickets.filter((ticket: any) =>
+                                    ticket.device_id === device.id &&
+                                    (ticket.status === 'open' || ticket.status === 'in_progress')
+                                );
+                                const hasActiveIssues = activeTickets.length > 0;
 
-                                        {/* Icono principal */}
-                                        <div className={`w-16 h-16 rounded-xl flex items-center justify-center mr-5 flex-shrink-0 transition-colors duration-300 ${hasActiveIssues
-                                                ? 'bg-amber-100 text-amber-600 group-hover:bg-amber-200'
-                                                : 'bg-blue-100 text-blue-600 group-hover:bg-blue-200'
+                                return (
+                                    <div key={device.id} className="group relative">
+                                        {/* Premium Device Card */}
+                                        <div className={`relative overflow-hidden rounded-2xl border-2 transition-all    ${
+                                            hasActiveIssues
+                                                ? 'border-amber-200 bg-gradient-to-br from-white via-amber-50/20 to-orange-50/30 shadow-amber-100/50'
+                                                : 'border-slate-200/60 bg-gradient-to-br from-white via-blue-50/20 to-primary/5 shadow-blue-100/30'
+                                        } shadow-xl  backdrop-blur-sm`}>
+                                            
+                                            {/* Status Badge */}
+                                            <div className={`absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg ${
+                                                hasActiveIssues 
+                                                    ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white' 
+                                                    : 'bg-gradient-to-r from-emerald-400 to-green-400 text-white'
                                             }`}>
-                                            {device.icon_id ? (
-                                                <DeviceIcon deviceIconId={device.icon_id} size={32} />
-                                            ) : (
-                                                <Monitor className="w-8 h-8" />
-                                            )}
-                                        </div>
-
-                                        {/* Información principal del dispositivo */}
-                                        <div className="flex-1 min-w-0 space-y-3">
-                                            {/* Encabezado con nombre */}
-                                            <div className="flex items-start justify-between">
-                                                <h3 className="font-bold text-slate-800 text-lg truncate pr-2 leading-tight">
-                                                    {device.name_device?.name || device.name || `Device #${device.id}`}
-                                                </h3>
+                                                <div className={`w-2 h-2 rounded-full ${hasActiveIssues ? 'bg-white animate-pulse' : 'bg-white'}`}></div>
+                                                {hasActiveIssues ? `${activeTickets.length} Issue${activeTickets.length !== 1 ? 's' : ''}` : 'Healthy'}
                                             </div>
 
-                                            {/* Fila 1: Marca, Modelo y Sistema */}
-                                            <div className="flex flex-wrap gap-2">
-                                                {device.brand && (
-                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                                                        <Tag className="w-3 h-3 mr-1" />
-                                                        {device.brand.name}
-                                                    </span>
-                                                )}
-                                                {device.model && (
-                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
-                                                        <Smartphone className="w-3 h-3 mr-1" />
-                                                        {device.model.name}
-                                                    </span>
-                                                )}
-                                                {device.system && (
-                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                                                        <Settings className="w-3 h-3 mr-1" />
-                                                        {device.system.name}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Fila 2: Ubicación */}
-                                            {device.ubicacion && (
-                                                <div className="flex items-center text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
-                                                    <Home className="w-4 h-4 mr-2 text-slate-500" />
-                                                    <span className="truncate font-medium">
-                                                        {device.ubicacion}
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            {/* Fila 3: Estado del dispositivo y usuarios */}
-                                            <div className="flex items-center justify-between">
-                                                {/* Estado */}
-                                                <div className="flex-1 mr-4">
-                                                    {hasActiveIssues ? (
-                                                        <div className="flex items-center text-sm text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200">
-                                                            <AlertCircle className="w-4 h-4 mr-2" />
-                                                            <span className="font-medium">{activeTickets.length} issue{activeTickets.length !== 1 ? 's' : ''}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setData('device_id', device.id.toString());
+                                                    setShowCreateModal(true);
+                                                }}
+                                                className="w-full p-6 text-left focus:outline-none focus:ring-4 focus:ring-primary/20 rounded-2xl"
+                                            >
+                                                {/* Device Header */}
+                                                <div className="flex items-start gap-4 mb-6">
+                                                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300  ${
+                                                        hasActiveIssues
+                                                            ? 'bg-gradient-to-br from-amber-100 via-orange-100 to-amber-200 text-amber-700'
+                                                            : 'bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 text-primary'
+                                                    }`}>
+                                                        {device.icon_id ? (
+                                                            <DeviceIcon deviceIconId={device.icon_id} size={32} />
+                                                        ) : (
+                                                            <Monitor className="w-8 h-8" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="font-bold text-slate-800 text-base truncate leading-tight mb-2">
+                                                            {device.name_device?.name || device.name || `Device #${device.id}`}
+                                                        </h3>
+                                                        
+                                                        {/* Device Specifications */}
+                                                        <div className="space-y-2">
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {device.brand && (
+                                                                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 rounded-lg text-xs font-medium">
+                                                                        <Tag className="w-3 h-3" />
+                                                                        {device.brand.name}
+                                                                    </div>
+                                                                )}
+                                                                {device.model && (
+                                                                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-100 to-indigo-200 text-indigo-800 rounded-lg text-xs font-medium">
+                                                                        <Smartphone className="w-3 h-3" />
+                                                                        {device.model.name}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {device.system && (
+                                                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 rounded-lg text-xs font-medium">
+                                                                    <Settings className="w-3 h-3" />
+                                                                    {device.system.name}
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    ) : (
-                                                        <div className="flex items-center text-sm text-green-700 bg-green-100 px-3 py-1.5 rounded-lg border border-green-200">
-                                                            <CheckCircle className="w-4 h-4 mr-2" />
-                                                            <span className="font-medium">Working</span>
-                                                        </div>
-                                                    )}
+                                                    </div>
                                                 </div>
 
-                                                {/* Usuarios y botón de acción */}
-                                                <div className="flex items-center gap-3">
-                                                    {/* Usuarios */}
-                                                    <div className="flex items-center -space-x-1">
-                                                        {/* Dueño */}
+                                                {/* Location Information */}
+                                                {device.ubicacion && (
+                                                    <div className="mb-4 p-3 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200/50">
+                                                        <div className="flex items-center gap-2 text-sm text-slate-700">
+                                                            <Home className="w-4 h-4 text-slate-500" />
+                                                            <span className="font-medium truncate">{device.ubicacion}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Users Section */}
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div className="text-xs font-medium text-slate-600 uppercase tracking-wider">Authorized Users</div>
+                                                    <div className="flex items-center -space-x-2">
+                                                        {/* Owner */}
                                                         {device.owner && (
                                                             <TooltipProvider key={device.owner[0].id}>
                                                                 <Tooltip>
                                                                     <TooltipTrigger>
-                                                                        <img
-                                                                            src={`/storage/${device.owner[0].photo}`}
-                                                                            alt={device.owner[0].name}
-                                                                            title={`Owner: ${device.owner[0].name}`}
-                                                                            className="w-7 h-7 object-cover rounded-full border-2 border-yellow-400 hover:border-yellow-500 transition-colors"
-                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                                e.currentTarget.src = '/images/default-user.png';
-                                                                            }}
-                                                                        />
+                                                                        <div className="relative">
+                                                                            <img
+                                                                                src={`/storage/${device.owner[0].photo}`}
+                                                                                alt={device.owner[0].name}
+                                                                                className="w-8 h-8 object-cover rounded-full border-3 border-yellow-400 hover:scale-125 transition-transform shadow-lg"
+                                                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                    e.currentTarget.src = '/images/default-user.png';
+                                                                                }}
+                                                                            />
+                                                                            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white shadow-sm"></div>
+                                                                        </div>
                                                                     </TooltipTrigger>
                                                                     <TooltipContent>
-                                                                        <p>Owner: {device.owner[0].name}</p>
+                                                                        <p className="font-medium">Owner: {device.owner[0].name}</p>
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             </TooltipProvider>
                                                         )}
-                                                        {/* Compartido con */}
-                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.slice(0, 2).map((tenant: any) => (
+                                                        
+                                                        {/* Shared Users */}
+                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.slice(0, 3).map((tenant: any) => (
                                                             <TooltipProvider key={tenant.id}>
                                                                 <Tooltip>
                                                                     <TooltipTrigger>
                                                                         <img
                                                                             src={`/storage/${tenant.photo}`}
                                                                             alt={tenant.name}
-                                                                            title={`Shared with: ${tenant.name}`}
-                                                                            className="w-7 h-7 object-cover rounded-full border-2 border-blue-400 hover:border-blue-500 transition-colors"
+                                                                            className="w-8 h-8 object-cover rounded-full border-3 border-blue-400 hover:scale-125 transition-transform shadow-lg"
                                                                             onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                                                                                 e.currentTarget.src = '/images/default-user.png';
                                                                             }}
                                                                         />
                                                                     </TooltipTrigger>
                                                                     <TooltipContent>
-                                                                        <p>Shared with: {tenant.name}</p>
+                                                                        <p className="font-medium">Shared: {tenant.name}</p>
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             </TooltipProvider>
                                                         ))}
-                                                        {/* Mostrar +N si hay más usuarios */}
-                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 2 && (
-                                                            <div className="w-7 h-7 bg-slate-200 rounded-full border-2 border-slate-400 flex items-center justify-center hover:bg-slate-300 transition-colors">
+                                                        
+                                                        {/* More users indicator */}
+                                                        {Array.isArray(device.shared_with) && device.shared_with.length > 3 && (
+                                                            <div className="w-8 h-8 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full border-3 border-slate-400 flex items-center justify-center hover:scale-125 transition-transform shadow-lg">
                                                                 <span className="text-xs font-bold text-slate-600">
-                                                                    +{device.shared_with.length - 2}
+                                                                    +{device.shared_with.length - 3}
                                                                 </span>
                                                             </div>
                                                         )}
                                                     </div>
+                                                </div>
 
-                                                    {/* Botón de acción */}
-                                                    <div className="flex items-center justify-center w-9 h-9 bg-primary/10 rounded-full group-hover:bg-primary/20 group-hover:scale-105 transition-all duration-300 flex-shrink-0">
-                                                        <span className="text-primary text-lg font-bold">+</span>
+                                                {/* Action Button */}
+                                                <div className="relative">
+                                                    <div className={`w-full py-3 px-4 rounded-xl font-semibold text-center transition-all duration-300 group-hover:scale-105 ${
+                                                        hasActiveIssues
+                                                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg group-hover:shadow-amber-500/25'
+                                                            : 'bg-gradient-to-r from-primary to-secondary text-white shadow-lg group-hover:shadow-primary/25'
+                                                    }`}>
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <span>Create Ticket</span>
+                                                            <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                                                                <span className="text-sm font-bold">+</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Indicador de hover */}
-                                        <div className="absolute inset-0 bg-gradient-to-r from-primary/0 to-primary/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                                    </button>
-
-                                    {/* NinjaOne Integration - Solo mostrar si el dispositivo tiene integración habilitada */}
-                                    {device.ninjaone_enabled && (
-                                        <div className="space-y-2">
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleDeviceAlerts(device.id);
-                                                }}
-                                                className="w-full flex items-center justify-between px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Shield className="w-4 h-4 text-blue-600" />
-                                                    <span className="font-medium text-blue-800">NinjaOne Alerts</span>
-                                                    {deviceAlerts.filter(alert => alert.device_id === device.id && alert.status !== 'resolved').length > 0 && (
-                                                        <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">
-                                                            {deviceAlerts.filter(alert => alert.device_id === device.id && alert.status !== 'resolved').length}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className={`transition-transform ${showNinjaOneAlerts[device.id] ? 'rotate-180' : ''}`}>
-                                                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                    </svg>
                                                 </div>
                                             </button>
 
-                                            {/* Mostrar alertas cuando están expandidas */}
-                                            {showNinjaOneAlerts[device.id] && (
-                                                <div className="space-y-2 pl-4">
-                                                    {loadingAlerts[device.id] ? (
-                                                        <div className="flex items-center justify-center py-4">
-                                                            <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                                                            <span className="ml-2 text-sm text-gray-600">Loading alerts...</span>
+                                          
+                                        </div>
+
+                                        {/* Enhanced NinjaOne Integration */}
+                                        {device.ninjaone_enabled && (
+                                            <div className="mt-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleDeviceAlerts(device.id);
+                                                    }}
+                                                    className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-xl hover:from-blue-100 hover:via-indigo-100 hover:to-purple-100 transition-all duration-300 shadow-sm hover:shadow-md"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center shadow-sm">
+                                                            <Shield className="w-4 h-4 text-white" />
                                                         </div>
-                                                    ) : (
-                                                        <>
-                                                            {deviceAlerts.filter(alert => alert.device_id === device.id).length === 0 ? (
-                                                                <div className="text-center py-4 text-sm text-gray-500">
-                                                                    <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                                                                    No active alerts for this device
+                                                        <div className="text-left">
+                                                            <div className="font-semibold text-blue-800 text-sm">Security Alerts</div>
+                                                            <div className="text-xs text-blue-600">NinjaOne Monitoring</div>
+                                                        </div>
+                                                        {deviceAlerts.filter(alert => alert.device_id === device.id && alert.status !== 'resolved').length > 0 && (
+                                                            <div className="px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full font-bold shadow-lg">
+                                                                {deviceAlerts.filter(alert => alert.device_id === device.id && alert.status !== 'resolved').length}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className={`transition-transform duration-300 ${showNinjaOneAlerts[device.id] ? 'rotate-180' : ''}`}>
+                                                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </div>
+                                                </button>
+
+                                                {/* Enhanced Alerts Dropdown */}
+                                                {showNinjaOneAlerts[device.id] && (
+                                                    <div className="mt-3 p-4 bg-gradient-to-br from-white to-blue-50/30 border border-blue-200 rounded-xl shadow-lg backdrop-blur-sm">
+                                                        {loadingAlerts[device.id] ? (
+                                                            <div className="flex items-center justify-center py-6">
+                                                                <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                                                                <span className="ml-3 text-sm text-blue-700 font-medium">Loading alerts...</span>
+                                                            </div>
+                                                        ) : deviceAlerts.filter(alert => alert.device_id === device.id).length === 0 ? (
+                                                            <div className="text-center py-6">
+                                                                <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                                    <CheckCircle className="w-6 h-6 text-green-600" />
                                                                 </div>
-                                                            ) : (
-                                                                deviceAlerts
+                                                                <p className="text-sm font-medium text-green-700">All Clear</p>
+                                                                <p className="text-xs text-green-600">No active security alerts</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-3">
+                                                                {deviceAlerts
                                                                     .filter(alert => alert.device_id === device.id)
                                                                     .map(alert => (
                                                                         <NinjaOneAlertCard
@@ -1577,27 +1593,36 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                             onCreateTicket={createTicketFromAlert}
                                                                             showActions={true}
                                                                         />
-                                                                    ))
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
+                                                                    ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            }) : (
+                                <div className="col-span-full">
+                                    <div className="flex flex-col items-center justify-center py-20 px-6">
+                                        <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 flex items-center justify-center mb-6 shadow-xl">
+                                            <Monitor className="w-12 h-12 text-slate-400" />
                                         </div>
-                                    )}
+                                        <h3 className="text-xl font-bold text-slate-700 mb-3">No Devices Found</h3>
+                                        <p className="text-slate-500 text-center max-w-md leading-relaxed">
+                                            Your device registry is empty. Contact your system administrator to register and configure devices for comprehensive ticket management.
+                                        </p>
+                                        <div className="mt-6 px-6 py-3 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl border border-primary/20">
+                                            <p className="text-sm font-medium text-primary">💡 Once devices are registered, you'll be able to create support tickets directly from this interface.</p>
+                                        </div>
+                                    </div>
                                 </div>
-                            )
-                        }) : (
-                            <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400">
-                                <Monitor className="w-16 h-16 mb-3 text-slate-300" />
-                                <p className="text-lg font-medium text-slate-600">No devices registered</p>
-                                <p className="text-sm text-slate-500">Contact your administrator to register devices</p>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 )}
 
-                <div className="px-6 py-8">
+                <div className="">
                     <div className={`grid grid-cols-1 xl:grid-cols-12 gap-8`}>
                         {/* Main Content */}
                         <div className={`xl:col-span-8 flex flex-col gap-8`}>
@@ -1780,68 +1805,149 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             ) : isMember ? (
                                 // Solo mostrar tabs locales si NO hay filtro del backend
                                 !statusFilter ? (
-                                    <Card className="shadow-none border-0 bg-transparent mb-10">
-                                        <CardContent className="p-0">
-                                            <Tabs value={memberTab} onValueChange={setMemberTab} className="w-full">
-                                                <TabsList className="grid w-full grid-cols-5 bg-transparent rounded-full p-1">
-                                                    {memberTabs.map((tabItem) => {
-                                                        // Define color classes for each tab
-                                                        let colorClass = "";
-                                                        let countColor = "";
-                                                        let iconColor = "";
-                                                        switch (tabItem.value) {
-                                                            case "all":
-                                                                colorClass = "data-[state=active]:text-blue-700";
-                                                                countColor = "text-blue-700";
-                                                                iconColor = "text-blue-700";
-                                                                break;
-                                                            case "open":
-                                                                colorClass = "data-[state=active]:text-yellow-600";
-                                                                countColor = "text-yellow-600";
-                                                                iconColor = "text-yellow-600";
-                                                                break;
-                                                            case "in_progress":
-                                                                colorClass = "data-[state=active]:text-amber-700";
-                                                                countColor = "text-amber-700";
-                                                                iconColor = "text-amber-700";
-                                                                break;
-                                                            case "resolved":
-                                                                colorClass = "data-[state=active]:text-emerald-700";
-                                                                countColor = "text-emerald-700";
-                                                                iconColor = "text-emerald-700";
-                                                                break;
-                                                            case "closed":
-                                                                colorClass = "data-[state=active]:text-slate-700";
-                                                                countColor = "text-slate-700";
-                                                                iconColor = "text-slate-700";
-                                                                break;
-                                                            default:
-                                                                colorClass = "";
-                                                                countColor = "text-blue-700";
-                                                                iconColor = "text-blue-700";
-                                                        }
-                                                        return (
-                                                            <TabsTrigger
-                                                                key={tabItem.value}
-                                                                value={tabItem.value}
-                                                                className={`flex flex-col items-center py-2 gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg transition-all rounded-xl ${colorClass}`}
-                                                            >
-                                                                <span className={`font-bold text-3xl ${countColor}`}>
-                                                                    {tabItem.value === "all"
-                                                                        ? memberTickets.length
-                                                                        : memberTickets.filter((t: any) => t.status === tabItem.value).length}
-                                                                </span>
-                                                                <div className="flex gap-2 items-center">
-                                                                    <tabItem.icon className={`w-5 h-5 ${iconColor}`} />
-                                                                    <span className="text-sm">{tabItem.label}</span>
-                                                                </div>
-                                                            </TabsTrigger>
-                                                        );
-                                                    })}
-                                                </TabsList>
-                                            </Tabs>
-                                        </CardContent>
-                                    </Card>
+                                    <div className="mb-8">
+                                        {/* Modern Stats Dashboard */}
+                                        <div className="bg-white rounded-3xl shadow-xl border border-slate-200/60 overflow-hidden">
+                                            {/* Header */}
+                                            <div className="bg-gradient-to-r from-slate-50 to-blue-50 px-8 py-6 border-b border-slate-200/50">
+                                                <h3 className="text-xl font-bold text-slate-800 mb-2">Ticket Overview</h3>
+                                                <p className="text-slate-600 text-sm">Monitor and manage your support requests</p>
+                                            </div>
+                                            
+                                            {/* Tabs Content */}
+                                            <div className="p-8">
+                                                <Tabs value={memberTab} onValueChange={setMemberTab} className="w-full">
+                                                    <TabsList className="grid w-full grid-cols-5 bg-slate-100/70 rounded-2xl p-1.5 h-auto">
+                                                        {memberTabs.map((tabItem) => {
+                                                            const count = tabItem.value === "all"
+                                                                ? memberTickets.length
+                                                                : memberTickets.filter((t: any) => t.status === tabItem.value).length;
+                                                            
+                                                            // Enhanced color scheme
+                                                            let tabColors = {
+                                                                bg: "bg-slate-200/50",
+                                                                activeBg: "data-[state=active]:bg-white",
+                                                                text: "text-slate-600",
+                                                                activeText: "data-[state=active]:text-slate-800",
+                                                                count: "text-slate-700",
+                                                                activeCount: "data-[state=active]:text-slate-900",
+                                                                icon: "text-slate-500",
+                                                                activeIcon: "data-[state=active]:text-slate-700",
+                                                                border: "data-[state=active]:border-slate-200"
+                                                            };
+                                                            
+                                                            switch (tabItem.value) {
+                                                                case "all":
+                                                                    tabColors = {
+                                                                        ...tabColors,
+                                                                        activeBg: "data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-50 data-[state=active]:to-indigo-50",
+                                                                        activeText: "data-[state=active]:text-blue-800",
+                                                                        activeCount: "data-[state=active]:text-blue-900",
+                                                                        activeIcon: "data-[state=active]:text-blue-600",
+                                                                        border: "data-[state=active]:border-blue-200"
+                                                                    };
+                                                                    break;
+                                                                case "open":
+                                                                    tabColors = {
+                                                                        ...tabColors,
+                                                                        activeBg: "data-[state=active]:bg-gradient-to-br data-[state=active]:from-orange-50 data-[state=active]:to-yellow-50",
+                                                                        activeText: "data-[state=active]:text-orange-800",
+                                                                        activeCount: "data-[state=active]:text-orange-900",
+                                                                        activeIcon: "data-[state=active]:text-orange-600",
+                                                                        border: "data-[state=active]:border-orange-200"
+                                                                    };
+                                                                    break;
+                                                                case "in_progress":
+                                                                    tabColors = {
+                                                                        ...tabColors,
+                                                                        activeBg: "data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-50 data-[state=active]:to-yellow-50",
+                                                                        activeText: "data-[state=active]:text-amber-800",
+                                                                        activeCount: "data-[state=active]:text-amber-900",
+                                                                        activeIcon: "data-[state=active]:text-amber-600",
+                                                                        border: "data-[state=active]:border-amber-200"
+                                                                    };
+                                                                    break;
+                                                                case "resolved":
+                                                                    tabColors = {
+                                                                        ...tabColors,
+                                                                        activeBg: "data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-50 data-[state=active]:to-green-50",
+                                                                        activeText: "data-[state=active]:text-emerald-800",
+                                                                        activeCount: "data-[state=active]:text-emerald-900",
+                                                                        activeIcon: "data-[state=active]:text-emerald-600",
+                                                                        border: "data-[state=active]:border-emerald-200"
+                                                                    };
+                                                                    break;
+                                                                case "closed":
+                                                                    tabColors = {
+                                                                        ...tabColors,
+                                                                        activeBg: "data-[state=active]:bg-gradient-to-br data-[state=active]:from-gray-50 data-[state=active]:to-slate-50",
+                                                                        activeText: "data-[state=active]:text-gray-800",
+                                                                        activeCount: "data-[state=active]:text-gray-900",
+                                                                        activeIcon: "data-[state=active]:text-gray-600",
+                                                                        border: "data-[state=active]:border-gray-200"
+                                                                    };
+                                                                    break;
+                                                            }
+                                                            
+                                                            return (
+                                                                <TabsTrigger
+                                                                    key={tabItem.value}
+                                                                    value={tabItem.value}
+                                                                    className={`
+                                                                        flex flex-col items-center justify-center 
+                                                                        py-6 px-4 gap-4 rounded-xl 
+                                                                        transition-all duration-200 ease-out
+                                                                        hover:bg-white/80 hover:shadow-sm
+                                                                        ${tabColors.bg} ${tabColors.activeBg} 
+                                                                        ${tabColors.text} ${tabColors.activeText}
+                                                                        ${tabColors.border}
+                                                                        data-[state=active]:shadow-lg 
+                                                                        data-[state=active]:border
+                                                                        data-[state=active]:scale-[1.02]
+                                                                        border border-transparent
+                                                                    `}
+                                                                >
+                                                                    {/* Count Circle */}
+                                                                    <div className="relative">
+                                                                        <div className={`
+                                                                            w-16 h-16 rounded-full 
+                                                                            bg-white/70 
+                                                                            data-[state=active]:bg-white 
+                                                                            data-[state=active]:shadow-md
+                                                                            flex items-center justify-center
+                                                                            transition-all duration-200
+                                                                            border border-slate-200/50
+                                                                            data-[state=active]:border-slate-300/50
+                                                                        `}>
+                                                                            <span className={`
+                                                                                font-bold text-2xl 
+                                                                                ${tabColors.count} ${tabColors.activeCount}
+                                                                                transition-colors duration-200
+                                                                            `}>
+                                                                                {count}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    {/* Label */}
+                                                                    <div className="flex flex-col items-center gap-2">
+                                                                        <tabItem.icon className={`
+                                                                            w-5 h-5 
+                                                                            ${tabColors.icon} ${tabColors.activeIcon}
+                                                                            transition-colors duration-200
+                                                                        `} />
+                                                                        <span className="text-sm font-semibold leading-tight text-center">
+                                                                            {tabItem.label}
+                                                                        </span>
+                                                                    </div>
+                                                                </TabsTrigger>
+                                                            );
+                                                        })}
+                                                    </TabsList>
+                                                </Tabs>
+                                            </div>
+                                        </div>
+                                    </div>
                                 ) : null // No mostrar tabs cuando hay filtro del backend
                             ) : (
                                 <Card className="shadow-none border-0 bg-transparent mb-10">
