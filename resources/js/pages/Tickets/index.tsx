@@ -1994,59 +1994,174 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                 </Card>
                             )}
 
-                            {/**TICKETS GRID AQUI */}
+                            {/* Ultra-Premium Tickets Grid */}
                             {isMember && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {memberFilteredTickets.length === 0 ? (
-                                        <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400">
-                                            <AlertCircle className="w-12 h-12 mb-3" />
-                                            <p className="text-lg font-medium">No tickets found</p>
-                                            <p className="text-sm">Create a ticket by selecting a device above</p>
-                                        </div>
-                                    ) : (
-                                        memberFilteredTickets.map((ticket: any) => (
-                                            <Card
-                                                key={ticket.id}
-                                                className={`cursor-pointer transition-all hover:shadow-lg  ${selectedTicket?.id === ticket.id
-                                                    ? 'border-primary bg-blue-50/50'
-                                                    : ' '
-                                                    }`}
-                                                onClick={() => handleSelectTicket(ticket)}
-                                            >
-                                                <CardContent className="p-4">
-                                                    <div className="space-y-3">
-                                                        <div className="flex items-start justify-between">
-                                                            <h3 className="font-semibold text-slate-900 line-clamp-1">
-                                                                {ticket.title}
-                                                            </h3>
-                                                            <StatusBadge status={ticket.status} />
-                                                        </div>
+                                <div className="space-y-8">
+                                    
 
-                                                        <p className="text-sm text-slate-700 line-clamp-2 leading-relaxed">
-                                                            {ticket.description}
-                                                        </p>
-
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <CategoryBadge category={ticket.category} />
-                                                            <DeviceBadge device={ticket.device} />
-                                                        </div>
-
-                                                        <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
-                                                            <span className="bg-slate-100 px-2 py-1 rounded">{ticket.code}</span>
-                                                            <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
-                                                        </div>
-
-                                                        {ticket.technical && (
-                                                            <div className="flex items-center gap-2 text-xs text-slate-700 bg-green-50 px-2 py-1 rounded-md border border-green-200">
-                                                                <UserIcon className="w-3 h-3 text-green-600" />
-                                                                <span>Assigned to <strong>{ticket.technical.name}</strong></span>
-                                                            </div>
-                                                        )}
+                                    {/* Ultra-Premium Tickets Grid */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        {memberFilteredTickets.length === 0 ? (
+                                            <div className="col-span-full">
+                                                <div className="relative overflow-hidden bg-gradient-to-br from-white via-slate-50/50 to-blue-50/30 rounded-3xl border border-slate-200/60 p-16 text-center shadow-xl">
+                                                    {/* Background Pattern */}
+                                                    <div className="absolute inset-0 opacity-5">
+                                                        <div className="absolute top-8 left-8 w-24 h-24 bg-primary rounded-full"></div>
+                                                        <div className="absolute bottom-8 right-8 w-32 h-32 bg-secondary rounded-full"></div>
+                                                        <div className="absolute top-1/2 left-1/3 w-16 h-16 bg-accent rounded-full"></div>
                                                     </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))
-                                    )}
+                                                    
+                                                    <div className="relative z-10">
+                                                        <div className="w-24 h-24 bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                                                            <AlertCircle className="w-12 h-12 text-slate-400" />
+                                                        </div>
+                                                        <h3 className="text-2xl font-bold text-slate-700 mb-3">No tickets yet</h3>
+                                                        <p className="text-slate-500 mb-8 max-w-md mx-auto leading-relaxed">
+                                                            Create your first support ticket by selecting a device from the Device Center above and describing your issue
+                                                        </p>
+                                                        <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-2xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                                                            <Monitor className="w-5 h-5" />
+                                                            <span>Select a device to get started</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            memberFilteredTickets.map((ticket: any, index: number) => (
+                                                <div
+                                                    key={ticket.id}
+                                                    className={`group relative cursor-pointer transition-all duration-500 transform hover:-translate-y-2 ${
+                                                        selectedTicket?.id === ticket.id
+                                                            ? 'scale-[1.03] z-10'
+                                                            : 'hover:scale-[1.02]'
+                                                    }`}
+                                                    style={{ animationDelay: `${index * 100}ms` }}
+                                                    onClick={() => handleSelectTicket(ticket)}
+                                                >
+                                                    {/* Advanced Shadow Effects */}
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500 transform scale-110"></div>
+                                                    
+                                                    {/* Main Ultra Card */}
+                                                    <div className={`
+                                                        relative bg-white/95 backdrop-blur-sm rounded-3xl border-2 transition-all duration-500 
+                                                        shadow-xl hover:shadow-2xl overflow-hidden transform
+                                                        ${selectedTicket?.id === ticket.id
+                                                            ? 'border-primary shadow-primary/25 bg-gradient-to-br from-white to-primary/5'
+                                                            : 'border-slate-200/60 hover:border-slate-300/80'
+                                                        }
+                                                        hover:bg-gradient-to-br hover:from-white hover:to-slate-50/50
+                                                    `}>
+                                                        
+
+                                                        {/* Card Content */}
+                                                        <div className="p-8 relative">
+                                                            {/* Premium Header Row */}
+                                                            <div className="flex items-start justify-between mb-6 ">
+                                                                <div className="flex-1 pr-6">
+                                                                    <h3 className="font-bold text-slate-900 text-xl leading-tight mb-3 line-clamp-2 group-hover:text-primary transition-colors duration-300">
+                                                                        {ticket.title}
+                                                                    </h3>
+                                                                    <div className="flex items-center gap-3 text-xs relative">
+                                                                        <span className="font-mono min-w-max bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 px-3 py-2 rounded-xl font-semibold shadow-inner">
+                                                                            {ticket.code}
+                                                                        </span>
+                                                                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
+                                                                        <span className="text-slate-500 font-medium">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                                                                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
+                                                                        <span className="text-slate-500 font-medium">{new Date(ticket.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex-shrink-0  absolute right-4 top-3">
+                                                                    <div className="relative">
+                                                                        <StatusBadge status={ticket.status} />
+                                                                        {selectedTicket?.id === ticket.id && (
+                                                                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full shadow-lg animate-pulse"></div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Enhanced Description */}
+                                                            <div className="relative mb-6">
+                                                                <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-primary/50 to-secondary/50 rounded-full"></div>
+                                                                <p className="text-slate-600 text-sm leading-relaxed line-clamp-3 pl-4 font-medium">
+                                                                    {ticket.description}
+                                                                </p>
+                                                            </div>
+
+                                                            {/* Premium Badges Row */}
+                                                            <div className="flex items-center gap-3 flex-wrap mb-6">
+                                                                <div className="transform hover:scale-105 transition-transform duration-200">
+                                                                    <CategoryBadge category={ticket.category} />
+                                                                </div>
+                                                                <div className="transform hover:scale-105 transition-transform duration-200">
+                                                                    <DeviceBadge device={ticket.device} />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Ultra Technical Assignment */}
+                                                            {ticket.technical && (
+                                                                <div className="relative overflow-hidden">
+                                                                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 via-green-400/5 to-emerald-400/10 rounded-2xl"></div>
+                                                                    <div className="relative flex items-center gap-4 p-4 bg-gradient-to-r from-emerald-50/80 to-green-50/80 backdrop-blur-sm rounded-2xl border border-emerald-200/50 shadow-lg">
+                                                                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl flex items-center justify-center shadow-lg">
+                                                                            <UserIcon className="w-6 h-6 text-white" />
+                                                                        </div>
+                                                                        <div className="flex-1">
+                                                                            <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1">
+                                                                                Assigned Technician
+                                                                            </p>
+                                                                            <p className="text-base font-bold text-emerald-900">
+                                                                                {ticket.technical.name}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse shadow-lg"></div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Ultra Device Info */}
+                                                            {!ticket.technical && ticket.device && (
+                                                                <div className="relative overflow-hidden">
+                                                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 via-indigo-400/5 to-blue-400/10 rounded-2xl"></div>
+                                                                    <div className="relative flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-sm rounded-2xl border border-blue-200/50 shadow-lg">
+                                                                        <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg">
+                                                                            {ticket.device.icon_id ? (
+                                                                                <DeviceIcon deviceIconId={ticket.device.icon_id} size={24} />
+                                                                            ) : (
+                                                                                <Monitor className="w-6 h-6 text-white" />
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1">
+                                                                            <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-1">
+                                                                                Device Information
+                                                                            </p>
+                                                                            <p className="text-base font-bold text-blue-900">
+                                                                                {ticket.device.name_device?.name || ticket.device.name || `Device #${ticket.device.id}`}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse shadow-lg"></div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Ultra Hover Effects */}
+                                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-transparent to-secondary/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none"></div>
+                                                        
+                                                        
+                                                        
+                                                        {/* Floating Action Hint */}
+                                                        <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                                                            <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-lg">
+                                                                <Eye className="w-4 h-4 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
