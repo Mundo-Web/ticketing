@@ -1390,6 +1390,7 @@ const exportProfessionalDashboard = async (metrics: Record<string, unknown>, cha
 export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: DashboardProps) {
     const pageProps = usePage().props as unknown as { auth: { user: { roles: { name: string }[]; technical?: { is_default: boolean } } } };
     const isSuperAdmin = pageProps?.auth?.user?.roles?.some((role) => role.name === 'super-admin') || false;
+    const isTechnical = pageProps?.auth?.user?.roles?.some((role) => role.name === 'technical') || false;
     const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false; const canAssignTickets = isSuperAdmin || isDefaultTechnical;
     // States for modals and UI
     const [showDevicesModal, setShowDevicesModal] = useState(false);
@@ -1870,10 +1871,12 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                                         <BarChart3 className="h-10 w-10 text-white" />
                                     </div>
                                     <div className="space-y-4">                                        <h1 className="text-6xl font-black tracking-tight text-slate-900 dark:text-white">
-                                        Dashboard
+                                        {isTechnical && !isSuperAdmin ? "ADK Assist Dashboard" : "Dashboard"}
                                     </h1><p className="text-2xl text-slate-600 font-medium">
                                             {isSuperAdmin
                                                 ? "Administrative control center of the system"
+                                                : isTechnical && !isSuperAdmin
+                                                ? "Your technical management control center"
                                                 : "Your personalized management panel"
                                             }
                                         </p>
@@ -1909,12 +1912,28 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                                 variant="outline"
                                 size="lg"
                                 onClick={() => {
-                                    exportProfessionalDashboard(metrics, charts, lists);
+                                    if (isTechnical && !isSuperAdmin) {
+                                        // For technical users, navigate to their appointments
+                                        window.open('/appointments', '_blank');
+                                    } else {
+                                        // For admin users, export dashboard
+                                        exportProfessionalDashboard(metrics, charts, lists);
+                                    }
                                 }}
                                 className="gap-4 h-14 px-8 shadow-xl text-lg"
                             >
-                                    <Download className="h-6 w-6" />
-                                    Export </Button>
+                                    {isTechnical && !isSuperAdmin ? (
+                                        <>
+                                            <Calendar className="h-6 w-6" />
+                                            Mis Citas
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Download className="h-6 w-6" />
+                                            Export
+                                        </>
+                                    )}
+                                </Button>
 
                                 {/* Appointments Dropdown */}
                                 <DropdownMenu 
@@ -2207,60 +2226,84 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
 
                         {/* SECTION 1: KEY TICKET METRICS */}
                         <div className="space-y-12">                            <div className="text-center space-y-6">                                <h2 className="text-4xl font-bold text-foreground">
-                            Ticket Analytics
-                        </h2>
+                                    {isTechnical && !isSuperAdmin ? "Mis Tickets" : "Ticket Analytics"}
+                                </h2>
                             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                                Real-time monitoring of workflow and performance metrics
+                                {isTechnical && !isSuperAdmin 
+                                    ? "Tickets asignados a ti y resumen de tu trabajo" 
+                                    : "Real-time monitoring of workflow and performance metrics"
+                                }
                             </p>
                         </div>
 
                             {/* Perfectly aligned metrics grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">                                {/* Card 1: Total Tickets */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-primary/10 via-background to-primary/5 overflow-hidden">
-                                    <CardContent className="p-6">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="p-3 rounded-xl bg-primary/20">
-                                                <Ticket className="h-6 w-6 text-primary" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">                                {/* Card 1: Total Tickets - Hide for regular technicians */}
+                                {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-primary/10 via-background to-primary/5 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-primary/20">
+                                                    <Ticket className="h-6 w-6 text-primary" />
+                                                </div>
+                                                <ExternalLink
+                                                    className="h-4 w-4 text-primary/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets', '_blank')}
+                                                />
                                             </div>
-                                            <ExternalLink
-                                                className="h-4 w-4 text-primary/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={() => window.open('/tickets', '_blank')}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-primary uppercase tracking-wider">Total Tickets</p>
-                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.total}</p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/20 text-primary">
-                                                    +12%
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">vs last month</span>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-primary uppercase tracking-wider">
+                                                    {isTechnical && !isSuperAdmin ? "Mis Tickets Totales" : "Total Tickets"}
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.total}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/20 text-primary">
+                                                        +12%
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">vs last month</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>                                {/* Card 2: Critical Tickets */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-destructive/10 via-background to-destructive/5 overflow-hidden cursor-pointer"
+                                        </CardContent>
+                                    </Card>
+                                )}                                {/* Card 2: Critical Tickets - Enhanced for technicians */}
+                                <Card className={`group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-destructive/10 via-background to-destructive/5 overflow-hidden cursor-pointer ${
+                                    isTechnical && !isSuperAdmin && metrics.tickets.open > 0 
+                                        ? "ring-2 ring-red-500 ring-opacity-50 animate-pulse" 
+                                        : ""
+                                }`}
                                     onClick={() => window.open('/tickets?status=open', '_blank')}>
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="p-3 rounded-xl bg-destructive/20">
                                                 <AlertCircle className="h-6 w-6 text-destructive" />
                                             </div>
-                                            <ExternalLink className="h-4 w-4 text-destructive/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <div className="flex items-center gap-2">
+                                                {isTechnical && !isSuperAdmin && metrics.tickets.open > 0 && (
+                                                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                                )}
+                                                <ExternalLink className="h-4 w-4 text-destructive/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-destructive uppercase tracking-wider">Open Tickets</p>
+                                            <p className="text-sm font-semibold text-destructive uppercase tracking-wider">
+                                                {isTechnical && !isSuperAdmin ? "Tickets Urgentes Míos" : "Open Tickets"}
+                                            </p>
                                             <p className="text-3xl font-bold text-foreground">{metrics.tickets.open}</p>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-destructive/20 text-destructive">                                                    Priority
+                                                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                                                    isTechnical && !isSuperAdmin && metrics.tickets.open > 0
+                                                        ? "bg-red-500 text-white animate-pulse"
+                                                        : "bg-destructive/20 text-destructive"
+                                                }`}>                                                    {isTechnical && !isSuperAdmin ? "¡URGENTE!" : "Priority"}
                                                 </span>
-                                                <span className="text-xs text-muted-foreground">Immediate attention</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {isTechnical && !isSuperAdmin ? "Requiere atención inmediata" : "Immediate attention"}
+                                                </span>
                                             </div>
                                         </div>
                                     </CardContent>
                                 </Card>
 
-                                {/* Card 3: In Progress */}
+                                {/* Card 3: In Progress - Enhanced for technicians */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-secondary/10 via-background to-secondary/5 overflow-hidden cursor-pointer"
                                     onClick={() => window.open('/tickets?status=in_progress', '_blank')}>
                                     <CardContent className="p-6">
@@ -2270,19 +2313,23 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                                             </div>
                                             <ExternalLink className="h-4 w-4 text-secondary/60 opacity-0 group-hover:opacity-100 transition-opacity" />                                        </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-secondary uppercase tracking-wider">In Progress</p>
+                                            <p className="text-sm font-semibold text-secondary uppercase tracking-wider">
+                                                {isTechnical && !isSuperAdmin ? "En Proceso - Mis Tickets" : "In Progress"}
+                                            </p>
                                             <p className="text-3xl font-bold text-foreground">{metrics.tickets.in_progress}</p>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-medium px-2 py-1 rounded-full bg-secondary/20 text-secondary">
                                                     +8%
                                                 </span>
-                                                <span className="text-xs text-muted-foreground">This week</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {isTechnical && !isSuperAdmin ? "En trabajo activo" : "This week"}
+                                                </span>
                                             </div>
                                         </div>
                                     </CardContent>
                                 </Card>
 
-                                {/* Card 4: Resolved */}
+                                {/* Card 4: Resolved - Enhanced for technicians */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-accent/10 via-background to-accent/5 overflow-hidden cursor-pointer"
                                     onClick={() => window.open('/tickets?status=resolved', '_blank')}>
                                     <CardContent className="p-6">
@@ -2293,21 +2340,89 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                                             <ExternalLink className="h-4 w-4 text-accent/60 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-accent uppercase tracking-wider">Resolved</p>
+                                            <p className="text-sm font-semibold text-accent uppercase tracking-wider">
+                                                {isTechnical && !isSuperAdmin ? "Mis Tickets Resueltos" : "Resolved"}
+                                            </p>
                                             <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved}</p>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-medium px-2 py-1 rounded-full bg-accent/20 text-accent">
                                                     +15%
                                                 </span>
-                                                <span className="text-xs text-muted-foreground">vs target</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {isTechnical && !isSuperAdmin ? "Mi productividad" : "vs target"}
+                                                </span>
                                             </div>
                                         </div>
                                     </CardContent>
                                 </Card>
                             </div>
 
-                            {/* Additional metrics cards - Second row */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {/* Technical User Daily Summary */}
+                            {isTechnical && !isSuperAdmin && (
+                                <div className="mt-12">
+                                    <div className="text-center space-y-4 mb-8">
+                                        <h3 className="text-3xl font-bold text-foreground">Resumen de Hoy</h3>
+                                        <p className="text-lg text-muted-foreground">Tu actividad y próximas tareas</p>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {/* Today's Resolved */}
+                                        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 hover:shadow-lg transition-all duration-300">
+                                            <CardContent className="p-6">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div className="p-3 rounded-xl bg-green-100">
+                                                        <Calendar className="h-6 w-6 text-green-600" />
+                                                    </div>
+                                                    <Badge className="bg-green-100 text-green-800 border-green-300">Hoy</Badge>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">Resueltos Hoy</p>
+                                                    <p className="text-3xl font-bold text-green-900">{metrics.tickets.resolved_today}</p>
+                                                    <p className="text-sm text-green-700">¡Excelente trabajo!</p>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+
+                                        {/* My Appointments Today */}
+                                        <Card className="bg-gradient-to-br from-blue-50 to-sky-50 border-blue-200 hover:shadow-lg transition-all duration-300">
+                                            <CardContent className="p-6">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div className="p-3 rounded-xl bg-blue-100">
+                                                        <Clock className="h-6 w-6 text-blue-600" />
+                                                    </div>
+                                                    <Badge className="bg-blue-100 text-blue-800 border-blue-300">Próximas</Badge>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">Mis Próximas Visitas</p>
+                                                    <p className="text-3xl font-bold text-blue-900">{upcomingAppointmentsCount}</p>
+                                                    <p className="text-sm text-blue-700">Próximos 7 días</p>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+
+                                        {/* Average Resolution Time */}
+                                        <Card className="bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200 hover:shadow-lg transition-all duration-300">
+                                            <CardContent className="p-6">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div className="p-3 rounded-xl bg-purple-100">
+                                                        <Timer className="h-6 w-6 text-purple-600" />
+                                                    </div>
+                                                    <Badge className="bg-purple-100 text-purple-800 border-purple-300">Promedio</Badge>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <p className="text-sm font-semibold text-purple-600 uppercase tracking-wider">Mi Tiempo Promedio</p>
+                                                    <p className="text-3xl font-bold text-purple-900">{metrics.tickets.avg_resolution_hours}h</p>
+                                                    <p className="text-sm text-purple-700">Por ticket</p>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Additional metrics cards - Second row - Hide for regular technicians */}
+                            {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {/* Card 5: Unassigned (only visible for admins and default technicians) */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-3/10 via-background to-chart-3/5 overflow-hidden">
                                     <CardContent className="p-6">
@@ -2409,6 +2524,7 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                                         </div>
                                     </CardContent>
                                 </Card>                            </div>
+                            )}
                         </div>
 
 
@@ -2485,8 +2601,8 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                             </div>
                         )}
 
-                        {/* SECTION 2: SYSTEM RESOURCES */}
-                        {metrics.resources.buildings > 0 && (
+                        {/* SECTION 2: SYSTEM RESOURCES - Hidden for regular technicians */}
+                        {(!isTechnical || isSuperAdmin || isDefaultTechnical) && metrics.resources.buildings > 0 && (
                             <div className="space-y-8">
                                 <div className="text-center space-y-4">                                    <div className="flex items-center justify-center gap-4">                                        <h2 className="text-4xl font-bold text-foreground">
                                     System Resources
@@ -2913,7 +3029,8 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                                 )}
                             </div>
                         )}
-                        {/* SECTION 3: VISUAL ANALYSIS AND CHARTS */}
+                        {/* SECTION 3: VISUAL ANALYSIS AND CHARTS - Hidden for regular technicians */}
+                        {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
                         <div className="space-y-16">                            <div className="text-center space-y-6">
                             <h2 className="text-5xl font-black text-foreground">
                                 Visual Analysis
@@ -3155,8 +3272,10 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                                 </div>
                             </div>
                         </div>
+                        )}
 
-                    {/* SECTION 3: ADVANCED CHARTS */}
+                    {/* SECTION 3: ADVANCED CHARTS - Hidden for regular technicians */}
+                    {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
                     <div className="space-y-6 mt-4">
                         <div className="text-center space-y-4">
                             <h2 className="text-3xl font-bold text-foreground">
@@ -3204,6 +3323,7 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                             }}
                         />
                     </div>
+                )}
 
                 
 
@@ -3267,7 +3387,9 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
 
 
 
-                </div>                {/* Devices Modal con animaciones mejoradas */}
+                </div>
+                
+                {/* Devices Modal con animaciones mejoradas */}
                 {showDevicesModal && (
                     <div
                         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-300"

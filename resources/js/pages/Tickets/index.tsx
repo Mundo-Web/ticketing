@@ -61,6 +61,7 @@ import {
     Trash2,
     Bell,
     Plus,
+    ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -375,6 +376,11 @@ export default function TicketsIndex({
     const [showDeviceStats, setShowDeviceStats] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState<{ open: boolean; ticket?: any }>({ open: false });
 
+    // Custom dropdown states
+    const [showMemberDropdown, setShowMemberDropdown] = useState(false)
+    const [showDeviceDropdown, setShowDeviceDropdown] = useState(false)
+    const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
+
     // Member feedback states
     const [showMemberFeedbackModal, setShowMemberFeedbackModal] = useState<{ open: boolean; ticketId?: number }>({ open: false });
     const [memberFeedback, setMemberFeedback] = useState({ comment: "", rating: 0 });
@@ -419,6 +425,23 @@ export default function TicketsIndex({
     const isDoorman = (auth.user as any)?.roles?.includes("doorman");
     const isOwner = (auth.user as any)?.roles?.includes("owner");
     // isTechnicalDefault ahora viene del backend correctamente
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            if (!target.closest('.dropdown-container')) {
+                setShowMemberDropdown(false);
+                setShowDeviceDropdown(false);
+                setShowCategoryDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     // Efecto para registrar cuando se abre el modal de cita
     useEffect(() => {
@@ -1193,6 +1216,24 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Ticket Management" />
+            
+            {/* Custom Styles for Dropdowns */}
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: linear-gradient(to bottom, #64748b, #475569);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: linear-gradient(to bottom, #475569, #334155);
+                }
+            `}</style>
 
             <div className="flex flex-col gap-6 p-6">
 
@@ -2981,160 +3022,388 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 </DialogContent>
             </Dialog>
 
-            {/* Create Ticket Modal */}
+            {/* Ultra-Premium Create Ticket Modal */}
             <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-                <DialogContent className="sm:max-w-xl">
-                    <DialogHeader className="pb-6">
-                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
-                            <div className="p-2 bg-green-100 rounded-lg">
-                                <AlertCircle className="w-6 h-6 text-green-600" />
-                            </div>
-                            Create New Ticket
-                        </DialogTitle>
-                        <DialogDescription className="text-base text-slate-600">
-                            Fill out the form below to create a new support ticket for your device.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmitTicket} className="space-y-6">
-                        <div className="space-y-4">
-                            {/* Tenant selection - only for admin/technical */}
-                            {(isSuperAdmin || isTechnicalDefault || isTechnical) && (
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                    {/* Enhanced Header */}
+                    <DialogHeader className="pb-8 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-green-50/80 via-emerald-50/60 to-green-50/80 rounded-t-xl"></div>
+                        <div className="relative z-10">
+                            <DialogTitle className="flex items-center gap-4 text-2xl font-bold mb-3">
+                                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg flex items-center justify-center">
+                                    <Ticket className="w-7 h-7 text-white" />
+                                </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-800 mb-3">Select Member</label>
-                                    <select
-                                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base bg-white focus:ring-2 focus:ring-transparent focus:outline-0 transition-all duration-200"
-                                        value={data.tenant_id}
-                                        onChange={e => setData('tenant_id', e.target.value)}
-                                        required
-                                    >
-                                        <option value="">Select a member</option>
-                                        {allTenants.map((tenant: any) => (
-                                            <option key={tenant.id} value={tenant.id}>
-                                                {tenant.name} - {tenant.apartment?.name || 'No apartment'} ({tenant.apartment?.building?.name || 'No building'})
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {errors.tenant_id && <div className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                                    <span className="bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent">
+                                        Create New Ticket
+                                    </span>
+                                    <div className="w-16 h-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full mt-1"></div>
+                                </div>
+                            </DialogTitle>
+                            <DialogDescription className="text-base text-slate-600 font-medium">
+                                Fill out the form below to create a comprehensive support ticket for your device issue.
+                            </DialogDescription>
+                        </div>
+                    </DialogHeader>
+                    
+                    <form onSubmit={handleSubmitTicket} className="space-y-8">
+                        <div className="space-y-6">
+                            {/* Ultra-Custom Member Dropdown */}
+                            {(isSuperAdmin || isTechnicalDefault || isTechnical) && (
+                                <div className="space-y-3">
+                                    <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-4">
+                                        <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                                            <User className="w-3 h-3 text-white" />
+                                        </div>
+                                        Select Member
+                                    </label>
+                                    
+                                    <div className="relative dropdown-container">
+                                        <div className="absolute inset-0 bg-gradient-to-r from-blue-100/50 to-indigo-100/50 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowMemberDropdown(!showMemberDropdown)}
+                                            className="relative w-full border-2 border-slate-200/80 rounded-2xl px-6 py-4 text-base bg-gradient-to-r from-white to-slate-50/50 hover:from-blue-50/30 hover:to-indigo-50/30 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:bg-white transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm text-left"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    {data.tenant_id ? (
+                                                        <>
+                                                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                                                                <User className="w-4 h-4 text-white" />
+                                                            </div>
+                                                            <div>
+                                                                <span className="font-semibold text-slate-800">
+                                                                    {allTenants.find((tenant: any) => tenant.id.toString() === data.tenant_id)?.name}
+                                                                </span>
+                                                                <div className="text-xs text-slate-500">
+                                                                    {allTenants.find((tenant: any) => tenant.id.toString() === data.tenant_id)?.apartment?.name || 'No apartment'}
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div className="w-8 h-8 bg-slate-200 rounded-xl flex items-center justify-center">
+                                                                <User className="w-4 h-4 text-slate-400" />
+                                                            </div>
+                                                            <span className="text-slate-500">Choose a member...</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${showMemberDropdown ? 'rotate-180' : ''}`} />
+                                            </div>
+                                        </button>
+                                        
+                                        {/* Custom Dropdown Menu */}
+                                        {showMemberDropdown && (
+                                            <div className="absolute top-full mt-2 w-full bg-white rounded-2xl shadow-2xl border border-slate-200/60 z-50 max-h-64 overflow-hidden">
+                                                <div className="p-2 max-h-60 overflow-y-auto custom-scrollbar">
+                                                    {allTenants.map((tenant: any) => (
+                                                        <div
+                                                            key={tenant.id}
+                                                            onClick={() => {
+                                                                setData('tenant_id', tenant.id.toString());
+                                                                setShowMemberDropdown(false);
+                                                            }}
+                                                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 cursor-pointer transition-all duration-200 group"
+                                                        >
+                                                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                                                <User className="w-5 h-5 text-white" />
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <div className="font-semibold text-slate-800 group-hover:text-blue-700">
+                                                                    {tenant.name}
+                                                                </div>
+                                                                <div className="text-sm text-slate-500">
+                                                                    🏠 {tenant.apartment?.name || 'No apartment'} • 🏢 {tenant.apartment?.building?.name || 'No building'}
+                                                                </div>
+                                                            </div>
+                                                            {data.tenant_id === tenant.id.toString() && (
+                                                                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                    <CheckCircle className="w-4 h-4 text-white" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {errors.tenant_id && <div className="text-red-500 text-sm mt-3 flex items-center gap-2 bg-red-50 px-4 py-2 rounded-xl border border-red-200">
                                         <AlertCircle className="w-4 h-4" />
                                         {errors.tenant_id}
                                     </div>}
                                 </div>
                             )}
 
-                            {/* Device */}
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-800 mb-3">Device</label>
-                                <select
-                                    className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base bg-white focus:ring-2 focus:ring-transparent focus:outline-0 transition-all duration-200"
-                                    value={data.device_id}
-                                    onChange={e => setData('device_id', e.target.value)}
-                                    required
-                                >
-                                    <option value="">Select a device</option>
-                                    {deviceOptions.length > 0 ? (
-                                        deviceOptions.map((d: any) => (
-                                            <option key={d.id} value={d.id}>
-                                                {d.name_device?.name || d.name || `Device #${d.id}`}
-                                                {(isSuperAdmin || isTechnicalDefault) && d.building_name && d.apartment_name &&
-                                                    ` - ${d.building_name} / ${d.apartment_name}`
-                                                }
-                                            </option>
-                                        ))
-                                    ) : (
-                                        <option value="" disabled>No devices available</option>
+                            {/* Ultra-Custom Device Dropdown */}
+                            <div className="space-y-3">
+                                <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-4">
+                                    <div className="w-5 h-5 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg flex items-center justify-center">
+                                        <Monitor className="w-3 h-3 text-white" />
+                                    </div>
+                                    Device Selection
+                                </label>
+                                
+                                <div className="relative dropdown-container">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-purple-100/50 to-violet-100/50 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowDeviceDropdown(!showDeviceDropdown)}
+                                        className="relative w-full border-2 border-slate-200/80 rounded-2xl px-6 py-4 text-base bg-gradient-to-r from-white to-slate-50/50 hover:from-purple-50/30 hover:to-violet-50/30 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 focus:bg-white transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm text-left"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                {data.device_id ? (
+                                                    <>
+                                                       
+                                                        <div>
+                                                            <span className="font-semibold text-slate-800">
+                                                                {deviceOptions.find((d: any) => d.id.toString() === data.device_id)?.name_device?.name || 
+                                                                 deviceOptions.find((d: any) => d.id.toString() === data.device_id)?.name || 
+                                                                 `Device #${data.device_id}`}
+                                                            </span>
+                                                            {(isSuperAdmin || isTechnicalDefault) && (
+                                                                <div className="text-xs text-slate-500">
+                                                                    {deviceOptions.find((d: any) => d.id.toString() === data.device_id)?.building_name} / {deviceOptions.find((d: any) => d.id.toString() === data.device_id)?.apartment_name}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="w-8 h-8 bg-slate-200 rounded-xl flex items-center justify-center">
+                                                            <Monitor className="w-4 h-4 text-slate-400" />
+                                                        </div>
+                                                        <span className="text-slate-500">Select your device...</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${showDeviceDropdown ? 'rotate-180' : ''}`} />
+                                        </div>
+                                    </button>
+                                    
+                                    {/* Custom Device Dropdown Menu */}
+                                    {showDeviceDropdown && (
+                                        <div className="absolute top-full mt-2 w-full bg-white rounded-2xl shadow-2xl border border-slate-200/60 z-50 max-h-64 overflow-hidden">
+                                            <div className="p-2 max-h-60 overflow-y-auto custom-scrollbar">
+                                                {deviceOptions.length > 0 ? (
+                                                    deviceOptions.map((device: any) => (
+                                                        <div
+                                                            key={device.id}
+                                                            onClick={() => {
+                                                                setData('device_id', device.id.toString());
+                                                                setShowDeviceDropdown(false);
+                                                            }}
+                                                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 cursor-pointer transition-all duration-200 group"
+                                                        >
+                                                         
+                                                            <div className="flex-1">
+                                                                <div className="font-semibold text-slate-800 group-hover:text-purple-700">
+                                                                    {device.name_device?.name || device.name || `Device #${device.id}`}
+                                                                </div>
+                                                                {(isSuperAdmin || isTechnicalDefault) && device.building_name && device.apartment_name && (
+                                                                    <div className="text-sm text-slate-500">
+                                                                        🏢 {device.building_name} • 🏠 {device.apartment_name}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {data.device_id === device.id.toString() && (
+                                                                <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+                                                                    <CheckCircle className="w-4 h-4 text-white" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="p-4 text-center text-slate-500">
+                                                        <Monitor className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                                        <span>No devices available</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     )}
-                                </select>
-                                {errors.device_id && <div className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                                </div>
+                                {errors.device_id && <div className="text-red-500 text-sm mt-3 flex items-center gap-2 bg-red-50 px-4 py-2 rounded-xl border border-red-200">
                                     <AlertCircle className="w-4 h-4" />
                                     {errors.device_id}
                                 </div>}
                             </div>
 
-                            {/* Category */}
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-800 mb-3">Category</label>
-                                <select
-                                    className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base bg-white  focus:ring-2 focus:ring-transparent focus:outline-0 transition-all duration-200"
-                                    value={data.category}
-                                    onChange={e => setData('category', e.target.value)}
-                                    required
-                                >
-                                    <option value="">Select a category</option>
-                                    {TICKET_CATEGORIES.map(cat => (
-                                        <option key={cat} value={cat}>{cat}</option>
-                                    ))}
-                                </select>
-                                {errors.category && <div className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                            {/* Ultra-Custom Category Dropdown */}
+                            <div className="space-y-3">
+                                <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-4">
+                                    <div className="w-5 h-5 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+                                        <Tag className="w-3 h-3 text-white" />
+                                    </div>
+                                    Issue Category
+                                </label>
+                                
+                                <div className="relative dropdown-container">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-orange-100/50 to-red-100/50 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                                        className="relative w-full border-2 border-slate-200/80 rounded-2xl px-6 py-4 text-base bg-gradient-to-r from-white to-slate-50/50 hover:from-orange-50/30 hover:to-red-50/30 focus:border-orange-500 focus:ring-4 focus:ring-orange-100 focus:bg-white transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm text-left"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                {data.category ? (
+                                                    <>
+                                                       
+                                                        <span className="font-semibold text-slate-800">{data.category}</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="w-8 h-8 bg-slate-200 rounded-xl flex items-center justify-center">
+                                                            <Tag className="w-4 h-4 text-slate-400" />
+                                                        </div>
+                                                        <span className="text-slate-500">Choose issue type...</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                                        </div>
+                                    </button>
+                                    
+                                    {/* Custom Category Dropdown Menu */}
+                                    {showCategoryDropdown && (
+                                        <div className="absolute top-full mt-2 w-full bg-white rounded-2xl shadow-2xl border border-slate-200/60 z-50 max-h-64 overflow-hidden">
+                                            <div className="p-2 max-h-60 overflow-y-auto custom-scrollbar">
+                                                {TICKET_CATEGORIES.map((category) => (
+                                                    <div
+                                                        key={category}
+                                                        onClick={() => {
+                                                            setData('category', category);
+                                                            setShowCategoryDropdown(false);
+                                                        }}
+                                                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 cursor-pointer transition-all duration-200 group"
+                                                    >
+                                                       
+                                                        <div className="flex-1">
+                                                            <div className="font-semibold text-slate-800 group-hover:text-orange-700">
+                                                                {category}
+                                                            </div>
+                                                        </div>
+                                                        {data.category === category && (
+                                                            <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                                                                <CheckCircle className="w-4 h-4 text-white" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                {errors.category && <div className="text-red-500 text-sm mt-3 flex items-center gap-2 bg-red-50 px-4 py-2 rounded-xl border border-red-200">
                                     <AlertCircle className="w-4 h-4" />
                                     {errors.category}
                                 </div>}
                             </div>
 
-                            {/* Title */}
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-800 mb-3">Title</label>
-                                <Input
-                                    value={data.title}
-                                    onChange={e => setData('title', e.target.value)}
-                                    className="border-2 h-12 border-slate-200 rounded-xl px-4 py-3 text-base focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all duration-200"
-                                    required
-                                    placeholder="Brief description of the issue"
-                                />
-                                {errors.title && <div className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                            {/* Ultra-Premium Title Input */}
+                            <div className="space-y-3">
+                                <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-4">
+                                    <div className="w-5 h-5 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
+                                        <FileText className="w-3 h-3 text-white" />
+                                    </div>
+                                    Ticket Title
+                                </label>
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-100/50 to-blue-100/50 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                                    <Input
+                                        value={data.title}
+                                        onChange={e => setData('title', e.target.value)}
+                                        className="relative border-2 border-slate-200/80 rounded-2xl px-6 py-4 text-base h-14 bg-gradient-to-r from-white to-slate-50/50 hover:from-cyan-50/30 hover:to-blue-50/30 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100 focus:bg-white transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm"
+                                        required
+                                        placeholder="Brief but descriptive title of your issue..."
+                                    />
+                                    <div className="absolute top-1/2 right-4 transform -translate-y-1/2 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
+                                        <div className="w-6 h-6 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
+                                            <FileText className="w-3 h-3 text-white" />
+                                        </div>
+                                    </div>
+                                </div>
+                                {errors.title && <div className="text-red-500 text-sm mt-3 flex items-center gap-2 bg-red-50 px-4 py-2 rounded-xl border border-red-200">
                                     <AlertCircle className="w-4 h-4" />
                                     {errors.title}
                                 </div>}
                             </div>
 
-                            {/* Description */}
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-800 mb-3">Description</label>
-                                <div className="relative">
-                                    <textarea
-                                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base min-h-[120px] focus:border-green-500 focus:ring-2 focus:ring-green-200 resize-none transition-all duration-200"
-                                        value={data.description}
-                                        onChange={e => setData('description', e.target.value)}
-                                        required
-                                        placeholder="Please provide a detailed description of the issue, including any error messages, when it occurred, and steps to reproduce..."
-                                        maxLength={1000}
-                                    />
-                                    <div className="absolute bottom-3 right-3 text-xs text-slate-400">
-                                        {data.description.length}/1000
+                            {/* Ultra-Premium Description Input */}
+                            <div className="space-y-3">
+                                <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-4">
+                                    <div className="w-5 h-5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+                                        <MessageSquare className="w-3 h-3 text-white" />
+                                    </div>
+                                    Detailed Description
+                                </label>
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-100/50 to-teal-100/50 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                                    <div className="relative">
+                                        <textarea
+                                            className="w-full border-2 border-slate-200/80 rounded-2xl px-6 py-4 text-base min-h-[250px] bg-gradient-to-r from-white to-slate-50/50 hover:from-emerald-50/30  focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 focus:bg-white resize-none transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm"
+                                            value={data.description}
+                                            onChange={e => setData('description', e.target.value)}
+                                            required
+                                            placeholder="Please provide a comprehensive description of the issue:
+
+• What exactly is happening?
+• When did it start occurring?
+• What steps can reproduce the problem?
+• Any error messages you've seen?
+• What you've already tried to fix it..."
+                                            maxLength={1000}
+                                        />
+                                        <div className="absolute bottom-4 right-4 flex items-center gap-3">
+                                            <div className="text-xs text-slate-400 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm">
+                                                {data.description.length}/1000
+                                            </div>
+                                            <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity duration-300">
+                                                <MessageSquare className="w-3 h-3 text-white" />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                {errors.description && <div className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                                {errors.description && <div className="text-red-500 text-sm mt-3 flex items-center gap-2 bg-red-50 px-4 py-2 rounded-xl border border-red-200">
                                     <AlertCircle className="w-4 h-4" />
                                     {errors.description}
                                 </div>}
                             </div>
                         </div>
 
-                        <DialogFooter className="pt-6 border-t border-slate-200">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setShowCreateModal(false)}
-                                className="px-6 py-2.5"
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
-                            >
-                                {processing ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Creating Ticket...
-                                    </>
-                                ) : (
-                                    <>
-                                        <AlertCircle className="w-4 h-4 mr-2" />
-                                        Create Ticket
-                                    </>
-                                )}
-                            </Button>
+                        {/* Ultra-Premium Footer */}
+                        <DialogFooter className="pt-8 border-t-2 border-gradient-to-r from-slate-200/60 via-slate-100 to-slate-200/60">
+                            <div className="flex w-full gap-4">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="flex-1 h-12 px-6 border-2 border-slate-300 hover:border-slate-400 hover:text-slate-400 bg-white hover:bg-slate-50 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
+                                >
+                                    <X className="w-4 h-4 mr-2" />
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="flex-1 h-12 px-6 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                >
+                                    {processing ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                                            Creating Ticket...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Ticket className="w-5 h-5 mr-3" />
+                                            Create Support Ticket
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
                         </DialogFooter>
                     </form>
                 </DialogContent>
