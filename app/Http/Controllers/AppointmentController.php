@@ -32,6 +32,7 @@ class AppointmentController extends Controller
         if ($user->hasRole('technical')) {
             // Technical sees only their appointments
             $technical = Technical::where('email', $user->email)->first();
+            
             if ($technical) {
                 $appointmentsQuery->where('technical_id', $technical->id);
             }
