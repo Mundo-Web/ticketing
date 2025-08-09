@@ -2,6 +2,11 @@
 
 @plugin 'tailwindcss-animate';
 
+/* Import our custom timeline styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 

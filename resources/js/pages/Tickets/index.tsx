@@ -2736,10 +2736,38 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 rounded-lg text-sm font-medium transition-colors border border-blue-200 hover:border-blue-300"
                                                                     >
                                                                         <Calendar className="w-4 h-4" />
-                                                                        Schedule Visit
+                                                                        Start Visit
                                                                     </button>
                                                                 )}
 
+                                                                {/* Upload Evidence Button */}
+                                                                <button
+                                                                    onClick={() => handleUploadEvidence(selectedTicket.id)}
+                                                                    className="inline-flex items-center gap-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-600 hover:text-purple-700 rounded-lg text-sm font-medium transition-colors border border-purple-200 hover:border-purple-300"
+                                                                >
+                                                                    <Camera className="w-4 h-4" />
+                                                                    Upload Evidence
+                                                                </button>
+
+                                                                {/* Private Note Button */}
+                                                                <button
+                                                                    onClick={() => handleAddPrivateNote(selectedTicket.id)}
+                                                                    className="inline-flex items-center gap-2 px-3 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 hover:text-orange-700 rounded-lg text-sm font-medium transition-colors border border-orange-200 hover:border-orange-300"
+                                                                >
+                                                                    <FileText className="w-4 h-4" />
+                                                                    Private Note
+                                                                </button>
+
+                                                                {/* Reschedule Button - only if there's an active appointment */}
+                                                                {selectedTicket.active_appointment && (
+                                                                    <button
+                                                                        onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
+                                                                        className="inline-flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 rounded-lg text-sm font-medium transition-colors border border-amber-200 hover:border-amber-300"
+                                                                    >
+                                                                        <Calendar className="w-4 h-4" />
+                                                                        Reschedule
+                                                                    </button>
+                                                                )}
 
                                                                 {getNextStatuses(selectedTicket.status).map((status) => (
                                                                     <button
@@ -2753,9 +2781,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         ) : (
                                                                             <CheckCircle className="w-4 h-4" />
                                                                         )}
-                                                                        Mark as {statusConfig[status]?.label || status}
+                                                                        {status === 'resolved' ? 'Complete Ticket' : `Mark as ${statusConfig[status]?.label || status}`}
                                                                     </button>
                                                                 ))}
+
                                                                 {/* Delete button - only for super admins */}
                                                                 {isSuperAdmin && (
                                                                     <button
@@ -2792,23 +2821,17 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         </div>
                                                     )}
 
-                                                    {/* 📅 Enhanced Visual Timeline for All Users */}
+                                                    {/* 📅 Enhanced Timeline */}
                                                     {selectedTicket.histories && selectedTicket.histories.length > 0 && (
-                                                        <div className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 border-b border-indigo-200">
-                                                            <div className="flex items-center gap-3 mb-6">
-                                                                <div className="w-10 h-10 bg-gradient-to-br from-primary to-card rounded-xl flex items-center justify-center shadow-lg">
-                                                                    <Clock className="w-5 h-5 text-primary-foreground" />
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className="text-lg font-bold text-slate-900">Timeline</h4>
-                                                                    <p className="text-sm text-slate-600">Complete ticket activity history</p>
-                                                                </div>
-                                                            </div>
-
+                                                        <div className="px-6">
+                                                            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                                                <Clock className="w-4 h-4 text-primary" />
+                                                                Timeline
+                                                            </h4>
                                                             <div className="relative">
-                                                                {/* ✨ Enhanced Vertical Line */}
-                                                                <div className="absolute left-6 top-0 bottom-0 w-1 bg-gradient-to-b from-sidebar-accent via-secondary to-card rounded-full"></div>
-
+                                                                {/* Vertical Timeline Line */}
+                                                                <div className="absolute left-6 top-4 bottom-0 w-0.5 bg-gradient-to-b from-blue-200 via-purple-200 to-slate-200"></div>
+                                                                
                                                                 <div className="space-y-6">
                                                                     {[...selectedTicket.histories].reverse().map((entry: any, index: number) => {
                                                                         // Filtrar notas privadas si no es técnico o admin
@@ -2816,90 +2839,88 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                             return null;
                                                                         }
 
-                                                                        return (
-                                                                            <div key={index} className="relative flex items-start gap-6">
-                                                                                {/* 🎯 Enhanced Status Icons */}
-                                                                                <div className={`relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg border-4 border-white ${entry.action?.includes('created') ? 'bg-gradient-to-br from-primary to-secondary' :
-                                                                                        entry.action?.includes('assigned') ? 'bg-gradient-to-br from-primary to-secondary' :
-                                                                                            entry.action?.includes('in_progress') ? 'bg-gradient-to-br from-primary to-secondary' :
-                                                                                                entry.action?.includes('resolved') ? 'bg-gradient-to-br from-primary to-secondary' :
-                                                                                                    entry.action?.includes('closed') ? 'bg-gradient-to-br from-primary to-secondary' :
-                                                                                                        entry.action?.includes('evidence_uploaded') ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
-                                                                                                            entry.action?.includes('private_note') ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
-                                                                                                                'bg-gradient-to-br from-primary to-secondary'
-                                                                                    }`}>
-                                                                                    {entry.action?.includes('created') ? <AlertCircle className="w-5 h-5 text-white" /> :
-                                                                                        entry.action?.includes('assigned') ? <UserCheck className="w-5 h-5 text-white" /> :
-                                                                                            entry.action?.includes('in_progress') ? <Clock className="w-5 h-5 text-white" /> :
-                                                                                                entry.action?.includes('resolved') ? <CheckCircle className="w-5 h-5 text-white" /> :
-                                                                                                    entry.action?.includes('closed') ? <XCircle className="w-5 h-5 text-white" /> :
-                                                                                                        entry.action?.includes('evidence_uploaded') ? <Camera className="w-5 h-5 text-white" /> :
-                                                                                                            entry.action?.includes('private_note') ? <FileText className="w-5 h-5 text-white" /> :
-                                                                                                                <MessageSquare className="w-5 h-5 text-white" />}
-                                                                                </div>
+                                                                        // Enhanced icon and color mapping
+                                                                        const getActionConfig = (action: string) => {
+                                                                            switch (action) {
+                                                                                case 'created':
+                                                                                    return { icon: <AlertCircle className="w-4 h-4 text-white" />, bgColor: 'bg-blue-500', borderColor: 'border-blue-200' };
+                                                                                case 'assigned':
+                                                                                case 'technical_assigned':
+                                                                                    return { icon: <UserCheck className="w-4 h-4 text-white" />, bgColor: 'bg-purple-500', borderColor: 'border-purple-200' };
+                                                                                case 'evidence_uploaded':
+                                                                                    return { icon: <Camera className="w-4 h-4 text-white" />, bgColor: 'bg-indigo-500', borderColor: 'border-indigo-200' };
+                                                                                case 'private_note':
+                                                                                    return { icon: <FileText className="w-4 h-4 text-white" />, bgColor: 'bg-orange-500', borderColor: 'border-orange-200' };
+                                                                                case 'comment':
+                                                                                case 'member_feedback':
+                                                                                    return { icon: <MessageSquare className="w-4 h-4 text-white" />, bgColor: 'bg-teal-500', borderColor: 'border-teal-200' };
+                                                                                default:
+                                                                                    if (action.includes('in_progress')) return { icon: <Clock className="w-4 h-4 text-white" />, bgColor: 'bg-amber-500', borderColor: 'border-amber-200' };
+                                                                                    if (action.includes('resolved')) return { icon: <CheckCircle className="w-4 h-4 text-white" />, bgColor: 'bg-emerald-500', borderColor: 'border-emerald-200' };
+                                                                                    if (action.includes('closed')) return { icon: <XCircle className="w-4 h-4 text-white" />, bgColor: 'bg-slate-500', borderColor: 'border-slate-200' };
+                                                                                    return { icon: <MessageSquare className="w-4 h-4 text-white" />, bgColor: 'bg-gray-500', borderColor: 'border-gray-200' };
+                                                                            }
+                                                                        };
 
-                                                                                {/* 💫 Enhanced Content Card */}
-                                                                                <div className="flex-1 min-w-0">
-                                                                                    <div className="bg-white rounded-2xl p-5 shadow-lg border border-white/60 backdrop-blur-sm">
-                                                                                        <div className="flex flex-wrap items-center gap-3 mb-3">
-                                                                                            <span className="font-semibold text-slate-900">
-                                                                                                {entry.technical?.name || entry.user?.name || 'Sistema'}
-                                                                                            </span>
-                                                                                            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                                                                        const config = getActionConfig(entry.action);
+                                                                        const isRecent = index === 0;
+
+                                                                        return (
+                                                                            <div key={index} className="relative flex items-start">
+                                                                                {/* Timeline Node */}
+                                                                                <div className={`relative z-10 flex-shrink-0 w-12 h-12 rounded-full ${config.bgColor} border-4 border-white shadow-lg flex items-center justify-center ${isRecent ? 'ring-4 ring-blue-100 animate-pulse' : ''}`}>
+                                                                                    {config.icon}
+                                                                                </div>
+                                                                                
+                                                                                {/* Timeline Content Card */}
+                                                                                <div className="ml-6 flex-1 pb-8">
+                                                                                    <div className={`bg-white rounded-xl border ${config.borderColor} shadow-sm hover:shadow-md transition-shadow duration-200 p-4 ${isRecent ? 'ring-1 ring-blue-200' : ''}`}>
+                                                                                        <div className="flex items-start justify-between mb-2">
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <span className="text-sm font-semibold text-slate-900">
+                                                                                                    {entry.technical?.name || entry.user?.name || 'System'}
+                                                                                                </span>
+                                                                                                {entry.action === 'private_note' && (
+                                                                                                    <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded-full font-medium border border-orange-200">
+                                                                                                        Private
+                                                                                                    </span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <span className="text-xs text-slate-500 font-mono bg-slate-50 px-2 py-1 rounded-md">
                                                                                                 {formatHistoryDateTime(entry.created_at).date} • {formatHistoryDateTime(entry.created_at).time}
                                                                                             </span>
-                                                                                            {entry.action && (
-                                                                                                <span className={`text-xs px-3 py-1 rounded-full font-semibold shadow-sm ${entry.action?.includes('created') ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                                                                                                        entry.action?.includes('assigned') ? 'bg-purple-100 text-purple-800 border border-purple-200' :
-                                                                                                            entry.action?.includes('in_progress') ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                                                                                                                entry.action?.includes('resolved') ? 'bg-green-100 text-green-800 border border-green-200' :
-                                                                                                                    entry.action?.includes('closed') ? 'bg-gray-100 text-gray-800 border border-gray-200' :
-                                                                                                                        entry.action?.includes('evidence_uploaded') ? 'bg-purple-100 text-purple-800 border border-purple-200' :
-                                                                                                                            entry.action?.includes('private_note') ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                                                                                                                                'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                                                                                                    }`}>
-                                                                                                    {entry.action === 'evidence_uploaded' ? 'Evidence Uploaded' :
-                                                                                                        entry.action === 'private_note' ? 'Private Note' :
-                                                                                                            entry.action.replaceAll('_', ' ').replaceAll('status change ', '')}
-                                                                                                </span>
-                                                                                            )}
-                                                                                            {entry.action === 'private_note' && (
-                                                                                                <span className="text-xs px-2 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
-                                                                                                    <Eye className="w-3 h-3 inline mr-1" />
-                                                                                                    Technical Only
-                                                                                                </span>
-                                                                                            )}
                                                                                         </div>
-                                                                                        <p className="text-slate-700 leading-relaxed mb-3">
+                                                                                        
+                                                                                        <p className="text-sm text-slate-700 leading-relaxed mb-3">
                                                                                             {entry.description}
                                                                                         </p>
                                                                                         
-                                                                                        {/* Show evidence file if available */}
+                                                                                        {/* Enhanced Evidence Display */}
                                                                                         {entry.action === 'evidence_uploaded' && entry.meta?.file_path && (
-                                                                                            <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                                                                                            <div className="mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
                                                                                                 <div className="flex items-center gap-3">
-                                                                                                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                                                                                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
                                                                                                         {entry.meta.file_type?.startsWith('image/') ? (
-                                                                                                            <Camera className="w-5 h-5 text-purple-600" />
+                                                                                                            <Camera className="w-5 h-5 text-indigo-600" />
                                                                                                         ) : (
-                                                                                                            <FileText className="w-5 h-5 text-purple-600" />
+                                                                                                            <FileText className="w-5 h-5 text-indigo-600" />
                                                                                                         )}
                                                                                                     </div>
                                                                                                     <div className="flex-1 min-w-0">
-                                                                                                        <p className="text-sm font-medium text-purple-900 truncate">
+                                                                                                        <p className="text-sm font-medium text-indigo-900 truncate">
                                                                                                             {entry.meta.original_name}
                                                                                                         </p>
-                                                                                                        <p className="text-xs text-purple-600">
-                                                                                                            {entry.meta.file_size ? (entry.meta.file_size / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown size'}
+                                                                                                        <p className="text-xs text-indigo-600">
+                                                                                                            {entry.meta.file_size ? (entry.meta.file_size / 1024 / 1024).toFixed(2) + ' MB' : 'File attached'}
                                                                                                         </p>
                                                                                                     </div>
                                                                                                     <a
                                                                                                         href={`/storage/${entry.meta.file_path}`}
                                                                                                         target="_blank"
                                                                                                         rel="noopener noreferrer"
-                                                                                                        className="px-3 py-1 bg-purple-600 text-white text-xs rounded-md hover:bg-purple-700 transition-colors"
+                                                                                                        className="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors font-medium"
                                                                                                     >
-                                                                                                        View
+                                                                                                        View File
                                                                                                     </a>
                                                                                                 </div>
                                                                                             </div>
@@ -5014,7 +5035,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             </Button>
                             <Button
                                 type="submit"
-                                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                                className="flex-1 bg-purple-700 hover:bg-purple-800 text-white"
                                 disabled={!evidenceFile || uploadingEvidence}
                             >
                                 {uploadingEvidence ? 'Uploading...' : 'Upload Evidence'}
@@ -5068,7 +5089,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             </Button>
                             <Button
                                 type="submit"
-                                className="flex-1 bg-orange-600 hover:bg-orange-700"
+                                className="flex-1 bg-orange-700 hover:bg-orange-800 text-white"
                                 disabled={!privateNote.trim() || addingPrivateNote}
                             >
                                 {addingPrivateNote ? 'Adding...' : 'Add Note'}
