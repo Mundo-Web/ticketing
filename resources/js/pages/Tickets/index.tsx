@@ -284,6 +284,7 @@ interface TicketsProps {
     apartmentData: Apartment | null;
     buildingData: Building | null;
     statusFilter?: string;
+    currentTechnicalId?: number; // Agregar el ID del técnico actual
     // Nuevas props para doorman y owner
     allMembers?: Member[];
     allApartments?: ApartmentData[];
@@ -324,6 +325,7 @@ export default function TicketsIndex({
     apartmentData,
     buildingData,
     statusFilter,
+    currentTechnicalId, // Recibir el ID del técnico actual
     allMembers,
     allApartments
 }: TicketsProps) {
@@ -418,6 +420,16 @@ export default function TicketsIndex({
     const [showNinjaOneNotifications, setShowNinjaOneNotifications] = useState(false);
     const [creatingTicketFromAlert, setCreatingTicketFromAlert] = useState<number | null>(null);
     const [allTenants, setAllTenants] = useState<any[]>([]);
+    
+    // Evidence and Private Notes states
+    const [showEvidenceModal, setShowEvidenceModal] = useState<{ open: boolean; ticketId?: number }>({ open: false });
+    const [showPrivateNoteModal, setShowPrivateNoteModal] = useState<{ open: boolean; ticketId?: number }>({ open: false });
+    const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+    const [evidenceDescription, setEvidenceDescription] = useState("");
+    const [privateNote, setPrivateNote] = useState("");
+    const [uploadingEvidence, setUploadingEvidence] = useState(false);
+    const [addingPrivateNote, setAddingPrivateNote] = useState(false);
+    
     const { auth, isTechnicalDefault } = usePage<SharedData & { isTechnicalDefault?: boolean }>().props;
     const isMember = (auth.user as any)?.roles?.includes("member");
     const isSuperAdmin = (auth.user as any)?.roles?.includes("super-admin");
@@ -425,6 +437,16 @@ export default function TicketsIndex({
     const isDoorman = (auth.user as any)?.roles?.includes("doorman");
     const isOwner = (auth.user as any)?.roles?.includes("owner");
     // isTechnicalDefault ahora viene del backend correctamente
+    
+    // Debug roles
+    console.log('User roles debug:', {
+        userRoles: (auth.user as any)?.roles,
+        isTechnical,
+        isTechnicalDefault,
+        isSuperAdmin,
+        currentTechnicalId,
+        userId: auth.user?.id
+    });
 
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -1098,6 +1120,100 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
         setUserDeviceAlerts(prev => prev.filter(alert => alert.device_id !== deviceId));
     };
 
+    // Evidence and Private Note functions
+    const handleUploadEvidence = (ticketId: number) => {
+        setShowEvidenceModal({ open: true, ticketId });
+        setEvidenceFile(null);
+        setEvidenceDescription("");
+    };
+
+    const submitEvidence = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!evidenceFile || !showEvidenceModal.ticketId) return;
+
+        setUploadingEvidence(true);
+        try {
+            const formData = new FormData();
+            formData.append('evidence', evidenceFile);
+            formData.append('description', evidenceDescription);
+
+            const response = await fetch(`/tickets/${showEvidenceModal.ticketId}/upload-evidence`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setShowEvidenceModal({ open: false });
+                setEvidenceFile(null);
+                setEvidenceDescription("");
+                
+                // Refresh kanban
+                setRefreshKey(prev => prev + 1);
+                
+                // Refresh selected ticket if open
+                if (selectedTicket?.id === showEvidenceModal.ticketId) {
+                    refreshSelectedTicket(showEvidenceModal.ticketId);
+                }
+            } else {
+                console.error('Error uploading evidence:', data.message);
+            }
+        } catch (error) {
+            console.error('Error uploading evidence:', error);
+        } finally {
+            setUploadingEvidence(false);
+        }
+    };
+
+    const handleAddPrivateNote = (ticketId: number) => {
+        setShowPrivateNoteModal({ open: true, ticketId });
+        setPrivateNote("");
+    };
+
+    const submitPrivateNote = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!privateNote.trim() || !showPrivateNoteModal.ticketId) return;
+
+        setAddingPrivateNote(true);
+        try {
+            const response = await fetch(`/tickets/${showPrivateNoteModal.ticketId}/add-private-note`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({
+                    note: privateNote,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setShowPrivateNoteModal({ open: false });
+                setPrivateNote("");
+                
+                // Refresh kanban
+                setRefreshKey(prev => prev + 1);
+                
+                // Refresh selected ticket if open
+                if (selectedTicket?.id === showPrivateNoteModal.ticketId) {
+                    refreshSelectedTicket(showPrivateNoteModal.ticketId);
+                }
+            } else {
+                console.error('Error adding private note:', data.message);
+            }
+        } catch (error) {
+            console.error('Error adding private note:', error);
+        } finally {
+            setAddingPrivateNote(false);
+        }
+    };
+
     // Load user device alerts for member notifications
     useEffect(() => {
         if (isMember) {
@@ -1759,6 +1875,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         <KanbanBoard
                                             tickets={getFilteredTicketsForDoormanOwner()}
                                             user={auth.user}
+                                            currentTechnicalId={currentTechnicalId}
                                             onTicketClick={handleSelectTicket}
                                             isTechnicalDefault={false}
                                             isTechnical={false}
@@ -1768,6 +1885,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             onAssign={(ticket) => setShowAssignModal({ open: true, ticketId: ticket.id })}
                                             onComment={(ticket) => setShowHistoryModal({ open: true, ticketId: ticket.id })}
                                             onDelete={handleDelete}
+                                            onUploadEvidence={handleUploadEvidence}
+                                            onAddPrivateNote={handleAddPrivateNote}
                                             onStatusChange={(ticketId) => {
                                                 if (selectedTicket && selectedTicket.id === ticketId) {
                                                     refreshSelectedTicket(ticketId);
@@ -1823,6 +1942,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         <KanbanBoard
                                             tickets={statusFilter ? allTickets : (allTicketsUnfiltered.length > 0 ? allTicketsUnfiltered : allTickets)}
                                             user={auth.user}
+                                            currentTechnicalId={currentTechnicalId}
                                             onTicketClick={handleSelectTicket}
                                             isTechnicalDefault={isTechnicalDefault}
                                             isTechnical={isTechnical}
@@ -1832,6 +1952,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             onAssign={(ticket) => setShowAssignModal({ open: true, ticketId: ticket.id })}
                                             onComment={(ticket) => setShowHistoryModal({ open: true, ticketId: ticket.id })}
                                             onDelete={handleDelete}
+                                            onUploadEvidence={handleUploadEvidence}
+                                            onAddPrivateNote={handleAddPrivateNote}
                                             onStatusChange={(ticketId) => {
                                                 if (selectedTicket && selectedTicket.id === ticketId) {
                                                     refreshSelectedTicket(ticketId);
@@ -2592,7 +2714,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     )}
 
                                                     {/* Quick Actions */}
-                                                    {(isTechnicalDefault || isSuperAdmin || selectedTicket.technical_id === auth.user?.id) && (
+                                                    {(isTechnical||isTechnicalDefault || isSuperAdmin || selectedTicket.technical_id === auth.user?.id) && (
                                                         <div className="px-6">
                                                             <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                                                                 <Zap className="w-4 h-4 text-primary" />
@@ -2688,53 +2810,105 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                 <div className="absolute left-6 top-0 bottom-0 w-1 bg-gradient-to-b from-sidebar-accent via-secondary to-card rounded-full"></div>
 
                                                                 <div className="space-y-6">
-                                                                    {[...selectedTicket.histories].reverse().map((entry: any, index: number) => (
-                                                                        <div key={index} className="relative flex items-start gap-6">
-                                                                            {/* 🎯 Enhanced Status Icons */}
-                                                                            <div className={`relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg border-4 border-white ${entry.action?.includes('created') ? 'bg-gradient-to-br from-primary to-secondary' :
-                                                                                    entry.action?.includes('assigned') ? 'bg-gradient-to-br from-primary to-secondary' :
-                                                                                        entry.action?.includes('in_progress') ? 'bg-gradient-to-br from-primary to-secondary' :
-                                                                                            entry.action?.includes('resolved') ? 'bg-gradient-to-br from-primary to-secondary' :
-                                                                                                entry.action?.includes('closed') ? 'bg-gradient-to-br from-primary to-secondary' :
-                                                                                                    'bg-gradient-to-br from-primary to-secondary'
-                                                                                }`}>
-                                                                                {entry.action?.includes('created') ? <AlertCircle className="w-5 h-5 text-white" /> :
-                                                                                    entry.action?.includes('assigned') ? <UserCheck className="w-5 h-5 text-white" /> :
-                                                                                        entry.action?.includes('in_progress') ? <Clock className="w-5 h-5 text-white" /> :
-                                                                                            entry.action?.includes('resolved') ? <CheckCircle className="w-5 h-5 text-white" /> :
-                                                                                                entry.action?.includes('closed') ? <XCircle className="w-5 h-5 text-white" /> :
-                                                                                                    <MessageSquare className="w-5 h-5 text-white" />}
-                                                                            </div>
+                                                                    {[...selectedTicket.histories].reverse().map((entry: any, index: number) => {
+                                                                        // Filtrar notas privadas si no es técnico o admin
+                                                                        if (entry.action === 'private_note' && !isTechnical && !isTechnicalDefault && !isSuperAdmin) {
+                                                                            return null;
+                                                                        }
 
-                                                                            {/* 💫 Enhanced Content Card */}
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <div className="bg-white rounded-2xl p-5 shadow-lg border border-white/60 backdrop-blur-sm">
-                                                                                    <div className="flex flex-wrap items-center gap-3 mb-3">
-                                                                                        <span className="font-semibold text-slate-900">
-                                                                                            {entry.technical?.name || entry.user?.name || 'Sistema'}
-                                                                                        </span>
-                                                                                        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-                                                                                            {formatHistoryDateTime(entry.created_at).date} • {formatHistoryDateTime(entry.created_at).time}
-                                                                                        </span>
-                                                                                        {entry.action && (
-                                                                                            <span className={`text-xs px-3 py-1 rounded-full font-semibold shadow-sm ${entry.action?.includes('created') ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                                                                                                    entry.action?.includes('assigned') ? 'bg-purple-100 text-purple-800 border border-purple-200' :
-                                                                                                        entry.action?.includes('in_progress') ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                                                                                                            entry.action?.includes('resolved') ? 'bg-green-100 text-green-800 border border-green-200' :
-                                                                                                                entry.action?.includes('closed') ? 'bg-gray-100 text-gray-800 border border-gray-200' :
-                                                                                                                    'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                                                                                                }`}>
-                                                                                                {entry.action.replaceAll('_', ' ').replaceAll('status change ', '')}
+                                                                        return (
+                                                                            <div key={index} className="relative flex items-start gap-6">
+                                                                                {/* 🎯 Enhanced Status Icons */}
+                                                                                <div className={`relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg border-4 border-white ${entry.action?.includes('created') ? 'bg-gradient-to-br from-primary to-secondary' :
+                                                                                        entry.action?.includes('assigned') ? 'bg-gradient-to-br from-primary to-secondary' :
+                                                                                            entry.action?.includes('in_progress') ? 'bg-gradient-to-br from-primary to-secondary' :
+                                                                                                entry.action?.includes('resolved') ? 'bg-gradient-to-br from-primary to-secondary' :
+                                                                                                    entry.action?.includes('closed') ? 'bg-gradient-to-br from-primary to-secondary' :
+                                                                                                        entry.action?.includes('evidence_uploaded') ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                                                                                                            entry.action?.includes('private_note') ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                                                                                                                'bg-gradient-to-br from-primary to-secondary'
+                                                                                    }`}>
+                                                                                    {entry.action?.includes('created') ? <AlertCircle className="w-5 h-5 text-white" /> :
+                                                                                        entry.action?.includes('assigned') ? <UserCheck className="w-5 h-5 text-white" /> :
+                                                                                            entry.action?.includes('in_progress') ? <Clock className="w-5 h-5 text-white" /> :
+                                                                                                entry.action?.includes('resolved') ? <CheckCircle className="w-5 h-5 text-white" /> :
+                                                                                                    entry.action?.includes('closed') ? <XCircle className="w-5 h-5 text-white" /> :
+                                                                                                        entry.action?.includes('evidence_uploaded') ? <Camera className="w-5 h-5 text-white" /> :
+                                                                                                            entry.action?.includes('private_note') ? <FileText className="w-5 h-5 text-white" /> :
+                                                                                                                <MessageSquare className="w-5 h-5 text-white" />}
+                                                                                </div>
+
+                                                                                {/* 💫 Enhanced Content Card */}
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <div className="bg-white rounded-2xl p-5 shadow-lg border border-white/60 backdrop-blur-sm">
+                                                                                        <div className="flex flex-wrap items-center gap-3 mb-3">
+                                                                                            <span className="font-semibold text-slate-900">
+                                                                                                {entry.technical?.name || entry.user?.name || 'Sistema'}
                                                                                             </span>
+                                                                                            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                                                                                                {formatHistoryDateTime(entry.created_at).date} • {formatHistoryDateTime(entry.created_at).time}
+                                                                                            </span>
+                                                                                            {entry.action && (
+                                                                                                <span className={`text-xs px-3 py-1 rounded-full font-semibold shadow-sm ${entry.action?.includes('created') ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                                                                                        entry.action?.includes('assigned') ? 'bg-purple-100 text-purple-800 border border-purple-200' :
+                                                                                                            entry.action?.includes('in_progress') ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                                                                                                                entry.action?.includes('resolved') ? 'bg-green-100 text-green-800 border border-green-200' :
+                                                                                                                    entry.action?.includes('closed') ? 'bg-gray-100 text-gray-800 border border-gray-200' :
+                                                                                                                        entry.action?.includes('evidence_uploaded') ? 'bg-purple-100 text-purple-800 border border-purple-200' :
+                                                                                                                            entry.action?.includes('private_note') ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                                                                                                                                'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                                                                                                    }`}>
+                                                                                                    {entry.action === 'evidence_uploaded' ? 'Evidence Uploaded' :
+                                                                                                        entry.action === 'private_note' ? 'Private Note' :
+                                                                                                            entry.action.replaceAll('_', ' ').replaceAll('status change ', '')}
+                                                                                                </span>
+                                                                                            )}
+                                                                                            {entry.action === 'private_note' && (
+                                                                                                <span className="text-xs px-2 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                                                                                                    <Eye className="w-3 h-3 inline mr-1" />
+                                                                                                    Technical Only
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <p className="text-slate-700 leading-relaxed mb-3">
+                                                                                            {entry.description}
+                                                                                        </p>
+                                                                                        
+                                                                                        {/* Show evidence file if available */}
+                                                                                        {entry.action === 'evidence_uploaded' && entry.meta?.file_path && (
+                                                                                            <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                                                                                                <div className="flex items-center gap-3">
+                                                                                                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                                                                                        {entry.meta.file_type?.startsWith('image/') ? (
+                                                                                                            <Camera className="w-5 h-5 text-purple-600" />
+                                                                                                        ) : (
+                                                                                                            <FileText className="w-5 h-5 text-purple-600" />
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                    <div className="flex-1 min-w-0">
+                                                                                                        <p className="text-sm font-medium text-purple-900 truncate">
+                                                                                                            {entry.meta.original_name}
+                                                                                                        </p>
+                                                                                                        <p className="text-xs text-purple-600">
+                                                                                                            {entry.meta.file_size ? (entry.meta.file_size / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown size'}
+                                                                                                        </p>
+                                                                                                    </div>
+                                                                                                    <a
+                                                                                                        href={`/storage/${entry.meta.file_path}`}
+                                                                                                        target="_blank"
+                                                                                                        rel="noopener noreferrer"
+                                                                                                        className="px-3 py-1 bg-purple-600 text-white text-xs rounded-md hover:bg-purple-700 transition-colors"
+                                                                                                    >
+                                                                                                        View
+                                                                                                    </a>
+                                                                                                </div>
+                                                                                            </div>
                                                                                         )}
                                                                                     </div>
-                                                                                    <p className="text-slate-700 leading-relaxed">
-                                                                                        {entry.description}
-                                                                                    </p>
                                                                                 </div>
                                                                             </div>
-                                                                        </div>
-                                                                    ))}
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -4777,6 +4951,127 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                 disabled={memberFeedback.rating === 0}
                             >
                                 Send Feedback
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Upload Evidence Modal */}
+            <Dialog open={showEvidenceModal.open} onOpenChange={(open) => setShowEvidenceModal({ open })}>
+                <DialogContent className="max-w-md mx-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                            <Camera className="w-5 h-5 text-purple-500" />
+                            Upload Evidence
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-600">
+                            Upload photos or videos to document your work on this ticket
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={submitEvidence} className="space-y-6">
+                        {/* File Input */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Select File
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/*,video/*"
+                                onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)}
+                                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                required
+                            />
+                            <p className="text-xs text-slate-500 mt-1">
+                                Accepted formats: JPG, PNG, GIF, MP4, MOV, AVI (max 10MB)
+                            </p>
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Description (optional)
+                            </label>
+                            <textarea
+                                value={evidenceDescription}
+                                onChange={(e) => setEvidenceDescription(e.target.value)}
+                                className="w-full p-3 border border-slate-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                rows={3}
+                                placeholder="Describe what this evidence shows..."
+                            />
+                        </div>
+
+                        {/* Submit Buttons */}
+                        <div className="flex gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowEvidenceModal({ open: false })}
+                                className="flex-1"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                                disabled={!evidenceFile || uploadingEvidence}
+                            >
+                                {uploadingEvidence ? 'Uploading...' : 'Upload Evidence'}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Private Note Modal */}
+            <Dialog open={showPrivateNoteModal.open} onOpenChange={(open) => setShowPrivateNoteModal({ open })}>
+                <DialogContent className="max-w-md mx-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-orange-500" />
+                            Add Private Note
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-600">
+                            Add a private note that only technical staff can see
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={submitPrivateNote} className="space-y-6">
+                        {/* Note Input */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Private Note
+                            </label>
+                            <textarea
+                                value={privateNote}
+                                onChange={(e) => setPrivateNote(e.target.value)}
+                                className="w-full p-3 border border-slate-300 rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                rows={4}
+                                placeholder="Enter your private note here..."
+                                required
+                            />
+                            <p className="text-xs text-slate-500 mt-1">
+                                This note will only be visible to technical staff
+                            </p>
+                        </div>
+
+                        {/* Submit Buttons */}
+                        <div className="flex gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowPrivateNoteModal({ open: false })}
+                                className="flex-1"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="flex-1 bg-orange-600 hover:bg-orange-700"
+                                disabled={!privateNote.trim() || addingPrivateNote}
+                            >
+                                {addingPrivateNote ? 'Adding...' : 'Add Note'}
                             </Button>
                         </div>
                     </form>

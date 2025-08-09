@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Fragment, useCallback, useMemo } from "react";
-import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, XCircle, Filter, Search, MoreVertical, Tag, Monitor, User, Building, Home, Trash2 } from "lucide-react";
+import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, XCircle, Filter, Search, MoreVertical, Tag, Monitor, User, Building, Home, Trash2, Camera, FileText, Eye } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { router } from "@inertiajs/react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@radix-ui/react-tooltip";
@@ -143,6 +143,7 @@ export default function KanbanBoard(props: any) {
     const {
         tickets,
         user,
+        currentTechnicalId,
         onTicketClick,
         isTechnicalDefault,
         isTechnical,
@@ -288,6 +289,27 @@ export default function KanbanBoard(props: any) {
         const ticket = columns[source.droppableId]?.find((t: any) => t.id === Number(draggableId));
         if (!ticket) return;
 
+        // Verificar si el ticket está asignado al técnico actual o si es manager
+        const isTicketAssignedToCurrentUser = ticket.technical_id === currentTechnicalId;
+        const canMoveTicket = isManager || isTicketAssignedToCurrentUser;
+
+        // Si el ticket no está asignado a nadie, solo manager puede moverlo
+        if (!ticket.technical_id && !isManager) {
+            // Mostrar mensaje de que el ticket debe estar asignado
+            if (typeof window !== 'undefined') {
+                alert('This ticket must be assigned to a technician before changing its status.');
+            }
+            return;
+        }
+
+        // Si el ticket está asignado a otro técnico y no es manager, no puede moverlo
+        if (!canMoveTicket) {
+            if (typeof window !== 'undefined') {
+                alert('You can only move tickets assigned to you.');
+            }
+            return;
+        }
+
         const newStatus = destination.droppableId === "recents" ? "open" : destination.droppableId;
 
         // Estados que requieren comentario obligatorio
@@ -311,7 +333,7 @@ export default function KanbanBoard(props: any) {
                 }
             );
         }
-    }, [canDrag, columns, onStatusChange, onStatusChangeWithComment]);
+    }, [canDrag, columns, onStatusChange, onStatusChangeWithComment, currentTechnicalId, isManager]);
 
     return (
         <div className="flex flex-col h-full">
@@ -739,6 +761,41 @@ export default function KanbanBoard(props: any) {
                                                                                             Mark Resolved
                                                                                         </button>
                                                                                     )}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Evidence and Private Notes for assigned technicians */}
+                                                                        {(isTechnical || isManager) && (
+                                                                            <div className="pt-2 border-t border-border/50">
+                                                                                <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2 px-1">Technical Actions</div>
+                                                                                <div className="space-y-1">
+                                                                                    <button
+                                                                                        className="flex items-center gap-3 w-full px-3 py-2 text-xs font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-md transition-all duration-200 group"
+                                                                                        onClick={e => {
+                                                                                            e.stopPropagation();
+                                                                                            setMenuOpen(null);
+                                                                                            if (props.onUploadEvidence) {
+                                                                                                props.onUploadEvidence(ticket);
+                                                                                            }
+                                                                                        }}
+                                                                                    >
+                                                                                        <Camera size={14} className="text-purple-500" />
+                                                                                        Upload Evidence
+                                                                                    </button>
+                                                                                    <button
+                                                                                        className="flex items-center gap-3 w-full px-3 py-2 text-xs font-medium text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-md transition-all duration-200 group"
+                                                                                        onClick={e => {
+                                                                                            e.stopPropagation();
+                                                                                            setMenuOpen(null);
+                                                                                            if (props.onAddPrivateNote) {
+                                                                                                props.onAddPrivateNote(ticket);
+                                                                                            }
+                                                                                        }}
+                                                                                    >
+                                                                                        <FileText size={14} className="text-orange-500" />
+                                                                                        Private Note
+                                                                                    </button>
                                                                                 </div>
                                                                             </div>
                                                                         )}

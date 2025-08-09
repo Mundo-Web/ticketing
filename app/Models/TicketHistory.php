@@ -17,6 +17,10 @@ class TicketHistory extends Model
         'meta',
     ];
 
+    protected $casts = [
+        'meta' => 'array',
+    ];
+
     public function ticket()
     {
         return $this->belongsTo(Ticket::class);

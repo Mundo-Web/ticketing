@@ -48,18 +48,16 @@ class TicketController extends Controller
         $devicesShared = collect();
         $allDevices = collect(); // Para admin y técnico default
 
-        $isTechnicalDefault = false;
+                $isTechnicalDefault = false;
+        $currentTechnicalId = null;
+        
         if ($user->hasRole('super-admin')) {
             // Admin puede ver todos los dispositivos
             $allDevices = \App\Models\Device::with([
                 'brand',
-                'model', 
+                'model',
                 'system',
-                'name_device',
-                'tenants' => function ($query) {
-                    $query->select('tenants.id', 'tenants.name', 'tenants.email', 'tenants.photo')
-                          ->with('apartment.building');
-                }
+                'name_device'
             ])->get();
             // Ver todos los tickets
             // No filter
@@ -67,19 +65,10 @@ class TicketController extends Controller
             // Buscar el técnico correspondiente al usuario autenticado por email
             $technical = Technical::where('email', $user->email)->first();
             if ($technical) {
+                $currentTechnicalId = $technical->id;
                 if ($technical->is_default) {
-                    // Jefe técnico: puede ver todos los tickets y todos los dispositivos
                     $isTechnicalDefault = true;
-                    $allDevices = \App\Models\Device::with([
-                        'brand',
-                        'model', 
-                        'system',
-                        'name_device',
-                        'tenants' => function ($query) {
-                            $query->select('tenants.id', 'tenants.name', 'tenants.email', 'tenants.photo')
-                                  ->with('apartment.building');
-                        }
-                    ])->get();
+                    // Técnico por defecto: ve todos los tickets
                     // No filter
                 } else {
                     // Técnico normal: solo tickets asignados a él
@@ -129,17 +118,19 @@ class TicketController extends Controller
         // Crear query para todos los tickets sin filtro (siempre necesario)
         $allTicketsUnfilteredQuery = Ticket::with($withRelations);
         
-        // Aplicar las mismas restricciones de usuario que a las queries principales
+                // Aplicar las mismas restricciones de usuario que a las queries principales
         if ($user->hasRole('super-admin')) {
             // Ver todos los tickets - no filtro
         } elseif ($user->hasRole('technical')) {
             $technical = Technical::where('email', $user->email)->first();
             if ($technical) {
-                if (!$technical->is_default) {
+                if ($technical->is_default) {
+                    $isTechnicalDefault = true;
+                    // Técnico por defecto: ve todos los tickets
+                } else {
                     // Técnico normal: solo tickets asignados a él
                     $allTicketsUnfilteredQuery->where('technical_id', $technical->id);
                 }
-                // Si es técnico por defecto, ve todos los tickets
             } else {
                 $allTicketsUnfilteredQuery->whereRaw('1 = 0');
             }
@@ -277,6 +268,7 @@ class TicketController extends Controller
             'buildingData' => $buildingData,
             'isTechnicalDefault' => $isTechnicalDefault,
             'isSuperAdmin' => $user->hasRole('super-admin'),
+            'currentTechnicalId' => $currentTechnicalId, // Agregar el ID del técnico actual
             'statusFilter' => $statusFilter, // Pasar el filtro actual al frontend
             'allMembers' => $allMembers, // Para doorman y owner
             'allApartments' => $allApartments, // Para doorman y owner
@@ -783,6 +775,107 @@ class TicketController extends Controller
         );
         
         return redirect()->back()->with('success', 'Ticket assigned successfully');
+    }
+
+    /**
+     * Upload evidence (photo/video) to a ticket
+     */
+    public function uploadEvidence(Request $request, Ticket $ticket)
+    {
+        $validated = $request->validate([
+            'evidence' => 'required|file|mimes:jpg,jpeg,png,gif,mp4,mov,avi|max:10240', // 10MB max
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $user = Auth::user();
+        
+        // Verificar permisos: solo el técnico asignado, técnico default o admin pueden subir evidencia
+        $technical = Technical::where('email', $user->email)->first();
+        $isTechnicalDefault = $technical && $technical->is_default;
+        $isSuperAdmin = $user->hasRole('super-admin');
+        $isAssignedTechnical = $ticket->technical_id === $technical?->id;
+
+        if (!$isSuperAdmin && !$isTechnicalDefault && !$isAssignedTechnical) {
+            abort(403, 'You can only upload evidence to tickets assigned to you.');
+        }
+
+        // Guardar el archivo
+        $file = $request->file('evidence');
+        $fileName = time() . '_' . $file->getClientOriginalName();
+        $filePath = $file->storeAs('ticket_evidence', $fileName, 'public');
+
+        // Agregar al historial con metadata del archivo
+        $actorName = $technical ? $technical->name : $user->name;
+        $description = $validated['description'] 
+            ? "Evidence uploaded by {$actorName}: " . $validated['description']
+            : "Evidence uploaded by {$actorName}";
+
+        $ticket->addHistory(
+            'evidence_uploaded',
+            $description,
+            [
+                'file_path' => $filePath,
+                'file_name' => $fileName,
+                'file_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+                'original_name' => $file->getClientOriginalName()
+            ],
+            $technical?->id
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Evidence uploaded successfully',
+                'file_path' => $filePath,
+                'file_name' => $fileName
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Evidence uploaded successfully');
+    }
+
+    /**
+     * Add private note (only visible to technicians)
+     */
+    public function addPrivateNote(Request $request, Ticket $ticket)
+    {
+        $validated = $request->validate([
+            'note' => 'required|string|max:1000',
+        ]);
+
+        $user = Auth::user();
+        
+        // Solo técnicos pueden agregar notas privadas
+        $technical = Technical::where('email', $user->email)->first();
+        $isSuperAdmin = $user->hasRole('super-admin');
+
+        if (!$technical && !$isSuperAdmin) {
+            abort(403, 'Only technicians can add private notes.');
+        }
+
+        // Agregar al historial como nota privada
+        $actorName = $technical ? $technical->name : $user->name;
+        $description = "Private note by {$actorName}: " . $validated['note'];
+
+        $ticket->addHistory(
+            'private_note',
+            $description,
+            [
+                'is_private' => true,
+                'note_content' => $validated['note']
+            ],
+            $technical?->id
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Private note added successfully'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Private note added successfully');
     }
 
     public function assignUnassigned()

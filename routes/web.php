@@ -49,6 +49,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tickets/{ticket}/add-history', [TicketController::class, 'addHistory'])->name('tickets.addHistory');
     Route::post('tickets/{ticket}/add-member-feedback', [TicketController::class, 'addMemberFeedback'])->name('tickets.addMemberFeedback');
     Route::post('tickets/{ticket}/update-status', [TicketController::class, 'updateStatus'])->name('tickets.updateStatus');
+    Route::post('tickets/{ticket}/upload-evidence', [TicketController::class, 'uploadEvidence'])->name('tickets.uploadEvidence');
+    Route::post('tickets/{ticket}/add-private-note', [TicketController::class, 'addPrivateNote'])->name('tickets.addPrivateNote');
     Route::get('tickets/assign-unassigned', [TicketController::class, 'assignUnassigned'])->name('tickets.assign-unassigned');
 
     // Appointment Routes

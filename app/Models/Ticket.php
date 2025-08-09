@@ -50,7 +50,7 @@ class Ticket extends Model
         return $this->histories()->create([
             'action' => $action,
             'description' => $description,
-            'meta' => $meta ? json_encode($meta) : null,
+            'meta' => $meta, // Ya no necesitamos json_encode gracias al cast
             'technical_id' => $technical_id,
         ]);
     }
