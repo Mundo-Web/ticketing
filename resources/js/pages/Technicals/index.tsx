@@ -147,6 +147,14 @@ interface Ticket {
     };
 }
 
+interface Instruction {
+    from: string;
+    instruction: string;
+    priority: 'low' | 'normal' | 'high' | 'urgent';
+    sent_at: string;
+    read: boolean;
+}
+
 interface Technical {
     id: number;
     name: string;
@@ -173,6 +181,7 @@ interface Technical {
     avg_resolution_time: number;
     current_streak: number;
     last_activity?: string;
+    instructions?: Instruction[];
 }
 
 interface TechnicalsPageProps {
@@ -181,12 +190,27 @@ interface TechnicalsPageProps {
         links: unknown;
         meta: unknown;
     };
+    filters: {
+        search?: string;
+    };
+    canManage: boolean;
+    isDefaultTechnical: boolean;
+    isSuperAdmin: boolean;
 }
 
-export default function Index({ technicals }: TechnicalsPageProps) {
+export default function Index({ 
+    technicals, 
+    filters, 
+    canManage, 
+    isDefaultTechnical: backendIsDefaultTechnical, 
+    isSuperAdmin: backendIsSuperAdmin 
+}: TechnicalsPageProps) {
     const { auth } = usePage().props as unknown as { auth: { user: { roles: string[] } } };
     const userRoles = auth?.user?.roles || [];
-    const isSuperAdmin = Array.isArray(userRoles) ? userRoles.includes('super-admin') : false;
+    
+    // Use backend-provided values or fallback to local calculation
+    const isSuperAdmin = backendIsSuperAdmin ?? (Array.isArray(userRoles) ? userRoles.includes('super-admin') : false);
+    const currentUserIsDefaultTechnical = backendIsDefaultTechnical ?? false;
     
     console.log('User roles:', userRoles); // Debug para verificar estructura
     
@@ -450,6 +474,15 @@ export default function Index({ technicals }: TechnicalsPageProps) {
     const [showFilters, setShowFilters] = useState(false);
     const [loadingTicketDetail, setLoadingTicketDetail] = useState(false);
     const [loadingTickets, setLoadingTickets] = useState(false);
+    
+    // Estados para el modal de instrucciones
+    const [showInstructionModal, setShowInstructionModal] = useState(false);
+    const [selectedTechnicalForInstruction, setSelectedTechnicalForInstruction] = useState<Technical | null>(null);
+    const [instructionForm, setInstructionForm] = useState({
+        instruction: '',
+        priority: 'normal' as 'low' | 'normal' | 'high' | 'urgent'
+    });
+    const [sendingInstruction, setSendingInstruction] = useState(false);
 
     // Helper function to get safe image URL
     const getPhotoUrl = (photo: string | null | undefined) => {
@@ -1111,6 +1144,25 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                                     </TooltipContent>
                                                 </Tooltip>
                                             )}
+
+                                            {/* Botón para enviar instrucciones - solo para super-admin o technical default */}
+                                            {(isSuperAdmin || userRoles.includes('technical')) && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            onClick={() => handleSendInstruction(technical)}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="flex-1 border-blue-300 hover:bg-blue-50 transition-colors duration-300"
+                                                        >
+                                                            <MessageSquare className="w-4 h-4" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Send instruction to technical</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -1565,6 +1617,59 @@ export default function Index({ technicals }: TechnicalsPageProps) {
     const handleDelete = (technical: Technical) => {
         setSelectedTechnical(technical);
         setDeleteOpen(true);
+    };
+
+    // Funciones para manejar instrucciones
+    const handleSendInstruction = (technical: Technical) => {
+        setSelectedTechnicalForInstruction(technical);
+        setInstructionForm({
+            instruction: '',
+            priority: 'normal'
+        });
+        setShowInstructionModal(true);
+    };
+
+    const submitInstruction = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!selectedTechnicalForInstruction || !instructionForm.instruction.trim()) {
+            toast.error('Please enter an instruction');
+            return;
+        }
+
+        setSendingInstruction(true);
+        
+        try {
+            await router.post(route('technicals.send-instruction', selectedTechnicalForInstruction.id), {
+                instruction: instructionForm.instruction,
+                priority: instructionForm.priority
+            }, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowInstructionModal(false);
+                    setSelectedTechnicalForInstruction(null);
+                    setInstructionForm({ instruction: '', priority: 'normal' });
+                    toast.success('Instruction sent successfully');
+                },
+                onError: (errors: Record<string, string>) => {
+                    Object.values(errors).forEach(error => toast.error(error));
+                }
+            });
+        } catch (error) {
+            toast.error('Error sending instruction');
+        } finally {
+            setSendingInstruction(false);
+        }
+    };
+
+    const getPriorityColor = (priority: string) => {
+        switch (priority) {
+            case 'low': return 'bg-blue-100 text-blue-800';
+            case 'normal': return 'bg-gray-100 text-gray-800';
+            case 'high': return 'bg-orange-100 text-orange-800';
+            case 'urgent': return 'bg-red-100 text-red-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
     };
 
     const submitForm = (e: React.FormEvent) => {
@@ -2725,6 +2830,128 @@ export default function Index({ technicals }: TechnicalsPageProps) {
                                 </TooltipContent>
                             </Tooltip>
                         </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Modal para enviar instrucciones */}
+                <Dialog open={showInstructionModal} onOpenChange={setShowInstructionModal}>
+                    <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <MessageSquare className="w-5 h-5 text-blue-500" />
+                                Send Instruction to {selectedTechnicalForInstruction?.name}
+                            </DialogTitle>
+                            <DialogDescription>
+                                Send instructions or guidelines to the technical. Choose priority level appropriately.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <form onSubmit={submitInstruction} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="priority">Priority Level</Label>
+                                <Select
+                                    value={instructionForm.priority}
+                                    onValueChange={(value: 'low' | 'normal' | 'high' | 'urgent') => 
+                                        setInstructionForm(prev => ({ ...prev, priority: value }))
+                                    }
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="low">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                                Low Priority
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="normal">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
+                                                Normal Priority
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="high">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                                                High Priority
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="urgent">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                                URGENT
+                                            </div>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="instruction">Instruction</Label>
+                                <textarea
+                                    id="instruction"
+                                    value={instructionForm.instruction}
+                                    onChange={(e) => setInstructionForm(prev => ({ ...prev, instruction: e.target.value }))}
+                                    placeholder="Enter your instruction or message for the technical..."
+                                    className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    maxLength={1000}
+                                    required
+                                />
+                                <div className="text-xs text-muted-foreground text-right">
+                                    {instructionForm.instruction.length}/1000 characters
+                                </div>
+                            </div>
+
+                            {/* Vista previa del mensaje si hay instrucciones anteriores */}
+                            {selectedTechnicalForInstruction?.instructions && selectedTechnicalForInstruction.instructions.length > 0 && (
+                                <div className="space-y-2">
+                                    <Label>Recent Instructions (last 3)</Label>
+                                    <div className="max-h-32 overflow-y-auto space-y-2 p-2 border rounded-md bg-gray-50">
+                                        {selectedTechnicalForInstruction.instructions.slice(0, 3).map((inst, index) => (
+                                            <div key={index} className="text-xs border-l-2 border-gray-300 pl-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`px-1 py-0.5 rounded text-xs ${getPriorityColor(inst.priority)}`}>
+                                                        {inst.priority.toUpperCase()}
+                                                    </span>
+                                                    <span className="text-gray-500">from {inst.from}</span>
+                                                    <span className="text-gray-400">{new Date(inst.sent_at).toLocaleDateString()}</span>
+                                                </div>
+                                                <p className="mt-1 text-gray-700">{inst.instruction}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setShowInstructionModal(false)}
+                                    disabled={sendingInstruction}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={sendingInstruction || !instructionForm.instruction.trim()}
+                                    className="bg-blue-600 hover:bg-blue-700"
+                                >
+                                    {sendingInstruction ? (
+                                        <>
+                                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <MessageSquare className="w-4 h-4 mr-2" />
+                                            Send Instruction
+                                        </>
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </form>
                     </DialogContent>
                 </Dialog>
             </div>

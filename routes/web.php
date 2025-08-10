@@ -90,6 +90,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('technicals.update-status');
     Route::put('technicals/{technical}/set-default', [TechnicalController::class, 'setDefault'])
         ->name('technicals.set-default');
+    Route::post('technicals/{technical}/send-instruction', [TechnicalController::class, 'sendInstruction'])
+        ->name('technicals.send-instruction');
 
 
 

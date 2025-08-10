@@ -18,6 +18,11 @@ class Technical extends Model
         'status',
         'visible',
         'is_default',
+        'instructions',
+    ];
+
+    protected $casts = [
+        'instructions' => 'array',
     ];
 
     // Relaciones

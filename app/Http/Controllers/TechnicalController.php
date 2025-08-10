@@ -14,6 +14,21 @@ class TechnicalController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
+        $isDefaultTechnical = false;
+        $isSuperAdmin = $user->hasRole('super-admin');
+        
+        // Check if current user is default technical
+        if ($user->hasRole('technical')) {
+            $technical = Technical::where('email', $user->email)->first();
+            $isDefaultTechnical = $technical && $technical->is_default;
+        }
+        
+        // Only super-admin and default technical can access technicals management
+        if (!$isSuperAdmin && !$isDefaultTechnical) {
+            abort(403, 'Access denied');
+        }
+
         $technicals = Technical::query()
             ->with([
                 'tickets' => function($query) {
@@ -115,7 +130,10 @@ class TechnicalController extends Controller
 
         return Inertia::render('Technicals/index', [
             'technicals' => $technicals,
-            'filters' => $request->only(['search'])
+            'filters' => $request->only(['search']),
+            'canManage' => $isSuperAdmin || $isDefaultTechnical,
+            'isDefaultTechnical' => $isDefaultTechnical,
+            'isSuperAdmin' => $isSuperAdmin,
         ]);
     }
     private function storeImage($file, $folder): string
@@ -212,5 +230,52 @@ class TechnicalController extends Controller
             : 'Technical removed from Tech Chief role successfully';
             
         return back()->with('success', $message);
+    }
+
+    public function sendInstruction(Request $request, Technical $technical)
+    {
+        // Verificar que el usuario sea super-admin o técnico default
+        $isSuperAdmin = Auth::user()->hasRole('super-admin');
+        $isDefaultTechnical = Auth::user()->hasRole('technical') && 
+                              Technical::where('email', Auth::user()->email)->where('is_default', true)->exists();
+
+        if (!$isSuperAdmin && !$isDefaultTechnical) {
+            return back()->withErrors(['error' => 'Only super-admin or Tech Chief can send instructions']);
+        }
+
+        $validated = $request->validate([
+            'instruction' => 'required|string|max:1000',
+            'priority' => 'required|in:low,normal,high,urgent',
+        ]);
+
+        // Crear la notificación de instrucción
+        $instruction = [
+            'from' => Auth::user()->name,
+            'instruction' => $validated['instruction'],
+            'priority' => $validated['priority'],
+            'sent_at' => now(),
+            'read' => false,
+        ];
+
+        // Obtener las instrucciones actuales del técnico
+        $currentInstructions = $technical->instructions ?? [];
+        
+        // Agregar la nueva instrucción al inicio del array
+        array_unshift($currentInstructions, $instruction);
+        
+        // Mantener solo las últimas 20 instrucciones
+        $currentInstructions = array_slice($currentInstructions, 0, 20);
+
+        // Actualizar las instrucciones del técnico
+        $technical->update(['instructions' => $currentInstructions]);
+
+        $priorityMessage = [
+            'low' => 'Low priority',
+            'normal' => 'Normal priority',
+            'high' => 'High priority',
+            'urgent' => 'URGENT'
+        ];
+
+        return back()->with('success', "Instruction sent to {$technical->name} - {$priorityMessage[$validated['priority']]}");
     }
 }

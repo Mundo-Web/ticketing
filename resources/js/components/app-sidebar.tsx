@@ -27,8 +27,17 @@ export function AppSidebar() {
   const { auth } = usePage<SharedData>().props;
   
   // Type-safe access to user roles
-  const user = auth?.user as { roles?: string[] } | undefined;
+  const user = auth?.user as { 
+    roles?: string[]; 
+    technical?: { is_default: boolean };
+    owner?: { building_id: number };
+    doorman?: { building_id: number };
+  } | undefined;
   const userRoles = user?.roles || [];
+  const isDefaultTechnical = user?.technical?.is_default || false;
+  
+  console.log('User roles:', user);
+  console.log('Is default technical:', isDefaultTechnical);
   const mainNavItems: NavItem[] = [
 
     {
@@ -171,39 +180,56 @@ export function AppSidebar() {
     },
   ];
 
-    const technicalNavItems: NavItem[] = [
- {
-      title: 'Dashboard',
-      href: '/dashboard',
-      icon: LayoutGrid,
-      isActive: route().current('dashboard'),
-    },
-    {
-      title: 'Tickets',
-      icon: FileText,
-      isActive: route().current('tickets.*'),
-      items: [
-        {
-          title: 'All Tickets',
-          href: '/tickets',
-          icon: FileText,
-          isActive: component === 'Tickets/Index' && !url.includes('status='),
-        },
-        {
-          title: 'Closed & Cancelled',
-          href: '/tickets?status=closed,cancelled',
-          icon: XCircle,
-          isActive: component === 'Tickets/Index' && url.includes('status=closed,cancelled'),
-        }
-      ]
-    },
-    {
-      title: 'Appointments',
-      href: '/appointments',
-      icon: Calendar,
-      isActive: route().current('appointments.*'),
-    },
-  ];
+  // Función para crear el menú de technical basado en si es default o no
+  const getTechnicalNavItems = (): NavItem[] => {
+    const baseItems: NavItem[] = [
+      {
+        title: 'Dashboard',
+        href: '/dashboard',
+        icon: LayoutGrid,
+        isActive: route().current('dashboard'),
+      },
+      {
+        title: 'Tickets',
+        icon: FileText,
+        isActive: route().current('tickets.*'),
+        items: [
+          {
+            title: 'All Tickets',
+            href: '/tickets',
+            icon: FileText,
+            isActive: component === 'Tickets/Index' && !url.includes('status='),
+          },
+          {
+            title: 'Closed & Cancelled',
+            href: '/tickets?status=closed,cancelled',
+            icon: XCircle,
+            isActive: component === 'Tickets/Index' && url.includes('status=closed,cancelled'),
+          }
+        ]
+      },
+      {
+        title: 'Appointments',
+        href: '/appointments',
+        icon: Calendar,
+        isActive: route().current('appointments.*'),
+      },
+    ];
+
+    // Solo agregar el menú "Technicals" si el usuario es technical default
+    if (isDefaultTechnical) {
+      baseItems.splice(1, 0, {
+        title: 'Technicals',
+        href: '/technicals',
+        icon: Users,
+        isActive: route().current('technicals.*'),
+      });
+    }
+
+    return baseItems;
+  };
+
+  const technicalNavItems: NavItem[] = getTechnicalNavItems();
 
 
     // Menú para owners y doormans (gestión de edificio)
@@ -216,7 +242,7 @@ export function AppSidebar() {
     },
    {
       title: 'My Devices',
-      href: `/buildings/${auth?.user?.owner?.building_id || auth?.user?.doorman?.building_id}/apartments`,
+      href: `/buildings/${user?.owner?.building_id || user?.doorman?.building_id}/apartments`,
       icon: Laptop,
       isActive: route().current('buildings.*'),
     },
