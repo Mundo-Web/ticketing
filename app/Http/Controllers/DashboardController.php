@@ -45,14 +45,18 @@ class DashboardController extends Controller
             $isDefaultTechnical = $technical && $technical->is_default;
         }
         $canAssignTickets = $isSuperAdmin || $isDefaultTechnical;
+        
+        // Default technical should have same privileges as super-admin
+        $hasAdminPrivileges = $isSuperAdmin || $isDefaultTechnical;
 
         // Base query para tickets según rol
         $ticketsQuery = Ticket::query();
-        if (!$isSuperAdmin) {
-            // Si no es super-admin, filtrar según el rol
+        if (!$hasAdminPrivileges) {
+            // Si no tiene privilegios de admin, filtrar según el rol
             if ($user->hasRole('tenant')) {
                 $ticketsQuery->where('user_id', $user->id);
-            } elseif ($user->hasRole('technical')) {
+            } elseif ($user->hasRole('technical') && !$isDefaultTechnical) {
+                // Technical normal solo ve sus tickets asignados
                 $technical = Technical::where('email', $user->email)->first();
                 if ($technical) {
                     $ticketsQuery->where('technical_id', $technical->id);
@@ -73,7 +77,8 @@ class DashboardController extends Controller
         $unassignedTickets = (clone $ticketsQuery)->whereNull('technical_id')->count();
 
         // Métricas de recursos según rol
-        if ($isSuperAdmin) {
+        if ($hasAdminPrivileges) {
+            // Super-admin and default technical see all system metrics
             $totalBuildings = Building::count();
             $totalApartments = Apartment::count();
             $totalTenants = Tenant::count();
@@ -115,7 +120,8 @@ class DashboardController extends Controller
             ->get();
 
         // Técnicos más activos con información detallada
-        if ($isSuperAdmin) {
+        if ($hasAdminPrivileges) {
+            // Super-admin and default technical see all technicals
             $topTechnicals = Technical::leftJoin('tickets', 'technicals.id', '=', 'tickets.technical_id')
                 ->select(
                     'technicals.id',
@@ -136,7 +142,8 @@ class DashboardController extends Controller
         }
 
         // Edificios con información detallada según rol
-        if ($isSuperAdmin) {
+        if ($hasAdminPrivileges) {
+            // Super-admin and default technical see all buildings
             $buildingsWithTickets = Building::leftJoin('apartments', 'buildings.id', '=', 'apartments.buildings_id')
                 ->leftJoin('tenants', 'apartments.id', '=', 'tenants.apartment_id')
                 ->leftJoin('users', 'tenants.email', '=', 'users.email')
@@ -181,7 +188,8 @@ class DashboardController extends Controller
             ->get();
 
         // Dispositivos por tipo con información detallada
-        if ($isSuperAdmin) {
+        if ($hasAdminPrivileges) {
+            // Super-admin and default technical see all devices
             $devicesByType = Device::with(['model', 'brand', 'system', 'name_device', 'tenants.apartment.building'])
                 ->join('name_devices', 'devices.name_device_id', '=', 'name_devices.id')
                 ->join('models', 'devices.model_id', '=', 'models.id')
@@ -236,8 +244,9 @@ class DashboardController extends Controller
             ->get()
             ->pluck('count', 'category');
 
-        // Dispositivos más problemáticos - solo para super-admin
-        if ($isSuperAdmin) {
+        // Dispositivos más problemáticos - para admin y default technical
+        if ($hasAdminPrivileges) {
+            // Super-admin and default technical see problematic devices
             $problematicDevices = Device::leftJoin('tickets', 'devices.id', '=', 'tickets.device_id')
                 ->leftJoin('name_devices', 'devices.name_device_id', '=', 'name_devices.id')
                 ->select(
@@ -365,8 +374,8 @@ class DashboardController extends Controller
                 ->orderBy('scheduled_for')
                 ->limit(10)
                 ->get();
-        } elseif ($isSuperAdmin) {
-            // Super admin ve todas las citas próximas
+        } elseif ($hasAdminPrivileges) {
+            // Super admin and default technical see all upcoming appointments
             $upcomingAppointments = Appointment::with([
                 'ticket' => function($query) {
                     $query->select('id', 'title', 'code', 'user_id', 'device_id');
