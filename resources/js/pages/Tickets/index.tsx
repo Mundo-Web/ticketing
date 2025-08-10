@@ -62,6 +62,7 @@ import {
     Bell,
     Plus,
     ChevronDown,
+    Download,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -556,19 +557,99 @@ export default function TicketsIndex({
         title: "",
         description: "",
         tenant_id: "", // For admin/technical to select which tenant the ticket is for
+        attachments: [] as File[], // Files for photos/videos
     });
+
+    // State for managing file attachments
+    const [attachmentPreviews, setAttachmentPreviews] = useState<Array<{
+        file: File;
+        url: string;
+        type: 'image' | 'video';
+    }>>([]);
+
+    // Handle file attachment
+    const handleFileAttachment = (files: FileList | null) => {
+        if (!files) return;
+
+        const newAttachments: File[] = [];
+        const newPreviews: Array<{
+            file: File;
+            url: string;
+            type: 'image' | 'video';
+        }> = [];
+
+        Array.from(files).forEach(file => {
+            // Validate file type
+            const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov'];
+            
+            if (validImageTypes.includes(file.type) || validVideoTypes.includes(file.type)) {
+                // Validate file size (max 10MB)
+                if (file.size <= 10 * 1024 * 1024) {
+                    newAttachments.push(file);
+                    
+                    const url = URL.createObjectURL(file);
+                    const type = validImageTypes.includes(file.type) ? 'image' : 'video';
+                    
+                    newPreviews.push({ file, url, type });
+                } else {
+                    toast.error(`File ${file.name} is too large. Maximum size is 10MB.`);
+                }
+            } else {
+                toast.error(`File ${file.name} is not a supported format. Please use images (JPG, PNG, GIF, WebP) or videos (MP4, WebM, OGG, AVI, MOV).`);
+            }
+        });
+
+        // Update form data and previews
+        setData('attachments', [...data.attachments, ...newAttachments]);
+        setAttachmentPreviews(prev => [...prev, ...newPreviews]);
+    };
+
+    // Remove attachment
+    const removeAttachment = (index: number) => {
+        const newAttachments = data.attachments.filter((_, i) => i !== index);
+        const newPreviews = attachmentPreviews.filter((_, i) => i !== index);
+        
+        // Revoke URL to free memory
+        URL.revokeObjectURL(attachmentPreviews[index].url);
+        
+        setData('attachments', newAttachments);
+        setAttachmentPreviews(newPreviews);
+    };
 
     // Manejar envío del formulario
     const handleSubmitTicket = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('device_id', data.device_id);
+        formData.append('category', data.category);
+        formData.append('title', data.title);
+        formData.append('description', data.description);
+        formData.append('tenant_id', data.tenant_id);
+        
+        // Append files
+        data.attachments.forEach((file, index) => {
+            formData.append(`attachments[${index}]`, file);
+        });
+
         post('/tickets', {
+            data: formData,
             preserveScroll: true,
             onSuccess: () => {
                 setShowCreateModal(false);
+                // Clean up object URLs
+                attachmentPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
+                setAttachmentPreviews([]);
                 reset();
                 // Refresh the page to show the new ticket
                 router.reload({ only: ['tickets', 'allTickets'] });
+                toast.success('Ticket created successfully with attachments!');
             },
+            onError: () => {
+                toast.error('Error creating ticket. Please try again.');
+            }
         });
     };
 
@@ -2418,7 +2499,80 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         </div>
                                                     </div>
 
-                                                    {/* 💻 Device Information - Modern Card */}
+                                                    {/* � Attachments Section */}
+                                                    {selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
+                                                        <div className="p-6 bg-gradient-to-br from-pink-50 to-rose-50 border-b border-pink-200">
+                                                            <div className="flex items-center gap-3 mb-4">
+                                                                <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl flex items-center justify-center shadow-lg">
+                                                                    <Camera className="w-5 h-5 text-white" />
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="text-lg font-bold text-slate-900">Attachments</h4>
+                                                                    <p className="text-sm text-slate-600">Photos and videos uploaded with this ticket</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                                                {selectedTicket.attachments.map((attachment: any, index: number) => (
+                                                                    <div key={index} className="group relative">
+                                                                        <div className="aspect-square rounded-xl overflow-hidden border-2 border-pink-200 bg-white shadow-lg hover:shadow-xl transition-all duration-300">
+                                                                            {attachment.mime_type?.startsWith('image/') ? (
+                                                                                <img
+                                                                                    src={`/storage/${attachment.file_path}`}
+                                                                                    alt={attachment.original_name}
+                                                                                    className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+                                                                                    onClick={() => window.open(`/storage/${attachment.file_path}`, '_blank')}
+                                                                                />
+                                                                            ) : attachment.mime_type?.startsWith('video/') ? (
+                                                                                <video
+                                                                                    src={`/storage/${attachment.file_path}`}
+                                                                                    className="w-full h-full object-cover cursor-pointer"
+                                                                                    controls
+                                                                                    preload="metadata"
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="w-full h-full flex items-center justify-center bg-slate-100">
+                                                                                    <FileText className="w-8 h-8 text-slate-400" />
+                                                                                </div>
+                                                                            )}
+                                                                            
+                                                                            {/* File Type Icon */}
+                                                                            <div className="absolute top-2 left-2 w-6 h-6 bg-black/60 rounded-lg flex items-center justify-center">
+                                                                                {attachment.mime_type?.startsWith('image/') ? (
+                                                                                    <Camera className="w-3 h-3 text-white" />
+                                                                                ) : attachment.mime_type?.startsWith('video/') ? (
+                                                                                    <Video className="w-3 h-3 text-white" />
+                                                                                ) : (
+                                                                                    <FileText className="w-3 h-3 text-white" />
+                                                                                )}
+                                                                            </div>
+                                                                            
+                                                                            {/* Download Button */}
+                                                                            <a
+                                                                                href={`/storage/${attachment.file_path}`}
+                                                                                download={attachment.original_name}
+                                                                                className="absolute top-2 right-2 w-6 h-6 bg-black/60 hover:bg-black/80 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
+                                                                            >
+                                                                                <Download className="w-3 h-3 text-white" />
+                                                                            </a>
+                                                                        </div>
+                                                                        
+                                                                        {/* File Info */}
+                                                                        <div className="mt-2 px-1">
+                                                                            <p className="text-xs font-medium text-slate-700 truncate" title={attachment.original_name}>
+                                                                                {attachment.original_name}
+                                                                            </p>
+                                                                            <p className="text-xs text-slate-500">
+                                                                                {attachment.file_size ? `${(attachment.file_size / 1024 / 1024).toFixed(1)} MB` : 'Unknown size'}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* �💻 Device Information - Modern Card */}
                                                     {selectedTicket.device && (
                                                         <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-blue-200">
                                                             <div className="flex items-center gap-3 mb-4">
@@ -3566,6 +3720,142 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     <AlertCircle className="w-4 h-4" />
                                     {errors.description}
                                 </div>}
+                            </div>
+
+                            {/* Ultra-Premium File Attachments Section */}
+                            <div className="space-y-3">
+                                <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-4">
+                                    <div className="w-5 h-5 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg flex items-center justify-center">
+                                        <Camera className="w-3 h-3 text-white" />
+                                    </div>
+                                    Photos & Videos
+                                    <span className="text-xs text-slate-500 font-normal">(Optional)</span>
+                                </label>
+                                
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-pink-100/50 to-rose-100/50 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                                    
+                                    {/* File Upload Area */}
+                                    <div 
+                                        className="relative border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center bg-gradient-to-r from-white to-slate-50/50 hover:from-pink-50/30 hover:to-rose-50/30 hover:border-pink-400 transition-all duration-300 cursor-pointer group"
+                                        onClick={() => document.getElementById('file-upload')?.click()}
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            e.currentTarget.classList.add('border-pink-500', 'bg-pink-50');
+                                        }}
+                                        onDragLeave={(e) => {
+                                            e.preventDefault();
+                                            e.currentTarget.classList.remove('border-pink-500', 'bg-pink-50');
+                                        }}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            e.currentTarget.classList.remove('border-pink-500', 'bg-pink-50');
+                                            handleFileAttachment(e.dataTransfer.files);
+                                        }}
+                                    >
+                                        <input
+                                            id="file-upload"
+                                            type="file"
+                                            multiple
+                                            accept="image/*,video/*"
+                                            onChange={(e) => handleFileAttachment(e.target.files)}
+                                            className="hidden"
+                                        />
+                                        
+                                        <div className="space-y-4">
+                                            <div className="flex justify-center space-x-2">
+                                                <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                                    <Camera className="w-6 h-6 text-white" />
+                                                </div>
+                                                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                                    <Video className="w-6 h-6 text-white" />
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <p className="text-base font-semibold text-slate-700 group-hover:text-pink-700 transition-colors duration-300">
+                                                    Drop files here or click to browse
+                                                </p>
+                                                <p className="text-sm text-slate-500 mt-1">
+                                                    Support for images (JPG, PNG, GIF, WebP) and videos (MP4, WebM, OGG, AVI, MOV)
+                                                </p>
+                                                <p className="text-xs text-slate-400 mt-1">
+                                                    Maximum file size: 10MB per file
+                                                </p>
+                                            </div>
+                                            
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="border-pink-300 text-pink-700 hover:bg-pink-50 hover:border-pink-400"
+                                            >
+                                                <Upload className="w-4 h-4 mr-2" />
+                                                Choose Files
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* File Previews */}
+                                    {attachmentPreviews.length > 0 && (
+                                        <div className="mt-6 space-y-4">
+                                            <h4 className="text-sm font-semibold text-slate-700">Attached Files ({attachmentPreviews.length})</h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                {attachmentPreviews.map((preview, index) => (
+                                                    <div key={index} className="relative group/preview">
+                                                        <div className="aspect-square rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100 relative">
+                                                            {preview.type === 'image' ? (
+                                                                <img
+                                                                    src={preview.url}
+                                                                    alt={`Preview ${index + 1}`}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <video
+                                                                    src={preview.url}
+                                                                    className="w-full h-full object-cover"
+                                                                    controls={false}
+                                                                    muted
+                                                                />
+                                                            )}
+                                                            
+                                                            {/* File Type Icon */}
+                                                            <div className="absolute top-2 left-2 w-6 h-6 bg-black/60 rounded-lg flex items-center justify-center">
+                                                                {preview.type === 'image' ? (
+                                                                    <Camera className="w-3 h-3 text-white" />
+                                                                ) : (
+                                                                    <Video className="w-3 h-3 text-white" />
+                                                                )}
+                                                            </div>
+                                                            
+                                                            {/* Remove Button */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeAttachment(index)}
+                                                                className="absolute top-2 right-2 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-lg flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-all duration-200"
+                                                            >
+                                                                <X className="w-3 h-3 text-white" />
+                                                            </button>
+                                                            
+                                                            {/* File Name */}
+                                                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 text-white">
+                                                                <p className="text-xs truncate">{preview.file.name}</p>
+                                                                <p className="text-xs text-slate-300">
+                                                                    {(preview.file.size / 1024 / 1024).toFixed(1)} MB
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {errors.attachments && <div className="text-red-500 text-sm mt-3 flex items-center gap-2 bg-red-50 px-4 py-2 rounded-xl border border-red-200">
+                                        <AlertCircle className="w-4 h-4" />
+                                        {errors.attachments}
+                                    </div>}
+                                </div>
                             </div>
                         </div>
 

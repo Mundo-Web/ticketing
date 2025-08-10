@@ -296,8 +296,9 @@ class TicketController extends Controller
             'description' => 'required|string',
             'member_id' => 'nullable|exists:tenants,id', // Para cuando owner/doorman crea por member
             'tenant_id' => 'nullable|exists:tenants,id', // Para cuando admin/technical crea por tenant
+            'attachments.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,mp4,webm,ogg,avi,mov|max:10240', // 10MB max per file
         ]);
-        
+
         $user = Auth::user();
         $ticketData = [
             'device_id' => $validated['device_id'],
@@ -307,6 +308,30 @@ class TicketController extends Controller
             'status' => Ticket::STATUS_OPEN,
             'technical_id' => null, // Leave unassigned
         ];
+
+        // Handle file attachments
+        $attachments = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $originalName = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension();
+                $fileName = uniqid() . '_' . time() . '.' . $extension;
+                
+                // Store file in public/storage/tickets
+                $path = $file->storeAs('tickets', $fileName, 'public');
+                
+                $attachments[] = [
+                    'original_name' => $originalName,
+                    'file_name' => $fileName,
+                    'file_path' => $path,
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'uploaded_at' => now()->toISOString(),
+                ];
+            }
+        }
+        
+        $ticketData['attachments'] = $attachments;
 
         // Determinar quién es el usuario final del ticket y quién lo creó
         if ($request->has('member_id') && ($user->hasRole('owner') || $user->hasRole('doorman'))) {

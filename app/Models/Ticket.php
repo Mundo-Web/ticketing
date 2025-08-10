@@ -18,6 +18,7 @@ class Ticket extends Model
         'category',
         'title',
         'description',
+        'attachments',
         'status',
         'priority',
         'source',
@@ -28,6 +29,10 @@ class Ticket extends Model
         'created_by_owner_id',
         'created_by_doorman_id',
         'created_by_admin_id',
+    ];
+
+    protected $casts = [
+        'attachments' => 'array',
     ];
     // Boot: generar código único al crear
     protected static function boot()
