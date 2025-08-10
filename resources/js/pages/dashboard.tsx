@@ -48,10 +48,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 // Advanced Dashboard Components
-import DashboardFilterPanel from '@/components/dashboard/DashboardFilterPanel';
-import ExtendedKPIs from '@/components/dashboard/ExtendedKPIs';
 import AdvancedCharts from '@/components/dashboard/AdvancedCharts';
-import ExportData from '@/components/dashboard/ExportData';
 
 interface AppointmentItem {
     id: number;
@@ -104,6 +101,14 @@ interface NotificationItem {
     icon: React.ComponentType<{ className?: string }>;
     iconName?: string;
     color: string;
+}
+
+interface TechnicalInstruction {
+    from: string;
+    instruction: string;
+    priority: 'low' | 'normal' | 'high' | 'urgent';
+    sent_at: string;
+    read: boolean;
 }
 
 interface DashboardProps extends PageProps {
@@ -224,6 +229,7 @@ interface DashboardProps extends PageProps {
         upcomingAppointments?: Array<AppointmentItem>;
     };
     googleMapsApiKey: string;
+    technicalInstructions?: TechnicalInstruction[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -1387,13 +1393,34 @@ const exportProfessionalDashboard = async (metrics: Record<string, unknown>, cha
     });
 };
 
-export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: DashboardProps) {
-    const pageProps = usePage().props as unknown as { auth: { user: { roles: { name: string }[]; technical?: { is_default: boolean } } } };
-    const isSuperAdmin = pageProps?.auth?.user?.roles?.some((role) => role.name === 'super-admin') || false;
-    const isTechnical = pageProps?.auth?.user?.roles?.some((role) => role.name === 'technical') || false;
+export default function Dashboard({ 
+    metrics, 
+    charts, 
+    lists, 
+    googleMapsApiKey, 
+    technicalInstructions = []
+}: DashboardProps) {
+    const pageProps = usePage().props as unknown as { auth: { user: { roles: string[] | { name: string }[]; technical?: { is_default: boolean } } } };
+    console.log('PageProps structure:', pageProps);
+    console.log('Auth user:', pageProps?.auth?.user);
+    console.log('Roles array:', pageProps?.auth?.user?.roles);
+    console.log('First role:', pageProps?.auth?.user?.roles?.[0]);
+    
+    // Handle both string array and object array formats for roles
+    const userRoles = pageProps?.auth?.user?.roles || [];
+    const isSuperAdmin = userRoles.some((role) => 
+        typeof role === 'string' ? role === 'super-admin' : role.name === 'super-admin'
+    ) || false;
+    const isTechnical = userRoles.some((role) => 
+        typeof role === 'string' ? role === 'technical' : role.name === 'technical'
+    ) || false;
     const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false;
-    const isDoorman = pageProps?.auth?.user?.roles?.some((role) => role.name === 'doorman') || false;
-    const isOwner = pageProps?.auth?.user?.roles?.some((role) => role.name === 'owner') || false;
+    const isDoorman = userRoles.some((role) => 
+        typeof role === 'string' ? role === 'doorman' : role.name === 'doorman'
+    ) || false;
+    const isOwner = userRoles.some((role) => 
+        typeof role === 'string' ? role === 'owner' : role.name === 'owner'
+    ) || false;
     const canAssignTickets = isSuperAdmin || isDefaultTechnical;
     // States for modals and UI
     const [showDevicesModal, setShowDevicesModal] = useState(false);
@@ -1402,46 +1429,36 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
     const [isAppointmentsOpen, setIsAppointmentsOpen] = useState(false);
     const buildingsContainerRef = useRef<HTMLDivElement>(null);
 
-    // Estados para los nuevos componentes avanzados
-    const [dashboardFilters, setDashboardFilters] = useState({
-        dateRange: {
-            from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            to: new Date()
-        },
-        role: '',
-        status: '',
-        priority: ''
-    });
+    // Estados para instrucciones del technical
+    console.log('Dashboard Props - technicalInstructions:', technicalInstructions);
+    console.log('Is Technical:', isTechnical);
+    console.log('User Roles:', pageProps?.auth?.user?.roles);
+    const [currentInstructions, setCurrentInstructions] = useState<TechnicalInstruction[]>(technicalInstructions || []);
 
-    // Función para manejar cambios en los filtros
-    const handleFiltersChange = (newFilters: {
-        dateRange: { from?: Date; to?: Date };
-        role: string;
-        status: string;
-        priority: string;
-    }) => {
-        setDashboardFilters({
-            dateRange: {
-                from: newFilters.dateRange.from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                to: newFilters.dateRange.to || new Date()
-            },
-            role: newFilters.role,
-            status: newFilters.status,
-            priority: newFilters.priority
-        });
-    };
+    // Función para marcar instrucción como leída
+    const markInstructionAsRead = async (instructionIndex: number) => {
+        try {
+            await fetch(route('dashboard.mark-instruction-read'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({ instruction_index: instructionIndex }),
+            });
 
-    // Función para resetear filtros
-    const handleResetFilters = () => {
-        setDashboardFilters({
-            dateRange: {
-                from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                to: new Date()
-            },
-            role: '',
-            status: '',
-            priority: ''
-        });
+            // Actualizar estado local
+            setCurrentInstructions(prev => 
+                prev.map((instruction, index) => 
+                    index === instructionIndex ? { ...instruction, read: true } : instruction
+                )
+            );
+
+            toast.success('Instruction marked as read');
+        } catch (error) {
+            console.error('Error marking instruction as read:', error);
+            toast.error('Failed to mark instruction as read');
+        }
     };
 
     // Initialize notifications from localStorage or default values
@@ -2224,6 +2241,116 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                                 </DropdownMenu>
                             </div>
                         </div>
+
+   
+                        {/* SECCIÓN ESPECIAL: Instrucciones del Technical (solo para técnicos) */}
+                        {console.log('Rendering instructions section - isTechnical:', isTechnical, 'currentInstructions:', currentInstructions)}
+                        {isTechnical && currentInstructions.length > 0 && (
+                            <div className="space-y-6">
+                                <div className="text-center space-y-4">
+                                    <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-3">
+                                        <MessageSquare className="h-8 w-8 text-blue-500" />
+                                        Instructions from Management
+                                    </h2>
+                                    <p className="text-lg text-muted-foreground">
+                                        Important instructions and guidelines from your supervisors
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-4 max-w-4xl mx-auto">
+                                    {currentInstructions
+                                        // TEMPORAL: Comentar filtro para debugging
+                                        // .filter(instruction => !instruction.read)
+                                        .slice(0, 5) // Mostrar máximo 5 instrucciones
+                                        .map((instruction, index) => {
+                                            const priorityColors = {
+                                                low: 'from-blue-500/10 to-blue-600/5 border-blue-200 text-blue-700',
+                                                normal: 'from-gray-500/10 to-gray-600/5 border-gray-200 text-gray-700',
+                                                high: 'from-orange-500/10 to-orange-600/5 border-orange-200 text-orange-700',
+                                                urgent: 'from-red-500/10 to-red-600/5 border-red-200 text-red-700'
+                                            };
+
+                                            const priorityIcons = {
+                                                low: Info,
+                                                normal: MessageSquare,
+                                                high: AlertTriangle,
+                                                urgent: AlertOctagon
+                                            };
+
+                                            const PriorityIcon = priorityIcons[instruction.priority];
+
+                                            return (
+                                                <Card 
+                                                    key={index} 
+                                                    className={`transition-all duration-300 hover:shadow-lg border-l-4 bg-gradient-to-r ${priorityColors[instruction.priority]}`}
+                                                >
+                                                    <CardContent className="p-6">
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <div className="flex items-start gap-4 flex-1">
+                                                                <div className={`p-3 rounded-xl flex-shrink-0 ${
+                                                                    instruction.priority === 'urgent' ? 'bg-red-100 animate-pulse' : 'bg-white/50'
+                                                                }`}>
+                                                                    <PriorityIcon className={`h-6 w-6 ${
+                                                                        instruction.priority === 'urgent' ? 'text-red-600' : 'text-current'
+                                                                    }`} />
+                                                                </div>
+                                                                
+                                                                <div className="flex-1 space-y-3">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <Badge 
+                                                                            variant="outline" 
+                                                                            className={`font-semibold uppercase text-xs ${
+                                                                                instruction.priority === 'urgent' ? 'border-red-500 text-red-700 bg-red-50' : ''
+                                                                            }`}
+                                                                        >
+                                                                            {instruction.priority} Priority
+                                                                        </Badge>
+                                                                        <span className="text-sm text-muted-foreground">
+                                                                            From: <strong>{instruction.from}</strong>
+                                                                        </span>
+                                                                        <span className="text-xs text-muted-foreground">
+                                                                            {new Date(instruction.sent_at).toLocaleDateString('en-US', {
+                                                                                month: 'short',
+                                                                                day: 'numeric',
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit'
+                                                                            })}
+                                                                        </span>
+                                                                    </div>
+                                                                    
+                                                                    <p className="text-foreground leading-relaxed">
+                                                                        {instruction.instruction}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => markInstructionAsRead(index)}
+                                                                className="flex-shrink-0"
+                                                            >
+                                                                <Check className="h-4 w-4 mr-2" />
+                                                                Mark as Read
+                                                            </Button>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })}
+                                </div>
+                                
+                                {currentInstructions.filter(i => !i.read).length === 0 && (
+                                    <Card className="max-w-md mx-auto">
+                                        <CardContent className="p-8 text-center">
+                                            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                                            <h3 className="text-lg font-semibold text-foreground mb-2">All caught up!</h3>
+                                            <p className="text-muted-foreground">You have no pending instructions.</p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
+                        )}
 
 
 

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -40,14 +41,42 @@ class DashboardController extends Controller
 
         // Check if user can assign tickets (super-admin or default technical)
         $isDefaultTechnical = false;
+        $currentTechnical = null;
         if ($user->hasRole('technical')) {
-            $technical = Technical::where('email', $user->email)->first();
-            $isDefaultTechnical = $technical && $technical->is_default;
+            $currentTechnical = Technical::where('email', $user->email)->first();
+            $isDefaultTechnical = $currentTechnical && $currentTechnical->is_default;
         }
         $canAssignTickets = $isSuperAdmin || $isDefaultTechnical;
         
         // Default technical should have same privileges as super-admin
         $hasAdminPrivileges = $isSuperAdmin || $isDefaultTechnical;
+
+        // Get technical instructions if user is technical
+        $technicalInstructions = [];
+        if ($currentTechnical && $currentTechnical->instructions) {
+            // Debug: Log the raw instructions
+            Log::info('Technical instructions found:', [
+                'technical_id' => $currentTechnical->id,
+                'technical_email' => $currentTechnical->email,
+                'raw_instructions' => $currentTechnical->instructions
+            ]);
+            
+            // Get unread instructions (last 10)
+            $technicalInstructions = collect($currentTechnical->instructions)
+                ->filter(function ($instruction) {
+                    return !$instruction['read']; // Solo instrucciones no leídas
+                })
+                ->take(10) // Últimas 10
+                ->values()
+                ->toArray();
+                
+            Log::info('Filtered unread instructions:', $technicalInstructions);
+        } else {
+            Log::info('No technical or instructions found:', [
+                'currentTechnical' => $currentTechnical ? $currentTechnical->id : null,
+                'has_instructions' => $currentTechnical ? !empty($currentTechnical->instructions) : false
+            ]);
+        }
 
         // Base query para tickets según rol
         $ticketsQuery = Ticket::query();
@@ -460,6 +489,40 @@ class DashboardController extends Controller
                 'upcomingAppointments' => $upcomingAppointments,
             ],
             'googleMapsApiKey' => env('GMAPS_API_KEY'),
+            'technicalInstructions' => $technicalInstructions,
+            'currentTechnical' => $currentTechnical ? [
+                'id' => $currentTechnical->id,
+                'name' => $currentTechnical->name,
+                'is_default' => $currentTechnical->is_default,
+            ] : null,
         ]);
+    }
+
+    public function markInstructionAsRead(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user->hasRole('technical')) {
+            return response()->json(['error' => 'Only technicals can mark instructions as read'], 403);
+        }
+
+        $technical = Technical::where('email', $user->email)->first();
+        
+        if (!$technical) {
+            return response()->json(['error' => 'Technical not found'], 404);
+        }
+
+        $instructionIndex = $request->input('instruction_index');
+        
+        if ($technical->instructions && isset($technical->instructions[$instructionIndex])) {
+            $instructions = $technical->instructions;
+            $instructions[$instructionIndex]['read'] = true;
+            
+            $technical->update(['instructions' => $instructions]);
+            
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['error' => 'Instruction not found'], 404);
     }
 }
