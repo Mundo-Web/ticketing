@@ -25,6 +25,18 @@ class DashboardController extends Controller
 
         // Check user role to filter data
         $isSuperAdmin = $user->hasRole('super-admin');
+        $isOwner = $user->hasRole('owner');
+        $isDoorman = $user->hasRole('doorman');
+
+        // Get building ID for owner/doorman filtering
+        $buildingId = null;
+        if ($isOwner) {
+            $owner = $user->owner;
+            $buildingId = $owner && $owner->building ? $owner->building->id : null;
+        } elseif ($isDoorman) {
+            $doorman = $user->doorman;
+            $buildingId = $doorman && $doorman->building ? $doorman->building->id : null;
+        }
 
         // Check if user can assign tickets (super-admin or default technical)
         $isDefaultTechnical = false;
@@ -37,7 +49,7 @@ class DashboardController extends Controller
         // Base query para tickets según rol
         $ticketsQuery = Ticket::query();
         if (!$isSuperAdmin) {
-            // Si no es super-admin, solo ve sus propios tickets o los de su edificio
+            // Si no es super-admin, filtrar según el rol
             if ($user->hasRole('tenant')) {
                 $ticketsQuery->where('user_id', $user->id);
             } elseif ($user->hasRole('technical')) {
@@ -45,6 +57,11 @@ class DashboardController extends Controller
                 if ($technical) {
                     $ticketsQuery->where('technical_id', $technical->id);
                 }
+            } elseif (($isOwner || $isDoorman) && $buildingId) {
+                // Owner/Doorman only see tickets from their building
+                $ticketsQuery->whereHas('user.tenant.apartment', function($query) use ($buildingId) {
+                    $query->where('buildings_id', $buildingId);
+                });
             }
         }
 
@@ -55,13 +72,24 @@ class DashboardController extends Controller
         $resolvedTickets = (clone $ticketsQuery)->where('status', 'resolved')->count();
         $unassignedTickets = (clone $ticketsQuery)->whereNull('technical_id')->count();
 
-        // Métricas de recursos (solo super-admin ve todo)
+        // Métricas de recursos según rol
         if ($isSuperAdmin) {
             $totalBuildings = Building::count();
             $totalApartments = Apartment::count();
             $totalTenants = Tenant::count();
             $totalDevices = Device::count();
             $totalTechnicals = Technical::where('status', true)->count();
+        } elseif (($isOwner || $isDoorman) && $buildingId) {
+            // Owner/Doorman see metrics for their building
+            $totalBuildings = 1; // They manage one building
+            $totalApartments = Apartment::where('buildings_id', $buildingId)->count();
+            $totalTenants = Tenant::whereHas('apartment', function($query) use ($buildingId) {
+                $query->where('buildings_id', $buildingId);
+            })->count();
+            $totalDevices = Device::whereHas('tenants.apartment', function($query) use ($buildingId) {
+                $query->where('buildings_id', $buildingId);
+            })->count();
+            $totalTechnicals = Technical::where('status', true)->count(); // All active technicals
         } else {
             // Para otros roles, métricas limitadas
             $totalBuildings = 0;
@@ -107,7 +135,7 @@ class DashboardController extends Controller
             $topTechnicals = collect();
         }
 
-        // Edificios con información detallada
+        // Edificios con información detallada según rol
         if ($isSuperAdmin) {
             $buildingsWithTickets = Building::leftJoin('apartments', 'buildings.id', '=', 'apartments.buildings_id')
                 ->leftJoin('tenants', 'apartments.id', '=', 'tenants.apartment_id')
@@ -123,6 +151,23 @@ class DashboardController extends Controller
                 )
                 ->groupBy('buildings.id', 'buildings.name', 'buildings.image')
                 ->orderBy('buildings.name')
+                ->get();
+        } elseif (($isOwner || $isDoorman) && $buildingId) {
+            // Owner/Doorman see apartment-level breakdown for their building
+            $buildingsWithTickets = Apartment::where('buildings_id', $buildingId)
+                ->leftJoin('tenants', 'apartments.id', '=', 'tenants.apartment_id')
+                ->leftJoin('users', 'tenants.email', '=', 'users.email')
+                ->leftJoin('tickets', 'users.id', '=', 'tickets.user_id')
+                ->select(
+                    'apartments.id',
+                    'apartments.name',
+                    DB::raw('NULL as image'),
+                    DB::raw('1 as apartments_count'),
+                    DB::raw('COUNT(DISTINCT tenants.id) as tenants_count'),
+                    DB::raw('COUNT(tickets.id) as tickets_count')
+                )
+                ->groupBy('apartments.id', 'apartments.name')
+                ->orderBy('apartments.name')
                 ->get();
         } else {
             $buildingsWithTickets = collect();
@@ -281,6 +326,39 @@ class DashboardController extends Controller
             ])
                 ->whereHas('ticket', function($query) use ($user) {
                     $query->where('user_id', $user->id);
+                })
+                ->where('scheduled_for', '>=', Carbon::now())
+                ->where('status', '!=', 'cancelled')
+                ->orderBy('scheduled_for')
+                ->limit(10)
+                ->get();
+        } elseif (($isOwner || $isDoorman) && $buildingId) {
+            // Owner/Doorman ven citas de tickets de su edificio
+            $upcomingAppointments = Appointment::with([
+                'ticket' => function($query) {
+                    $query->select('id', 'title', 'code', 'user_id', 'device_id');
+                },
+                'ticket.user' => function($query) {
+                    $query->select('id', 'name', 'email');
+                },
+                'ticket.device' => function($query) {
+                    $query->select('id', 'name');
+                },
+                'ticket.device.tenants' => function($query) {
+                    $query->select('tenants.id', 'tenants.apartment_id')->distinct();
+                },
+                'ticket.device.tenants.apartment' => function($query) {
+                    $query->select('id', 'buildings_id', 'name');
+                },
+                'ticket.device.tenants.apartment.building' => function($query) {
+                    $query->select('id', 'name', 'address', 'location_link');
+                },
+                'technical' => function($query) {
+                    $query->select('id', 'name', 'email');
+                }
+            ])
+                ->whereHas('ticket.user.tenant.apartment', function($query) use ($buildingId) {
+                    $query->where('buildings_id', $buildingId);
                 })
                 ->where('scheduled_for', '>=', Carbon::now())
                 ->where('status', '!=', 'cancelled')

@@ -208,9 +208,15 @@ export function AppSidebar() {
 
     // Menú para owners y doormans (gestión de edificio)
   const buildingNavItems: NavItem[] = [
+     {
+      title: 'Dashboard',
+      href: '/dashboard',
+      icon: LayoutGrid,
+      isActive: route().current('dashboard'),
+    },
    {
       title: 'My Devices',
-      href: `/buildings/${auth?.user?.owner?.id || auth?.user?.doorman?.id}/apartments`,
+      href: `/buildings/${auth?.user?.owner?.building_id || auth?.user?.doorman?.building_id}/apartments`,
       icon: Laptop,
       isActive: route().current('buildings.*'),
     },

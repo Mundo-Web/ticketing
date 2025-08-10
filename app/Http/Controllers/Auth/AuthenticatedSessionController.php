@@ -51,8 +51,7 @@ class AuthenticatedSessionController extends Controller
             $owner = $user->owner; // relación User->owner
     
             if ($owner && $owner->building) {
-                $buildingId = $owner->building->id;
-                return redirect("/buildings/{$buildingId}/apartments");
+                return redirect()->route('dashboard');
             }
         }
     
@@ -60,8 +59,7 @@ class AuthenticatedSessionController extends Controller
             $doorman = $user->doorman; // relación User->doorman
     
             if ($doorman && $doorman->building) {
-                $buildingId = $doorman->building->id;
-                return redirect("/buildings/{$buildingId}/apartments");
+                return redirect()->route('dashboard');
             }
         }
 

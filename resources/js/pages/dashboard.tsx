@@ -1391,7 +1391,10 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
     const pageProps = usePage().props as unknown as { auth: { user: { roles: { name: string }[]; technical?: { is_default: boolean } } } };
     const isSuperAdmin = pageProps?.auth?.user?.roles?.some((role) => role.name === 'super-admin') || false;
     const isTechnical = pageProps?.auth?.user?.roles?.some((role) => role.name === 'technical') || false;
-    const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false; const canAssignTickets = isSuperAdmin || isDefaultTechnical;
+    const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false;
+    const isDoorman = pageProps?.auth?.user?.roles?.some((role) => role.name === 'doorman') || false;
+    const isOwner = pageProps?.auth?.user?.roles?.some((role) => role.name === 'owner') || false;
+    const canAssignTickets = isSuperAdmin || isDefaultTechnical;
     // States for modals and UI
     const [showDevicesModal, setShowDevicesModal] = useState(false);
     const [showLocationModal, setShowLocationModal] = useState(false);
@@ -2595,6 +2598,334 @@ export default function Dashboard({ metrics, charts, lists, googleMapsApiKey }: 
                                                     )}
                                                 </tbody>
                                             </table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* DOORMAN/OWNER SPECIFIC DASHBOARD SECTION */}
+                        {(isDoorman || isOwner) && (
+                            <div className="space-y-8">
+                                <div className="text-center space-y-4">
+                                    <h2 className="text-4xl font-bold text-foreground">
+                                        {isOwner ? "Owner Dashboard" : "Doorman Dashboard"}
+                                    </h2>
+                                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                                        Building management overview and resident ticket monitoring
+                                    </p>
+                                </div>
+
+                                {/* Quick Stats Row for Doorman/Owner */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {/* Tickets Today */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-background to-blue-100 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-blue-100">
+                                                    <Calendar className="h-6 w-6 text-blue-600" />
+                                                </div>
+                                                <ExternalLink
+                                                    className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets', '_blank')}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">
+                                                    Tickets Today
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved_today}</p>
+                                                <p className="text-xs text-muted-foreground">New tickets created today</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Open Tickets */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-orange-50 via-background to-orange-100 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-orange-100">
+                                                    <AlertCircle className="h-6 w-6 text-orange-600" />
+                                                </div>
+                                                <ExternalLink
+                                                    className="h-4 w-4 text-orange-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets', '_blank')}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-orange-600 uppercase tracking-wider">
+                                                    Open Tickets
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.open}</p>
+                                                <p className="text-xs text-muted-foreground">Pending resolution</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* In Progress */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-yellow-50 via-background to-yellow-100 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-yellow-100">
+                                                    <Clock className="h-6 w-6 text-yellow-600" />
+                                                </div>
+                                                <ExternalLink
+                                                    className="h-4 w-4 text-yellow-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets', '_blank')}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-yellow-600 uppercase tracking-wider">
+                                                    In Progress
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.in_progress}</p>
+                                                <p className="text-xs text-muted-foreground">Being worked on</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Resolved Today */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-green-100">
+                                                    <CheckCircle className="h-6 w-6 text-green-600" />
+                                                </div>
+                                                <Bell className="h-4 w-4 text-green-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">
+                                                    Resolved Today
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved}</p>
+                                                <p className="text-xs text-muted-foreground">Completed tickets</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Building Overview & Ticket Status */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    {/* Tickets by Floor/Apartment */}
+                                    <Card className="col-span-1">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Building className="h-5 w-5 text-primary" />
+                                                Tickets by Building Area
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-4">
+                                                {lists.buildingsWithTickets.slice(0, 5).map((building) => (
+                                                    <div key={building.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                                                                <Building className="w-5 h-5 text-primary" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium text-slate-900">{building.name}</p>
+                                                                <p className="text-sm text-slate-600">{building.apartments_count} apartments</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-lg font-bold text-slate-900">{building.tickets_count}</p>
+                                                            <p className="text-xs text-slate-600">tickets</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Ticket Status Overview */}
+                                    <Card className="col-span-1">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Activity className="h-5 w-5 text-primary" />
+                                                Current Ticket Status
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="bg-blue-50 p-4 rounded-lg">
+                                                        <div className="flex items-center gap-2">
+                                                            <Ticket className="w-4 h-4 text-blue-600" />
+                                                            <span className="text-sm font-medium text-blue-600">Open</span>
+                                                        </div>
+                                                        <p className="text-2xl font-bold text-blue-600">{metrics.tickets.open}</p>
+                                                    </div>
+                                                    <div className="bg-yellow-50 p-4 rounded-lg">
+                                                        <div className="flex items-center gap-2">
+                                                            <Clock className="w-4 h-4 text-yellow-600" />
+                                                            <span className="text-sm font-medium text-yellow-600">In Progress</span>
+                                                        </div>
+                                                        <p className="text-2xl font-bold text-yellow-600">{metrics.tickets.in_progress}</p>
+                                                    </div>
+                                                    <div className="bg-green-50 p-4 rounded-lg">
+                                                        <div className="flex items-center gap-2">
+                                                            <CheckCircle className="w-4 h-4 text-green-600" />
+                                                            <span className="text-sm font-medium text-green-600">Resolved</span>
+                                                        </div>
+                                                        <p className="text-2xl font-bold text-green-600">{metrics.tickets.resolved}</p>
+                                                    </div>
+                                                    <div className="bg-red-50 p-4 rounded-lg">
+                                                        <div className="flex items-center gap-2">
+                                                            <AlertTriangle className="w-4 h-4 text-red-600" />
+                                                            <span className="text-sm font-medium text-red-600">Unassigned</span>
+                                                        </div>
+                                                        <p className="text-2xl font-bold text-red-600">{metrics.tickets.unassigned}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Recent Activity & Notifications */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    {/* Recent Tickets */}
+                                    <Card className="col-span-2">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Clock className="h-5 w-5 text-primary" />
+                                                Recent Ticket Activity
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-3">
+                                                {lists.recentTickets.slice(0, 5).map((ticket) => (
+                                                    <div key={ticket.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                                                         onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-3 h-3 rounded-full ${
+                                                                ticket.status === 'open' ? 'bg-blue-500' :
+                                                                ticket.status === 'in_progress' ? 'bg-yellow-500' :
+                                                                ticket.status === 'resolved' ? 'bg-green-500' : 'bg-gray-500'
+                                                            }`} />
+                                                            <div>
+                                                                <p className="font-medium text-slate-900 truncate max-w-xs">{ticket.title}</p>
+                                                                <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                                    <span>{ticket.user?.name || 'Unknown'}</span>
+                                                                    <span>•</span>
+                                                                    <span>{ticket.device?.apartment?.name || 'No apt'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <Badge variant={
+                                                                ticket.status === 'open' ? 'default' :
+                                                                ticket.status === 'in_progress' ? 'secondary' :
+                                                                ticket.status === 'resolved' ? 'default' : 'outline'
+                                                            } className={`
+                                                                ${ticket.status === 'open' ? 'bg-blue-100 text-blue-700' : ''}
+                                                                ${ticket.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' : ''}
+                                                                ${ticket.status === 'resolved' ? 'bg-green-100 text-green-700' : ''}
+                                                            `}>
+                                                                {ticket.status}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Notifications */}
+                                    <Card className="col-span-1">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Bell className="h-5 w-5 text-primary" />
+                                                Notifications
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-3">
+                                                {/* Resolved Ticket Notifications */}
+                                                {metrics.tickets.resolved_today > 0 && (
+                                                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                        <div className="flex items-center gap-2">
+                                                            <CheckCircle className="w-4 h-4 text-green-600" />
+                                                            <span className="text-sm font-medium text-green-700">
+                                                                {metrics.tickets.resolved_today} tickets resolved today
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Open Tickets Alert */}
+                                                {metrics.tickets.open > 5 && (
+                                                    <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                                                        <div className="flex items-center gap-2">
+                                                            <AlertCircle className="w-4 h-4 text-orange-600" />
+                                                            <span className="text-sm font-medium text-orange-700">
+                                                                High number of open tickets
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Unassigned Tickets Alert */}
+                                                {metrics.tickets.unassigned > 0 && (
+                                                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                                        <div className="flex items-center gap-2">
+                                                            <AlertTriangle className="w-4 h-4 text-red-600" />
+                                                            <span className="text-sm font-medium text-red-700">
+                                                                {metrics.tickets.unassigned} unassigned tickets
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* All good message */}
+                                                {metrics.tickets.unassigned === 0 && metrics.tickets.open <= 5 && (
+                                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                                        <div className="flex items-center gap-2">
+                                                            <CheckCircle className="w-4 h-4 text-blue-600" />
+                                                            <span className="text-sm font-medium text-blue-700">
+                                                                All systems running smoothly
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Quick Actions for Doorman/Owner */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Zap className="h-5 w-5 text-primary" />
+                                            Quick Actions
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <Button 
+                                                className="flex items-center gap-2 h-12"
+                                                onClick={() => window.open('/owner-doorman/devices', '_blank')}
+                                            >
+                                                <Building className="w-4 h-4" />
+                                                Manage Building Members
+                                            </Button>
+                                            <Button 
+                                                variant="outline"
+                                                className="flex items-center gap-2 h-12"
+                                                onClick={() => window.open('/tickets', '_blank')}
+                                            >
+                                                <Ticket className="w-4 h-4" />
+                                                View All Tickets
+                                            </Button>
+                                            <Button 
+                                                variant="outline"
+                                                className="flex items-center gap-2 h-12"
+                                                onClick={() => window.open('/appointments', '_blank')}
+                                            >
+                                                <Calendar className="w-4 h-4" />
+                                                View Appointments
+                                            </Button>
                                         </div>
                                     </CardContent>
                                 </Card>
