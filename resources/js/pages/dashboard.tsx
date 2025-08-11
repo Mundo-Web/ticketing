@@ -1101,7 +1101,7 @@ const TicketsModal = ({
                                 <div 
                                     key={ticket.id} 
                                     className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                                    onClick={() => router.visit(`/tickets/${ticket.id}`)}
+                                    //onClick={() => router.visit(`/tickets/${ticket.id}`)}
                                 >
                                     {/* Header with Code and Status */}
                                     <div className="flex justify-between items-start mb-3">
@@ -1157,7 +1157,7 @@ const TicketsModal = ({
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm font-semibold text-green-900 truncate">
-                                                            {ticket.device.name || 'Device'}
+                                                            {ticket.device.name_device.name || 'Device'}
                                                         </p>
                                                         {ticket.device.apartment && (
                                                             <div className="flex items-center gap-1">
