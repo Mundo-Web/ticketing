@@ -1414,12 +1414,18 @@ export default function Dashboard({
     const isTechnical = userRoles.some((role) => 
         typeof role === 'string' ? role === 'technical' : role.name === 'technical'
     ) || false;
+    const isChiefTech = userRoles.some((role) => 
+        typeof role === 'string' ? role === 'technical-leader' : role.name === 'technical-leader'
+    ) || false;
     const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false;
     const isDoorman = userRoles.some((role) => 
         typeof role === 'string' ? role === 'doorman' : role.name === 'doorman'
     ) || false;
     const isOwner = userRoles.some((role) => 
         typeof role === 'string' ? role === 'owner' : role.name === 'owner'
+    ) || false;
+    const isTenant = userRoles.some((role) => 
+        typeof role === 'string' ? role === 'tenant' : role.name === 'tenant'
     ) || false;
     const canAssignTickets = isSuperAdmin || isDefaultTechnical;
     // States for modals and UI
@@ -1945,7 +1951,7 @@ export default function Dashboard({
                                     {isTechnical && !isSuperAdmin ? (
                                         <>
                                             <Calendar className="h-6 w-6" />
-                                            Mis Citas
+                                            My Appointments
                                         </>
                                     ) : (
                                         <>
@@ -2356,12 +2362,18 @@ export default function Dashboard({
 
                         {/* SECTION 1: KEY TICKET METRICS */}
                         <div className="space-y-12">                            <div className="text-center space-y-6">                                <h2 className="text-4xl font-bold text-foreground">
-                                    {isTechnical && !isSuperAdmin ? "Mis Tickets" : "Ticket Analytics"}
+                                    {isTechnical && !isSuperAdmin 
+                                        ? "My Tickets" 
+                                        : isDoorman 
+                                            ? "Building Tickets" 
+                                            : "Ticket Analytics"}
                                 </h2>
                             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                                 {isTechnical && !isSuperAdmin 
-                                    ? "Tickets asignados a ti y resumen de tu trabajo" 
-                                    : "Real-time monitoring of workflow and performance metrics"
+                                    ? "Tickets assigned to you and your work summary" 
+                                    : isDoorman
+                                        ? "Monitor tickets for your building residents"
+                                        : "Real-time monitoring of workflow and performance metrics"
                                 }
                             </p>
                         </div>
@@ -2415,7 +2427,7 @@ export default function Dashboard({
                                         </div>
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-destructive uppercase tracking-wider">
-                                                {isTechnical && !isSuperAdmin ? "Tickets Urgentes Míos" : "Open Tickets"}
+                                                {isTechnical && !isSuperAdmin ? "Urgent Tickets" : "Open Tickets"}
                                             </p>
                                             <p className="text-3xl font-bold text-foreground">{metrics.tickets.open}</p>
                                             <div className="flex items-center gap-2">
@@ -2423,10 +2435,10 @@ export default function Dashboard({
                                                     isTechnical && !isSuperAdmin && metrics.tickets.open > 0
                                                         ? "bg-red-500 text-white animate-pulse"
                                                         : "bg-destructive/20 text-destructive"
-                                                }`}>                                                    {isTechnical && !isSuperAdmin ? "¡URGENTE!" : "Priority"}
+                                                }`}>                                                    {isTechnical && !isSuperAdmin ? "URGENT!" : "Priority"}
                                                 </span>
                                                 <span className="text-xs text-muted-foreground">
-                                                    {isTechnical && !isSuperAdmin ? "Requiere atención inmediata" : "Immediate attention"}
+                                                    {isTechnical && !isSuperAdmin ? "Requires immediate attention" : "Immediate attention"}
                                                 </span>
                                             </div>
                                         </div>
@@ -2444,7 +2456,7 @@ export default function Dashboard({
                                             <ExternalLink className="h-4 w-4 text-secondary/60 opacity-0 group-hover:opacity-100 transition-opacity" />                                        </div>
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-secondary uppercase tracking-wider">
-                                                {isTechnical && !isSuperAdmin ? "En Proceso - Mis Tickets" : "In Progress"}
+                                                {isTechnical && !isSuperAdmin ? "In Progress - My Tickets" : "In Progress"}
                                             </p>
                                             <p className="text-3xl font-bold text-foreground">{metrics.tickets.in_progress}</p>
                                             <div className="flex items-center gap-2">
@@ -2452,7 +2464,7 @@ export default function Dashboard({
                                                     +8%
                                                 </span>
                                                 <span className="text-xs text-muted-foreground">
-                                                    {isTechnical && !isSuperAdmin ? "En trabajo activo" : "This week"}
+                                                    {isTechnical && !isSuperAdmin ? "Active work" : "This week"}
                                                 </span>
                                             </div>
                                         </div>
@@ -2471,7 +2483,7 @@ export default function Dashboard({
                                         </div>
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-accent uppercase tracking-wider">
-                                                {isTechnical && !isSuperAdmin ? "Mis Tickets Resueltos" : "Resolved"}
+                                                {isTechnical && !isSuperAdmin ? "My Resolved Tickets" : "Resolved"}
                                             </p>
                                             <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved}</p>
                                             <div className="flex items-center gap-2">
@@ -2479,7 +2491,7 @@ export default function Dashboard({
                                                     +15%
                                                 </span>
                                                 <span className="text-xs text-muted-foreground">
-                                                    {isTechnical && !isSuperAdmin ? "Mi productividad" : "vs target"}
+                                                    {isTechnical && !isSuperAdmin ? "My productivity" : "vs target"}
                                                 </span>
                                             </div>
                                         </div>
@@ -2491,8 +2503,8 @@ export default function Dashboard({
                             {isTechnical && !isSuperAdmin && (
                                 <div className="mt-12">
                                     <div className="text-center space-y-4 mb-8">
-                                        <h3 className="text-3xl font-bold text-foreground">Resumen de Hoy</h3>
-                                        <p className="text-lg text-muted-foreground">Tu actividad y próximas tareas</p>
+                                        <h3 className="text-3xl font-bold text-foreground">Today's Summary</h3>
+                                        <p className="text-lg text-muted-foreground">Your activity and upcoming tasks</p>
                                     </div>
                                     
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2503,12 +2515,12 @@ export default function Dashboard({
                                                     <div className="p-3 rounded-xl bg-green-100">
                                                         <Calendar className="h-6 w-6 text-green-600" />
                                                     </div>
-                                                    <Badge className="bg-green-100 text-green-800 border-green-300">Hoy</Badge>
+                                                    <Badge className="bg-green-100 text-green-800 border-green-300">Today</Badge>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">Resueltos Hoy</p>
+                                                    <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">Resolved Today</p>
                                                     <p className="text-3xl font-bold text-green-900">{metrics.tickets.resolved_today}</p>
-                                                    <p className="text-sm text-green-700">¡Excelente trabajo!</p>
+                                                    <p className="text-sm text-green-700">Great work!</p>
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -2520,12 +2532,12 @@ export default function Dashboard({
                                                     <div className="p-3 rounded-xl bg-blue-100">
                                                         <Clock className="h-6 w-6 text-blue-600" />
                                                     </div>
-                                                    <Badge className="bg-blue-100 text-blue-800 border-blue-300">Próximas</Badge>
+                                                    <Badge className="bg-blue-100 text-blue-800 border-blue-300">Upcoming</Badge>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">Mis Próximas Visitas</p>
+                                                    <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">My Next Visits</p>
                                                     <p className="text-3xl font-bold text-blue-900">{upcomingAppointmentsCount}</p>
-                                                    <p className="text-sm text-blue-700">Próximos 7 días</p>
+                                                    <p className="text-sm text-blue-700">Next 7 days</p>
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -2537,12 +2549,12 @@ export default function Dashboard({
                                                     <div className="p-3 rounded-xl bg-purple-100">
                                                         <Timer className="h-6 w-6 text-purple-600" />
                                                     </div>
-                                                    <Badge className="bg-purple-100 text-purple-800 border-purple-300">Promedio</Badge>
+                                                    <Badge className="bg-purple-100 text-purple-800 border-purple-300">Average</Badge>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-purple-600 uppercase tracking-wider">Mi Tiempo Promedio</p>
+                                                    <p className="text-sm font-semibold text-purple-600 uppercase tracking-wider">My Average Time</p>
                                                     <p className="text-3xl font-bold text-purple-900">{metrics.tickets.avg_resolution_hours}h</p>
-                                                    <p className="text-sm text-purple-700">Por ticket</p>
+                                                    <p className="text-sm text-purple-700">Per ticket</p>
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -2731,6 +2743,300 @@ export default function Dashboard({
                             </div>
                         )}
 
+                        {/* CHIEF TECH (TECHNICAL LEADER) SPECIFIC DASHBOARD SECTION */}
+                        {isChiefTech && (
+                            <div className="space-y-8">
+                                <div className="text-center space-y-4">
+                                    <h2 className="text-4xl font-bold text-foreground">
+                                        Technical Team Dashboard
+                                    </h2>
+                                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                                        Technical team management and performance overview
+                                    </p>
+                                </div>
+
+                                {/* Team Performance Overview */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {/* Total Team Tickets */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-background to-blue-100 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-blue-100">
+                                                    <Users className="h-6 w-6 text-blue-600" />
+                                                </div>
+                                                <ExternalLink
+                                                    className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets', '_blank')}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">
+                                                    Team Tickets
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.total}</p>
+                                                <p className="text-xs text-muted-foreground">All assigned to technical team</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Urgent Tickets */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-red-50 via-background to-red-100 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-red-100">
+                                                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                                                </div>
+                                                <ExternalLink
+                                                    className="h-4 w-4 text-red-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets?priority=high', '_blank')}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-red-600 uppercase tracking-wider">
+                                                    Urgent Tickets
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.urgent || 0}</p>
+                                                <p className="text-xs text-muted-foreground">High priority issues</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Unassigned Tickets */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-orange-50 via-background to-orange-100 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-orange-100">
+                                                    <UserMinus className="h-6 w-6 text-orange-600" />
+                                                </div>
+                                                <ExternalLink
+                                                    className="h-4 w-4 text-orange-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets?unassigned=1', '_blank')}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-orange-600 uppercase tracking-wider">
+                                                    Unassigned
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.unassigned}</p>
+                                                <p className="text-xs text-muted-foreground">Need assignment</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Tickets Resolved Today */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-green-100">
+                                                    <CheckCircle className="h-6 w-6 text-green-600" />
+                                                </div>
+                                                <ExternalLink
+                                                    className="h-4 w-4 text-green-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets?status=resolved&resolved_today=1', '_blank')}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">
+                                                    Resolved Today
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved_today}</p>
+                                                <p className="text-xs text-muted-foreground">Completed today</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Team Performance & Unassigned Tickets */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    {/* Technical Team Performance */}
+                                    <Card className="col-span-1">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <BarChart className="h-5 w-5 text-primary" />
+                                                Team Performance
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-4">
+                                                {lists.availableTechnicals && lists.availableTechnicals.slice(0, 5).map((tech) => (
+                                                    <div key={tech.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                                                                <UserCog className="w-5 h-5 text-primary" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium text-slate-900">{tech.name}</p>
+                                                                <p className="text-sm text-slate-600">{tech.active_tickets || 0} active tickets</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col items-end">
+                                                            <div className="flex items-center gap-2">
+                                                                <Badge variant="outline" className="bg-green-100 text-green-700">
+                                                                    {tech.resolved_tickets || 0} resolved
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Unassigned Tickets */}
+                                    <Card className="col-span-1">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <AlertCircle className="h-5 w-5 text-primary" />
+                                                Unassigned Tickets
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-3">
+                                                {lists.unassignedTickets && lists.unassignedTickets.length > 0 ? lists.unassignedTickets.slice(0, 5).map((ticket) => (
+                                                    <div key={ticket.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                                                         onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-3 h-3 rounded-full bg-orange-500" />
+                                                            <div>
+                                                                <p className="font-medium text-slate-900 truncate max-w-xs">{ticket.title}</p>
+                                                                <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                                    <span>{ticket.device?.apartment?.name || 'No apt'}</span>
+                                                                    <span>•</span>
+                                                                    <span>{formatDate(ticket.created_at)}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <Button variant="outline" size="sm" className="flex items-center gap-1"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    window.open(`/tickets/${ticket.id}/assign`, '_blank');
+                                                                }}>
+                                                            <UserPlus className="w-3 h-3" />
+                                                            Assign
+                                                        </Button>
+                                                    </div>
+                                                )) : (
+                                                    <div className="flex flex-col items-center justify-center p-6 text-center">
+                                                        <CheckCircle className="h-12 w-12 text-green-500 mb-3" />
+                                                        <p className="text-muted-foreground">No unassigned tickets</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                        <CardFooter className="flex justify-center border-t pt-4">
+                                            <Button 
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full sm:w-auto"
+                                                onClick={() => window.open('/tickets?unassigned=1', '_blank')}
+                                            >
+                                                View All Unassigned
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                </div>
+
+                                {/* Appointment Calendar & Quick Actions */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    {/* Upcoming Appointments */}
+                                    <Card className="col-span-2">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Calendar className="h-5 w-5 text-primary" />
+                                                Team Appointment Calendar
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-3">
+                                                {lists.upcomingAppointments && lists.upcomingAppointments.length > 0 ? (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {lists.upcomingAppointments.slice(0, 6).map((appointment) => (
+                                                            <div key={appointment.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                                                                onClick={() => window.open(`/appointments/${appointment.id}`, '_blank')}>
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                                                                        <Calendar className="w-5 h-5 text-primary" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-medium text-slate-900 truncate max-w-xs">{appointment.title}</p>
+                                                                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                                            <span>{formatDate(appointment.scheduled_at)}</span>
+                                                                            <span>•</span>
+                                                                            <span>{appointment.tech?.name || 'Unassigned'}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center p-6 text-center">
+                                                        <Calendar className="h-12 w-12 text-muted-foreground mb-3" />
+                                                        <p className="text-muted-foreground">No upcoming appointments</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                        <CardFooter className="flex justify-center border-t pt-4">
+                                            <Button 
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full sm:w-auto"
+                                                onClick={() => window.open('/appointments', '_blank')}
+                                            >
+                                                View Full Calendar
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+
+                                    {/* Quick Actions for Chief Tech */}
+                                    <Card className="col-span-1">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Zap className="h-5 w-5 text-primary" />
+                                                Quick Actions
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-3">
+                                                <Button 
+                                                    className="w-full flex items-center gap-2 h-12 justify-start"
+                                                    onClick={() => window.open('/tickets/unassigned', '_blank')}
+                                                >
+                                                    <UserPlus className="w-4 h-4" />
+                                                    Assign Tickets
+                                                </Button>
+                                                <Button 
+                                                    variant="outline"
+                                                    className="w-full flex items-center gap-2 h-12 justify-start"
+                                                    onClick={() => window.open('/appointments/create', '_blank')}
+                                                >
+                                                    <CalendarPlus className="w-4 h-4" />
+                                                    Schedule Appointment
+                                                </Button>
+                                                <Button 
+                                                    variant="outline"
+                                                    className="w-full flex items-center gap-2 h-12 justify-start"
+                                                    onClick={() => window.open('/reports/technicians', '_blank')}
+                                                >
+                                                    <BarChart className="w-4 h-4" />
+                                                    View Team Reports
+                                                </Button>
+                                                <Button 
+                                                    variant="outline"
+                                                    className="w-full flex items-center gap-2 h-12 justify-start"
+                                                    onClick={() => window.open('/tickets/urgent', '_blank')}
+                                                >
+                                                    <AlertTriangle className="w-4 h-4" />
+                                                    Manage Urgent Tickets
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+                        )}
+
                         {/* DOORMAN/OWNER SPECIFIC DASHBOARD SECTION */}
                         {(isDoorman || isOwner) && (
                             <div className="space-y-8">
@@ -2754,7 +3060,7 @@ export default function Dashboard({
                                                 </div>
                                                 <ExternalLink
                                                     className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => window.open('/tickets', '_blank')}
+                                                    onClick={() => window.open('/tickets?created_today=1', '_blank')}
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -2776,7 +3082,7 @@ export default function Dashboard({
                                                 </div>
                                                 <ExternalLink
                                                     className="h-4 w-4 text-orange-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => window.open('/tickets', '_blank')}
+                                                    onClick={() => window.open('/tickets?status=open', '_blank')}
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -2798,7 +3104,7 @@ export default function Dashboard({
                                                 </div>
                                                 <ExternalLink
                                                     className="h-4 w-4 text-yellow-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => window.open('/tickets', '_blank')}
+                                                    onClick={() => window.open('/tickets?status=in_progress', '_blank')}
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -3040,10 +3346,10 @@ export default function Dashboard({
                                             <Button 
                                                 variant="outline"
                                                 className="flex items-center gap-2 h-12"
-                                                onClick={() => window.open('/tickets', '_blank')}
+                                                onClick={() => window.open('/tickets/create', '_blank')}
                                             >
                                                 <Ticket className="w-4 h-4" />
-                                                View All Tickets
+                                                Create New Ticket
                                             </Button>
                                             <Button 
                                                 variant="outline"
@@ -3052,6 +3358,265 @@ export default function Dashboard({
                                             >
                                                 <Calendar className="w-4 h-4" />
                                                 View Appointments
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* TENANT SPECIFIC DASHBOARD SECTION */}
+                        {isTenant && (
+                            <div className="space-y-8">
+                                <div className="text-center space-y-4">
+                                    <h2 className="text-4xl font-bold text-foreground">
+                                        Tenant Dashboard
+                                    </h2>
+                                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                                        Monitor your tickets and service requests
+                                    </p>
+                                </div>
+
+                                {/* Tenant Tickets Overview */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {/* Open Tickets */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-background to-blue-100 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-blue-100">
+                                                    <AlertCircle className="h-6 w-6 text-blue-600" />
+                                                </div>
+                                                <ExternalLink
+                                                    className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets?status=open', '_blank')}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">
+                                                    Open Tickets
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.user_open || 0}</p>
+                                                <p className="text-xs text-muted-foreground">Awaiting service</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* In Progress Tickets */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-yellow-50 via-background to-yellow-100 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-yellow-100">
+                                                    <Clock className="h-6 w-6 text-yellow-600" />
+                                                </div>
+                                                <ExternalLink
+                                                    className="h-4 w-4 text-yellow-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets?status=in_progress', '_blank')}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-yellow-600 uppercase tracking-wider">
+                                                    In Progress
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.user_in_progress || 0}</p>
+                                                <p className="text-xs text-muted-foreground">Being worked on</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Resolved Tickets */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-green-100">
+                                                    <CheckCircle className="h-6 w-6 text-green-600" />
+                                                </div>
+                                                <ExternalLink
+                                                    className="h-4 w-4 text-green-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets?status=resolved', '_blank')}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">
+                                                    Resolved
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.user_resolved || 0}</p>
+                                                <p className="text-xs text-muted-foreground">Completed tickets</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Recent Tickets & Apartment Info */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    {/* My Recent Tickets */}
+                                    <Card className="col-span-1">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Ticket className="h-5 w-5 text-primary" />
+                                                My Recent Tickets
+                                            </CardTitle>
+                                            <CardDescription>
+                                                View the status of your recent service requests
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-3">
+                                                {lists.userTickets && lists.userTickets.length > 0 ? lists.userTickets.slice(0, 5).map((ticket) => (
+                                                    <div key={ticket.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                                                         onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-3 h-3 rounded-full ${
+                                                                ticket.status === 'open' ? 'bg-blue-500' :
+                                                                ticket.status === 'in_progress' ? 'bg-yellow-500' :
+                                                                ticket.status === 'resolved' ? 'bg-green-500' : 'bg-gray-500'
+                                                            }`} />
+                                                            <div>
+                                                                <p className="font-medium text-slate-900 truncate max-w-xs">{ticket.title}</p>
+                                                                <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                                    <span>{formatDate(ticket.created_at)}</span>
+                                                                    <span>•</span>
+                                                                    <span>{ticket.device?.apartment?.name || 'No apt'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <Badge variant={
+                                                                ticket.status === 'open' ? 'default' :
+                                                                ticket.status === 'in_progress' ? 'secondary' :
+                                                                ticket.status === 'resolved' ? 'default' : 'outline'
+                                                            } className={`
+                                                                ${ticket.status === 'open' ? 'bg-blue-100 text-blue-700' : ''}
+                                                                ${ticket.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' : ''}
+                                                                ${ticket.status === 'resolved' ? 'bg-green-100 text-green-700' : ''}
+                                                            `}>
+                                                                {ticket.status}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                )) : (
+                                                    <div className="flex flex-col items-center justify-center p-6 text-center">
+                                                        <Ticket className="h-12 w-12 text-muted-foreground mb-3" />
+                                                        <p className="text-muted-foreground">No tickets found</p>
+                                                        <Button
+                                                            className="mt-4"
+                                                            variant="outline"
+                                                            onClick={() => window.open('/tickets/create', '_blank')}
+                                                        >
+                                                            Create a New Ticket
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                        <CardFooter className="flex justify-center border-t pt-4">
+                                            <Button 
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full sm:w-auto"
+                                                onClick={() => window.open('/tickets', '_blank')}
+                                            >
+                                                View All Tickets
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+
+                                    {/* My Apartment */}
+                                    <Card className="col-span-1">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Home className="h-5 w-5 text-primary" />
+                                                My Apartment
+                                            </CardTitle>
+                                            <CardDescription>
+                                                Your apartment details and upcoming appointments
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-4">
+                                                {lists.userApartment ? (
+                                                    <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
+                                                        <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
+                                                            <Building className="w-6 h-6 text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-slate-900">{lists.userApartment.name}</p>
+                                                            <p className="text-sm text-slate-600">{lists.userApartment.building?.name || 'Building'}</p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center p-6 text-center">
+                                                        <Home className="h-12 w-12 text-muted-foreground mb-3" />
+                                                        <p className="text-muted-foreground">No apartment information found</p>
+                                                    </div>
+                                                )}
+
+                                                {/* Upcoming Appointments */}
+                                                <div>
+                                                    <h4 className="text-sm font-semibold mb-3">Upcoming Appointments</h4>
+                                                    {lists.userAppointments && lists.userAppointments.length > 0 ? (
+                                                        <div className="space-y-2">
+                                                            {lists.userAppointments.slice(0, 2).map((appointment) => (
+                                                                <div 
+                                                                    key={appointment.id} 
+                                                                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                                                                    onClick={() => window.open(`/appointments/${appointment.id}`, '_blank')}
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        <Calendar className="w-4 h-4 text-primary" />
+                                                                        <div>
+                                                                            <p className="font-medium text-sm">{appointment.title}</p>
+                                                                            <p className="text-xs text-slate-600">{formatDate(appointment.scheduled_at)}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <Badge className="bg-blue-100 text-blue-700">
+                                                                        Scheduled
+                                                                    </Badge>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="p-3 bg-slate-50 rounded-lg text-center">
+                                                            <p className="text-sm text-slate-600">No upcoming appointments</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Quick Actions */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Zap className="h-5 w-5 text-primary" />
+                                            Quick Actions
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <Button 
+                                                className="flex items-center gap-2 h-12"
+                                                onClick={() => window.open('/tickets/create', '_blank')}
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                Create Service Request
+                                            </Button>
+                                            <Button 
+                                                variant="outline"
+                                                className="flex items-center gap-2 h-12"
+                                                onClick={() => window.open('/tickets', '_blank')}
+                                            >
+                                                <Ticket className="w-4 h-4" />
+                                                View My Tickets
+                                            </Button>
+                                            <Button 
+                                                variant="outline"
+                                                className="flex items-center gap-2 h-12"
+                                                onClick={() => window.open('/profile', '_blank')}
+                                            >
+                                                <User className="w-4 h-4" />
+                                                Update Profile
                                             </Button>
                                         </div>
                                     </CardContent>
@@ -3432,7 +3997,7 @@ export default function Dashboard({
                                                                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-200 to-rose-400 flex items-center justify-center overflow-hidden">
                                                                         {technical.photo ? (
                                                                             <img
-                                                                                src={technical.photo}
+                                                                                src={`/storage/${technical.photo}`}
                                                                                 alt={technical.name}
                                                                                 className="w-full h-full object-cover"
                                                                             />
@@ -3440,7 +4005,12 @@ export default function Dashboard({
                                                                             <User className="h-6 w-6 text-white" />
                                                                         )}
                                                                     </div>
-                                                                    {technical.is_default && (
+                                                                    {technical.is_default === true && (
+                                                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
+                                                                            <span className="text-xs">★</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {technical.is_default === 1 && (
                                                                         <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
                                                                             <span className="text-xs">★</span>
                                                                         </div>
@@ -3449,7 +4019,10 @@ export default function Dashboard({
                                                                 <div className="flex-1 min-w-0">
                                                                     <div className="flex items-center gap-2">
                                                                         <h4 className="font-semibold text-slate-800 text-sm truncate">{technical.name}</h4>
-                                                                        {technical.is_default && (
+                                                                        {technical.is_default === true && (
+                                                                            <Badge variant="secondary" className="text-xs px-1 py-0">Default</Badge>
+                                                                        )}
+                                                                        {technical.is_default === 1 && (
                                                                             <Badge variant="secondary" className="text-xs px-1 py-0">Default</Badge>
                                                                         )}
                                                                     </div>
