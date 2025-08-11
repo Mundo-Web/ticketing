@@ -1,12 +1,28 @@
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type PageProps } from '@/types';
+﻿import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem, type PageProps, type User as UserType } from '@/types';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
+// Extended User interface for dashboard
+interface ExtendedUser extends UserType {
+    roles: string[] | { name: string }[];
+    technical?: { is_default: boolean };
+    tenant?: {
+        apartment: {
+            id: number;
+            name: string;
+            building?: {
+                id: number;
+                name: string;
+            };
+        };
+    };
+}
+
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,7 +49,8 @@ import {
     Timer, Download, ExternalLink, RefreshCcw, FileSpreadsheet,
     Bell, Zap, UserPlus, AlertTriangle, X, User, Phone, Mail,
     Monitor, ChevronLeft, ChevronRight, Laptop, Check,
-    MessageSquare, Info, AlertOctagon, MapPin, PlayCircle, Eye
+    MessageSquare, Info, AlertOctagon, MapPin, PlayCircle, Eye,
+    UserMinus, BarChart, UserCog, CalendarPlus, Plus
 } from 'lucide-react';
 
 // Charts
@@ -122,7 +139,7 @@ interface DashboardProps extends PageProps {
             resolved: number;
             resolved_today: number;
             avg_resolution_hours: number;
-            unassigned: number; // Añadido para tickets sin asignar
+            unassigned: number; // AÃ±adido para tickets sin asignar
         };
         resources: {
             buildings: number;
@@ -245,6 +262,16 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/dashboard',
     },
 ];
+
+// Utility function to format dates
+const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+};
 
 // Chart colors
 const CHART_COLORS = [
@@ -379,9 +406,9 @@ const exportWeeklyTrendExcel = async (trendData: Array<{ date: string; count: nu
         const safeAvgDaily = avgDaily || 1; // Prevent division by zero
 
         const vsAverage = safeAvgDaily > 0 ? Math.round(((dayCount - safeAvgDaily) / safeAvgDaily) * 100) : 0;
-        const trendDirection = vsAverage > 15 ? '↗ Above Average' :
-            vsAverage < -15 ? '↘ Below Average' :
-                '→ Normal Range';
+        const trendDirection = vsAverage > 15 ? 'â†— Above Average' :
+            vsAverage < -15 ? 'â†˜ Below Average' :
+                'â†’ Normal Range';
 
         const performance = dayCount > safeAvgDaily * 1.3 ? 'High Volume' :
             dayCount < safeAvgDaily * 0.7 ? 'Low Volume' :
@@ -997,409 +1024,6 @@ const exportDevicesExcel = async (devices: Array<{ id: number; device_name: stri
     });
 };
 
-// Professional Dashboard Export with advanced styling using ExcelJS
-const exportProfessionalDashboard = async (metrics: Record<string, unknown>, charts: Record<string, unknown>, lists: Record<string, unknown>) => {
-    const workbook = new ExcelJS.Workbook();
-
-    // Set workbook properties
-    workbook.creator = 'Ticketing System';
-    workbook.created = new Date();
-    workbook.company = 'Professional Dashboard';
-
-    const currentDate = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-
-    // Define professional color scheme
-    const colors = {
-        primary: 'FF2563EB',      // Blue
-        secondary: 'FF1E3A8A',   // Dark Blue
-        success: 'FF059669',     // Green
-        warning: 'FFF59E0B',     // Yellow
-        danger: 'FFDC2626',      // Red
-        light: 'FFF8FAFC',       // Light Gray
-        dark: 'FF1E293B',        // Dark Gray
-        white: 'FFFFFFFF'
-    };
-
-    // SHEET 1: Executive Summary
-    const summarySheet = workbook.addWorksheet('Executive Summary', {
-        pageSetup: { paperSize: 9, orientation: 'portrait' }
-    });
-
-    // Set column widths
-    summarySheet.columns = [
-        { width: 35 }, { width: 18 }, { width: 22 }, { width: 30 }
-    ];
-
-    // Main Title
-    summarySheet.mergeCells('A1:D1');
-    const titleCell = summarySheet.getCell('A1');
-    titleCell.value = 'EXECUTIVE DASHBOARD - TICKETING SYSTEM';
-    titleCell.style = {
-        font: { name: 'Segoe UI', size: 20, bold: true, color: { argb: 'FFFFFFFF' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-        border: {
-            top: { style: 'thick', color: { argb: colors.secondary } },
-            left: { style: 'thick', color: { argb: colors.secondary } },
-            bottom: { style: 'thick', color: { argb: colors.secondary } },
-            right: { style: 'thick', color: { argb: colors.secondary } }
-        }
-    };
-    summarySheet.getRow(1).height = 40;
-
-    // Date and metadata
-    summarySheet.mergeCells('A2:B2');
-    const dateCell = summarySheet.getCell('A2');
-    dateCell.value = `Generation Date: ${currentDate}`;
-    dateCell.style = {
-        font: { name: 'Segoe UI', size: 12, italic: true, color: { argb: colors.dark } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } },
-        alignment: { horizontal: 'left', vertical: 'middle' },
-        border: {
-            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-            right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
-        }
-    };
-
-    // Company info
-    summarySheet.mergeCells('C2:D2');
-    const logoCell = summarySheet.getCell('C2');
-    logoCell.value = 'PROFESSIONAL REPORT';
-    logoCell.style = {
-        font: { name: 'Segoe UI', size: 12, bold: true, color: { argb: colors.primary } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } },
-        alignment: { horizontal: 'right', vertical: 'middle' },
-        border: {
-            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-            right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
-        }
-    };
-
-    // Section: KEY METRICS
-    let currentRow = 4;
-
-    // Section header
-    summarySheet.mergeCells(`A${currentRow}:D${currentRow}`);
-    const metricsHeaderCell = summarySheet.getCell(`A${currentRow}`);
-    metricsHeaderCell.value = 'KEY PERFORMANCE METRICS';
-    metricsHeaderCell.style = {
-        font: { name: 'Segoe UI', size: 16, bold: true, color: { argb: 'FFFFFFFF' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.secondary } },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-        border: {
-            top: { style: 'medium', color: { argb: colors.primary } },
-            left: { style: 'medium', color: { argb: colors.primary } },
-            bottom: { style: 'medium', color: { argb: colors.primary } },
-            right: { style: 'medium', color: { argb: colors.primary } }
-        }
-    };
-    summarySheet.getRow(currentRow).height = 30;
-    currentRow++;
-
-    // Column headers
-    const headers = ['Indicator', 'Value', 'Status', 'Trend'];
-    headers.forEach((header, index) => {
-        const cell = summarySheet.getCell(currentRow, index + 1);
-        cell.value = header;
-        cell.style = {
-            font: { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FFFFFFFF' } },
-            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
-            alignment: { horizontal: 'center', vertical: 'middle' },
-            border: {
-                top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
-            }
-        };
-    });
-    summarySheet.getRow(currentRow).height = 25;
-    currentRow++;
-
-    // Metrics data
-    const metricsData = [
-        ['Total Tickets', metrics.tickets.total, 'Active', '+12% vs last month'],
-        ['Open Tickets', metrics.tickets.open, 'Critical', 'Requires immediate attention'],
-        ['In Progress Tickets', metrics.tickets.in_progress, 'Processing', '+8% this week'],
-        ['Resolved Tickets', metrics.tickets.resolved, 'Completed', '+15% vs target'],
-        ['Resolved Today', metrics.tickets.resolved_today, 'Daily', 'Daily productivity'],
-        ['Average Time (h)', metrics.tickets.avg_resolution_hours, 'Efficiency', '-2h improvement'],
-        ['Unassigned', metrics.tickets.unassigned || 0, 'Pending', 'Requires assignment']
-    ];
-
-    metricsData.forEach((row, rowIndex) => {
-        row.forEach((value, colIndex) => {
-            const cell = summarySheet.getCell(currentRow + rowIndex, colIndex + 1);
-            cell.value = value;
-
-            // Determine cell color based on status
-            let fillColor = 'FFFFFFFF';
-            let fontColor = colors.dark;
-
-            if (colIndex === 2) { // Status column
-                switch (value) {
-                    case 'Critical':
-                        fillColor = colors.danger;
-                        fontColor = 'FFFFFFFF';
-                        break;
-                    case 'Completed':
-                        fillColor = colors.success;
-                        fontColor = 'FFFFFFFF';
-                        break;
-                    case 'Processing':
-                        fillColor = colors.warning;
-                        fontColor = 'FFFFFFFF';
-                        break;
-                    case 'Pending':
-                        fillColor = 'FFFBBF24';
-                        fontColor = 'FF1F2937';
-                        break;
-                    default:
-                        fillColor = 'FFF1F5F9';
-                        break;
-                }
-            }
-
-            cell.style = {
-                font: {
-                    name: 'Segoe UI',
-                    size: 11,
-                    bold: colIndex === 0,
-                    color: { argb: fontColor }
-                },
-                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
-                alignment: {
-                    horizontal: colIndex === 0 ? 'left' : 'center',
-                    vertical: 'middle'
-                },
-                border: {
-                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
-                }
-            };
-        });
-        summarySheet.getRow(currentRow + rowIndex).height = 22;
-    });
-
-    currentRow += metricsData.length + 2;
-
-    // SHEET 2: Tickets Analysis
-    const ticketsSheet = workbook.addWorksheet('Tickets Analysis', {
-        pageSetup: { paperSize: 9, orientation: 'landscape' }
-    });
-
-    // Set column widths for tickets sheet
-    ticketsSheet.columns = [
-        { width: 25 }, { width: 15 }, { width: 15 }, { width: 18 }, { width: 20 }
-    ];
-
-    // Title
-    ticketsSheet.mergeCells('A1:E1');
-    const ticketsTitleCell = ticketsSheet.getCell('A1');
-    ticketsTitleCell.value = 'DETAILED TICKETS ANALYSIS';
-    ticketsTitleCell.style = {
-        font: { name: 'Segoe UI', size: 18, bold: true, color: { argb: 'FFFFFFFF' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-        border: {
-            top: { style: 'thick', color: { argb: colors.secondary } },
-            left: { style: 'thick', color: { argb: colors.secondary } },
-            bottom: { style: 'thick', color: { argb: colors.secondary } },
-            right: { style: 'thick', color: { argb: colors.secondary } }
-        }
-    };
-    ticketsSheet.getRow(1).height = 35;
-
-    // Weekly trend section
-    let ticketsRow = 3;
-    ticketsSheet.mergeCells(`A${ticketsRow}:E${ticketsRow}`);
-    const weeklyHeaderCell = ticketsSheet.getCell(`A${ticketsRow}`);
-    weeklyHeaderCell.value = 'WEEKLY TREND ANALYSIS';
-    weeklyHeaderCell.style = {
-        font: { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.secondary } },
-        alignment: { horizontal: 'center', vertical: 'middle' }
-    };
-    ticketsRow++;
-
-    // Weekly headers
-    const weeklyHeaders = ['Week', 'Total Tickets', 'Resolved', 'Resolution Rate', 'Performance'];
-    weeklyHeaders.forEach((header, index) => {
-        const cell = ticketsSheet.getCell(ticketsRow, index + 1);
-        cell.value = header;
-        cell.style = {
-            font: { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FFFFFFFF' } },
-            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
-            alignment: { horizontal: 'center', vertical: 'middle' },
-            border: {
-                top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
-            }
-        };
-    });
-    ticketsRow++;
-
-    // Weekly data
-    charts.ticketsLastWeek.forEach((item: Record<string, unknown>, index: number) => {
-        const resolutionRate = item.total > 0 ? Math.round((item.resolved / item.total) * 100) : 0;
-        const performance = resolutionRate >= 80 ? 'Excellent' : resolutionRate >= 60 ? 'Good' : 'Needs Improvement';
-
-        const weekData = [
-            `Week ${index + 1}`,
-            item.total,
-            item.resolved,
-            `${resolutionRate}%`,
-            performance
-        ];
-
-        weekData.forEach((value, colIndex) => {
-            const cell = ticketsSheet.getCell(ticketsRow, colIndex + 1);
-            cell.value = value;
-
-            let fillColor = 'FFFFFFFF';
-            let fontColor = colors.dark;
-
-            if (colIndex === 4) { // Performance column
-                switch (value) {
-                    case 'Excellent':
-                        fillColor = colors.success;
-                        fontColor = 'FFFFFFFF';
-                        break;
-                    case 'Good':
-                        fillColor = colors.warning;
-                        fontColor = 'FFFFFFFF';
-                        break;
-                    case 'Needs Improvement':
-                        fillColor = colors.danger;
-                        fontColor = 'FFFFFFFF';
-                        break;
-                }
-            }
-
-            cell.style = {
-                font: { name: 'Segoe UI', size: 10, color: { argb: fontColor } },
-                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
-                alignment: { horizontal: 'center', vertical: 'middle' },
-                border: {
-                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
-                }
-            };
-        });
-        ticketsRow++;
-    });
-
-    // SHEET 3: Resources Summary
-    const resourcesSheet = workbook.addWorksheet('Resources Summary', {
-        pageSetup: { paperSize: 9, orientation: 'portrait' }
-    });
-
-    resourcesSheet.columns = [
-        { width: 30 }, { width: 18 }, { width: 20 }, { width: 25 }
-    ];
-
-    // Title
-    resourcesSheet.mergeCells('A1:D1');
-    const resourcesTitleCell = resourcesSheet.getCell('A1');
-    resourcesTitleCell.value = 'SYSTEM RESOURCES SUMMARY';
-    resourcesTitleCell.style = {
-        font: { name: 'Segoe UI', size: 18, bold: true, color: { argb: 'FFFFFFFF' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-        border: {
-            top: { style: 'thick', color: { argb: colors.secondary } },
-            left: { style: 'thick', color: { argb: colors.secondary } },
-            bottom: { style: 'thick', color: { argb: colors.secondary } },
-            right: { style: 'thick', color: { argb: colors.secondary } }
-        }
-    };
-    resourcesSheet.getRow(1).height = 35;
-
-    // Resources data
-    let resourcesRow = 3;
-    resourcesSheet.mergeCells(`A${resourcesRow}:D${resourcesRow}`);
-    const portfolioHeaderCell = resourcesSheet.getCell(`A${resourcesRow}`);
-    portfolioHeaderCell.value = 'BUILDINGS PORTFOLIO';
-    portfolioHeaderCell.style = {
-        font: { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.secondary } },
-        alignment: { horizontal: 'center', vertical: 'middle' }
-    };
-    resourcesRow++;
-
-    const resourceHeaders = ['Metric', 'Value', 'Status', 'Observations'];
-    resourceHeaders.forEach((header, index) => {
-        const cell = resourcesSheet.getCell(resourcesRow, index + 1);
-        cell.value = header;
-        cell.style = {
-            font: { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FFFFFFFF' } },
-            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } },
-            alignment: { horizontal: 'center', vertical: 'middle' },
-            border: {
-                top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-                right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
-            }
-        };
-    });
-    resourcesRow++;
-
-    const resourcesData = [
-        ['Buildings', lists.buildingsWithTickets.length, 'Active', 'Complete management'],
-        ['Apartments', metrics.resources.apartments, 'Operational', 'Distribution by buildings'],
-        ['Tenants/Members', metrics.resources.tenants, 'Active', 'User base'],
-        ['Devices', metrics.resources.devices, 'Monitored', 'Updated inventory'],
-        ['Technicians', metrics.resources.technicals, 'Available', 'Active team']
-    ];
-
-    resourcesData.forEach((row) => {
-        row.forEach((value, colIndex) => {
-            const cell = resourcesSheet.getCell(resourcesRow, colIndex + 1);
-            cell.value = value;
-            cell.style = {
-                font: { name: 'Segoe UI', size: 10, bold: colIndex === 0 },
-                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
-                alignment: { horizontal: colIndex === 0 ? 'left' : 'center', vertical: 'middle' },
-                border: {
-                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
-                }
-            };
-        });
-        resourcesRow++;
-    });
-
-    // Generate and download
-    const fileName = `Dashboard_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, fileName);
-
-    // Show success message
-    toast.success('Professional Excel Report Generated!', {
-        description: `${fileName} has been downloaded with advanced styling, colors, and professional formatting.`
-    });
-};
-
 export default function Dashboard({ 
     metrics, 
     charts, 
@@ -1449,7 +1073,7 @@ export default function Dashboard({
     console.log('User Roles:', pageProps?.auth?.user?.roles);
     const [currentInstructions, setCurrentInstructions] = useState<TechnicalInstruction[]>(technicalInstructions || []);
 
-    // Función para marcar instrucción como leída
+    // FunciÃ³n para marcar instrucciÃ³n como leÃ­da
     const markInstructionAsRead = async (instructionIndex: number) => {
         try {
             await fetch(route('dashboard.mark-instruction-read'), {
@@ -1569,8 +1193,11 @@ export default function Dashboard({
         // Get real upcoming appointments from backend
         console.log('=== INITIAL APPOINTMENT DEBUG ===');
         console.log('Dashboard upcomingAppointments from backend:', lists.upcomingAppointments);
-        console.log('User email from pageProps:', pageProps?.auth?.user?.email);
+        console.log('User email from pageProps:', (pageProps?.auth?.user as ExtendedUser)?.email);
         console.log('Current technical from props:', currentTechnical);
+        console.log('User roles:', pageProps?.auth?.user?.roles);
+        console.log('Is technical user:', isTechnical);
+        console.log('Is default technical:', isDefaultTechnical);
         
         // Add more detailed debugging
         if (lists.upcomingAppointments && lists.upcomingAppointments.length > 0) {
@@ -1587,17 +1214,17 @@ export default function Dashboard({
                 }))
             );
             
-            // Check if appointments are filtered by technical
-            const userId = currentTechnical?.id;
-            console.log('Current technical user ID:', userId);
-            
-            if (userId) {
-                const userAppointments = lists.upcomingAppointments.filter(
-                    app => app.technical && app.technical.id === userId
+            // For regular technical users (not default), filter to show only their appointments
+            if (isTechnical && !isDefaultTechnical && currentTechnical) {
+                const filteredAppointments = lists.upcomingAppointments.filter(
+                    app => app.technical && app.technical.id === currentTechnical.id
                 );
-                console.log('Appointments for current technical:', userAppointments.length);
-                console.log('My appointments details:', userAppointments);
+                console.log('Filtered appointments for technical:', filteredAppointments.length);
+                console.log('My appointments details:', filteredAppointments);
+                console.log('=== END INITIAL APPOINTMENT DEBUG ===');
+                return filteredAppointments;
             }
+            
             console.log('=== END INITIAL APPOINTMENT DEBUG ===');
         } else {
             console.log('No appointments in initial props');
@@ -1611,9 +1238,19 @@ export default function Dashboard({
     useEffect(() => {
         if (lists.upcomingAppointments) {
             console.log('Updating appointments with new data:', lists.upcomingAppointments);
-            setAppointments(lists.upcomingAppointments);
+            
+            // For regular technical users (not default), filter to show only their appointments
+            if (isTechnical && !isDefaultTechnical && currentTechnical) {
+                const filteredAppointments = lists.upcomingAppointments.filter(
+                    app => app.technical && app.technical.id === currentTechnical.id
+                );
+                console.log('Filtered appointments for technical on update:', filteredAppointments.length);
+                setAppointments(filteredAppointments);
+            } else {
+                setAppointments(lists.upcomingAppointments);
+            }
         }
-    }, [lists.upcomingAppointments]);
+    }, [lists.upcomingAppointments, isTechnical, isDefaultTechnical, currentTechnical]);
 
     // Calculate upcoming appointments count (next 3 days) - using useMemo for performance
     const upcomingAppointmentsCount = useMemo(() => {
@@ -1740,7 +1377,7 @@ export default function Dashboard({
         // Primero cerramos el dropdown para evitar conflictos de overlay
         setIsAppointmentsOpen(false);
         
-        // Pequeño delay para asegurar que el dropdown se cierre primero
+        // PequeÃ±o delay para asegurar que el dropdown se cierre primero
         setTimeout(() => {
             setSelectedAppointment(appointment);
             setShowLocationModal(true);
@@ -1751,7 +1388,7 @@ export default function Dashboard({
     const closeLocationModal = useCallback(() => {
         setShowLocationModal(false);
         
-        // Pequeño delay para asegurar que el modal se cierre completamente
+        // PequeÃ±o delay para asegurar que el modal se cierre completamente
         setTimeout(() => {
             setSelectedAppointment(null);
             
@@ -1991,9 +1628,11 @@ export default function Dashboard({
                                     <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-primary via-primary-foreground to-secondary-foreground flex items-center justify-center shadow-2xl ring-4 ring-blue-100">
                                         <BarChart3 className="h-10 w-10 text-white" />
                                     </div>
-                                    <div className="space-y-4">                                        <h1 className="text-6xl font-black tracking-tight text-slate-900 dark:text-white">
-                                        {isTechnical && !isSuperAdmin ? "ADK Assist Dashboard" : "Dashboard"}
-                                    </h1><p className="text-2xl text-slate-600 font-medium">
+                                    <div className="space-y-4">
+                                        <h1 className="text-6xl font-black tracking-tight text-slate-900 dark:text-white">
+                                            {isTechnical && !isSuperAdmin ? "ADK Assist Dashboard" : "Dashboard"}
+                                        </h1>
+                                        <p className="text-2xl text-slate-600 font-medium">
                                             {isSuperAdmin
                                                 ? "Administrative control center of the system"
                                                 : isTechnical && !isSuperAdmin
@@ -2009,7 +1648,8 @@ export default function Dashboard({
                                     <div className="flex items-center gap-4">
                                         <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
                                         <span className="text-lg font-bold text-slate-600">System Online</span>
-                                    </div>                                    <div className="flex items-center gap-4">
+                                    </div>
+                                    <div className="flex items-center gap-4">
                                         <Activity className="h-6 w-6 text-blue-500" />
                                         <span className="text-lg font-bold text-slate-600">{updateText}</span>
                                     </div>
@@ -2021,39 +1661,14 @@ export default function Dashboard({
                             </div>
 
                             {/* Main controls */}
-                            <div className="flex flex-wrap items-center gap-6">                                <Button
-                                variant="outline"
-                                size="lg"
-                                className="gap-4 h-14 px-8 shadow-xl text-lg"
-                                onClick={handleRefresh}
-                            >
-                                <RefreshCcw className="h-6 w-6" />
-                                Refresh
-                            </Button>                                <Button
-                                variant="outline"
-                                size="lg"
-                                onClick={() => {
-                                    if (isTechnical && !isSuperAdmin) {
-                                        // For technical users, navigate to their appointments
-                                        window.open('/appointments', '_blank');
-                                    } else {
-                                        // For admin users, export dashboard
-                                        exportProfessionalDashboard(metrics, charts, lists);
-                                    }
-                                }}
-                                className="gap-4 h-14 px-8 shadow-xl text-lg"
-                            >
-                                    {isTechnical && !isSuperAdmin ? (
-                                        <>
-                                            <Calendar className="h-6 w-6" />
-                                            My Appointments
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Download className="h-6 w-6" />
-                                            Export
-                                        </>
-                                    )}
+                            <div className="flex flex-wrap items-center gap-6">
+                                <Button
+                                    variant="outline"
+                                    size="lg"
+                                    className="gap-4 h-14 px-4 shadow-xl"
+                                    onClick={handleRefresh}
+                                >
+                                    <RefreshCcw className="h-6 w-6" />
                                 </Button>
 
                                 {/* Appointments Dropdown */}
@@ -2062,9 +1677,8 @@ export default function Dashboard({
                                     onOpenChange={setIsAppointmentsOpen}
                                 >
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="lg" className="gap-4 h-14 px-8 shadow-xl text-lg relative">
+                                        <Button variant="outline" size="lg" className="gap-4 h-14 px-4 shadow-xl relative">
                                             <Calendar className="h-6 w-6" />
-                                            Appointments
                                             {upcomingAppointmentsCount > 0 && (
                                                 <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center p-0">
                                                     {upcomingAppointmentsCount}
@@ -2074,7 +1688,7 @@ export default function Dashboard({
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent className="w-96 max-h-96 mt-4" align="end">
                                         <DropdownMenuLabel className="flex items-center justify-between">
-                                            <span className="text-lg font-semibold">Upcoming Appointments</span>
+                                            <span className="text-lg font-semibold">All Appointments</span>
                                             {appointments.length > 0 && (
                                                 <Button
                                                     variant="ghost"
@@ -2091,48 +1705,45 @@ export default function Dashboard({
                                         {appointments.length === 0 ? (
                                             <div className="p-4 text-center text-slate-500">
                                                 <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                <p className="text-sm">No upcoming appointments</p>
+                                                <p className="text-sm">No appointments found</p>
                                                 <p className="text-xs text-slate-400 mt-1">Schedule appointments from ticket details</p>
                                             </div>
                                         ) : (
                                             <div className="max-h-80 overflow-y-auto custom-scrollbar">
                                                 {appointments
-                                                    .filter(appointment => {
-                                                        const appointmentDate = new Date(appointment.scheduled_for);
-                                                        const today = new Date();
-                                                        return appointmentDate >= today;
-                                                    })
                                                     .sort((a, b) => new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime())
-                                                    .slice(0, 10)
                                                     .map((appointment: AppointmentItem) => {
                                                     const statusConfig = getAppointmentStatusConfig(appointment.status);
                                                     const dateTime = formatAppointmentDateTime(appointment.scheduled_for);
                                                     const locationInfo = getAppointmentLocation(appointment);
+                                                    const appointmentDate = new Date(appointment.scheduled_for);
+                                                    const today = new Date();
+                                                    const isToday = appointmentDate.toDateString() === today.toDateString();
                                                     
                                                     return (
                                                         <div key={appointment.id} className="group relative">
-                                                            <DropdownMenuItem className="p-0 focus:bg-slate-50 dark:focus:bg-slate-800/50 cursor-pointer">
-                                                                <div className="w-full p-4 flex items-center gap-4">
+                                                            <DropdownMenuItem className={`p-0 focus:bg-slate-50 dark:focus:bg-slate-800/50 cursor-pointer ${isToday ? 'border-2 border-red-500 rounded-lg my-1 bg-red-50/50' : ''}`}>
+                                                                <div className={`w-full p-4 flex items-center gap-4 ${isToday ? 'bg-red-50 rounded-lg border border-red-200' : ''}`}>
                                                                     {/* Date Circle */}
-                                                                    <div className="flex-shrink-0 w-20 h-20 rounded-full border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center">
-                                                                        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                                                                    <div className={`flex-shrink-0 w-20 h-20 rounded-full border ${isToday ? 'border-red-400 bg-red-100' : 'border-slate-200 dark:border-slate-700'} flex flex-col items-center justify-center text-center`}>
+                                                                        <span className={`text-sm font-medium ${isToday ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'}`}>
                                                                             {new Date(appointment.scheduled_for).toLocaleString('default', { weekday: 'short' }).toLowerCase()}
                                                                         </span>
-                                                                        <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                                                                        <span className={`text-2xl font-bold ${isToday ? 'text-red-700' : 'text-slate-900 dark:text-slate-100'}`}>
                                                                             {new Date(appointment.scheduled_for).getDate()}
                                                                         </span>
-                                                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                                        <span className={`text-xs font-medium ${isToday ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'}`}>
                                                                             {new Date(appointment.scheduled_for).toLocaleString('default', { month: 'short' })}
                                                                         </span>
                                                                     </div>
 
                                                                     {/* Main Content - Info Box */}
-                                                                    <div className="flex-1 p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                                    <div className={`flex-1 p-3 ${isToday ? 'bg-white border-red-200' : 'bg-white dark:bg-slate-800'} rounded-lg border ${isToday ? 'border-red-200' : 'border-slate-200 dark:border-slate-700'} shadow-sm`}>
                                                                         {/* Header with Technical and Member Info */}
                                                                         <div className="space-y-1 mb-1.5">
                                                                             <div className="flex items-center justify-between">
                                                                                 <div className="flex items-center gap-1.5">
-                                                                                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                                                                    <span className={`text-sm font-medium ${isToday ? 'text-red-800' : 'text-slate-900 dark:text-slate-100'}`}>
                                                                                         Technical: {appointment.technical.name}
                                                                                     </span>
                                                                                 </div>
@@ -2165,7 +1776,7 @@ export default function Dashboard({
                                                                                     </Button>
                                                                                 </div>
                                                                             </div>
-                                                                            <div className="text-sm text-slate-700 dark:text-slate-300">
+                                                                            <div className={`text-sm ${isToday ? 'text-red-700' : 'text-slate-700 dark:text-slate-300'}`}>
                                                                                 Member: {appointment.ticket.user?.name || "No Member"}
                                                                             </div>
                                                                         </div>
@@ -2173,8 +1784,8 @@ export default function Dashboard({
                                                                         {/* Building and Unit Info with Location Icon */}
                                                                         <div className="flex items-center mb-1.5">
                                                                             <div className="flex items-center gap-1 flex-1">
-                                                                                <MapPin className="h-4 w-4 text-red-500" />
-                                                                                <span className="text-sm font-medium text-primary-foreground hover:text-primary-foreground">
+                                                                                <MapPin className={`h-4 w-4 ${isToday ? 'text-red-600' : 'text-red-500'}`} />
+                                                                                <span className={`text-sm font-medium ${isToday ? 'text-red-800' : 'text-primary-foreground'} hover:text-primary-foreground`}>
                                                                                     Building: {locationInfo.buildingName} apartment {locationInfo.unitNumber}
                                                                                 </span>
                                                                             </div>
@@ -2183,17 +1794,24 @@ export default function Dashboard({
                                                                         {/* Time */}
                                                                         <div className="flex items-center justify-between">
                                                                             <div className="flex items-center gap-1.5">
-                                                                                <Clock className="h-3.5 w-3.5 text-slate-500" />
-                                                                                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                                                <Clock className={`h-3.5 w-3.5 ${isToday ? 'text-red-600' : 'text-slate-500'}`} />
+                                                                                <span className={`text-xs font-medium ${isToday ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'}`}>
                                                                                     {dateTime.time}
                                                                                 </span>
                                                                             </div>
-                                                                            <Badge 
-                                                                                variant="outline" 
-                                                                                className={`text-xs px-2 py-0.5 ${statusConfig.color} border-current`}
-                                                                            >
-                                                                                {statusConfig.label}
-                                                                            </Badge>
+                                                                            <div className="flex items-center gap-1">
+                                                                                {isToday && (
+                                                                                    <Badge className="text-xs px-2 py-0.5 bg-red-500 text-white animate-pulse">
+                                                                                        Today
+                                                                                    </Badge>
+                                                                                )}
+                                                                                <Badge 
+                                                                                    variant="outline" 
+                                                                                    className={`text-xs px-2 py-0.5 ${statusConfig.color} border-current`}
+                                                                                >
+                                                                                    {statusConfig.label}
+                                                                                </Badge>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -2224,9 +1842,8 @@ export default function Dashboard({
                                 {/* Notifications Dropdown */}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="lg" className="gap-4 h-14 px-8 shadow-xl text-lg relative">
+                                        <Button variant="outline" size="lg" className="gap-4 h-14 px-4 shadow-xl relative">
                                             <Bell className="h-6 w-6" />
-                                            Notifications
                                             {unreadNotifications > 0 && (
                                                 <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center p-0">
                                                     {unreadNotifications}
@@ -2344,7 +1961,7 @@ export default function Dashboard({
                         </div>
 
    
-                        {/* SECCIÓN ESPECIAL: Instrucciones del Technical (solo para técnicos) */}
+                        {/* SECCIÃ“N ESPECIAL: Instrucciones del Technical (solo para tÃ©cnicos) */}
                         {console.log('Rendering instructions section - isTechnical:', isTechnical, 'currentInstructions:', currentInstructions)}
                         {isTechnical && currentInstructions.length > 0 && (
                             <div className="space-y-6">
@@ -2362,7 +1979,7 @@ export default function Dashboard({
                                     {currentInstructions
                                         // TEMPORAL: Comentar filtro para debugging
                                         // .filter(instruction => !instruction.read)
-                                        .slice(0, 5) // Mostrar máximo 5 instrucciones
+                                        .slice(0, 5) // Mostrar mÃ¡ximo 5 instrucciones
                                         .map((instruction, index) => {
                                             const priorityColors = {
                                                 low: 'from-blue-500/10 to-blue-600/5 border-blue-200 text-blue-700',
@@ -2522,7 +2139,7 @@ export default function Dashboard({
                                         </div>
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-destructive uppercase tracking-wider">
-                                                {isTechnical && !isSuperAdmin ? "Urgent Tickets" : "Open Tickets"}
+                                                {isTechnical && !isSuperAdmin ? "Assigned Tickets" : "Open Tickets"}
                                             </p>
                                             <p className="text-3xl font-bold text-foreground">{metrics.tickets.open}</p>
                                             <div className="flex items-center gap-2">
@@ -2593,78 +2210,6 @@ export default function Dashboard({
                                     </CardContent>
                                 </Card>
                             </div>
-
-                            {/* Technical User Daily Summary */}
-                            {isTechnical && !isSuperAdmin && (
-                                <div className="mt-12">
-                                    <div className="text-center space-y-4 mb-8">
-                                        <h3 className="text-3xl font-bold text-foreground">Today's Summary</h3>
-                                        <p className="text-lg text-muted-foreground">Your activity and upcoming tasks</p>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {/* Today's Resolved */}
-                                        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 hover:shadow-lg transition-all duration-300">
-                                            <CardContent className="p-6">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="p-3 rounded-xl bg-green-100">
-                                                        <Calendar className="h-6 w-6 text-green-600" />
-                                                    </div>
-                                                    <Badge className="bg-green-100 text-green-800 border-green-300">Today</Badge>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">Resolved Today</p>
-                                                    <p className="text-3xl font-bold text-green-900">{metrics.tickets.resolved_today}</p>
-                                                    <p className="text-sm text-green-700">Great work!</p>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-
-                                        {/* My Appointments Today */}
-                                        <Card className="bg-gradient-to-br from-blue-50 to-sky-50 border-blue-200 hover:shadow-lg transition-all duration-300">
-                                            <CardContent className="p-6">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="p-3 rounded-xl bg-blue-100">
-                                                        <Clock className="h-6 w-6 text-blue-600" />
-                                                    </div>
-                                                    <Badge className="bg-blue-100 text-blue-800 border-blue-300">Upcoming</Badge>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">My Next 3 Days</p>
-                                                    <p className="text-3xl font-bold text-blue-900">{upcomingAppointmentsCount}</p>
-                                                    <div className="flex justify-between items-center">
-                                                        <p className="text-sm text-blue-700">
-                                                            {upcomingAppointmentsCount > 0 
-                                                                ? "Today + next 2 days" 
-                                                                : appointments.length > 0 
-                                                                    ? "None in next 3 days" 
-                                                                    : "No appointments"}
-                                                        </p>
-                                                
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-
-                                        {/* Average Resolution Time */}
-                                        <Card className="bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200 hover:shadow-lg transition-all duration-300">
-                                            <CardContent className="p-6">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="p-3 rounded-xl bg-purple-100">
-                                                        <Timer className="h-6 w-6 text-purple-600" />
-                                                    </div>
-                                                    <Badge className="bg-purple-100 text-purple-800 border-purple-300">Average</Badge>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-purple-600 uppercase tracking-wider">My Average Time</p>
-                                                    <p className="text-3xl font-bold text-purple-900">{metrics.tickets.avg_resolution_hours}h</p>
-                                                    <p className="text-sm text-purple-700">Per ticket</p>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Additional metrics cards - Second row - Hide for regular technicians */}
                             {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
@@ -2763,7 +2308,7 @@ export default function Dashboard({
                                             </p>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-medium px-2 py-1 rounded-full bg-teal-100 text-teal-700">
-                                                    Resolución
+                                                    ResoluciÃ³n
                                                 </span>
                                                 <span className="text-xs text-slate-500">Tasa general</span>
                                             </div>
@@ -2883,24 +2428,24 @@ export default function Dashboard({
                                         </CardContent>
                                     </Card>
 
-                                    {/* Urgent Tickets */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-red-50 via-background to-red-100 overflow-hidden">
+                                    {/* Assigned Tickets */}
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-background to-blue-100 overflow-hidden">
                                         <CardContent className="p-6">
                                             <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-red-100">
-                                                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                                                <div className="p-3 rounded-xl bg-blue-100">
+                                                    <User className="h-6 w-6 text-blue-600" />
                                                 </div>
                                                 <ExternalLink
-                                                    className="h-4 w-4 text-red-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => window.open('/tickets?priority=high', '_blank')}
+                                                    className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => window.open('/tickets?assigned=me', '_blank')}
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-red-600 uppercase tracking-wider">
-                                                    Urgent Tickets
+                                                <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">
+                                                    Assigned Tickets
                                                 </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.urgent || 0}</p>
-                                                <p className="text-xs text-muted-foreground">High priority issues</p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.open || 0}</p>
+                                                <p className="text-xs text-muted-foreground">Tickets assigned to me</p>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -2970,13 +2515,13 @@ export default function Dashboard({
                                                             </div>
                                                             <div>
                                                                 <p className="font-medium text-slate-900">{tech.name}</p>
-                                                                <p className="text-sm text-slate-600">{tech.active_tickets || 0} active tickets</p>
+                                                                <p className="text-sm text-slate-600">{(tech as { id: number; name: string; is_default: boolean; tickets_count?: number }).tickets_count || 0} tickets assigned</p>
                                                             </div>
                                                         </div>
                                                         <div className="flex flex-col items-end">
                                                             <div className="flex items-center gap-2">
                                                                 <Badge variant="outline" className="bg-green-100 text-green-700">
-                                                                    {tech.resolved_tickets || 0} resolved
+                                                                    {(tech as { id: number; name: string; is_default: boolean; tickets_count?: number }).tickets_count || 0} completed
                                                                 </Badge>
                                                             </div>
                                                         </div>
@@ -3005,7 +2550,7 @@ export default function Dashboard({
                                                                 <p className="font-medium text-slate-900 truncate max-w-xs">{ticket.title}</p>
                                                                 <div className="flex items-center gap-2 text-sm text-slate-600">
                                                                     <span>{ticket.device?.apartment?.name || 'No apt'}</span>
-                                                                    <span>•</span>
+                                                                    <span>â€¢</span>
                                                                     <span>{formatDate(ticket.created_at)}</span>
                                                                 </div>
                                                             </div>
@@ -3064,9 +2609,9 @@ export default function Dashboard({
                                                                     <div>
                                                                         <p className="font-medium text-slate-900 truncate max-w-xs">{appointment.title}</p>
                                                                         <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                                            <span>{formatDate(appointment.scheduled_at)}</span>
-                                                                            <span>•</span>
-                                                                            <span>{appointment.tech?.name || 'Unassigned'}</span>
+                                                                            <span>{formatDate(appointment.scheduled_at || appointment.scheduled_for)}</span>
+                                                                            <span>â€¢</span>
+                                                                            <span>{appointment.technical?.name || 'Unassigned'}</span>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -3129,10 +2674,10 @@ export default function Dashboard({
                                                 <Button 
                                                     variant="outline"
                                                     className="w-full flex items-center gap-2 h-12 justify-start"
-                                                    onClick={() => window.open('/tickets/urgent', '_blank')}
+                                                    onClick={() => window.open('/tickets/assigned', '_blank')}
                                                 >
-                                                    <AlertTriangle className="w-4 h-4" />
-                                                    Manage Urgent Tickets
+                                                    <User className="w-4 h-4" />
+                                                    Manage Assigned Tickets
                                                 </Button>
                                             </div>
                                         </CardContent>
@@ -3344,7 +2889,7 @@ export default function Dashboard({
                                                                 <p className="font-medium text-slate-900 truncate max-w-xs">{ticket.title}</p>
                                                                 <div className="flex items-center gap-2 text-sm text-slate-600">
                                                                     <span>{ticket.user?.name || 'Unknown'}</span>
-                                                                    <span>•</span>
+                                                                    <span>â€¢</span>
                                                                     <span>{ticket.device?.apartment?.name || 'No apt'}</span>
                                                                 </div>
                                                             </div>
@@ -3499,7 +3044,7 @@ export default function Dashboard({
                                                 <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">
                                                     Open Tickets
                                                 </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.user_open || 0}</p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.open || 0}</p>
                                                 <p className="text-xs text-muted-foreground">Awaiting service</p>
                                             </div>
                                         </CardContent>
@@ -3521,7 +3066,7 @@ export default function Dashboard({
                                                 <p className="text-sm font-semibold text-yellow-600 uppercase tracking-wider">
                                                     In Progress
                                                 </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.user_in_progress || 0}</p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.in_progress || 0}</p>
                                                 <p className="text-xs text-muted-foreground">Being worked on</p>
                                             </div>
                                         </CardContent>
@@ -3543,7 +3088,7 @@ export default function Dashboard({
                                                 <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">
                                                     Resolved
                                                 </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.user_resolved || 0}</p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved || 0}</p>
                                                 <p className="text-xs text-muted-foreground">Completed tickets</p>
                                             </div>
                                         </CardContent>
@@ -3565,7 +3110,7 @@ export default function Dashboard({
                                         </CardHeader>
                                         <CardContent>
                                             <div className="space-y-3">
-                                                {lists.userTickets && lists.userTickets.length > 0 ? lists.userTickets.slice(0, 5).map((ticket) => (
+                                                {lists.recentTickets && lists.recentTickets.length > 0 ? lists.recentTickets.slice(0, 5).map((ticket) => (
                                                     <div key={ticket.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                                                          onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}>
                                                         <div className="flex items-center gap-3">
@@ -3578,7 +3123,7 @@ export default function Dashboard({
                                                                 <p className="font-medium text-slate-900 truncate max-w-xs">{ticket.title}</p>
                                                                 <div className="flex items-center gap-2 text-sm text-slate-600">
                                                                     <span>{formatDate(ticket.created_at)}</span>
-                                                                    <span>•</span>
+                                                                    <span>â€¢</span>
                                                                     <span>{ticket.device?.apartment?.name || 'No apt'}</span>
                                                                 </div>
                                                             </div>
@@ -3637,14 +3182,15 @@ export default function Dashboard({
                                         </CardHeader>
                                         <CardContent>
                                             <div className="space-y-4">
-                                                {lists.userApartment ? (
+                                                {/* For tenant dashboard, apartment info comes from user's tenant relationship */}
+                                                {(pageProps?.auth?.user as ExtendedUser)?.tenant?.apartment ? (
                                                     <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
                                                         <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
                                                             <Building className="w-6 h-6 text-primary" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-medium text-slate-900">{lists.userApartment.name}</p>
-                                                            <p className="text-sm text-slate-600">{lists.userApartment.building?.name || 'Building'}</p>
+                                                            <p className="font-medium text-slate-900">{(pageProps.auth.user as ExtendedUser).tenant!.apartment.name}</p>
+                                                            <p className="text-sm text-slate-600">{(pageProps.auth.user as ExtendedUser).tenant!.apartment.building?.name || 'Building'}</p>
                                                         </div>
                                                     </div>
                                                 ) : (
@@ -3657,9 +3203,14 @@ export default function Dashboard({
                                                 {/* Upcoming Appointments */}
                                                 <div>
                                                     <h4 className="text-sm font-semibold mb-3">Upcoming Appointments</h4>
-                                                    {lists.userAppointments && lists.userAppointments.length > 0 ? (
+                                                    {/* Filter appointments for current tenant */}
+                                                    {lists.upcomingAppointments && lists.upcomingAppointments.filter(
+                                                        appointment => appointment.ticket?.user?.email === (pageProps?.auth?.user as ExtendedUser)?.email
+                                                    ).length > 0 ? (
                                                         <div className="space-y-2">
-                                                            {lists.userAppointments.slice(0, 2).map((appointment) => (
+                                                            {lists.upcomingAppointments
+                                                                .filter(appointment => appointment.ticket?.user?.email === (pageProps?.auth?.user as ExtendedUser)?.email)
+                                                                .slice(0, 2).map((appointment) => (
                                                                 <div 
                                                                     key={appointment.id} 
                                                                     className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
@@ -3669,7 +3220,7 @@ export default function Dashboard({
                                                                         <Calendar className="w-4 h-4 text-primary" />
                                                                         <div>
                                                                             <p className="font-medium text-sm">{appointment.title}</p>
-                                                                            <p className="text-xs text-slate-600">{formatDate(appointment.scheduled_at)}</p>
+                                                                            <p className="text-xs text-slate-600">{formatDate(appointment.scheduled_at || appointment.scheduled_for)}</p>
                                                                         </div>
                                                                     </div>
                                                                     <Badge className="bg-blue-100 text-blue-700">
@@ -4018,7 +3569,7 @@ export default function Dashboard({
 
                                                 {/* <div className="flex items-center justify-center gap-2">
                                                     <ExternalLink className="h-3 w-3 text-emerald-400" />
-                                                    <span className="text-xs text-slate-500">Ver gestión</span>
+                                                    <span className="text-xs text-slate-500">Ver gestiÃ³n</span>
                                                 </div> */}
                                             </div>
                                         </CardContent>
@@ -4111,12 +3662,7 @@ export default function Dashboard({
                                                                     </div>
                                                                     {technical.is_default === true && (
                                                                         <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
-                                                                            <span className="text-xs">★</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {technical.is_default === 1 && (
-                                                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
-                                                                            <span className="text-xs">★</span>
+                                                                            <span className="text-xs">⭐</span>
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -4126,7 +3672,7 @@ export default function Dashboard({
                                                                         {technical.is_default === true && (
                                                                             <Badge variant="secondary" className="text-xs px-1 py-0">Default</Badge>
                                                                         )}
-                                                                        {technical.is_default === 1 && (
+                                                                        {technical.is_default && (
                                                                             <Badge variant="secondary" className="text-xs px-1 py-0">Default</Badge>
                                                                         )}
                                                                     </div>
@@ -4189,22 +3735,22 @@ export default function Dashboard({
                                         onClick={() => {
                                             const allMetrics = [
                                                 {
-                                                    'Métrica': 'Tickets Totales',
+                                                    'MÃ©trica': 'Tickets Totales',
                                                     'Valor': metrics.tickets.total,
                                                     'Estado': 'Activo'
                                                 },
                                                 {
-                                                    'Métrica': 'Tickets Abiertos',
+                                                    'MÃ©trica': 'Tickets Abiertos',
                                                     'Valor': metrics.tickets.open,
-                                                    'Estado': 'Crítico'
+                                                    'Estado': 'CrÃ­tico'
                                                 },
                                                 {
-                                                    'Métrica': 'Tickets En Progreso',
+                                                    'MÃ©trica': 'Tickets En Progreso',
                                                     'Valor': metrics.tickets.in_progress,
                                                     'Estado': 'En Proceso'
                                                 },
                                                 {
-                                                    'Métrica': 'Tickets Resueltos',
+                                                    'MÃ©trica': 'Tickets Resueltos',
                                                     'Valor': metrics.tickets.resolved,
                                                     'Estado': 'Completado'
                                                 }
@@ -4310,7 +3856,7 @@ export default function Dashboard({
                                     </Card>
                                 </div>
 
-                                {/* Gráfico de Tendencias */}                                <div className="lg:col-span-6">
+                                {/* GrÃ¡fico de Tendencias */}                                <div className="lg:col-span-6">
                                     <Card className="h-full border-0 bg-gradient-to-br from-secondary/10 via-background to-accent/5 shadow-2xl overflow-hidden relative">
                                         <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-accent/5"></div>
                                         <CardHeader className="pb-12 relative">
@@ -4463,7 +4009,8 @@ export default function Dashboard({
                 
 
 
-                      {/* FOOTER PREMIUM */}
+                      {/* FOOTER PREMIUM - Hidden for regular technicians */}
+                      {(!isTechnical || isSuperAdmin) && (
                         <div className="mt-32">
                             <Card className="border-0 bg-chart-5 text-background shadow-2xl overflow-hidden relative dark:bg-white/10">
                                 <div className="absolute inset-0 bg-primary/10 dark:bg-transparent"></div>
@@ -4517,6 +4064,7 @@ export default function Dashboard({
                                 </CardContent>
                             </Card>
                         </div>
+                      )}
                       
                     </div>
 
@@ -4556,7 +4104,7 @@ export default function Dashboard({
                             <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] bg-white dark:bg-gray-900 scroll-smooth custom-scrollbar">
                                 {lists.allDevices && lists.allDevices.length > 0 ? (
                                     <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-700 delay-300">
-                                        {/* Device Summary Cards con animación escalonada */}
+                                        {/* Device Summary Cards con animaciÃ³n escalonada */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <Card className="bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border-primary/20 dark:border-primary/30 dark:bg-gray-800/50 animate-in slide-in-from-left-2 duration-500 delay-400 hover:scale-105 transition-transform">
                                                 <CardContent className="p-4 text-center">
@@ -4720,7 +4268,7 @@ export default function Dashboard({
                                     <div>
                                         <div className="font-medium">{selectedAppointment ? getAppointmentLocation(selectedAppointment).buildingName : ''}</div>
                                         <div className="text-xs text-slate-500">
-                                            Unit {selectedAppointment ? getAppointmentLocation(selectedAppointment).unitNumber : ''} • {selectedAppointment?.address}
+                                            Unit {selectedAppointment ? getAppointmentLocation(selectedAppointment).unitNumber : ''} â€¢ {selectedAppointment?.address}
                                         </div>
                                     </div>
                                 </div>
@@ -4825,10 +4373,10 @@ function UnassignedTicketRow({ ticket, index, technicals }: UnassignedTicketRowP
             if (response.ok) {
                 const result = await response.json();
                 toast.success(result.message || 'Ticket assigned successfully!');
-                // Recargar la página para mostrar datos actualizados
+                // Recargar la pÃ¡gina para mostrar datos actualizados
                 router.reload({ only: ['lists'] });
             } else {
-                // Manejar errores de validación
+                // Manejar errores de validaciÃ³n
                 if (response.status === 422) {
                     const errorData = await response.json();
                     const errorMessages = Object.values(errorData.errors || {}).flat();

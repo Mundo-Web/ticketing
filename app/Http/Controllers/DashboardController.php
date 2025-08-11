@@ -307,6 +307,12 @@ class DashboardController extends Controller
             // Técnicos ven solo sus citas
             $technical = Technical::where('email', $user->email)->first();
             if ($technical) {
+                Log::info('Loading appointments for technical', [
+                    'technical_id' => $technical->id,
+                    'technical_name' => $technical->name,
+                    'is_default' => $technical->is_default
+                ]);
+
                 $upcomingAppointments = Appointment::with([
                     'ticket' => function($query) {
                         $query->select('id', 'title', 'code', 'user_id', 'device_id');
@@ -343,6 +349,20 @@ class DashboardController extends Controller
                     ->orderBy('scheduled_for')
                     ->limit(10)
                     ->get();
+
+                Log::info('Found appointments for technical', [
+                    'technical_id' => $technical->id,
+                    'appointments_count' => $upcomingAppointments->count(),
+                    'appointments' => $upcomingAppointments->map(function($apt) {
+                        return [
+                            'id' => $apt->id,
+                            'title' => $apt->title,
+                            'scheduled_for' => $apt->scheduled_for,
+                            'technical_id' => $apt->technical_id,
+                            'status' => $apt->status
+                        ];
+                    })
+                ]);
             }
         } elseif ($user->hasRole('member')) {
             // Miembros ven citas de sus tickets
