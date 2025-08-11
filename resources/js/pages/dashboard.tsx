@@ -56,6 +56,8 @@ interface AppointmentItem {
     description?: string;
     address: string;
     scheduled_for: string;
+    scheduled_at?: string; // Added for compatibility
+    date?: string; // Added for compatibility
     estimated_duration: number;
     status: string;
     ticket: {
@@ -230,6 +232,11 @@ interface DashboardProps extends PageProps {
     };
     googleMapsApiKey: string;
     technicalInstructions?: TechnicalInstruction[];
+    currentTechnical?: {
+        id: number;
+        name: string;
+        is_default: boolean;
+    } | null;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -1398,7 +1405,8 @@ export default function Dashboard({
     charts, 
     lists, 
     googleMapsApiKey, 
-    technicalInstructions = []
+    technicalInstructions = [],
+    currentTechnical = null
 }: DashboardProps) {
     const pageProps = usePage().props as unknown as { auth: { user: { roles: string[] | { name: string }[]; technical?: { is_default: boolean } } } };
     console.log('PageProps structure:', pageProps);
@@ -1559,7 +1567,43 @@ export default function Dashboard({
     // States for appointments
     const [appointments, setAppointments] = useState<AppointmentItem[]>(() => {
         // Get real upcoming appointments from backend
+        console.log('=== INITIAL APPOINTMENT DEBUG ===');
         console.log('Dashboard upcomingAppointments from backend:', lists.upcomingAppointments);
+        console.log('User email from pageProps:', pageProps?.auth?.user?.email);
+        console.log('Current technical from props:', currentTechnical);
+        
+        // Add more detailed debugging
+        if (lists.upcomingAppointments && lists.upcomingAppointments.length > 0) {
+            console.log('Total appointments received:', lists.upcomingAppointments.length);
+            console.log('First appointment details:', lists.upcomingAppointments[0]);
+            console.log('All appointment technical assignments:', 
+                lists.upcomingAppointments.map(app => ({
+                    id: app.id,
+                    title: app.title,
+                    scheduled_for: app.scheduled_for,
+                    technical_id: app.technical?.id,
+                    technical_name: app.technical?.name,
+                    status: app.status
+                }))
+            );
+            
+            // Check if appointments are filtered by technical
+            const userId = currentTechnical?.id;
+            console.log('Current technical user ID:', userId);
+            
+            if (userId) {
+                const userAppointments = lists.upcomingAppointments.filter(
+                    app => app.technical && app.technical.id === userId
+                );
+                console.log('Appointments for current technical:', userAppointments.length);
+                console.log('My appointments details:', userAppointments);
+            }
+            console.log('=== END INITIAL APPOINTMENT DEBUG ===');
+        } else {
+            console.log('No appointments in initial props');
+            console.log('=== END INITIAL APPOINTMENT DEBUG ===');
+        }
+        
         return lists.upcomingAppointments || [];
     });
 
@@ -1571,15 +1615,66 @@ export default function Dashboard({
         }
     }, [lists.upcomingAppointments]);
 
-    // Calculate upcoming appointments count (next 7 days) - using useMemo for performance
+    // Calculate upcoming appointments count (next 3 days) - using useMemo for performance
     const upcomingAppointmentsCount = useMemo(() => {
-        const today = new Date();
-        const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        if (!appointments || appointments.length === 0) {
+            console.log('No appointments available in state');
+            return 0;
+        }
         
-        return appointments.filter(appointment => {
-            const appointmentDate = new Date(appointment.scheduled_for);
-            return appointmentDate >= today && appointmentDate <= nextWeek && appointment.status === 'scheduled';
-        }).length;
+        console.log('Total appointments in state:', appointments.length);
+        console.log('All appointments:', appointments);
+        
+        const today = new Date();
+        // Set to beginning of the day
+        today.setHours(0, 0, 0, 0);
+        
+        // Next 3 days (today + 2 more days)
+        const threeDaysLater = new Date(today);
+        threeDaysLater.setDate(today.getDate() + 2);
+        threeDaysLater.setHours(23, 59, 59, 999);
+        
+        console.log('Date range for appointments:', { 
+            today: today.toISOString(), 
+            threeDaysLater: threeDaysLater.toISOString() 
+        });
+        
+        // Add extra debugging
+        const filteredAppointments = appointments.filter(appointment => {
+            // Log each appointment to see its structure
+            console.log('Processing appointment:', appointment);
+            
+            // Handle different field names in the data
+            const dateField = appointment.scheduled_for || appointment.scheduled_at || appointment.date || '';
+            console.log('Date field found:', dateField);
+            
+            const appointmentDate = new Date(dateField);
+            console.log('Parsed date:', appointmentDate.toISOString());
+            
+            // Skip invalid dates
+            if (isNaN(appointmentDate.getTime())) {
+                console.log('Invalid date, skipping');
+                return false;
+            }
+            
+            const isInRange = appointmentDate >= today && appointmentDate <= threeDaysLater;
+            const isNotCanceled = appointment.status !== 'canceled' && appointment.status !== 'cancelled';
+            
+            // Include appointments that are in progress even if they started earlier today
+            const isInProgressToday = appointment.status === 'in_progress' && 
+                appointmentDate.toDateString() === today.toDateString();
+            
+            const shouldInclude = (isInRange || isInProgressToday) && isNotCanceled;
+            
+            console.log('Is in range:', isInRange, 'Is not canceled:', isNotCanceled, 'Is in progress today:', isInProgressToday, 'Should include:', shouldInclude);
+            
+            return shouldInclude;
+        });
+        
+        console.log('Filtered appointments count:', filteredAppointments.length);
+        console.log('Filtered appointments:', filteredAppointments);
+        
+        return filteredAppointments.length;
     }, [appointments]);
 
     // Get status configuration for appointments
@@ -2535,9 +2630,18 @@ export default function Dashboard({
                                                     <Badge className="bg-blue-100 text-blue-800 border-blue-300">Upcoming</Badge>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">My Next Visits</p>
+                                                    <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">My Next 3 Days</p>
                                                     <p className="text-3xl font-bold text-blue-900">{upcomingAppointmentsCount}</p>
-                                                    <p className="text-sm text-blue-700">Next 7 days</p>
+                                                    <div className="flex justify-between items-center">
+                                                        <p className="text-sm text-blue-700">
+                                                            {upcomingAppointmentsCount > 0 
+                                                                ? "Today + next 2 days" 
+                                                                : appointments.length > 0 
+                                                                    ? "None in next 3 days" 
+                                                                    : "No appointments"}
+                                                        </p>
+                                                
+                                                    </div>
                                                 </div>
                                             </CardContent>
                                         </Card>

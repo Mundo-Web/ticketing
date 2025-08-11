@@ -331,7 +331,14 @@ class DashboardController extends Controller
                     }
                 ])
                     ->where('technical_id', $technical->id)
-                    ->where('scheduled_for', '>=', Carbon::now())
+                    ->where(function($query) {
+                        // Include upcoming appointments OR appointments in progress from today
+                        $query->where('scheduled_for', '>=', Carbon::now())
+                              ->orWhere(function($subQuery) {
+                                  $subQuery->whereDate('scheduled_for', Carbon::today())
+                                           ->where('status', 'in_progress');
+                              });
+                    })
                     ->where('status', '!=', 'cancelled')
                     ->orderBy('scheduled_for')
                     ->limit(10)
