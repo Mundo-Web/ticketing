@@ -4,6 +4,7 @@ import { Head, usePage, router } from '@inertiajs/react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { Search as SearchIcon } from 'lucide-react';
 
 // Extended User interface for dashboard
 interface ExtendedUser extends UserType {
@@ -40,6 +41,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from "@/components/ui/dialog";
 
 // Icons
@@ -1024,6 +1026,183 @@ const exportDevicesExcel = async (devices: Array<{ id: number; device_name: stri
     });
 };
 
+// Define Ticket interface for the modal
+interface TicketModalItem {
+    id: number;
+    code: string;
+    title: string;
+    status: string;
+    created_at: string;
+    user?: {
+        name: string;
+        email?: string;
+    };
+    device?: {
+        id?: number;
+        name?: string;
+        apartment?: {
+            name: string;
+            building?: { 
+                name: string;
+            };
+        };
+    };
+}
+
+// Ticket Modal Component
+const TicketsModal = ({ 
+    isOpen, 
+    onClose, 
+    tickets, 
+    title 
+}: { 
+    isOpen: boolean, 
+    onClose: () => void, 
+    tickets: TicketModalItem[], 
+    title: string 
+}) => {
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const getStatusBadge = (status: string) => {
+        const statusColors = {
+            'open': 'bg-red-100 text-red-800 border border-red-200',
+            'in_progress': 'bg-blue-100 text-blue-800 border border-blue-200',
+            'resolved': 'bg-green-100 text-green-800 border border-green-200',
+            'closed': 'bg-gray-100 text-gray-800 border border-gray-200',
+            'cancelled': 'bg-red-100 text-red-800 border border-red-200',
+            'reopened': 'bg-purple-100 text-purple-800 border border-purple-200'
+        };
+        
+        return statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800';
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+                <DialogHeader>
+                    <DialogTitle className="text-2xl font-bold">{title}</DialogTitle>
+                    <DialogDescription className="text-lg">
+                        {tickets.length} ticket{tickets.length !== 1 ? 's' : ''} found
+                    </DialogDescription>
+                </DialogHeader>
+                
+                <div className="overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+                    {tickets.length > 0 ? (
+                        <div className="space-y-4">
+                            {tickets.map((ticket) => (
+                                <div 
+                                    key={ticket.id} 
+                                    className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                                    onClick={() => router.visit(`/tickets/${ticket.id}`)}
+                                >
+                                    {/* Header with Code and Status */}
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                                #{ticket.code}
+                                            </span>
+                                            <span className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusBadge(ticket.status)}`}>
+                                                {ticket.status.toUpperCase().replace('_', ' ')}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                            {formatDate(ticket.created_at)}
+                                        </div>
+                                    </div>
+
+                                    {/* Title */}
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2">
+                                        {ticket.title}
+                                    </h3>
+
+                                    {/* User and Device Info */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                        {/* User Info */}
+                                        {ticket.user && (
+                                            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-sm font-bold">
+                                                        {ticket.user.name?.substring(0, 1) || '?'}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-purple-900 truncate">
+                                                            {ticket.user.name}
+                                                        </p>
+                                                        {ticket.user.email && (
+                                                            <p className="text-xs text-purple-700 truncate">
+                                                                {ticket.user.email}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Device Info */}
+                                        {ticket.device && (
+                                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-400 flex items-center justify-center text-white">
+                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-green-900 truncate">
+                                                            {ticket.device.name || 'Device'}
+                                                        </p>
+                                                        {ticket.device.apartment && (
+                                                            <div className="flex items-center gap-1">
+                                                                <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                                                                </svg>
+                                                                <p className="text-xs text-green-700 truncate">
+                                                                    {ticket.device.apartment.name}
+                                                                    {ticket.device.apartment.building && ` - ${ticket.device.apartment.building.name}`}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Footer with ID and Action */}
+                                    <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                                        <span className="text-xs text-gray-500 font-mono">
+                                            ID: {ticket.id}
+                                        </span>
+                                      
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">No tickets found</h3>
+                            <p className="text-gray-500">There are no tickets in this category at the moment.</p>
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 export default function Dashboard({ 
     metrics, 
     charts, 
@@ -1066,6 +1245,23 @@ export default function Dashboard({
     const [selectedAppointment, setSelectedAppointment] = useState<AppointmentItem | null>(null);
     const [isAppointmentsOpen, setIsAppointmentsOpen] = useState(false);
     const buildingsContainerRef = useRef<HTMLDivElement>(null);
+    
+    // States for ticket modals
+    const [showOpenTicketsModal, setShowOpenTicketsModal] = useState(false);
+    const [showInProgressTicketsModal, setShowInProgressTicketsModal] = useState(false);
+    const [showResolvedTicketsModal, setShowResolvedTicketsModal] = useState(false);
+    const [modalTickets, setModalTickets] = useState<TicketModalItem[]>([]);
+
+    // Helper function to format dates
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
 
     // Estados para instrucciones del technical
     console.log('Dashboard Props - technicalInstructions:', technicalInstructions);
@@ -1503,6 +1699,40 @@ export default function Dashboard({
             localStorage.setItem('dashboard_notifications', JSON.stringify(serializable));
         } catch (error) {
             console.log('Error saving notifications to localStorage:', error);
+        }
+    };
+    
+    // Function to fetch tickets by status
+    const fetchTicketsByStatus = async (status: string) => {
+        try {
+            const response = await fetch(`/api/tickets?status=${status}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            setModalTickets(data.tickets || []);
+            
+            // Open the appropriate modal based on status
+            if (status === 'open') {
+                setShowOpenTicketsModal(true);
+            } else if (status === 'in_progress') {
+                setShowInProgressTicketsModal(true);
+            } else if (status === 'resolved') {
+                setShowResolvedTicketsModal(true);
+            }
+        } catch (error) {
+            console.error('Error fetching tickets:', error);
+            toast.error('Failed to load tickets. Please try again.');
         }
     };
 
@@ -2135,7 +2365,7 @@ export default function Dashboard({
                                         ? "ring-2 ring-red-500 ring-opacity-50 animate-pulse" 
                                         : ""
                                 }`}
-                                    onClick={() => window.open('/tickets?status=open', '_blank')}>
+                                    onClick={() => fetchTicketsByStatus('open')}>
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="p-3 rounded-xl bg-destructive/20">
@@ -2145,7 +2375,7 @@ export default function Dashboard({
                                                 {isTechnical && !isSuperAdmin && metrics.tickets.open > 0 && (
                                                     <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                                                 )}
-                                                <ExternalLink className="h-4 w-4 text-destructive/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                <SearchIcon className="h-4 w-4 text-destructive/60 opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </div>
                                         </div>
                                         <div className="space-y-2">
@@ -2170,13 +2400,13 @@ export default function Dashboard({
 
                                 {/* Card 3: In Progress - Enhanced for technicians */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-secondary/10 via-background to-secondary/5 overflow-hidden cursor-pointer"
-                                    onClick={() => window.open('/tickets?status=in_progress', '_blank')}>
+                                    onClick={() => fetchTicketsByStatus('in_progress')}>
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="p-3 rounded-xl bg-secondary/20">
                                                 <Clock className="h-6 w-6 text-secondary" />
                                             </div>
-                                            <ExternalLink className="h-4 w-4 text-secondary/60 opacity-0 group-hover:opacity-100 transition-opacity" />                                        </div>
+                                            <SearchIcon className="h-4 w-4 text-secondary/60 opacity-0 group-hover:opacity-100 transition-opacity" />                                        </div>
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-secondary uppercase tracking-wider">
                                                 {isTechnical && !isSuperAdmin ? "In Progress - My Tickets" : "In Progress"}
@@ -2196,13 +2426,13 @@ export default function Dashboard({
 
                                 {/* Card 4: Resolved - Enhanced for technicians */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-accent/10 via-background to-accent/5 overflow-hidden cursor-pointer"
-                                    onClick={() => window.open('/tickets?status=resolved', '_blank')}>
+                                    onClick={() => fetchTicketsByStatus('resolved')}>
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="p-3 rounded-xl bg-accent/20">
                                                 <CheckCircle className="h-6 w-6 text-accent" />
                                             </div>
-                                            <ExternalLink className="h-4 w-4 text-accent/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <SearchIcon className="h-4 w-4 text-accent/60 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-accent uppercase tracking-wider">
@@ -4316,6 +4546,27 @@ export default function Dashboard({
                         </div>
                     </DialogContent>
                 </Dialog>
+                {/* Ticket Modals */}
+                <TicketsModal 
+                    isOpen={showOpenTicketsModal} 
+                    onClose={() => setShowOpenTicketsModal(false)} 
+                    tickets={modalTickets} 
+                    title="Open Tickets"
+                />
+                
+                <TicketsModal 
+                    isOpen={showInProgressTicketsModal} 
+                    onClose={() => setShowInProgressTicketsModal(false)} 
+                    tickets={modalTickets} 
+                    title="In Progress Tickets"
+                />
+                
+                <TicketsModal 
+                    isOpen={showResolvedTicketsModal} 
+                    onClose={() => setShowResolvedTicketsModal(false)} 
+                    tickets={modalTickets} 
+                    title="Resolved Tickets"
+                />
             </AppLayout>
         </TooltipProvider>
     );

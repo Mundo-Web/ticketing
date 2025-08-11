@@ -25,6 +25,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+// Tickets API endpoint - using web middleware for session-based auth
+Route::middleware(['web', 'auth'])->get('/tickets', [\App\Http\Controllers\TicketController::class, 'apiTickets']);
+
 // Tenant Authentication Routes (Public)
 Route::prefix('tenant')->group(function () {
     Route::post('/login', [TenantController::class, 'login']);

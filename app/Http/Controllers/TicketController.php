@@ -16,6 +16,7 @@ use App\Events\TicketStatusChanged;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class TicketController extends Controller
 {
@@ -933,5 +934,105 @@ class TicketController extends Controller
             'unassignedTickets' => $unassignedTickets,
             'technicals' => $technicals,
         ]);
+    }
+    
+    /**
+     * API endpoint for fetching tickets by status
+     * Used by the dashboard cards to display tickets in modals
+     */
+    public function apiTickets(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'User not authenticated'], 401);
+            }
+            
+            $status = $request->get('status');
+            
+            // Base query for tickets with necessary relations
+            $ticketsQuery = Ticket::with([
+                'technical',
+                'device',
+                'device.name_device',
+                'device.brand',
+                'device.model', 
+                'device.system',
+                'histories.technical',
+                'user.tenant.apartment.building',
+                'createdByOwner',
+                'createdByDoorman',
+                'createdByAdmin',
+            ]);
+            
+            // Apply status filter if provided
+            if ($status) {
+                $ticketsQuery->where('status', $status);
+            }
+            
+            // Apply user role filtering
+            if ($user->hasRole('super-admin')) {
+                // Admin can see all tickets
+                // No additional filter needed
+            } elseif ($user->hasRole('technical')) {
+                // Technical can only see assigned tickets
+                $technical = Technical::where('email', $user->email)->first();
+                if ($technical) {
+                    if ($technical->is_default) {
+                        // Default technical can see all tickets
+                        // No additional filter needed
+                    } else {
+                        // Regular technical can only see assigned tickets
+                        $ticketsQuery->where('technical_id', $technical->id);
+                    }
+                } else {
+                    $ticketsQuery->whereRaw('1 = 0'); // No tickets if no technical found
+                }
+            } elseif ($user->hasRole('member')) {
+                // Member can only see their own tickets
+                $ticketsQuery->where('user_id', $user->id);
+            } elseif ($user->hasRole('owner') || $user->hasRole('doorman')) {
+                // Owner/Doorman can see tickets from their building
+                $buildingId = null;
+                
+                if ($user->hasRole('owner')) {
+                    $owner = \App\Models\Owner::where('email', $user->email)->first();
+                    if ($owner) {
+                        $buildingId = $owner->building_id;
+                    }
+                } elseif ($user->hasRole('doorman')) {
+                    $doorman = \App\Models\Doorman::where('email', $user->email)->first();
+                    if ($doorman) {
+                        $buildingId = $doorman->building_id;
+                    }
+                }
+                
+                if ($buildingId) {
+                    $ticketsQuery->whereHas('user.tenant.apartment', function($query) use ($buildingId) {
+                        $query->where('buildings_id', $buildingId);
+                    });
+                } else {
+                    $ticketsQuery->whereRaw('1 = 0'); // No tickets if no building found
+                }
+            }
+            
+            // Get tickets and return as JSON
+            $tickets = $ticketsQuery->latest()->get();
+            
+            return response()->json([
+                'tickets' => $tickets,
+                'status' => $status,
+                'user_roles' => $user->roles->pluck('name')->toArray(),
+                'count' => $tickets->count()
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('API Tickets Error: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Internal server error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }
