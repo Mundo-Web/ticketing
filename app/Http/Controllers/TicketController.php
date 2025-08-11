@@ -670,6 +670,83 @@ class TicketController extends Controller
         }
     }
 
+    public function unassignTechnical(Request $request, Ticket $ticket)
+    {
+        try {
+            // Verificar que el ticket tenga un técnico asignado
+            if (!$ticket->technical_id) {
+                if ($request->header('X-Inertia')) {
+                    return redirect()->back()->with('error', 'Ticket is not assigned to any technician');
+                }
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ticket is not assigned to any technician'
+                    ], 400);
+                }
+                return redirect()->back()->with('error', 'Ticket is not assigned to any technician');
+            }
+            
+            $oldTechnical = $ticket->technical;
+            $user = Auth::user();
+            $assignerTechnical = Technical::where('email', $user->email)->first();
+            $assignerName = $assignerTechnical ? $assignerTechnical->name : $user->name;
+            
+            // Desasignar el técnico
+            $ticket->technical_id = null;
+            $ticket->save();
+
+            $description = "Technician {$oldTechnical->name} unassigned by {$assignerName}";
+            
+            $ticket->addHistory(
+                'unassigned_technical',
+                $description,
+                [
+                    'from' => $oldTechnical->id,
+                    'to' => null
+                ],
+                null
+            );
+            
+            // Check if this is an Inertia request
+            if ($request->header('X-Inertia')) {
+                return redirect()->back()->with('success', 'Technician unassigned successfully');
+            }
+            
+            // For AJAX/fetch requests (not Inertia), return JSON
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Technician unassigned successfully',
+                    'ticket' => $ticket->load([
+                        'technical', 
+                        'user.tenant', 
+                        'device.tenants',
+                        'createdByOwner',
+                        'createdByDoorman'
+                    ])
+                ]);
+            }
+            
+            // Para formularios tradicionales, redirigir
+            return redirect()->back()->with('success', 'Technician unassigned');
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error unassigning technician: ' . $e->getMessage());
+            
+            if ($request->header('X-Inertia')) {
+                return redirect()->back()->with('error', 'An error occurred while unassigning technician');
+            }
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while unassigning technician'
+                ], 500);
+            }
+            return redirect()->back()->with('error', 'An error occurred while unassigning technician');
+        }
+    }
+
     /**
      * Agregar acción/comentario al historial
      */

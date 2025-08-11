@@ -47,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('tickets/{ticket}', [TicketController::class, 'destroy'])->name('tickets.destroy');
     // Nuevas rutas para historial, asignación de técnico y cambio de estado (Kanban)
     Route::post('tickets/{ticket}/assign-technical', [TicketController::class, 'assignTechnical'])->name('tickets.assignTechnical');
+    Route::post('tickets/{ticket}/unassign', [TicketController::class, 'unassignTechnical'])->name('tickets.unassign');
     Route::post('tickets/{ticket}/add-history', [TicketController::class, 'addHistory'])->name('tickets.addHistory');
     Route::post('tickets/{ticket}/add-member-feedback', [TicketController::class, 'addMemberFeedback'])->name('tickets.addMemberFeedback');
     Route::post('tickets/{ticket}/update-status', [TicketController::class, 'updateStatus'])->name('tickets.updateStatus');
