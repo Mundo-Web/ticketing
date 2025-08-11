@@ -161,5 +161,56 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
 });
 
+// Temporal debug route
+Route::get('/debug-appointments', function() {
+    $now = \Carbon\Carbon::now();
+    $todayStart = \Carbon\Carbon::today()->startOfDay();
+    
+    echo "<h2>Debug Appointments</h2>";
+    echo "<p>Current time: " . $now->format('Y-m-d H:i:s') . "</p>";
+    echo "<p>Today start: " . $todayStart->format('Y-m-d H:i:s') . "</p>";
+    
+    // Buscar appointments de hoy
+    $todayAppointments = \App\Models\Appointment::whereDate('scheduled_for', '2025-08-10')->get();
+    echo "<h3>Appointments for today (2025-08-10): " . $todayAppointments->count() . "</h3>";
+    
+    foreach ($todayAppointments as $apt) {
+        $scheduledTime = \Carbon\Carbon::parse($apt->scheduled_for);
+        $isAfterTodayStart = $scheduledTime->gte($todayStart);
+        
+        echo "<div style='border: 1px solid #ccc; margin: 10px; padding: 10px;'>";
+        echo "<strong>ID:</strong> {$apt->id}<br>";
+        echo "<strong>Title:</strong> {$apt->title}<br>";
+        echo "<strong>Scheduled:</strong> {$apt->scheduled_for}<br>";
+        echo "<strong>Status:</strong> {$apt->status}<br>";
+        echo "<strong>Technical ID:</strong> {$apt->technical_id}<br>";
+        echo "<strong>Is after today start:</strong> " . ($isAfterTodayStart ? 'YES' : 'NO') . "<br>";
+        echo "<strong>Is not cancelled:</strong> " . ($apt->status !== 'cancelled' ? 'YES' : 'NO') . "<br>";
+        echo "<strong>Should appear:</strong> " . ($isAfterTodayStart && $apt->status !== 'cancelled' ? 'YES' : 'NO') . "<br>";
+        echo "</div>";
+    }
+    
+    // Buscar con el filtro actual
+    echo "<h3>With current filter (>= today start AND not cancelled):</h3>";
+    $filteredAppointments = \App\Models\Appointment::where('scheduled_for', '>=', $todayStart)
+        ->where('status', '!=', 'cancelled')
+        ->orderBy('scheduled_for')
+        ->get();
+    
+    echo "<p>Found: " . $filteredAppointments->count() . " appointments</p>";
+    foreach ($filteredAppointments as $apt) {
+        $scheduledTime = \Carbon\Carbon::parse($apt->scheduled_for);
+        echo "<div style='border: 1px solid green; margin: 10px; padding: 10px;'>";
+        echo "<strong>ID:</strong> {$apt->id}<br>";
+        echo "<strong>Title:</strong> {$apt->title}<br>";
+        echo "<strong>Scheduled:</strong> {$apt->scheduled_for}<br>";
+        echo "<strong>Status:</strong> {$apt->status}<br>";
+        echo "<strong>Technical ID:</strong> {$apt->technical_id}<br>";
+        echo "<strong>Is today:</strong> " . ($scheduledTime->isToday() ? 'YES' : 'NO') . "<br>";
+        echo "<strong>Is tomorrow:</strong> " . ($scheduledTime->isTomorrow() ? 'YES' : 'NO') . "<br>";
+        echo "</div>";
+    }
+});
+
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

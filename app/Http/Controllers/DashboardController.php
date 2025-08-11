@@ -310,7 +310,30 @@ class DashboardController extends Controller
                 Log::info('Loading appointments for technical', [
                     'technical_id' => $technical->id,
                     'technical_name' => $technical->name,
-                    'is_default' => $technical->is_default
+                    'is_default' => $technical->is_default,
+                    'current_time' => Carbon::now()->format('Y-m-d H:i:s'),
+                    'today_start' => Carbon::today()->startOfDay()->format('Y-m-d H:i:s'),
+                    'filter_date' => Carbon::today()->startOfDay()->toDateTimeString()
+                ]);
+
+                // First, let's see ALL appointments for this technical
+                $allAppointmentsForTechnical = Appointment::where('technical_id', $technical->id)
+                    ->orderBy('scheduled_for')
+                    ->get();
+
+                Log::info('ALL appointments for technical (before filtering)', [
+                    'technical_id' => $technical->id,
+                    'total_count' => $allAppointmentsForTechnical->count(),
+                    'appointments' => $allAppointmentsForTechnical->map(function($apt) {
+                        return [
+                            'id' => $apt->id,
+                            'title' => $apt->title,
+                            'scheduled_for' => $apt->scheduled_for,
+                            'status' => $apt->status,
+                            'is_today' => Carbon::parse($apt->scheduled_for)->isToday(),
+                            'is_after_today_start' => Carbon::parse($apt->scheduled_for)->gte(Carbon::today()->startOfDay())
+                        ];
+                    })
                 ]);
 
                 $upcomingAppointments = Appointment::with([
@@ -338,8 +361,14 @@ class DashboardController extends Controller
                 ])
                     ->where('technical_id', $technical->id)
                     ->where(function($query) {
-                        // Include upcoming appointments OR appointments in progress from today
-                        $query->where('scheduled_for', '>=', Carbon::now())
+                        // Include appointments from today (00:00) onwards
+                        // OR appointments from yesterday after 18:00 (to catch late night appointments)
+                        // OR appointments in progress from today
+                        $query->where('scheduled_for', '>=', Carbon::today()->startOfDay())
+                              ->orWhere(function($subQuery) {
+                                  $subQuery->whereDate('scheduled_for', Carbon::yesterday())
+                                           ->where('scheduled_for', '>=', Carbon::yesterday()->setHour(18)->setMinute(0)->setSecond(0));
+                              })
                               ->orWhere(function($subQuery) {
                                   $subQuery->whereDate('scheduled_for', Carbon::today())
                                            ->where('status', 'in_progress');
@@ -392,7 +421,14 @@ class DashboardController extends Controller
                 ->whereHas('ticket', function($query) use ($user) {
                     $query->where('user_id', $user->id);
                 })
-                ->where('scheduled_for', '>=', Carbon::now())
+                ->where(function($query) {
+                    // Include appointments from today onwards OR from yesterday after 18:00
+                    $query->where('scheduled_for', '>=', Carbon::today()->startOfDay())
+                          ->orWhere(function($subQuery) {
+                              $subQuery->whereDate('scheduled_for', Carbon::yesterday())
+                                      ->where('scheduled_for', '>=', Carbon::yesterday()->setHour(18)->setMinute(0)->setSecond(0));
+                          });
+                })
                 ->where('status', '!=', 'cancelled')
                 ->orderBy('scheduled_for')
                 ->limit(10)
@@ -425,7 +461,14 @@ class DashboardController extends Controller
                 ->whereHas('ticket.user.tenant.apartment', function($query) use ($buildingId) {
                     $query->where('buildings_id', $buildingId);
                 })
-                ->where('scheduled_for', '>=', Carbon::now())
+                ->where(function($query) {
+                    // Include appointments from today onwards OR from yesterday after 18:00
+                    $query->where('scheduled_for', '>=', Carbon::today()->startOfDay())
+                          ->orWhere(function($subQuery) {
+                              $subQuery->whereDate('scheduled_for', Carbon::yesterday())
+                                      ->where('scheduled_for', '>=', Carbon::yesterday()->setHour(18)->setMinute(0)->setSecond(0));
+                          });
+                })
                 ->where('status', '!=', 'cancelled')
                 ->orderBy('scheduled_for')
                 ->limit(10)
@@ -455,7 +498,14 @@ class DashboardController extends Controller
                     $query->select('id', 'name', 'email');
                 }
             ])
-                ->where('scheduled_for', '>=', Carbon::now())
+                ->where(function($query) {
+                    // Include appointments from today onwards OR from yesterday after 18:00
+                    $query->where('scheduled_for', '>=', Carbon::today()->startOfDay())
+                          ->orWhere(function($subQuery) {
+                              $subQuery->whereDate('scheduled_for', Carbon::yesterday())
+                                      ->where('scheduled_for', '>=', Carbon::yesterday()->setHour(18)->setMinute(0)->setSecond(0));
+                          });
+                })
                 ->where('status', '!=', 'cancelled')
                 ->orderBy('scheduled_for')
                 ->limit(10)

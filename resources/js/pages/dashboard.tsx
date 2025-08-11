@@ -1718,32 +1718,43 @@ export default function Dashboard({
                                                     const locationInfo = getAppointmentLocation(appointment);
                                                     const appointmentDate = new Date(appointment.scheduled_for);
                                                     const today = new Date();
+                                                    
+                                                    // Check if it's today OR if it's yesterday after 6pm
                                                     const isToday = appointmentDate.toDateString() === today.toDateString();
+                                                    const isYesterdayLate = (() => {
+                                                        const yesterday = new Date();
+                                                        yesterday.setDate(yesterday.getDate() - 1);
+                                                        return appointmentDate.toDateString() === yesterday.toDateString() && 
+                                                               appointmentDate.getHours() >= 18;
+                                                    })();
+                                                    
+                                                    // Treat late night appointments from yesterday as "today"
+                                                    const showAsTodayAppointment = isToday || isYesterdayLate;
                                                     
                                                     return (
                                                         <div key={appointment.id} className="group relative">
-                                                            <DropdownMenuItem className={`p-0 focus:bg-slate-50 dark:focus:bg-slate-800/50 cursor-pointer ${isToday ? 'border-2 border-red-500 rounded-lg my-1 bg-red-50/50' : ''}`}>
-                                                                <div className={`w-full p-4 flex items-center gap-4 ${isToday ? 'bg-red-50 rounded-lg border border-red-200' : ''}`}>
+                                                            <DropdownMenuItem className={`p-0 focus:bg-slate-50 dark:focus:bg-slate-800/50 cursor-pointer ${showAsTodayAppointment ? 'border-2 border-red-500 rounded-lg my-1 bg-red-50/50' : ''}`}>
+                                                                <div className={`w-full p-4 flex items-center gap-4 ${showAsTodayAppointment ? 'bg-red-50 rounded-lg border border-red-200' : ''}`}>
                                                                     {/* Date Circle */}
-                                                                    <div className={`flex-shrink-0 w-20 h-20 rounded-full border ${isToday ? 'border-red-400 bg-red-100' : 'border-slate-200 dark:border-slate-700'} flex flex-col items-center justify-center text-center`}>
-                                                                        <span className={`text-sm font-medium ${isToday ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                    <div className={`flex-shrink-0 w-20 h-20 rounded-full border ${showAsTodayAppointment ? 'border-red-400 bg-red-100' : 'border-slate-200 dark:border-slate-700'} flex flex-col items-center justify-center text-center`}>
+                                                                        <span className={`text-sm font-medium ${showAsTodayAppointment ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'}`}>
                                                                             {new Date(appointment.scheduled_for).toLocaleString('default', { weekday: 'short' }).toLowerCase()}
                                                                         </span>
-                                                                        <span className={`text-2xl font-bold ${isToday ? 'text-red-700' : 'text-slate-900 dark:text-slate-100'}`}>
+                                                                        <span className={`text-2xl font-bold ${showAsTodayAppointment ? 'text-red-700' : 'text-slate-900 dark:text-slate-100'}`}>
                                                                             {new Date(appointment.scheduled_for).getDate()}
                                                                         </span>
-                                                                        <span className={`text-xs font-medium ${isToday ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                        <span className={`text-xs font-medium ${showAsTodayAppointment ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'}`}>
                                                                             {new Date(appointment.scheduled_for).toLocaleString('default', { month: 'short' })}
                                                                         </span>
                                                                     </div>
 
                                                                     {/* Main Content - Info Box */}
-                                                                    <div className={`flex-1 p-3 ${isToday ? 'bg-white border-red-200' : 'bg-white dark:bg-slate-800'} rounded-lg border ${isToday ? 'border-red-200' : 'border-slate-200 dark:border-slate-700'} shadow-sm`}>
+                                                                    <div className={`flex-1 p-3 ${showAsTodayAppointment ? 'bg-white border-red-200' : 'bg-white dark:bg-slate-800'} rounded-lg border ${showAsTodayAppointment ? 'border-red-200' : 'border-slate-200 dark:border-slate-700'} shadow-sm`}>
                                                                         {/* Header with Technical and Member Info */}
                                                                         <div className="space-y-1 mb-1.5">
                                                                             <div className="flex items-center justify-between">
                                                                                 <div className="flex items-center gap-1.5">
-                                                                                    <span className={`text-sm font-medium ${isToday ? 'text-red-800' : 'text-slate-900 dark:text-slate-100'}`}>
+                                                                                    <span className={`text-sm font-medium ${showAsTodayAppointment ? 'text-red-800' : 'text-slate-900 dark:text-slate-100'}`}>
                                                                                         Technical: {appointment.technical.name}
                                                                                     </span>
                                                                                 </div>
@@ -1776,7 +1787,7 @@ export default function Dashboard({
                                                                                     </Button>
                                                                                 </div>
                                                                             </div>
-                                                                            <div className={`text-sm ${isToday ? 'text-red-700' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                                            <div className={`text-sm ${showAsTodayAppointment ? 'text-red-700' : 'text-slate-700 dark:text-slate-300'}`}>
                                                                                 Member: {appointment.ticket.user?.name || "No Member"}
                                                                             </div>
                                                                         </div>
@@ -1784,8 +1795,8 @@ export default function Dashboard({
                                                                         {/* Building and Unit Info with Location Icon */}
                                                                         <div className="flex items-center mb-1.5">
                                                                             <div className="flex items-center gap-1 flex-1">
-                                                                                <MapPin className={`h-4 w-4 ${isToday ? 'text-red-600' : 'text-red-500'}`} />
-                                                                                <span className={`text-sm font-medium ${isToday ? 'text-red-800' : 'text-primary-foreground'} hover:text-primary-foreground`}>
+                                                                                <MapPin className={`h-4 w-4 ${showAsTodayAppointment ? 'text-red-600' : 'text-red-500'}`} />
+                                                                                <span className={`text-sm font-medium ${showAsTodayAppointment ? 'text-red-800' : 'text-primary-foreground'} hover:text-primary-foreground`}>
                                                                                     Building: {locationInfo.buildingName} apartment {locationInfo.unitNumber}
                                                                                 </span>
                                                                             </div>
@@ -1794,15 +1805,15 @@ export default function Dashboard({
                                                                         {/* Time */}
                                                                         <div className="flex items-center justify-between">
                                                                             <div className="flex items-center gap-1.5">
-                                                                                <Clock className={`h-3.5 w-3.5 ${isToday ? 'text-red-600' : 'text-slate-500'}`} />
-                                                                                <span className={`text-xs font-medium ${isToday ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                                <Clock className={`h-3.5 w-3.5 ${showAsTodayAppointment ? 'text-red-600' : 'text-slate-500'}`} />
+                                                                                <span className={`text-xs font-medium ${showAsTodayAppointment ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'}`}>
                                                                                     {dateTime.time}
                                                                                 </span>
                                                                             </div>
                                                                             <div className="flex items-center gap-1">
-                                                                                {isToday && (
+                                                                                {showAsTodayAppointment && (
                                                                                     <Badge className="text-xs px-2 py-0.5 bg-red-500 text-white animate-pulse">
-                                                                                        Today
+                                                                                        {isYesterdayLate ? 'Urgent!' : 'Today!'}
                                                                                     </Badge>
                                                                                 )}
                                                                                 <Badge 
