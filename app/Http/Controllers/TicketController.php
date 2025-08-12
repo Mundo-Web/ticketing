@@ -13,6 +13,7 @@ use App\Models\Owner;
 use App\Events\TicketCreated;
 use App\Events\TicketAssigned;
 use App\Events\TicketStatusChanged;
+use App\Notifications\TicketCreatedNotification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -414,8 +415,56 @@ class TicketController extends Controller
             null
         );
         
-        // Dispatch ticket created event
-        event(new TicketCreated($ticket));
+        // Send notifications directly to admins and default technicals
+        try {
+            // 1. Notificar a todos los super-admins
+            $admins = User::whereHas('roles', function ($query) {
+                $query->whereIn('name', ['super-admin']);
+            })->get();
+
+            foreach ($admins as $admin) {
+                $admin->notify(new \App\Notifications\TicketCreatedNotification($ticket));
+                Log::info('Notification sent to super-admin', [
+                    'admin_id' => $admin->id,
+                    'admin_name' => $admin->name,
+                    'ticket_id' => $ticket->id,
+                    'ticket_code' => $ticket->code
+                ]);
+            }
+
+            // 2. Notificar a técnicos default (is_default = true)
+            $defaultTechnicals = User::whereHas('roles', function ($query) {
+                $query->where('name', 'technical');
+            })->whereHas('technical', function ($query) {
+                $query->where('is_default', true);
+            })->get();
+
+            foreach ($defaultTechnicals as $technical) {
+                $technical->notify(new \App\Notifications\TicketCreatedNotification($ticket));
+                Log::info('Notification sent to technical-default', [
+                    'technical_id' => $technical->id,
+                    'technical_name' => $technical->name,
+                    'ticket_id' => $ticket->id,
+                    'ticket_code' => $ticket->code
+                ]);
+            }
+
+            Log::info('All ticket creation notifications sent successfully', [
+                'ticket_id' => $ticket->id,
+                'ticket_code' => $ticket->code,
+                'super_admins_notified' => $admins->count(),
+                'technical_defaults_notified' => $defaultTechnicals->count(),
+                'total_notifications' => $admins->count() + $defaultTechnicals->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error sending ticket creation notifications', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // No interrumpir el flujo si las notificaciones fallan
+        }
         
         return redirect()->back()->with('success', 'Ticket creado correctamente');
     }

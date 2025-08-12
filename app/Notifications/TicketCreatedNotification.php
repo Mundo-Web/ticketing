@@ -4,15 +4,12 @@ namespace App\Notifications;
 
 use App\Models\Ticket;
 use App\Models\NotificationTemplate;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Messages\DatabaseMessage;
 use Illuminate\Notifications\Notification;
 
-class TicketCreatedNotification extends Notification implements ShouldQueue
+class TicketCreatedNotification extends Notification
 {
-    use Queueable;
 
     protected $ticket;
 
