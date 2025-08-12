@@ -3243,29 +3243,45 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             e.preventDefault()
                             if (!assignTechnicalId) return;
                             setAssigning(true);
-                            // Use Inertia.js to handle CSRF token automatically
-                            router.post(`/tickets/${showAssignModal.ticketId}/assign-technical`,
-                                {
-                                    technical_id: assignTechnicalId
-                                },
-                                {
-                                    preserveScroll: true,
-                                    onSuccess: () => {
+                            
+                            try {
+                                // Use fetch instead of router.post to avoid Inertia headers
+                                const response = await fetch(`/tickets/${showAssignModal.ticketId}/assign-technical`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                                    },
+                                    credentials: 'same-origin',
+                                    body: JSON.stringify({
+                                        technical_id: assignTechnicalId
+                                    })
+                                });
+
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    if (data.success) {
                                         setShowAssignModal({ open: false });
                                         setAssignTechnicalId(null);
                                         // Refresca el ticket seleccionado para ver el nuevo técnico
                                         refreshSelectedTicket(showAssignModal.ticketId);
                                         // Forzar re-render del kanban
                                         setRefreshKey(prev => prev + 1);
-                                    },
-                                    onError: () => {
-                                        alert("Error assigning technician");
-                                    },
-                                    onFinish: () => {
-                                        setAssigning(false);
+                                        toast.success('Technical assigned successfully');
+                                    } else {
+                                        toast.error(data.message || 'Error assigning technical');
                                     }
+                                } else {
+                                    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+                                    toast.error(errorData.message || 'Error assigning technical');
                                 }
-                            );
+                            } catch (error) {
+                                console.error('Error assigning technical:', error);
+                                toast.error('Error assigning technical');
+                            } finally {
+                                setAssigning(false);
+                            }
                         }}
                         className="space-y-6"
                     >

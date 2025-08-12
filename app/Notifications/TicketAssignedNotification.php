@@ -11,9 +11,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class TicketAssignedNotification extends Notification implements ShouldQueue
+class TicketAssignedNotification extends Notification
 {
-    use Queueable;
 
     protected $ticket;
     protected $technical;
@@ -73,15 +72,70 @@ class TicketAssignedNotification extends Notification implements ShouldQueue
      */
     public function toDatabase(object $notifiable): array
     {
+        // Personalizar el mensaje según el destinatario
+        $title = '';
+        $message = '';
+        $icon = 'user-plus';
+        $color = 'green';
+
+        // Verificar si es el técnico asignado (comparar por ID si es un User que corresponde al Technical)
+        $isAssignedTechnical = false;
+        
+        // Verificar si el notifiable es el usuario asociado al técnico asignado
+        if ($notifiable->email === $this->technical->email) {
+            $isAssignedTechnical = true;
+        }
+        
+        if ($isAssignedTechnical) {
+            // Mensaje para el técnico asignado
+            $title = '🎯 Te han asignado un ticket';
+            $message = sprintf(
+                'Se te ha asignado el ticket %s por %s. %s',
+                $this->ticket->code,
+                $this->assignedBy->name,
+                $this->ticket->title ? '- ' . $this->ticket->title : ''
+            );
+            $icon = 'clipboard-check';
+            $color = 'blue';
+        } elseif ($notifiable->id === $this->ticket->user_id) {
+            // Mensaje para el usuario que creó el ticket
+            $title = '👤 Técnico asignado a tu ticket';
+            $message = sprintf(
+                'Tu ticket %s ha sido asignado al técnico %s por %s',
+                $this->ticket->code,
+                $this->technical->name,
+                $this->assignedBy->name
+            );
+            $icon = 'user-check';
+            $color = 'green';
+        } else {
+            // Mensaje para administradores u otros usuarios
+            $title = '📋 Ticket asignado';
+            $message = sprintf(
+                'El ticket %s ha sido asignado al técnico %s por %s',
+                $this->ticket->code,
+                $this->technical->name,
+                $this->assignedBy->name
+            );
+            $icon = 'users';
+            $color = 'gray';
+        }
+
         return [
             'type' => 'ticket_assigned',
             'ticket_id' => $this->ticket->id,
             'ticket_code' => $this->ticket->code,
-            'title' => 'Ticket asignado',
-            'message' => 'Se te ha asignado el ticket ' . $this->ticket->code . ' por ' . $this->assignedBy->name,
+            'title' => $title,
+            'message' => $message,
             'action_url' => '/tickets/' . $this->ticket->id,
-            'icon' => 'user-plus',
-            'color' => 'green',
+            'icon' => $icon,
+            'color' => $color,
+            'assigned_to' => $this->technical->name,
+            'assigned_to_id' => $this->technical->id,
+            'assigned_to_email' => $this->technical->email,
+            'assigned_by' => $this->assignedBy->name,
+            'assigned_by_id' => $this->assignedBy->id,
+            'assigned_by_email' => $this->assignedBy->email,
             'created_at' => now(),
         ];
     }

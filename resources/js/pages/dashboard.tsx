@@ -49,7 +49,7 @@ import {
     Building, Users, Ticket, Wrench, Smartphone, TrendingUp, Clock,
     CheckCircle, AlertCircle, Home, Activity, BarChart3, Calendar,
     Timer, Download, ExternalLink, RefreshCcw, FileSpreadsheet,
-    Bell, Zap, UserPlus, AlertTriangle, X, User, Phone, Mail,
+    Bell, Zap, UserPlus, UserCheck, AlertTriangle, X, User, Phone, Mail,
     Monitor, ChevronLeft, ChevronRight, Laptop, Check,
     MessageSquare, Info, AlertOctagon, MapPin, PlayCircle, Eye,
     UserMinus, BarChart, UserCog, CalendarPlus, Plus
@@ -113,15 +113,27 @@ interface AppointmentItem {
 }
 
 interface NotificationItem {
-    id: number;
+    id: string;
     type: string;
-    title: string;
-    message: string;
-    time: string;
-    read: boolean;
-    icon: React.ComponentType<{ className?: string }>;
-    iconName?: string;
-    color: string;
+    data: {
+        type: string;
+        ticket_id?: number;
+        ticket_code?: string;
+        title: string;
+        message: string;
+        action_url?: string;
+        icon?: string;
+        color?: string;
+        assigned_to?: string;
+        assigned_to_id?: number;
+        assigned_to_email?: string;
+        assigned_by?: string;
+        assigned_by_id?: number;
+        assigned_by_email?: string;
+        created_at: string;
+    };
+    read_at: string | null;
+    created_at: string;
 }
 
 interface TechnicalInstruction {
@@ -1295,94 +1307,129 @@ export default function Dashboard({
         }
     };
 
-    // Initialize notifications from localStorage or default values
-    const getInitialNotifications = (): NotificationItem[] => {
+    // Estados para notificaciones REALES de la base de datos
+    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+    const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+    // Función para cargar notificaciones reales desde la API
+    const fetchNotifications = async () => {
         try {
-            const saved = localStorage.getItem('dashboard_notifications');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                // Convert icon names back to components
-                return parsed.map((notif: { iconName: string;[key: string]: unknown }) => ({
-                    ...notif,
-                    icon: notif.iconName === 'AlertCircle' ? AlertCircle :
-                        notif.iconName === 'Info' ? Info :
-                            notif.iconName === 'CheckCircle' ? CheckCircle :
-                                notif.iconName === 'AlertOctagon' ? AlertOctagon :
-                                    notif.iconName === 'MessageSquare' ? MessageSquare : AlertCircle
-                }));
+            console.log('🔔 Dashboard: Fetching notifications...');
+            const response = await fetch('/notifications/api');
+            if (response.ok) {
+                const data = await response.json();
+                console.log('🔔 Dashboard: Notifications response:', data);
+                
+                if (data.success) {
+                    const notificationsArray = data.notifications || [];
+                    const unreadCount = data.unread_count || 0;
+                    
+                    console.log('🔔 Dashboard: Setting notifications:', notificationsArray.length);
+                    console.log('🔔 Dashboard: Setting unread count:', unreadCount);
+                    
+                    setNotifications(notificationsArray);
+                    setUnreadNotifications(unreadCount);
+                } else {
+                    console.error('🔔 Dashboard: API returned success=false:', data);
+                    setNotifications([]);
+                    setUnreadNotifications(0);
+                }
+            } else {
+                console.error('🔔 Dashboard: Error loading notifications:', response.status);
+                setNotifications([]);
+                setUnreadNotifications(0);
             }
         } catch (error) {
-            console.log('Error loading notifications from localStorage:', error);
+            console.error('🔔 Dashboard: Error fetching notifications:', error);
+            setNotifications([]);
+            setUnreadNotifications(0);
         }
-
-        // Default notifications if nothing in localStorage
-        return [
-            {
-                id: 1,
-                type: 'ticket',
-                title: 'New Ticket Assigned',
-                message: 'You have been assigned ticket #TCK-2024-001 for AC repair in Apt 204',
-                time: '2 min ago',
-                read: false,
-                icon: AlertCircle,
-                iconName: 'AlertCircle',
-                color: 'text-red-500 bg-red-50'
-            },
-            {
-                id: 2,
-                type: 'system',
-                title: 'System Update',
-                message: 'Dashboard data has been refreshed with latest information',
-                time: '15 min ago',
-                read: false,
-                icon: Info,
-                iconName: 'Info',
-                color: 'text-blue-500 bg-blue-50'
-            },
-            {
-                id: 3,
-                type: 'resolution',
-                title: 'Ticket Resolved',
-                message: 'Ticket #TCK-2024-035 has been successfully resolved',
-                time: '1 hour ago',
-                read: false,
-                icon: CheckCircle,
-                iconName: 'CheckCircle',
-                color: 'text-green-500 bg-green-50'
-            },
-            {
-                id: 4,
-                type: 'urgent',
-                title: 'Urgent Maintenance',
-                message: 'Emergency repair needed in Building A - Elevator malfunction',
-                time: '2 hours ago',
-                read: true,
-                icon: AlertOctagon,
-                iconName: 'AlertOctagon',
-                color: 'text-orange-500 bg-orange-50'
-            },
-            {
-                id: 5,
-                type: 'message',
-                title: 'Team Message',
-                message: 'Weekly team meeting scheduled for tomorrow at 10:00 AM',
-                time: '1 day ago',
-                read: true,
-                icon: MessageSquare,
-                iconName: 'MessageSquare',
-                color: 'text-purple-500 bg-purple-50'
-            }
-        ];
     };
 
-    // States for notifications
-    const [notifications, setNotifications] = useState<NotificationItem[]>(getInitialNotifications);
+    // Función para marcar como leída
+    const markAsRead = async (notificationId: string) => {
+        try {
+            const response = await fetch(`/notifications/${notificationId}/read`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                }
+            });
 
-    // Calculate unread notifications count
-    const [unreadNotifications, setUnreadNotifications] = useState(() => {
-        const initialNotifications = getInitialNotifications();
-        return initialNotifications.filter((n: NotificationItem) => !n.read).length;
-    });
+            if (response.ok) {
+                setNotifications(prev => 
+                    prev.map(n => 
+                        n.id === notificationId 
+                            ? { ...n, read_at: new Date().toISOString() }
+                            : n
+                    )
+                );
+                setUnreadNotifications(prev => Math.max(0, prev - 1));
+            }
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    };
+
+    // Función para marcar todas como leídas
+    const markAllAsRead = async () => {
+        try {
+            const unreadIds = notifications.filter(n => !n.read_at).map(n => n.id);
+            
+            await Promise.all(
+                unreadIds.map(id => 
+                    fetch(`/notifications/${id}/read`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                        }
+                    })
+                )
+            );
+
+            setNotifications(prev => 
+                prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
+            );
+            setUnreadNotifications(0);
+        } catch (error) {
+            console.error('Error marking all notifications as read:', error);
+        }
+    };
+
+    // Función para eliminar notificación
+    const clearNotification = async (notificationId: string) => {
+        try {
+            const response = await fetch(`/notifications/${notificationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                }
+            });
+
+            if (response.ok) {
+                setNotifications(prev => prev.filter(n => n.id !== notificationId));
+                
+                const wasUnread = notifications.find(n => n.id === notificationId && !n.read_at);
+                if (wasUnread) {
+                    setUnreadNotifications(prev => Math.max(0, prev - 1));
+                }
+            }
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+        }
+    };
+
+    // Cargar notificaciones al montar el componente
+    useEffect(() => {
+        fetchNotifications();
+        
+        // Refrescar notificaciones cada 30 segundos
+        const interval = setInterval(fetchNotifications, 30000);
+        
+        return () => clearInterval(interval);
+    }, []);
 
     // States for appointments
     const [appointments, setAppointments] = useState<AppointmentItem[]>(() => {
@@ -1687,19 +1734,6 @@ export default function Dashboard({
 
         // Reload the page to fetch fresh data
         router.reload();
-    };    // Function to save notifications to localStorage
-    const saveNotificationsToStorage = (notificationsList: NotificationItem[]) => {
-        try {
-            // Convert notifications to serializable format
-            const serializable = notificationsList.map(notif => ({
-                ...notif,
-                icon: undefined, // Remove icon component
-                iconName: notif.iconName
-            }));
-            localStorage.setItem('dashboard_notifications', JSON.stringify(serializable));
-        } catch (error) {
-            console.log('Error saving notifications to localStorage:', error);
-        }
     };
     
     // Function to fetch tickets by status
@@ -1744,45 +1778,6 @@ export default function Dashboard({
 
         return () => clearInterval(interval);
     }, [lastUpdated]);
-
-    // Functions to handle notifications
-    const markAsRead = (notificationId: number) => {
-        setNotifications((prev: NotificationItem[]) => {
-            const updated = prev.map((notif: NotificationItem) =>
-                notif.id === notificationId
-                    ? { ...notif, read: true }
-                    : notif
-            );
-            saveNotificationsToStorage(updated);
-            return updated;
-        });
-
-        // Update unread count
-        setUnreadNotifications((prev: number) => Math.max(0, prev - 1));
-    };
-
-    const markAllAsRead = () => {
-        setNotifications((prev: NotificationItem[]) => {
-            const updated = prev.map((notif: NotificationItem) => ({ ...notif, read: true }));
-            saveNotificationsToStorage(updated);
-            return updated;
-        });
-        setUnreadNotifications(0);
-    };
-
-    const clearNotification = (notificationId: number) => {
-        setNotifications((prev: NotificationItem[]) => {
-            const updated = prev.filter((notif: NotificationItem) => notif.id !== notificationId);
-            saveNotificationsToStorage(updated);
-            return updated;
-        });
-
-        // Update unread count if notification was unread
-        const notification = notifications.find((n: NotificationItem) => n.id === notificationId);
-        if (notification && !notification.read) {
-            setUnreadNotifications((prev: number) => Math.max(0, prev - 1));
-        }
-    };
 
     // Function to handle ticket status clicks
     const handleTicketStatusClick = (status: string, count: number) => {
@@ -2116,25 +2111,57 @@ export default function Dashboard({
                                         ) : (
                                             <div className="max-h-80 overflow-y-auto flex flex-col gap-4">
                                                 {notifications.map((notification: NotificationItem) => {
-                                                    const IconComponent = notification.icon;
+                                                    // Mapear iconos basado en el tipo de notificación
+                                                    const IconComponent = notification.data.icon === 'user-plus' ? UserPlus :
+                                                        notification.data.icon === 'clipboard-check' ? CheckCircle :
+                                                        notification.data.icon === 'user-check' ? UserCheck :
+                                                        notification.data.icon === 'users' ? Users :
+                                                        notification.data.icon === 'check-circle' ? CheckCircle :
+                                                        notification.data.icon === 'alert-circle' ? AlertCircle :
+                                                        notification.data.icon === 'info' ? Info : Bell;
+                                                    
+                                                    // Formatear tiempo relativo
+                                                    const timeAgo = new Date(notification.created_at).toLocaleString('es-ES', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    });
+
+                                                    // Determinar color basado en el tipo
+                                                    const colorClass = notification.data.color === 'green' ? 'text-green-500 bg-green-50' :
+                                                        notification.data.color === 'blue' ? 'text-blue-500 bg-blue-50' :
+                                                        notification.data.color === 'red' ? 'text-red-500 bg-red-50' :
+                                                        notification.data.color === 'gray' ? 'text-gray-500 bg-gray-50' :
+                                                        'text-gray-500 bg-gray-50';
+
                                                     return (
                                                         <DropdownMenuItem
                                                             key={notification.id}
-                                                            className={`p-0 focus:bg-slate-50 dark:!text-slate-100 ${!notification.read ? 'bg-blue-50/50 dark:bg-secondary/10' : ''}`}
+                                                            className={`p-0 focus:bg-slate-50 dark:!text-slate-100 ${!notification.read_at ? 'bg-blue-50/50 dark:bg-secondary/10' : ''} cursor-pointer group`}
+                                                            onClick={() => {
+                                                                // Marcar como leída y navegar al ticket si es una asignación
+                                                                if (!notification.read_at) {
+                                                                    markAsRead(notification.id);
+                                                                }
+                                                                if (notification.data.action_url) {
+                                                                    window.open(notification.data.action_url, '_blank');
+                                                                }
+                                                            }}
                                                         >
                                                             <div className="w-full p-4 flex items-start gap-3 dark:!text-slate-100">
-                                                                <div className={`p-2 rounded-lg ${notification.color} flex-shrink-0`}>
+                                                                <div className={`p-2 rounded-lg ${colorClass} flex-shrink-0`}>
                                                                     <IconComponent className="h-4 w-4" />
                                                                 </div>
 
                                                                 <div className="flex-1 space-y-1 dark:!text-slate-100">
                                                                     <div className="flex items-center justify-between">
-                                                                        <h4 className={`text-sm font-semibold dark:!text-slate-100 ${!notification.read ? 'text-slate-900' : 'text-slate-700'}`}>
-                                                                            {notification.title}
+                                                                        <h4 className={`text-sm font-semibold dark:!text-slate-100 ${!notification.read_at ? 'text-slate-900' : 'text-slate-700'}`}>
+                                                                            {notification.data.title}
                                                                         </h4>
                                                                         <div className="flex items-center gap-1 dark:!text-slate-200">
                                                                             <span className="text-xs text-slate-500">
-                                                                                {notification.time}
+                                                                                {timeAgo}
                                                                             </span>
                                                                             <Button
                                                                                 variant="ghost"
@@ -2150,11 +2177,34 @@ export default function Dashboard({
                                                                         </div>
                                                                     </div>
 
-                                                                    <p className={`text-sm dark:!text-slate-100 ${!notification.read ? 'text-slate-700' : 'text-slate-600'}`}>
-                                                                        {notification.message}
+                                                                    <p className={`text-sm dark:!text-slate-100 ${!notification.read_at ? 'text-slate-700' : 'text-slate-600'}`}>
+                                                                        {notification.data.message}
                                                                     </p>
 
-                                                                    {!notification.read && (
+                                                                    {/* Información adicional para tickets asignados */}
+                                                                    {notification.data.type === 'ticket_assigned' && (
+                                                                        <div className="mt-2 space-y-2">
+                                                                            <div className="flex flex-wrap gap-2">
+                                                                                {notification.data.ticket_code && (
+                                                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                                        📋 {notification.data.ticket_code}
+                                                                                    </span>
+                                                                                )}
+                                                                                {notification.data.assigned_to && notification.data.assigned_to_id && (
+                                                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                                        👤 {notification.data.assigned_to} (ID: {notification.data.assigned_to_id})
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            {notification.data.assigned_by && notification.data.assigned_by_id && (
+                                                                                <div className="text-xs text-slate-500">
+                                                                                    Asignado por: <span className="font-medium">{notification.data.assigned_by}</span> (ID: {notification.data.assigned_by_id})
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {!notification.read_at && (
                                                                         <div className="flex items-center gap-2 mt-2">
                                                                             <Button
                                                                                 variant="outline"
@@ -2172,7 +2222,7 @@ export default function Dashboard({
                                                                     )}
                                                                 </div>
 
-                                                                {!notification.read && (
+                                                                {!notification.read_at && (
                                                                     <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
                                                                 )}
                                                             </div>

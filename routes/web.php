@@ -9,8 +9,10 @@ use App\Http\Controllers\SupportController;
 use App\Http\Controllers\TechnicalController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\NinjaOneController;
+use App\Http\Controllers\NotificationController;
 use App\Models\Support;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 
@@ -18,6 +20,27 @@ use Inertia\Inertia;
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('dashboard/mark-instruction-read', [DashboardController::class, 'markInstructionAsRead'])->name('dashboard.mark-instruction-read');
+
+    // Notification routes (web-based)
+    Route::get('/notifications/api', [NotificationController::class, 'apiNotifications']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    
+    // Debug route - quitar en producción
+    Route::get('/debug-user', function() {
+        $user = Auth::user();
+        return response()->json([
+            'authenticated' => Auth::check(),
+            'user' => $user ? [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'roles' => $user->roles,
+            ] : null,
+            'notifications_count' => $user ? $user->notifications()->count() : 0,
+            'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
+        ]);
+    });
 
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
@@ -47,6 +70,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('tickets/{ticket}', [TicketController::class, 'destroy'])->name('tickets.destroy');
     // Nuevas rutas para historial, asignación de técnico y cambio de estado (Kanban)
     Route::post('tickets/{ticket}/assign-technical', [TicketController::class, 'assignTechnical'])->name('tickets.assignTechnical');
+    Route::post('tickets/{ticket}/unassign', [TicketController::class, 'unassignTechnical'])->name('tickets.unassign');
     Route::post('tickets/{ticket}/unassign', [TicketController::class, 'unassignTechnical'])->name('tickets.unassign');
     Route::post('tickets/{ticket}/add-history', [TicketController::class, 'addHistory'])->name('tickets.addHistory');
     Route::post('tickets/{ticket}/add-member-feedback', [TicketController::class, 'addMemberFeedback'])->name('tickets.addMemberFeedback');

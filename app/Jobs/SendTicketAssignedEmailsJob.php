@@ -37,8 +37,8 @@ class SendTicketAssignedEmailsJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            // Cargar relaciones necesarias
-            $this->ticket->load(['user', 'device', 'building']);
+            // Cargar relaciones necesarias (removido 'building' porque no existe esta relación directa)
+            $this->ticket->load(['user', 'device']);
 
             $recipients = collect();
 
