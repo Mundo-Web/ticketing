@@ -10,6 +10,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 class TicketAssignedNotification extends Notification
 {
@@ -78,13 +79,20 @@ class TicketAssignedNotification extends Notification
         $icon = 'user-plus';
         $color = 'green';
 
-        // Verificar si es el técnico asignado (comparar por ID si es un User que corresponde al Technical)
-        $isAssignedTechnical = false;
+        // Debug log para entender qué está pasando
+        Log::info('TicketAssignedNotification toDatabase debug', [
+            'notifiable_id' => $notifiable->id,
+            'notifiable_email' => $notifiable->email,
+            'technical_id' => $this->technical->id,
+            'technical_email' => $this->technical->email,
+            'ticket_user_id' => $this->ticket->user_id,
+            'ticket_code' => $this->ticket->code
+        ]);
+
+        // Verificar si es el técnico asignado (comparar por email)
+        $isAssignedTechnical = ($notifiable->email === $this->technical->email);
         
-        // Verificar si el notifiable es el usuario asociado al técnico asignado
-        if ($notifiable->email === $this->technical->email) {
-            $isAssignedTechnical = true;
-        }
+        Log::info('TicketAssignedNotification: isAssignedTechnical = ' . ($isAssignedTechnical ? 'true' : 'false'));
         
         if ($isAssignedTechnical) {
             // Mensaje para el técnico asignado
@@ -120,6 +128,13 @@ class TicketAssignedNotification extends Notification
             $icon = 'users';
             $color = 'gray';
         }
+
+        Log::info('TicketAssignedNotification: Final message', [
+            'title' => $title,
+            'message' => $message,
+            'icon' => $icon,
+            'color' => $color
+        ]);
 
         return [
             'type' => 'ticket_assigned',

@@ -224,17 +224,17 @@ class NotificationController extends Controller
 
         // Si es técnico, buscar notificaciones dirigidas a técnicos por email
         if (in_array('technical', $userRoles) || in_array('technical-leader', $userRoles)) {
-            // Buscar notificaciones donde el assigned_to_email coincida con el email del usuario
-            // o donde el usuario sea el notifiable directo
+            Log::info('Searching notifications for technical user', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'roles' => $userRoles
+            ]);
+
+            // Para técnicos, solo buscar notificaciones enviadas directamente a ellos
+            // NO usar assigned_to_email porque eso traería notificaciones de otros usuarios
             $notifications = DB::table('notifications')
-                ->where(function($query) use ($user) {
-                    $query->where('notifiable_id', $user->id)
-                          ->where('notifiable_type', 'App\\Models\\User');
-                })
-                ->orWhere(function($query) use ($user) {
-                    // Buscar notificaciones donde este usuario es el técnico asignado
-                    $query->whereRaw("JSON_EXTRACT(data, '$.assigned_to_email') = ?", [$user->email]);
-                })
+                ->where('notifiable_id', $user->id)
+                ->where('notifiable_type', 'App\\Models\\User')
                 ->orderBy('created_at', 'desc')
                 ->limit(20)
                 ->get()
@@ -298,13 +298,8 @@ class NotificationController extends Controller
         // Si es técnico, contar notificaciones no leídas dirigidas a técnicos
         if (in_array('technical', $userRoles) || in_array('technical-leader', $userRoles)) {
             $count = DB::table('notifications')
-                ->where(function($query) use ($user) {
-                    $query->where('notifiable_id', $user->id)
-                          ->where('notifiable_type', 'App\\Models\\User');
-                })
-                ->orWhere(function($query) use ($user) {
-                    $query->whereRaw("JSON_EXTRACT(data, '$.assigned_to_email') = ?", [$user->email]);
-                })
+                ->where('notifiable_id', $user->id)
+                ->where('notifiable_type', 'App\\Models\\User')
                 ->whereNull('read_at')
                 ->count();
 

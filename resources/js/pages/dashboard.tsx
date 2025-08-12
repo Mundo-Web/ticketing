@@ -50,7 +50,7 @@ import {
     CheckCircle, AlertCircle, Home, Activity, BarChart3, Calendar,
     Timer, Download, ExternalLink, RefreshCcw, FileSpreadsheet,
     Bell, Zap, UserPlus, UserCheck, AlertTriangle, X, User, Phone, Mail,
-    Monitor, ChevronLeft, ChevronRight, Laptop, Check,
+    Monitor, ChevronLeft, ChevronRight, Laptop, Check, Settings,
     MessageSquare, Info, AlertOctagon, MapPin, PlayCircle, Eye,
     UserMinus, BarChart, UserCog, CalendarPlus, Plus
 } from 'lucide-react';
@@ -276,16 +276,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/dashboard',
     },
 ];
-
-// Utility function to format dates
-const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-};
 
 // Chart colors
 const CHART_COLORS = [
@@ -2078,174 +2068,227 @@ export default function Dashboard({
                                 {/* Notifications Dropdown */}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="lg" className="gap-4 h-14 px-4 shadow-xl relative">
+                                        <Button 
+                                            variant="outline" 
+                                            size="lg" 
+                                            className="gap-4 h-14 px-4 shadow-xl relative hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                                        >
                                             <Bell className="h-6 w-6" />
                                             {unreadNotifications > 0 && (
-                                                <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center p-0">
-                                                    {unreadNotifications}
+                                                <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs flex items-center justify-center p-0 notification-badge-pulse border-2 border-white shadow-lg">
+                                                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
                                                 </Badge>
                                             )}
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-96 max-h-96 mt-4 " align="end">
-                                        <DropdownMenuLabel className="flex items-center justify-between">
-                                            <span className="text-lg font-semibold">Notifications</span>
-                                            {unreadNotifications > 0 && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={markAllAsRead}
-                                                    className="text-xs"
-                                                >
-                                                    Mark all as read
-                                                </Button>
-                                            )}
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
+                                    <DropdownMenuContent className="w-[420px] max-h-[520px] mt-4 notification-dropdown shadow-2xl border-0" align="end">
+                                        {/* Header con gradiente */}
+                                        <div className=" px-4 py-2 rounded-t-lg">
+                                            <div className="flex items-center justify-between text-primary-foreground">
+                                                <div className="flex items-center gap-2">
+                                                    <Bell className="h-5 w-5" />
+                                                    <span className="text-lg font-bold ">Notifications</span>
+                                                    {unreadNotifications > 0 && (
+                                                        <Badge className="bg-primary/20 text-secondary text-xs px-2 py-1 notification-badge-pulse">
+                                                            {unreadNotifications} new
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                {unreadNotifications > 0 && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={markAllAsRead}
+                                                        className="text-white bg-primary hover:bg-primary text-xs font-medium"
+                                                    >
+                                                        Mark all read
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
 
                                         {notifications.length === 0 ? (
-                                            <div className="p-4 text-center text-slate-500">
-                                                <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                <p className="text-sm">No notifications</p>
+                                            <div className="p-8 text-center">
+                                                <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                                                    <Bell className="h-10 w-10 text-gray-400" />
+                                                </div>
+                                                <h3 className="text-lg font-semibold text-gray-700 mb-2">All caught up!</h3>
+                                                <p className="text-sm text-gray-500">No new notifications at the moment</p>
                                             </div>
                                         ) : (
-                                            <div className="max-h-80 overflow-y-auto flex flex-col gap-4">
-                                                {notifications.map((notification: NotificationItem) => {
-                                                    // Mapear iconos basado en el tipo de notificación
-                                                    const IconComponent = notification.data.icon === 'user-plus' ? UserPlus :
-                                                        notification.data.icon === 'clipboard-check' ? CheckCircle :
-                                                        notification.data.icon === 'user-check' ? UserCheck :
-                                                        notification.data.icon === 'users' ? Users :
-                                                        notification.data.icon === 'check-circle' ? CheckCircle :
-                                                        notification.data.icon === 'alert-circle' ? AlertCircle :
-                                                        notification.data.icon === 'info' ? Info : Bell;
-                                                    
-                                                    // Formatear tiempo relativo
-                                                    const timeAgo = new Date(notification.created_at).toLocaleString('es-ES', {
-                                                        day: '2-digit',
-                                                        month: '2-digit',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit'
-                                                    });
+                                            <div className="max-h-[400px] overflow-y-auto notification-scrollbar">
+                                                <div className="p-2 space-y-1">
+                                                    {notifications.map((notification: NotificationItem) => {
+                                                        // Mapear iconos basado en el tipo de notificación
+                                                        const IconComponent = notification.data.icon === 'user-plus' ? UserPlus :
+                                                            notification.data.icon === 'clipboard-check' ? CheckCircle :
+                                                            notification.data.icon === 'user-check' ? UserCheck :
+                                                            notification.data.icon === 'users' ? Users :
+                                                            notification.data.icon === 'check-circle' ? CheckCircle :
+                                                            notification.data.icon === 'alert-circle' ? AlertCircle :
+                                                            notification.data.icon === 'info' ? Info : Bell;
+                                                        
+                                                        // Formatear tiempo relativo más elegante
+                                                        const timeAgo = (() => {
+                                                            const now = new Date();
+                                                            const created = new Date(notification.created_at);
+                                                            const diffMs = now.getTime() - created.getTime();
+                                                            const diffMins = Math.floor(diffMs / 60000);
+                                                            const diffHours = Math.floor(diffMs / 3600000);
+                                                            const diffDays = Math.floor(diffMs / 86400000);
 
-                                                    // Determinar color basado en el tipo
-                                                    const colorClass = notification.data.color === 'green' ? 'text-green-500 bg-green-50' :
-                                                        notification.data.color === 'blue' ? 'text-blue-500 bg-blue-50' :
-                                                        notification.data.color === 'red' ? 'text-red-500 bg-red-50' :
-                                                        notification.data.color === 'gray' ? 'text-gray-500 bg-gray-50' :
-                                                        'text-gray-500 bg-gray-50';
+                                                            if (diffMins < 1) return 'Just now';
+                                                            if (diffMins < 60) return `${diffMins}m ago`;
+                                                            if (diffHours < 24) return `${diffHours}h ago`;
+                                                            if (diffDays < 7) return `${diffDays}d ago`;
+                                                            return created.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                                                        })();
 
-                                                    return (
-                                                        <DropdownMenuItem
-                                                            key={notification.id}
-                                                            className={`p-0 focus:bg-slate-50 dark:!text-slate-100 ${!notification.read_at ? 'bg-blue-50/50 dark:bg-secondary/10' : ''} cursor-pointer group`}
-                                                            onClick={() => {
-                                                                // Marcar como leída y navegar al ticket si es una asignación
-                                                                if (!notification.read_at) {
-                                                                    markAsRead(notification.id);
-                                                                }
-                                                                if (notification.data.action_url) {
-                                                                    window.open(notification.data.action_url, '_blank');
-                                                                }
-                                                            }}
-                                                        >
-                                                            <div className="w-full p-4 flex items-start gap-3 dark:!text-slate-100">
-                                                                <div className={`p-2 rounded-lg ${colorClass} flex-shrink-0`}>
-                                                                    <IconComponent className="h-4 w-4" />
-                                                                </div>
+                                                        // Determinar colores más modernos y elegantes
+                                                        const getColorScheme = () => {
+                                                            switch (notification.data.color) {
+                                                                case 'green': return {
+                                                                    icon: 'text-emerald-600 bg-gradient-to-r from-emerald-50 to-green-50',
+                                                                    border: 'border-emerald-200',
+                                                                    accent: 'text-emerald-600'
+                                                                };
+                                                                case 'blue': return {
+                                                                    icon: 'text-blue-600 bg-gradient-to-r from-blue-50 to-cyan-50',
+                                                                    border: 'border-blue-200',
+                                                                    accent: 'text-blue-600'
+                                                                };
+                                                                case 'red': return {
+                                                                    icon: 'text-red-600 bg-gradient-to-r from-red-50 to-pink-50',
+                                                                    border: 'border-red-200',
+                                                                    accent: 'text-red-600'
+                                                                };
+                                                                case 'purple': return {
+                                                                    icon: 'text-purple-600 bg-gradient-to-r from-purple-50 to-violet-50',
+                                                                    border: 'border-purple-200',
+                                                                    accent: 'text-purple-600'
+                                                                };
+                                                                default: return {
+                                                                    icon: 'text-gray-600 bg-gradient-to-r from-gray-50 to-slate-50',
+                                                                    border: 'border-gray-200',
+                                                                    accent: 'text-gray-600'
+                                                                };
+                                                            }
+                                                        };
 
-                                                                <div className="flex-1 space-y-1 dark:!text-slate-100">
-                                                                    <div className="flex items-center justify-between">
-                                                                        <h4 className={`text-sm font-semibold dark:!text-slate-100 ${!notification.read_at ? 'text-slate-900' : 'text-slate-700'}`}>
-                                                                            {notification.data.title}
-                                                                        </h4>
-                                                                        <div className="flex items-center gap-1 dark:!text-slate-200">
-                                                                            <span className="text-xs text-slate-500">
-                                                                                {timeAgo}
-                                                                            </span>
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    clearNotification(notification.id);
-                                                                                }}
-                                                                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
-                                                                            >
-                                                                                <X className="h-3 w-3" />
-                                                                            </Button>
-                                                                        </div>
+                                                        const colorScheme = getColorScheme();
+
+                                                        return (
+                                                            <DropdownMenuItem
+                                                                key={notification.id}
+                                                                className={`p-0 cursor-pointer group transition-all duration-200 rounded-xl overflow-hidden notification-item ${
+                                                                    !notification.read_at 
+                                                                        ? 'bg-gradient-to-r from-blue-50/80 to-purple-50/80 border border-blue-200/50 shadow-sm notification-unread' 
+                                                                        : 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-slate-50'
+                                                                }`}
+                                                                onClick={() => {
+                                                                    if (!notification.read_at) {
+                                                                        markAsRead(notification.id);
+                                                                    }
+                                                                    if (notification.data.action_url) {
+                                                                        window.open(notification.data.action_url, '_blank');
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <div className="w-full p-4 flex items-start gap-4">
+                                                                    {/* Icon with gradient background */}
+                                                                    <div className={`relative p-3 rounded-xl ${colorScheme.icon} shadow-sm group-hover:shadow-md transition-shadow`}>
+                                                                        <IconComponent className="h-5 w-5" />
+                                                                        {!notification.read_at && (
+                                                                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+                                                                        )}
                                                                     </div>
 
-                                                                    <p className={`text-sm dark:!text-slate-100 ${!notification.read_at ? 'text-slate-700' : 'text-slate-600'}`}>
-                                                                        {notification.data.message}
-                                                                    </p>
+                                                                    <div className="flex-1 space-y-2 min-w-0">
+                                                                        {/* Header */}
+                                                                        <div className="flex items-start justify-between gap-2">
+                                                                            <h4 className={`text-sm font-bold leading-tight ${
+                                                                                !notification.read_at ? 'text-gray-900' : 'text-gray-700'
+                                                                            }`}>
+                                                                                {notification.data.title}
+                                                                            </h4>
+                                                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                                                <span className="text-xs text-gray-500 font-medium">
+                                                                                    {timeAgo}
+                                                                                </span>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        clearNotification(notification.id);
+                                                                                    }}
+                                                                                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600 transition-all"
+                                                                                >
+                                                                                    <X className="h-3 w-3" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        </div>
 
-                                                                    {/* Información adicional para tickets asignados */}
-                                                                    {notification.data.type === 'ticket_assigned' && (
-                                                                        <div className="mt-2 space-y-2">
-                                                                            <div className="flex flex-wrap gap-2">
-                                                                                {notification.data.ticket_code && (
-                                                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                                        📋 {notification.data.ticket_code}
-                                                                                    </span>
-                                                                                )}
-                                                                                {notification.data.assigned_to && notification.data.assigned_to_id && (
-                                                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                                        👤 {notification.data.assigned_to} (ID: {notification.data.assigned_to_id})
-                                                                                    </span>
+                                                                        {/* Message */}
+                                                                        <p className={`text-sm leading-relaxed ${
+                                                                            !notification.read_at ? 'text-gray-800' : 'text-gray-600'
+                                                                        }`}>
+                                                                            {notification.data.message}
+                                                                        </p>
+
+                                                                        {/* Enhanced ticket info */}
+                                                                        {notification.data.type === 'ticket_assigned' && (
+                                                                            <div className="mt-3 space-y-2">
+                                                                                <div className="flex flex-wrap gap-2">
+                                                                                    {notification.data.ticket_code && (
+                                                                                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-200">
+                                                                                            <span className="mr-1">🎫</span>
+                                                                                            {notification.data.ticket_code}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    {notification.data.assigned_to && notification.data.assigned_to_id && (
+                                                                                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200">
+                                                                                            <span className="mr-1">👨‍💼</span>
+                                                                                            {notification.data.assigned_to}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                {notification.data.assigned_by && notification.data.assigned_by_id && (
+                                                                                    <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2 border border-gray-200">
+                                                                                        <span className="font-medium text-gray-700">Assigned by:</span> {notification.data.assigned_by} 
+                                                                                        <span className="ml-1 text-gray-400">(ID: {notification.data.assigned_by_id})</span>
+                                                                                    </div>
                                                                                 )}
                                                                             </div>
-                                                                            {notification.data.assigned_by && notification.data.assigned_by_id && (
-                                                                                <div className="text-xs text-slate-500">
-                                                                                    Asignado por: <span className="font-medium">{notification.data.assigned_by}</span> (ID: {notification.data.assigned_by_id})
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
+                                                                        )}
 
-                                                                    {!notification.read_at && (
-                                                                        <div className="flex items-center gap-2 mt-2">
-                                                                            <Button
-                                                                                variant="outline"
-                                                                                size="sm"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    markAsRead(notification.id);
-                                                                                }}
-                                                                                className="h-7 px-3 text-xs hover:text-accent-foreground"
-                                                                            >
-                                                                                <Check className="h-3 w-3 mr-1" />
-                                                                                Mark as read
-                                                                            </Button>
-                                                                        </div>
-                                                                    )}
+                                                                        {/* Action buttons */}
+                                                                        {!notification.read_at && (
+                                                                            <div className="flex items-center gap-2 mt-3 pt-2 border-t border-gray-100">
+                                                                                <Button
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        markAsRead(notification.id);
+                                                                                    }}
+                                                                                    className="h-8 px-3 text-xs font-medium hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
+                                                                                >
+                                                                                    <Check className="h-3 w-3 mr-1.5" />
+                                                                                    Mark read
+                                                                                </Button>
+                                                                               
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-
-                                                                {!notification.read_at && (
-                                                                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
-                                                                )}
-                                                            </div>
-                                                        </DropdownMenuItem>
-                                                    );
-                                                })}
+                                                            </DropdownMenuItem>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         )}
 
-                                        <DropdownMenuSeparator />
-                                        {/*   <DropdownMenuItem className="p-0">
-                                            <Button 
-                                                variant="ghost" 
-                                                className="w-full justify-center py-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                onClick={() => {
-                                                    // Here you could navigate to a full notifications page
-                                                    console.log('View all notifications');
-                                                }}
-                                            >
-                                                <Settings className="h-4 w-4 mr-2" />
-                                                Notification Settings
-                                            </Button>
-                                        </DropdownMenuItem> */}
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>

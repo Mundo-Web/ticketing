@@ -37,19 +37,32 @@ class SendTicketAssignedEmailsJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            // Cargar relaciones necesarias (removido 'building' porque no existe esta relación directa)
+            // Cargar relaciones necesarias
             $this->ticket->load(['user', 'device']);
 
             $recipients = collect();
 
-            // 1. Notificar al técnico asignado
-            if ($this->assignee && $this->assignee->email_notifications) {
-                $recipients->push($this->assignee);
+            // 1. Notificar al técnico asignado - buscar el User correspondiente
+            if ($this->assignee) {
+                // Buscar el usuario que corresponde al técnico por email
+                $technicalUser = User::where('email', $this->assignee->email)->first();
+                if ($technicalUser && ($technicalUser->email_notifications ?? true)) {
+                    $recipients->push($technicalUser);
+                    Log::info('Adding technical user to recipients', [
+                        'technical_id' => $this->assignee->id,
+                        'user_id' => $technicalUser->id,
+                        'email' => $technicalUser->email
+                    ]);
+                }
             }
 
             // 2. Notificar al usuario que creó el ticket
-            if ($this->ticket->user && $this->ticket->user->email_notifications) {
+            if ($this->ticket->user && ($this->ticket->user->email_notifications ?? true)) {
                 $recipients->push($this->ticket->user);
+                Log::info('Adding ticket creator to recipients', [
+                    'user_id' => $this->ticket->user->id,
+                    'email' => $this->ticket->user->email
+                ]);
             }
 
             // 3. Notificar a admins
@@ -62,6 +75,15 @@ class SendTicketAssignedEmailsJob implements ShouldQueue
             // Eliminar duplicados
             $recipients = $recipients->unique('email');
 
+            Log::info('Final recipients for ticket assignment', [
+                'ticket_id' => $this->ticket->id,
+                'assignee_id' => $this->assignee->id,
+                'recipients_count' => $recipients->count(),
+                'recipients' => $recipients->map(function($r) {
+                    return ['id' => $r->id, 'email' => $r->email];
+                })->toArray()
+            ]);
+
             // Enviar notificaciones
             foreach ($recipients as $user) {
                 try {
@@ -70,6 +92,11 @@ class SendTicketAssignedEmailsJob implements ShouldQueue
                         $this->assignee, 
                         $this->assigner
                     ));
+                    Log::info("Notification sent to user", [
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                        'ticket_id' => $this->ticket->id
+                    ]);
                 } catch (\Exception $e) {
                     Log::error("Error sending assignment notification to user {$user->id}: " . $e->getMessage());
                 }
