@@ -43,6 +43,7 @@ import {
     ThumbsUp,
     PhoneCall,
     Monitor as MonitorIcon,
+    MessageCircle,
     RefreshCw,
     Calendar,
     Award,
@@ -448,6 +449,9 @@ export default function TicketsIndex({
         currentTechnicalId,
         userId: auth.user?.id
     });
+
+    // Estado para mostrar/ocultar contacto del cliente (para técnicos)
+    const [showClientContact, setShowClientContact] = useState(!isTechnical || isSuperAdmin || isTechnicalDefault);
 
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -2654,6 +2658,17 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                             <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                                                                 <User className="w-4 h-4 text-secondary" />
                                                                 Created by
+                                                                {/* Botón Ver contacto para técnicos */}
+                                                                {(isTechnical && !isSuperAdmin && !isTechnicalDefault) && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className="ml-auto h-7 px-3 text-xs"
+                                                                        onClick={() => setShowClientContact(!showClientContact)}
+                                                                    >
+                                                                        {showClientContact ? 'Ocultar contacto' : 'Ver contacto'}
+                                                                    </Button>
+                                                                )}
                                                             </h4>
                                                             <div className="flex items-center justify-between p-3 bg-secondary/5 rounded-lg border border-secondary/20">
                                                                 <div className="flex items-center gap-3">
@@ -2667,26 +2682,41 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         </p>
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    {selectedTicket.user.tenant.email && (
-                                                                        <a
-                                                                            href={`mailto:${selectedTicket.user.tenant.email}`}
-                                                                            className="p-2 bg-secondary/10 hover:bg-secondary/20 rounded-full transition-colors"
-                                                                            title={`Send email to ${selectedTicket.user.tenant.name}`}
-                                                                        >
-                                                                            <Mail className="w-4 h-4 text-secondary" />
-                                                                        </a>
-                                                                    )}
-                                                                    {selectedTicket.user.tenant.phone && (
-                                                                        <a
-                                                                            href={`tel:${selectedTicket.user.tenant.phone}`}
-                                                                            className="p-2 bg-secondary/10 hover:bg-secondary/20 rounded-full transition-colors"
-                                                                            title={`Call ${selectedTicket.user.tenant.name}`}
-                                                                        >
-                                                                            <Phone className="w-4 h-4 text-secondary" />
-                                                                        </a>
-                                                                    )}
-                                                                </div>
+                                                                {/* Información de contacto - condicionalmente visible */}
+                                                                {showClientContact && (
+                                                                    <div className="flex items-center gap-2">
+                                                                        {selectedTicket.user.tenant.email && (
+                                                                            <a
+                                                                                href={`mailto:${selectedTicket.user.tenant.email}`}
+                                                                                className="p-2 bg-secondary/10 hover:bg-secondary/20 rounded-full transition-colors"
+                                                                                title={`Send email to ${selectedTicket.user.tenant.name}`}
+                                                                            >
+                                                                                <Mail className="w-4 h-4 text-secondary" />
+                                                                            </a>
+                                                                        )}
+                                                                        {selectedTicket.user.tenant.phone && (
+                                                                            <>
+                                                                                <a
+                                                                                    href={`tel:${selectedTicket.user.tenant.phone}`}
+                                                                                    className="p-2 bg-secondary/10 hover:bg-secondary/20 rounded-full transition-colors"
+                                                                                    title={`Call ${selectedTicket.user.tenant.name}`}
+                                                                                >
+                                                                                    <Phone className="w-4 h-4 text-secondary" />
+                                                                                </a>
+                                                                                {/* Botón WhatsApp */}
+                                                                                <a
+                                                                                    href={`https://wa.me/${selectedTicket.user.tenant.phone.replace(/\D/g, '')}`}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="p-2 bg-green-100 hover:bg-green-200 rounded-full transition-colors"
+                                                                                    title={`Send WhatsApp to ${selectedTicket.user.tenant.name}`}
+                                                                                >
+                                                                                    <MessageCircle className="w-4 h-4 text-green-600" />
+                                                                                </a>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     )}
@@ -2890,7 +2920,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 rounded-lg text-sm font-medium transition-colors border border-blue-200 hover:border-blue-300"
                                                                     >
                                                                         <Calendar className="w-4 h-4" />
-                                                                        Start Visit
+                                                                        Create Appoiment
                                                                     </button>
                                                                 )}
 

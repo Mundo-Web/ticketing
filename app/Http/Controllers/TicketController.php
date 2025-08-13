@@ -1161,4 +1161,100 @@ class TicketController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * API endpoint for fetching technical-specific tickets
+     * Used by technical users for their specific metrics
+     */
+    public function apiTechnicalTickets(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'User not authenticated'], 401);
+            }
+
+            if (!$user->hasRole('technical')) {
+                return response()->json(['error' => 'Access denied. Technical role required.'], 403);
+            }
+
+            $type = $request->get('type'); // 'today' or 'urgent'
+            
+            // Get technical user
+            $technical = Technical::where('email', $user->email)->first();
+            if (!$technical) {
+                return response()->json(['error' => 'Technical profile not found'], 404);
+            }
+
+            // Base query for technical's assigned tickets
+            $ticketsQuery = Ticket::with([
+                'technical',
+                'device',
+                'device.name_device',
+                'device.brand',
+                'device.model', 
+                'device.system',
+                'histories.technical',
+                'user.tenant.apartment.building',
+                'createdByOwner',
+                'createdByDoorman',
+                'createdByAdmin',
+            ]);
+
+            // For regular technicals, only show assigned tickets
+            if (!$technical->is_default) {
+                $ticketsQuery->where('technical_id', $technical->id);
+            }
+
+            // Apply type-specific filters
+            if ($type === 'today') {
+                // Today's assigned tickets - show active tickets for the technical
+                $ticketsQuery->whereIn('status', ['open', 'in_progress']);
+                
+                // If not default technical, only show their assigned tickets
+                if (!$technical->is_default) {
+                    // For regular technicals, show their assigned tickets that are active
+                    $ticketsQuery->where('technical_id', $technical->id);
+                } else {
+                    // For default technicals, show recent unassigned or their assigned tickets
+                    $ticketsQuery->where(function($query) use ($technical) {
+                        $query->where('technical_id', $technical->id)
+                              ->orWhereNull('technical_id');
+                    });
+                }
+            } elseif ($type === 'urgent') {
+                // Urgent tickets - tickets assigned today or old unresolved tickets
+                $ticketsQuery->where(function($query) {
+                    $query->whereDate('created_at', today()) // Tickets created today
+                          ->orWhere(function($subQuery) {
+                              // Also include tickets older than 24 hours without resolution
+                              $subQuery->whereIn('status', ['open', 'in_progress'])
+                                      ->where('created_at', '<=', now()->subHours(24));
+                          })
+                          ->orWhere('category', 'like', '%Emergency%') // Emergency categories
+                          ->orWhere('category', 'like', '%Critical%')  // Critical categories
+                          ->orWhere('category', 'like', '%Urgent%');   // Urgent categories
+                })->whereIn('status', ['open', 'in_progress']);
+            }
+
+            // Get tickets
+            $tickets = $ticketsQuery->latest()->get();
+
+            return response()->json([
+                'tickets' => $tickets,
+                'type' => $type,
+                'technical_id' => $technical->id,
+                'is_default_technical' => $technical->is_default,
+                'count' => $tickets->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('API Technical Tickets Error: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Internal server error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -4,7 +4,7 @@ import { Head, usePage, router } from '@inertiajs/react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { Search as SearchIcon } from 'lucide-react';
+import { Search as SearchIcon, Plus } from 'lucide-react';
 
 // Extended User interface for dashboard
 interface ExtendedUser extends UserType {
@@ -50,9 +50,9 @@ import {
     CheckCircle, AlertCircle, Home, Activity, BarChart3, Calendar,
     Timer, Download, ExternalLink, RefreshCcw, FileSpreadsheet,
     Bell, Zap, UserPlus, UserCheck, AlertTriangle, X, User, Phone, Mail,
-    Monitor, ChevronLeft, ChevronRight, Laptop, Check, Settings,
+    Monitor, ChevronLeft, ChevronRight, Laptop, Check,
     MessageSquare, Info, AlertOctagon, MapPin, PlayCircle, Eye,
-    UserMinus, BarChart, UserCog, CalendarPlus, Plus
+    UserMinus, BarChart, UserCog, CalendarPlus
 } from 'lucide-react';
 
 // Charts
@@ -161,6 +161,13 @@ interface DashboardProps extends PageProps {
             tenants: number;
             devices: number;
             technicals: number;
+        };
+        technical: {
+            today_tickets: number;
+            upcoming_visits: number;
+            urgent_tickets: number;
+            is_technical: boolean;
+            is_default: boolean;
         };
     }; charts: {
         ticketsByStatus: Record<string, number>;
@@ -2027,7 +2034,7 @@ export default function Dashboard({
                                                                             </div>
                                                                             <div className="flex items-center gap-1">
                                                                                 {showAsTodayAppointment && (
-                                                                                    <Badge className="text-xs px-2 py-0.5 bg-red-500 text-white animate-pulse">
+                                                                                    <Badge className="text-xs px-2 py-0.5 bg-red-500 text-white ">
                                                                                         {isYesterdayLate ? 'Urgent!' : 'Today!'}
                                                                                     </Badge>
                                                                                 )}
@@ -2309,89 +2316,108 @@ export default function Dashboard({
                                     </p>
                                 </div>
 
-                                <div className="grid gap-4 max-w-4xl mx-auto">
-                                    {currentInstructions
-                                        // TEMPORAL: Comentar filtro para debugging
-                                        // .filter(instruction => !instruction.read)
-                                        .slice(0, 5) // Mostrar mÃ¡ximo 5 instrucciones
-                                        .map((instruction, index) => {
-                                            const priorityColors = {
-                                                low: 'from-blue-500/10 to-blue-600/5 border-blue-200 text-blue-700',
-                                                normal: 'from-gray-500/10 to-gray-600/5 border-gray-200 text-gray-700',
-                                                high: 'from-orange-500/10 to-orange-600/5 border-orange-200 text-orange-700',
-                                                urgent: 'from-red-500/10 to-red-600/5 border-red-200 text-red-700'
-                                            };
+                                {/* Horizontal scrollable container for instructions */}
+                                <div className="relative">
+                                    <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+                                        {currentInstructions
+                                            // TEMPORAL: Comentar filtro para debugging
+                                            // .filter(instruction => !instruction.read)
+                                            .slice(0, 5) // Mostrar máximo 5 instrucciones
+                                            .map((instruction, index) => {
+                                                const priorityColors = {
+                                                    low: 'from-blue-500/10 to-blue-600/5 border-blue-200 text-blue-700',
+                                                    normal: 'from-gray-500/10 to-gray-600/5 border-gray-200 text-gray-700',
+                                                    high: 'from-orange-500/10 to-orange-600/5 border-orange-200 text-orange-700',
+                                                    urgent: 'from-red-500/10 to-red-600/5 border-red-200 text-red-700'
+                                                };
 
-                                            const priorityIcons = {
-                                                low: Info,
-                                                normal: MessageSquare,
-                                                high: AlertTriangle,
-                                                urgent: AlertOctagon
-                                            };
+                                                const priorityIcons = {
+                                                    low: Info,
+                                                    normal: MessageSquare,
+                                                    high: AlertTriangle,
+                                                    urgent: AlertOctagon
+                                                };
 
-                                            const PriorityIcon = priorityIcons[instruction.priority];
+                                                const PriorityIcon = priorityIcons[instruction.priority];
 
-                                            return (
-                                                <Card 
-                                                    key={index} 
-                                                    className={`transition-all duration-300 hover:shadow-lg border-l-4 bg-gradient-to-r ${priorityColors[instruction.priority]}`}
-                                                >
-                                                    <CardContent className="p-6">
-                                                        <div className="flex items-start justify-between gap-4">
-                                                            <div className="flex items-start gap-4 flex-1">
-                                                                <div className={`p-3 rounded-xl flex-shrink-0 ${
-                                                                    instruction.priority === 'urgent' ? 'bg-red-100 animate-pulse' : 'bg-white/50'
-                                                                }`}>
-                                                                    <PriorityIcon className={`h-6 w-6 ${
-                                                                        instruction.priority === 'urgent' ? 'text-red-600' : 'text-current'
-                                                                    }`} />
-                                                                </div>
-                                                                
-                                                                <div className="flex-1 space-y-3">
+                                                return (
+                                                    <Card 
+                                                        key={index} 
+                                                        className={`flex-shrink-0 w-80 transition-all duration-300 hover:shadow-lg border-l-4 bg-gradient-to-r ${priorityColors[instruction.priority]} snap-start`}
+                                                    >
+                                                        <CardContent className="p-5">
+                                                            <div className="space-y-4">
+                                                                {/* Header with priority and action */}
+                                                                <div className="flex items-start justify-between">
                                                                     <div className="flex items-center gap-3">
+                                                                        <div className={`p-2 rounded-lg flex-shrink-0 ${
+                                                                            instruction.priority === 'urgent' ? 'bg-red-100' : 'bg-white/50'
+                                                                        }`}>
+                                                                            <PriorityIcon className={`h-4 w-4 ${
+                                                                                instruction.priority === 'urgent' ? 'text-red-600' : 'text-current'
+                                                                            }`} />
+                                                                        </div>
                                                                         <Badge 
                                                                             variant="outline" 
                                                                             className={`font-semibold uppercase text-xs ${
                                                                                 instruction.priority === 'urgent' ? 'border-red-500 text-red-700 bg-red-50' : ''
                                                                             }`}
                                                                         >
-                                                                            {instruction.priority} Priority
+                                                                            {instruction.priority}
                                                                         </Badge>
-                                                                        <span className="text-sm text-muted-foreground">
-                                                                            From: <strong>{instruction.from}</strong>
-                                                                        </span>
-                                                                        <span className="text-xs text-muted-foreground">
-                                                                            {new Date(instruction.sent_at).toLocaleDateString('en-US', {
-                                                                                month: 'short',
-                                                                                day: 'numeric',
-                                                                                hour: '2-digit',
-                                                                                minute: '2-digit'
-                                                                            })}
-                                                                        </span>
                                                                     </div>
-                                                                    
-                                                                    <p className="text-foreground leading-relaxed">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => markInstructionAsRead(index)}
+                                                                        className="h-8 w-8 p-0 hover:bg-white/20"
+                                                                    >
+                                                                        <Check className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+
+                                                                {/* From and date */}
+                                                                <div className="flex items-center justify-between text-sm">
+                                                                    <span className="text-muted-foreground">
+                                                                        From: <strong className="text-foreground">{instruction.from}</strong>
+                                                                    </span>
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        {new Date(instruction.sent_at).toLocaleDateString('en-US', {
+                                                                            month: 'short',
+                                                                            day: 'numeric',
+                                                                            hour: '2-digit',
+                                                                            minute: '2-digit'
+                                                                        })}
+                                                                    </span>
+                                                                </div>
+                                                                
+                                                                {/* Instruction text */}
+                                                                <div className="max-h-32 overflow-y-auto custom-scrollbar">
+                                                                    <p className="text-foreground leading-relaxed text-sm">
                                                                         {instruction.instruction}
                                                                     </p>
                                                                 </div>
                                                             </div>
-                                                            
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => markInstructionAsRead(index)}
-                                                                className="flex-shrink-0"
-                                                            >
-                                                                <Check className="h-4 w-4 mr-2" />
-                                                                Mark as Read
-                                                            </Button>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            );
-                                        })}
+                                                        </CardContent>
+                                                    </Card>
+                                                );
+                                            })}
+                                    </div>
+                                    
+                                    {/* Scroll indicators */}
+                                    {currentInstructions.length > 1 && (
+                                        <div className="flex justify-center mt-4 gap-2">
+                                            {currentInstructions.slice(0, 5).map((_, index) => (
+                                                <div 
+                                                    key={index} 
+                                                    className="w-2 h-2 rounded-full bg-muted-foreground/30"
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 
+                                {/* All caught up message */}
                                 {currentInstructions.filter(i => !i.read).length === 0 && (
                                     <Card className="max-w-md mx-auto">
                                         <CardContent className="p-8 text-center">
@@ -2452,24 +2478,15 @@ export default function Dashboard({
                                             </div>
                                         </CardContent>
                                     </Card>
-                                )}                                {/* Card 2: Critical Tickets - Enhanced for technicians */}
-                                <Card className={`group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-destructive/10 via-background to-destructive/5 overflow-hidden cursor-pointer ${
-                                    isTechnical && !isSuperAdmin && metrics.tickets.open > 0 
-                                        ? "ring-2 ring-red-500 ring-opacity-50 animate-pulse" 
-                                        : ""
-                                }`}
+                                )}                                {/* Card 2: Critical Tickets - Clean design like In Progress */}
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-destructive/10 via-background to-destructive/5 overflow-hidden cursor-pointer animate-pulse duration-1000"
                                     onClick={() => fetchTicketsByStatus('open')}>
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="p-3 rounded-xl bg-destructive/20">
                                                 <AlertCircle className="h-6 w-6 text-destructive" />
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                {isTechnical && !isSuperAdmin && metrics.tickets.open > 0 && (
-                                                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                                                )}
-                                                <SearchIcon className="h-4 w-4 text-destructive/60 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
+                                            <SearchIcon className="h-4 w-4 text-destructive/60 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-destructive uppercase tracking-wider">
@@ -2477,14 +2494,11 @@ export default function Dashboard({
                                             </p>
                                             <p className="text-3xl font-bold text-foreground">{metrics.tickets.open}</p>
                                             <div className="flex items-center gap-2">
-                                                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                                                    isTechnical && !isSuperAdmin && metrics.tickets.open > 0
-                                                        ? "bg-red-500 text-white animate-pulse"
-                                                        : "bg-destructive/20 text-destructive"
-                                                }`}>                                                    {isTechnical && !isSuperAdmin ? "URGENT!" : "Priority"}
+                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-destructive/20 text-destructive">
+                                                    {isTechnical && !isSuperAdmin ? "Active" : "Priority"}
                                                 </span>
                                                 <span className="text-xs text-muted-foreground">
-                                                    {isTechnical && !isSuperAdmin ? "Requires immediate attention" : "Immediate attention"}
+                                                    {isTechnical && !isSuperAdmin ? "Your assignments" : "Immediate attention"}
                                                 </span>
                                             </div>
                                         </div>
@@ -2543,6 +2557,35 @@ export default function Dashboard({
                                         </div>
                                     </CardContent>
                                 </Card>
+
+                                {/* Card 4: Upcoming Appointments - Only for technicians */}
+                                {(isTechnical && !isSuperAdmin && !isDefaultTechnical) && (
+                                    <Card 
+                                        className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden cursor-pointer"
+                                        onClick={() => window.open('/appointments', '_blank')}
+                                    >
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-green-100">
+                                                    <CalendarPlus className="h-6 w-6 text-green-600" />
+                                                </div>
+                                                <ExternalLink className="h-4 w-4 text-green-600/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">
+                                                    Upcoming Appointments
+                                                </p>
+                                                <p className="text-3xl font-bold text-foreground">{metrics.technical.upcoming_visits}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
+                                                        Scheduled
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">go to calendar</span>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
                             </div>
 
                             {/* Additional metrics cards - Second row - Hide for regular technicians */}
@@ -2551,9 +2594,10 @@ export default function Dashboard({
                                 {/* Card 5: Unassigned (only visible for admins and default technicians) */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-3/10 via-background to-chart-3/5 overflow-hidden">
                                     <CardContent className="p-6">
-                                        <div className="flex items-center justify-between mb-4">                                            <div className="p-3 rounded-xl bg-orange-100">
-                                            <AlertTriangle className="h-6 w-6 text-orange-600" />
-                                        </div>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-3 rounded-xl bg-orange-100">
+                                                <AlertTriangle className="h-6 w-6 text-orange-600" />
+                                            </div>
                                             {canAssignTickets && (
                                                 <Button
                                                     size="sm"
@@ -2728,135 +2772,168 @@ export default function Dashboard({
 
                         {/* CHIEF TECH (TECHNICAL LEADER) SPECIFIC DASHBOARD SECTION */}
                         {isChiefTech && (
-                            <div className="space-y-8">
-                                <div className="text-center space-y-4">
-                                    <h2 className="text-4xl font-bold text-foreground">
-                                        Technical Team Dashboard
+                            <div className="space-y-12">
+                                <div className="text-center space-y-6">
+                                    <div className="inline-flex items-center gap-3 px-6 py-3 bg-primary/10 rounded-full">
+                                        <Users className="h-6 w-6 text-primary" />
+                                        <span className="text-sm font-semibold text-primary uppercase tracking-wider">
+                                            Technical Leader Dashboard
+                                        </span>
+                                    </div>
+                                    <h2 className="text-4xl font-bold bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+                                        Team Management Hub
                                     </h2>
-                                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                                        Technical team management and performance overview
+                                    <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                                        Comprehensive oversight of technical team performance, ticket distribution, and operational efficiency
                                     </p>
                                 </div>
 
-                                {/* Team Performance Overview */}
+                                {/* Enhanced Team Performance Overview */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {/* Total Team Tickets */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-background to-blue-100 overflow-hidden">
-                                        <CardContent className="p-6">
+                                    <Card className="group relative transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 border-0 bg-gradient-to-br from-primary/5 via-background to-primary/10 overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                        <CardContent className="relative p-6">
                                             <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-blue-100">
-                                                    <Users className="h-6 w-6 text-blue-600" />
+                                                <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/30 shadow-lg">
+                                                    <Users className="h-6 w-6 text-primary" />
                                                 </div>
                                                 <ExternalLink
-                                                    className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="h-4 w-4 text-primary/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 hover:text-primary"
                                                     onClick={() => window.open('/tickets', '_blank')}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">
-                                                    Team Tickets
+                                            <div className="space-y-3">
+                                                <p className="text-xs font-bold text-primary uppercase tracking-widest">
+                                                    Total Team Tickets
                                                 </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.total}</p>
-                                                <p className="text-xs text-muted-foreground">All assigned to technical team</p>
+                                                <p className="text-3xl font-black text-foreground">{metrics.tickets.total}</p>
+                                                <p className="text-xs text-muted-foreground font-medium">All technical team assignments</p>
                                             </div>
                                         </CardContent>
                                     </Card>
 
-                                    {/* Assigned Tickets */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-background to-blue-100 overflow-hidden">
-                                        <CardContent className="p-6">
+                                    {/* My Assigned Tickets */}
+                                    <Card className="group relative transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 border-0 bg-gradient-to-br from-blue-50 via-background to-blue-100 overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                        <CardContent className="relative p-6">
                                             <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-blue-100">
-                                                    <User className="h-6 w-6 text-blue-600" />
+                                                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-200 to-blue-300 shadow-lg">
+                                                    <User className="h-6 w-6 text-blue-700" />
                                                 </div>
                                                 <ExternalLink
-                                                    className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 hover:text-blue-700"
                                                     onClick={() => window.open('/tickets?assigned=me', '_blank')}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">
-                                                    Assigned Tickets
+                                            <div className="space-y-3">
+                                                <p className="text-xs font-bold text-blue-700 uppercase tracking-widest">
+                                                    My Assigned
                                                 </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.open || 0}</p>
-                                                <p className="text-xs text-muted-foreground">Tickets assigned to me</p>
+                                                <p className="text-3xl font-black text-foreground">{metrics.tickets.open || 0}</p>
+                                                <p className="text-xs text-muted-foreground font-medium">Personal workload</p>
                                             </div>
                                         </CardContent>
                                     </Card>
 
-                                    {/* Unassigned Tickets */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-orange-50 via-background to-orange-100 overflow-hidden">
-                                        <CardContent className="p-6">
+                                    {/* Unassigned Tickets - Critical */}
+                                    <Card className="group relative transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 border-0 bg-gradient-to-br from-orange-50 via-background to-orange-100 overflow-hidden animate-pulse">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-orange-100/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                        <CardContent className="relative p-6">
                                             <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-orange-100">
-                                                    <UserMinus className="h-6 w-6 text-orange-600" />
+                                                <div className="p-3 rounded-xl bg-gradient-to-br from-orange-200 to-orange-300 shadow-lg">
+                                                    <UserMinus className="h-6 w-6 text-orange-700" />
                                                 </div>
                                                 <ExternalLink
-                                                    className="h-4 w-4 text-orange-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="h-4 w-4 text-orange-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 hover:text-orange-700"
                                                     onClick={() => window.open('/tickets?unassigned=1', '_blank')}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-orange-600 uppercase tracking-wider">
-                                                    Unassigned
-                                                </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.unassigned}</p>
-                                                <p className="text-xs text-muted-foreground">Need assignment</p>
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-xs font-bold text-orange-700 uppercase tracking-widest">
+                                                        Unassigned
+                                                    </p>
+                                                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                                                </div>
+                                                <p className="text-3xl font-black text-foreground">{metrics.tickets.unassigned}</p>
+                                                <p className="text-xs text-muted-foreground font-medium">Require immediate attention</p>
                                             </div>
                                         </CardContent>
                                     </Card>
 
-                                    {/* Tickets Resolved Today */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden">
-                                        <CardContent className="p-6">
+                                    {/* Resolved Today - Success */}
+                                    <Card className="group relative transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-green-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                        <CardContent className="relative p-6">
                                             <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-green-100">
-                                                    <CheckCircle className="h-6 w-6 text-green-600" />
+                                                <div className="p-3 rounded-xl bg-gradient-to-br from-green-200 to-green-300 shadow-lg">
+                                                    <CheckCircle className="h-6 w-6 text-green-700" />
                                                 </div>
                                                 <ExternalLink
-                                                    className="h-4 w-4 text-green-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="h-4 w-4 text-green-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 hover:text-green-700"
                                                     onClick={() => window.open('/tickets?status=resolved&resolved_today=1', '_blank')}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">
-                                                    Resolved Today
+                                            <div className="space-y-3">
+                                                <p className="text-xs font-bold text-green-700 uppercase tracking-widest">
+                                                    Today's Success
                                                 </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved_today}</p>
-                                                <p className="text-xs text-muted-foreground">Completed today</p>
+                                                <p className="text-3xl font-black text-foreground">{metrics.tickets.resolved_today}</p>
+                                                <p className="text-xs text-muted-foreground font-medium">Resolved tickets today</p>
                                             </div>
                                         </CardContent>
                                     </Card>
                                 </div>
 
-                                {/* Team Performance & Unassigned Tickets */}
+                                {/* Advanced Team Analytics & Critical Actions */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Technical Team Performance */}
-                                    <Card className="col-span-1">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2">
-                                                <BarChart className="h-5 w-5 text-primary" />
-                                                Team Performance
+                                    {/* Enhanced Technical Team Performance */}
+                                    <Card className="border-0 shadow-xl bg-gradient-to-br from-slate-50/50 via-background to-slate-100/50 backdrop-blur-sm">
+                                        <CardHeader className="border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-background pb-6">
+                                            <CardTitle className="flex items-center gap-3 text-xl">
+                                                <div className="p-2 rounded-lg bg-primary/20">
+                                                    <BarChart className="h-5 w-5 text-primary" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-foreground font-bold">Team Performance Analytics</span>
+                                                    <p className="text-sm text-muted-foreground font-normal mt-1">Individual technician workloads and productivity</p>
+                                                </div>
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent>
+                                        <CardContent className="p-6">
                                             <div className="space-y-4">
-                                                {lists.availableTechnicals && lists.availableTechnicals.slice(0, 5).map((tech) => (
-                                                    <div key={tech.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                                                                <UserCog className="w-5 h-5 text-primary" />
+                                                {lists.availableTechnicals && lists.availableTechnicals.slice(0, 5).map((tech, index) => (
+                                                    <div key={tech.id} className="group relative p-4 bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-xl hover:from-primary/5 hover:to-primary/10 transition-all duration-300 border border-slate-200/50 hover:border-primary/20 hover:shadow-lg">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="relative">
+                                                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center shadow-lg">
+                                                                        <UserCog className="w-6 h-6 text-primary" />
+                                                                    </div>
+                                                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                                                                        <span className="text-xs font-bold text-white">{index + 1}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <p className="font-bold text-slate-900 text-lg">{tech.name}</p>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <span className="text-sm text-slate-600 font-medium">{(tech as { id: number; name: string; is_default: boolean; tickets_count?: number }).tickets_count || 0} active tickets</span>
+                                                                        <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+                                                                        <span className="text-xs text-primary font-semibold uppercase tracking-wider">Active</span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                <p className="font-medium text-slate-900">{tech.name}</p>
-                                                                <p className="text-sm text-slate-600">{(tech as { id: number; name: string; is_default: boolean; tickets_count?: number }).tickets_count || 0} tickets assigned</p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex flex-col items-end">
-                                                            <div className="flex items-center gap-2">
-                                                                <Badge variant="outline" className="bg-green-100 text-green-700">
+                                                            <div className="flex flex-col items-end gap-2">
+                                                                <Badge variant="outline" className="bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 font-semibold">
                                                                     {(tech as { id: number; name: string; is_default: boolean; tickets_count?: number }).tickets_count || 0} completed
                                                                 </Badge>
+                                                                <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                                                    <div 
+                                                                        className="h-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-500"
+                                                                        style={{ width: `${Math.min(((tech as { id: number; name: string; is_default: boolean; tickets_count?: number }).tickets_count || 0) * 10, 100)}%` }}
+                                                                    />
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -2865,87 +2942,109 @@ export default function Dashboard({
                                         </CardContent>
                                     </Card>
 
-                                    {/* Unassigned Tickets */}
-                                    <Card className="col-span-1">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2">
-                                                <AlertCircle className="h-5 w-5 text-primary" />
-                                                Unassigned Tickets
+                                    {/* Critical Unassigned Tickets */}
+                                    <Card className="border-0 shadow-xl bg-gradient-to-br from-orange-50/50 via-background to-orange-100/50 backdrop-blur-sm">
+                                        <CardHeader className="border-b border-orange-200/50 bg-gradient-to-r from-orange-50 to-background pb-6">
+                                            <CardTitle className="flex items-center gap-3 text-xl">
+                                                <div className="p-2 rounded-lg bg-orange-200/50">
+                                                    <AlertCircle className="h-5 w-5 text-orange-600" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-foreground font-bold">Critical Unassigned Tickets</span>
+                                                    <p className="text-sm text-muted-foreground font-normal mt-1">Requires immediate technical assignment</p>
+                                                </div>
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent>
+                                        <CardContent className="p-6">
                                             <div className="space-y-3">
                                                 {lists.unassignedTickets && lists.unassignedTickets.length > 0 ? lists.unassignedTickets.slice(0, 5).map((ticket) => (
-                                                    <div key={ticket.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                                                    <div key={ticket.id} className="group relative p-3 bg-gradient-to-r from-white to-orange-50/30 rounded-xl hover:from-orange-50 hover:to-orange-100/50 transition-all duration-300 border border-orange-200/30 hover:border-orange-300 hover:shadow-lg cursor-pointer"
                                                          onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}>
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-3 h-3 rounded-full bg-orange-500" />
-                                                            <div>
-                                                                <p className="font-medium text-slate-900 truncate max-w-xs">{ticket.title}</p>
-                                                                <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                                    <span>{ticket.device?.apartment?.name || 'No apt'}</span>
-                                                                    <span>â€¢</span>
-                                                                    <span>{formatDate(ticket.created_at)}</span>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="relative">
+                                                                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 shadow-sm animate-pulse" />
+                                                                    <div className="absolute inset-0 w-3 h-3 rounded-full bg-orange-500 animate-ping opacity-20" />
+                                                                </div>
+                                                                <div className="space-y-1 flex-1">
+                                                                    <p className="font-bold text-slate-900 truncate max-w-xs group-hover:text-orange-800 transition-colors">{ticket.title}</p>
+                                                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                                        <span className="font-medium">{ticket.device?.apartment?.name || 'No apt'}</span>
+                                                                        <span>•</span>
+                                                                        <span className="text-xs">{formatDate(ticket.created_at)}</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
+                                                            <Button variant="outline" size="sm" className="flex items-center gap-2 bg-gradient-to-r from-orange-100 to-orange-200 border-orange-300 text-orange-700 hover:from-orange-200 hover:to-orange-300 hover:border-orange-400 font-semibold"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        window.open(`/tickets/${ticket.id}/assign`, '_blank');
+                                                                    }}>
+                                                                <UserPlus className="w-3 h-3" />
+                                                                Assign Now
+                                                            </Button>
                                                         </div>
-                                                        <Button variant="outline" size="sm" className="flex items-center gap-1"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    window.open(`/tickets/${ticket.id}/assign`, '_blank');
-                                                                }}>
-                                                            <UserPlus className="w-3 h-3" />
-                                                            Assign
-                                                        </Button>
                                                     </div>
                                                 )) : (
-                                                    <div className="flex flex-col items-center justify-center p-6 text-center">
-                                                        <CheckCircle className="h-12 w-12 text-green-500 mb-3" />
-                                                        <p className="text-muted-foreground">No unassigned tickets</p>
+                                                    <div className="flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl border-2 border-green-200 border-dashed">
+                                                        <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+                                                        <p className="text-lg font-bold text-green-700">All Tickets Assigned!</p>
+                                                        <p className="text-sm text-green-600 mt-1">Excellent team management</p>
                                                     </div>
                                                 )}
                                             </div>
                                         </CardContent>
-                                        <CardFooter className="flex justify-center border-t pt-4">
+                                        <CardFooter className="flex justify-center border-t pt-6 bg-gradient-to-r from-orange-50/50 to-background">
                                             <Button 
                                                 variant="outline"
-                                                size="sm"
-                                                className="w-full sm:w-auto"
+                                                size="lg"
+                                                className="bg-gradient-to-r from-orange-100 to-orange-200 border-orange-300 text-orange-700 hover:from-orange-200 hover:to-orange-300 font-semibold px-8"
                                                 onClick={() => window.open('/tickets?unassigned=1', '_blank')}
                                             >
-                                                View All Unassigned
+                                                <UserPlus className="w-4 h-4 mr-2" />
+                                                Manage All Unassigned
                                             </Button>
                                         </CardFooter>
                                     </Card>
                                 </div>
 
-                                {/* Appointment Calendar & Quick Actions */}
+                                {/* Strategic Operations Center */}
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                    {/* Upcoming Appointments */}
-                                    <Card className="col-span-2">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2">
-                                                <Calendar className="h-5 w-5 text-primary" />
-                                                Team Appointment Calendar
+                                    {/* Enhanced Team Appointment Calendar */}
+                                    <Card className="col-span-2 border-0 shadow-xl bg-gradient-to-br from-slate-50/50 via-background to-slate-100/50 backdrop-blur-sm">
+                                        <CardHeader className="border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-background pb-6">
+                                            <CardTitle className="flex items-center gap-3 text-xl">
+                                                <div className="p-2 rounded-lg bg-blue-200/50">
+                                                    <Calendar className="h-5 w-5 text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-foreground font-bold">Team Appointment Calendar</span>
+                                                    <p className="text-sm text-muted-foreground font-normal mt-1">Upcoming scheduled technical visits and maintenance</p>
+                                                </div>
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent>
-                                            <div className="space-y-3">
+                                        <CardContent className="p-6">
+                                            <div className="space-y-4">
                                                 {lists.upcomingAppointments && lists.upcomingAppointments.length > 0 ? (
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         {lists.upcomingAppointments.slice(0, 6).map((appointment) => (
-                                                            <div key={appointment.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                                                            <div key={appointment.id} className="group relative p-4 bg-gradient-to-r from-white to-blue-50/30 rounded-xl hover:from-blue-50 hover:to-blue-100/50 transition-all duration-300 border border-blue-200/30 hover:border-blue-300 hover:shadow-lg cursor-pointer"
                                                                 onClick={() => window.open(`/appointments/${appointment.id}`, '_blank')}>
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                                                                        <Calendar className="w-5 h-5 text-primary" />
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-200 to-blue-300 flex items-center justify-center shadow-lg shrink-0">
+                                                                        <Calendar className="w-5 h-5 text-blue-700" />
                                                                     </div>
-                                                                    <div>
-                                                                        <p className="font-medium text-slate-900 truncate max-w-xs">{appointment.title}</p>
-                                                                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                                            <span>{formatDate(appointment.scheduled_at || appointment.scheduled_for)}</span>
-                                                                            <span>â€¢</span>
-                                                                            <span>{appointment.technical?.name || 'Unassigned'}</span>
+                                                                    <div className="flex-1 space-y-2">
+                                                                        <p className="font-bold text-slate-900 line-clamp-2 group-hover:text-blue-800 transition-colors">{appointment.title}</p>
+                                                                        <div className="space-y-1">
+                                                                            <div className="flex items-center gap-2 text-sm">
+                                                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                                                <span className="font-semibold text-blue-700">{formatDate(appointment.scheduled_at || appointment.scheduled_for)}</span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                                                <UserCog className="w-3 h-3" />
+                                                                                <span className="font-medium">{appointment.technical?.name || 'Unassigned'}</span>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -2953,65 +3052,99 @@ export default function Dashboard({
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <div className="flex flex-col items-center justify-center p-6 text-center">
-                                                        <Calendar className="h-12 w-12 text-muted-foreground mb-3" />
-                                                        <p className="text-muted-foreground">No upcoming appointments</p>
+                                                    <div className="flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border-2 border-blue-200 border-dashed">
+                                                        <Calendar className="h-16 w-16 text-blue-400 mb-4" />
+                                                        <p className="text-lg font-bold text-blue-700">No Upcoming Appointments</p>
+                                                        <p className="text-sm text-blue-600 mt-1">Schedule new appointments to manage workload</p>
                                                     </div>
                                                 )}
                                             </div>
                                         </CardContent>
-                                        <CardFooter className="flex justify-center border-t pt-4">
+                                        <CardFooter className="flex justify-center border-t pt-6 bg-gradient-to-r from-blue-50/50 to-background">
                                             <Button 
                                                 variant="outline"
-                                                size="sm"
-                                                className="w-full sm:w-auto"
+                                                size="lg"
+                                                className="bg-gradient-to-r from-blue-100 to-blue-200 border-blue-300 text-blue-700 hover:from-blue-200 hover:to-blue-300 font-semibold px-8"
                                                 onClick={() => window.open('/appointments', '_blank')}
                                             >
+                                                <Calendar className="w-4 h-4 mr-2" />
                                                 View Full Calendar
                                             </Button>
                                         </CardFooter>
                                     </Card>
 
-                                    {/* Quick Actions for Chief Tech */}
-                                    <Card className="col-span-1">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2">
-                                                <Zap className="h-5 w-5 text-primary" />
-                                                Quick Actions
+                                    {/* Premium Quick Actions Hub */}
+                                    <Card className="col-span-1 border-0 shadow-xl bg-gradient-to-br from-primary/5 via-background to-primary/10 backdrop-blur-sm">
+                                        <CardHeader className="border-b border-primary/20 bg-gradient-to-r from-primary/10 to-background pb-6">
+                                            <CardTitle className="flex items-center gap-3 text-xl">
+                                                <div className="p-2 rounded-lg bg-primary/30">
+                                                    <Zap className="h-5 w-5 text-primary" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-foreground font-bold">Quick Actions</span>
+                                                    <p className="text-sm text-muted-foreground font-normal mt-1">Essential management tools</p>
+                                                </div>
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent>
-                                            <div className="space-y-3">
+                                        <CardContent className="p-6">
+                                            <div className="space-y-4">
                                                 <Button 
-                                                    className="w-full flex items-center gap-2 h-12 justify-start"
+                                                    className="w-full flex items-center gap-3 h-14 justify-start bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
                                                     onClick={() => window.open('/tickets/unassigned', '_blank')}
                                                 >
-                                                    <UserPlus className="w-4 h-4" />
-                                                    Assign Tickets
+                                                    <div className="p-2 rounded-lg bg-white/20">
+                                                        <UserPlus className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <div className="font-semibold">Assign Tickets</div>
+                                                        <div className="text-xs opacity-90">Distribute workload</div>
+                                                    </div>
+                                                    <ExternalLink className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                                                 </Button>
+                                                
                                                 <Button 
                                                     variant="outline"
-                                                    className="w-full flex items-center gap-2 h-12 justify-start"
+                                                    className="w-full flex items-center gap-3 h-14 justify-start bg-gradient-to-r from-slate-50 to-slate-100 border-slate-300 text-slate-700 hover:from-slate-100 hover:to-slate-200 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-300 group"
                                                     onClick={() => window.open('/appointments/create', '_blank')}
                                                 >
-                                                    <CalendarPlus className="w-4 h-4" />
-                                                    Schedule Appointment
+                                                    <div className="p-2 rounded-lg bg-blue-200">
+                                                        <CalendarPlus className="w-4 h-4 text-blue-700" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <div className="font-semibold">Schedule Appointment</div>
+                                                        <div className="text-xs text-slate-600">Plan technical visits</div>
+                                                    </div>
+                                                    <ExternalLink className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                                                 </Button>
+                                                
                                                 <Button 
                                                     variant="outline"
-                                                    className="w-full flex items-center gap-2 h-12 justify-start"
+                                                    className="w-full flex items-center gap-3 h-14 justify-start bg-gradient-to-r from-slate-50 to-slate-100 border-slate-300 text-slate-700 hover:from-slate-100 hover:to-slate-200 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-300 group"
                                                     onClick={() => window.open('/reports/technicians', '_blank')}
                                                 >
-                                                    <BarChart className="w-4 h-4" />
-                                                    View Team Reports
+                                                    <div className="p-2 rounded-lg bg-green-200">
+                                                        <BarChart className="w-4 h-4 text-green-700" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <div className="font-semibold">Team Reports</div>
+                                                        <div className="text-xs text-slate-600">Performance analytics</div>
+                                                    </div>
+                                                    <ExternalLink className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                                                 </Button>
+                                                
                                                 <Button 
                                                     variant="outline"
-                                                    className="w-full flex items-center gap-2 h-12 justify-start"
+                                                    className="w-full flex items-center gap-3 h-14 justify-start bg-gradient-to-r from-slate-50 to-slate-100 border-slate-300 text-slate-700 hover:from-slate-100 hover:to-slate-200 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-300 group"
                                                     onClick={() => window.open('/tickets/assigned', '_blank')}
                                                 >
-                                                    <User className="w-4 h-4" />
-                                                    Manage Assigned Tickets
+                                                    <div className="p-2 rounded-lg bg-purple-200">
+                                                        <User className="w-4 h-4 text-purple-700" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <div className="font-semibold">Assigned Tickets</div>
+                                                        <div className="text-xs text-slate-600">Manage assignments</div>
+                                                    </div>
+                                                    <ExternalLink className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                                                 </Button>
                                             </div>
                                         </CardContent>
@@ -3951,86 +4084,129 @@ export default function Dashboard({
                                     </Card>
                                 </div>
 
-                                {/* Technicals Enhanced Section */}
+                                {/* Premium Technical Team Section */}
                                 {isSuperAdmin && lists.topTechnicals && lists.topTechnicals.length > 0 && (
-                                    <div className="mt-8">
-                                        <Card className="border-0 bg-gradient-to-br from-rose-50 via-white to-rose-50 shadow-xl">
-                                            <CardHeader className="border-b border-rose-100">
+                                    <div className="mt-12">
+                                        <Card className="border-0 bg-gradient-to-br from-rose-50/50 via-background to-rose-100/50 shadow-2xl backdrop-blur-sm">
+                                            <CardHeader className="border-b border-rose-200/50 bg-gradient-to-r from-rose-50/70 to-background pb-6">
                                                 <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="p-2 rounded-lg bg-rose-100">
-                                                            <Wrench className="h-5 w-5 text-rose-600" />
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="p-3 rounded-xl bg-gradient-to-br from-rose-200 to-rose-300 shadow-lg">
+                                                            <Wrench className="h-6 w-6 text-rose-700" />
                                                         </div>
                                                         <div>
-                                                            <CardTitle className="text-xl text-slate-800">Technical Team</CardTitle>
-                                                            <p className="text-sm text-slate-600 mt-1">{lists.topTechnicals.length} active technicians</p>
+                                                            <CardTitle className="text-2xl font-bold text-slate-800">Technical Team Directory</CardTitle>
+                                                            <p className="text-sm text-slate-600 mt-2 font-medium">{lists.topTechnicals.length} active technicians managing operations</p>
                                                         </div>
                                                     </div>
                                                     <Button
                                                         variant="outline"
-                                                        size="sm"
-                                                        className="bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100"
+                                                        size="lg"
+                                                        className="bg-gradient-to-r from-rose-100 to-rose-200 border-rose-300 text-rose-700 hover:from-rose-200 hover:to-rose-300 font-semibold px-6"
                                                         onClick={() => window.open('/technicals', '_blank')}
                                                     >
                                                         <ExternalLink className="h-4 w-4 mr-2" />
-                                                        View All
+                                                        Manage Team
                                                     </Button>
                                                 </div>
                                             </CardHeader>
-                                            <CardContent className="p-6">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                            <CardContent className="p-8">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                     {lists.topTechnicals.map((technical) => (
-                                                        <div key={technical.id} className="bg-white rounded-xl p-4 shadow-lg border border-rose-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                                                            <div className="flex items-center space-x-3">
-                                                                <div className="relative">
-                                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-200 to-rose-400 flex items-center justify-center overflow-hidden">
-                                                                        {technical.photo ? (
-                                                                            <img
-                                                                                src={`/storage/${technical.photo}`}
-                                                                                alt={technical.name}
-                                                                                className="w-full h-full object-cover"
-                                                                            />
-                                                                        ) : (
-                                                                            <User className="h-6 w-6 text-white" />
-                                                                        )}
-                                                                    </div>
-                                                                    {technical.is_default === true && (
-                                                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
-                                                                            <span className="text-xs">⭐</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <h4 className="font-semibold text-slate-800 text-sm truncate">{technical.name}</h4>
-                                                                        {technical.is_default === true && (
-                                                                            <Badge variant="secondary" className="text-xs px-1 py-0">Default</Badge>
-                                                                        )}
-                                                                        {technical.is_default && (
-                                                                            <Badge variant="secondary" className="text-xs px-1 py-0">Default</Badge>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="space-y-1">
-                                                                        {technical.email && (
-                                                                            <div className="flex items-center gap-1">
-                                                                                <Mail className="h-3 w-3 text-slate-400" />
-                                                                                <span className="text-xs text-slate-600 truncate">{technical.email}</span>
-                                                                            </div>
-                                                                        )}
-                                                                        {technical.phone && (
-                                                                            <div className="flex items-center gap-1">
-                                                                                <Phone className="h-3 w-3 text-slate-400" />
-                                                                                <span className="text-xs text-slate-600">{technical.phone}</span>
-                                                                            </div>
-                                                                        )}
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div className="flex items-center gap-1">
-                                                                                <Ticket className="h-3 w-3 text-blue-500" />
-                                                                                <span className="text-xs font-semibold text-blue-700">{technical.tickets_count} tickets</span>
-                                                                            </div>
-                                                                            {technical.shift && (
-                                                                                <span className="text-xs text-slate-500 capitalize">{technical.shift}</span>
+                                                        <div key={technical.id} className="group relative bg-gradient-to-br from-white to-rose-50/30 rounded-2xl p-6 shadow-lg border border-rose-200/50 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:border-rose-300/70">
+                                                            {/* Background overlay for hover effect */}
+                                                            <div className="absolute inset-0 bg-gradient-to-br from-rose-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+                                                            
+                                                            <div className="relative space-y-4">
+                                                                {/* Profile Section */}
+                                                                <div className="flex items-start gap-4">
+                                                                    <div className="relative shrink-0">
+                                                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-300 to-rose-500 flex items-center justify-center overflow-hidden shadow-lg ring-2 ring-white">
+                                                                            {technical.photo ? (
+                                                                                <img
+                                                                                    src={`/storage/${technical.photo}`}
+                                                                                    alt={technical.name}
+                                                                                    className="w-full h-full object-cover"
+                                                                                />
+                                                                            ) : (
+                                                                                <User className="h-8 w-8 text-white" />
                                                                             )}
+                                                                        </div>
+                                                                        {technical.is_default === true && (
+                                                                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full border-3 border-white flex items-center justify-center shadow-lg">
+                                                                                <span className="text-xs font-bold text-white">⭐</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    
+                                                                    <div className="flex-1 min-w-0 space-y-2">
+                                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                                            <h4 className="font-bold text-slate-900 text-base truncate">{technical.name}</h4>
+                                                                            {technical.is_default === true && (
+                                                                                <Badge variant="secondary" className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 border-yellow-200 font-semibold">
+                                                                                    Default Tech
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                        
+                                                                        {/* Contact Information */}
+                                                                        <div className="space-y-2">
+                                                                            {technical.email && (
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <Mail className="h-4 w-4 text-slate-500 shrink-0" />
+                                                                                    <span className="text-sm text-slate-700 truncate font-medium">{technical.email}</span>
+                                                                                </div>
+                                                                            )}
+                                                                            {technical.phone && (
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <Phone className="h-4 w-4 text-slate-500 shrink-0" />
+                                                                                    <span className="text-sm text-slate-700 font-medium">{technical.phone}</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Performance Metrics */}
+                                                                <div className="space-y-3 pt-2 border-t border-rose-200/50">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="p-1 rounded-lg bg-blue-100">
+                                                                                <Ticket className="h-4 w-4 text-blue-600" />
+                                                                            </div>
+                                                                            <span className="text-sm font-bold text-blue-700">
+                                                                                {technical.tickets_count || 0} Active Tickets
+                                                                            </span>
+                                                                        </div>
+                                                                        {technical.shift && (
+                                                                            <Badge variant="outline" className="text-xs px-2 py-1 bg-slate-100 text-slate-700 border-slate-300 capitalize font-medium">
+                                                                                {technical.shift} Shift
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                    
+                                                                    {/* Workload indicator */}
+                                                                    <div className="space-y-1">
+                                                                        <div className="flex items-center justify-between text-xs">
+                                                                            <span className="text-slate-600 font-medium">Workload</span>
+                                                                            <span className="text-slate-700 font-bold">
+                                                                                {technical.tickets_count > 10 ? 'High' : 
+                                                                                 technical.tickets_count > 5 ? 'Medium' : 
+                                                                                 technical.tickets_count > 0 ? 'Low' : 'Available'}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                                                                            <div 
+                                                                                className={`h-full transition-all duration-500 rounded-full ${
+                                                                                    technical.tickets_count > 10 ? 'bg-gradient-to-r from-red-400 to-red-500' :
+                                                                                    technical.tickets_count > 5 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                                                                                    technical.tickets_count > 0 ? 'bg-gradient-to-r from-green-400 to-green-500' :
+                                                                                    'bg-gradient-to-r from-blue-400 to-blue-500'
+                                                                                }`}
+                                                                                style={{ 
+                                                                                    width: `${Math.min(((technical.tickets_count || 0) / 15) * 100, 100)}%` 
+                                                                                }}
+                                                                            />
                                                                         </div>
                                                                     </div>
                                                                 </div>

@@ -41,10 +41,12 @@ class DashboardController extends Controller
 
         // Check if user can assign tickets (super-admin or default technical)
         $isDefaultTechnical = false;
+        $isTechnical = false;
         $currentTechnical = null;
         if ($user->hasRole('technical')) {
             $currentTechnical = Technical::where('email', $user->email)->first();
             $isDefaultTechnical = $currentTechnical && $currentTechnical->is_default;
+            $isTechnical = true;
         }
         $canAssignTickets = $isSuperAdmin || $isDefaultTechnical;
         
@@ -113,6 +115,13 @@ class DashboardController extends Controller
             $totalTenants = Tenant::count();
             $totalDevices = Device::count();
             $totalTechnicals = Technical::where('status', true)->count();
+        } elseif ($isTechnical && !$isDefaultTechnical) {
+            // Technical normal sees limited metrics focused on their work
+            $totalBuildings = 0;
+            $totalApartments = 0;
+            $totalTenants = 0;
+            $totalDevices = 0;
+            $totalTechnicals = 0;
         } elseif (($isOwner || $isDoorman) && $buildingId) {
             // Owner/Doorman see metrics for their building
             $totalBuildings = 1; // They manage one building
@@ -512,6 +521,36 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        // Calcular métricas específicas para técnicos normales
+        $technicalTodayTickets = 0;
+        $technicalUpcomingVisits = 0;
+        $technicalUrgentTickets = 0;
+        
+        if ($isTechnical && !$isDefaultTechnical && $currentTechnical) {
+            // Mis Tickets Hoy - tickets asignados al técnico creados/modificados hoy
+            $technicalTodayTickets = Ticket::where('technical_id', $currentTechnical->id)
+                ->whereIn('status', ['open', 'in_progress'])
+                ->whereDate('updated_at', Carbon::today())
+                ->count();
+
+            // Mis Próximas Visitas - citas programadas próximas del técnico
+            $technicalUpcomingVisits = Appointment::where('technical_id', $currentTechnical->id)
+                ->where('scheduled_for', '>=', Carbon::now())
+                ->where('status', '!=', 'cancelled')
+                ->count();
+
+            // Tickets urgentes asignados al técnico (usando prioridad alta o categoria específica)
+            $technicalUrgentTickets = Ticket::where('technical_id', $currentTechnical->id)
+                ->whereIn('status', ['open', 'in_progress'])
+                ->where(function($query) {
+                    // Consideramos urgente si tiene categoría "Urgente" o "Red" o "Hardware"
+                    $query->whereIn('category', ['Urgente', 'Red', 'Hardware'])
+                          ->orWhere('title', 'like', '%urgente%')
+                          ->orWhere('description', 'like', '%urgente%');
+                })
+                ->count();
+        }
+
         return Inertia::render('dashboard', [
             'metrics' => [
                 'tickets' => [
@@ -529,6 +568,14 @@ class DashboardController extends Controller
                     'tenants' => $totalTenants,
                     'devices' => $totalDevices,
                     'technicals' => $totalTechnicals,
+                ],
+                // Métricas específicas para técnicos
+                'technical' => [
+                    'today_tickets' => $technicalTodayTickets,
+                    'upcoming_visits' => $technicalUpcomingVisits,
+                    'urgent_tickets' => $technicalUrgentTickets,
+                    'is_technical' => $isTechnical,
+                    'is_default' => $isDefaultTechnical,
                 ]
             ],
             'charts' => [
