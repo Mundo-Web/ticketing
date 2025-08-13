@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Calendar as CalendarIcon, Clock, MapPin, User, CheckCircle, XCircle, PlayCircle, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -14,73 +13,178 @@ import { toast } from 'sonner';
 // Configure moment localizer
 const localizer = momentLocalizer(moment);
 
-// Custom styles for the calendar
+// Modern Google Calendar Style CSS
 const calendarStyle = `
+/* Base Calendar - Clean Modern Look */
 .rbc-calendar {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #ffffff;
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: none;
 }
+
+/* Header - Google Calendar Style */
 .rbc-header {
-    background-color: #f8fafc;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    color: #334155;
+    border: none;
     border-bottom: 1px solid #e2e8f0;
-    padding: 12px 8px;
+    padding: 16px 12px;
     font-weight: 600;
-    color: #374151;
+    font-size: 13px;
     text-align: center;
+    letter-spacing: 0.025em;
+    position: relative;
 }
+
+.rbc-header:hover {
+    background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+    transition: background 0.2s ease;
+}
+
+.rbc-header + .rbc-header {
+    border-left: 1px solid #e2e8f0;
+}
+
+/* Today Cell - Subtle Highlight */
+.rbc-today {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-radius: 8px;
+    position: relative;
+}
+
+.rbc-today::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(59, 130, 246, 0.05), transparent, rgba(59, 130, 246, 0.05));
+    border-radius: 8px;
+    animation: subtlePulse 3s infinite;
+}
+
+@keyframes subtlePulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+/* Date Cells - Clean and Interactive */
+.rbc-date-cell {
+    padding: 12px 8px;
+    border-right: 1px solid #f1f5f9;
+    font-weight: 500;
+    color: #475569;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #ffffff;
+    position: relative;
+}
+
+.rbc-date-cell:hover {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.rbc-off-range-bg {
+    background: #fafafa;
+}
+
+.rbc-off-range {
+    color: #94a3b8;
+    opacity: 0.7;
+}
+
+/* Current Time Indicator - Blue Line */
+.rbc-current-time-indicator {
+    background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+    height: 2px;
+    z-index: 10;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+    border-radius: 1px;
+}
+
+/* Time Slots - Minimal and Clean */
+.rbc-time-slot {
+    border-top: 1px solid #f8fafc;
+    min-height: 30px;
+    transition: background-color 0.15s ease;
+    background: #ffffff;
+}
+
+.rbc-time-slot:hover {
+    background: rgba(59, 130, 246, 0.02);
+}
+
+.rbc-timeslot-group {
+    border-bottom: 1px solid #f1f5f9;
+    min-height: 60px;
+}
+
+.rbc-time-gutter .rbc-timeslot-group {
+    border-right: 1px solid #f1f5f9;
+}
+
+.rbc-time-header-gutter {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border-right: 1px solid #e2e8f0;
+}
+
+.rbc-time-gutter {
+    background: #fafafa;
+    border-right: 1px solid #f1f5f9;
+}
+
+.rbc-time-slot-time {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 500;
+    padding: 4px 8px;
+    text-align: right;
+}
+
+/* Events - Modern Card Style */
+.rbc-day-slot .rbc-event, .rbc-week-view .rbc-event {
+    border: none;
+    border-radius: 8px;
+    margin: 1px 2px;
+    padding: 0;
+    min-height: 60px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+}
+
 .rbc-event {
-    border-radius: 6px;
+    border-radius: 8px;
     border: none !important;
     color: white !important;
-    font-size: 11px;
+    font-size: 12px;
     padding: 0 !important;
-    min-height: 50px !important;
-    height: auto !important;
     overflow: hidden !important;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s ease;
-    backdrop-filter: blur(10px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+    position: relative;
     display: flex !important;
     flex-direction: column !important;
-}
-.rbc-event:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-.rbc-today {
-    background-color: #fef3c7;
-}
-.rbc-current-time-indicator {
-    background-color: #ef4444;
-    height: 2px;
-    z-index: 1;
-}
-.rbc-time-slot {
-    border-top: 1px solid #f1f5f9;
-    min-height: 24px;
-}
-.rbc-timeslot-group {
-    border-bottom: 1px solid #e2e8f0;
-    min-height: 48px;
-}
-.rbc-day-slot .rbc-event {
-    border: 1px solid rgba(255,255,255,0.3);
-    margin: 2px 1px;
-}
-.rbc-agenda-view table.rbc-agenda-table {
-    font-size: 14px;
-}
-.rbc-agenda-view .rbc-agenda-content {
-    padding: 12px;
-}
-.rbc-agenda-view .rbc-event {
-    min-height: auto;
-    padding: 12px;
-}
-.rbc-day-view .rbc-event, .rbc-week-view .rbc-event {
-    min-height: 50px !important;
     height: auto !important;
 }
+
+.rbc-event:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 3px 10px rgba(0, 0, 0, 0.08);
+    z-index: 100;
+}
+
+.rbc-event:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
 .rbc-event-content {
     overflow: hidden !important;
     white-space: normal !important;
@@ -90,29 +194,261 @@ const calendarStyle = `
     flex-direction: column !important;
     justify-content: flex-start !important;
     padding: 0 !important;
+    position: relative;
+    z-index: 2;
 }
-.rbc-time-view {
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-}
-.rbc-time-header {
-    border-bottom: 1px solid #e2e8f0;
-}
-.rbc-time-content {
-    border-top: none;
-}
+
+/* Month View - Clean Grid */
 .rbc-month-view {
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
 }
+
 .rbc-month-row {
     border-bottom: 1px solid #f1f5f9;
 }
-.rbc-date-cell {
-    padding: 8px;
+
+.rbc-month-row:last-child {
+    border-bottom: none;
 }
-.rbc-off-range-bg {
-    background-color: #fafafa;
+
+.rbc-date-cell a {
+    color: #475569;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 6px 8px;
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+    position: relative;
+}
+
+.rbc-date-cell a:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.rbc-date-cell.rbc-today a {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Agenda View - List Style */
+.rbc-agenda-view {
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.rbc-agenda-view table.rbc-agenda-table {
+    font-size: 14px;
+    width: 100%;
+}
+
+.rbc-agenda-view .rbc-agenda-content {
+    padding: 16px;
+}
+
+.rbc-agenda-view .rbc-event {
+    background: none !important;
+    border: none !important;
+    color: inherit !important;
+    min-height: auto;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin: 4px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 3px solid #3b82f6 !important;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.rbc-agenda-view .rbc-event:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
+    border-left-width: 4px !important;
+}
+
+.rbc-agenda-date-cell {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    font-weight: 600;
+    color: #475569;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.rbc-agenda-time-cell {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    font-weight: 500;
+    color: #64748b;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 13px;
+}
+
+.rbc-agenda-event-cell {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Week/Time Views */
+.rbc-time-view {
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.rbc-time-header {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.rbc-time-content {
+    border: none;
+    background: #ffffff;
+}
+
+.rbc-allday-cell {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 2px solid #e2e8f0;
+    padding: 6px 0;
+}
+
+.rbc-row-content {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Custom Scrollbar - Minimal */
+.rbc-time-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.rbc-time-content::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.rbc-time-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+    border-radius: 4px;
+    border: 1px solid #f1f5f9;
+}
+
+.rbc-time-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+}
+
+/* Custom Event Content - Clean Typography */
+.custom-event-content {
+    color: #ffffff !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.custom-event-content * {
+    color: #ffffff !important;
+    position: relative;
+    z-index: 2;
+}
+
+.custom-event-content .event-time {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.custom-event-content .event-client {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.custom-event-content .event-title {
+    color: #ffffff !important;
+    font-weight: 500 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.custom-event-content .event-location {
+    color: #ffffff !important;
+    opacity: 0.95 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.custom-event-content svg {
+    color: #ffffff !important;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
+}
+
+/* Loading Animation - Subtle */
+@keyframes eventAppear {
+    0% { 
+        opacity: 0; 
+        transform: translateY(10px) scale(0.95); 
+    }
+    100% { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
+
+.rbc-event {
+    animation: eventAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .rbc-calendar {
+        border-radius: 12px;
+    }
+    
+    .rbc-header {
+        padding: 8px 6px;
+        font-size: 11px;
+    }
+    
+    .rbc-time-slot-time {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+    
+    .rbc-event {
+        border-radius: 6px;
+        min-height: 40px !important;
+    }
+    
+    .rbc-date-cell {
+        padding: 8px 4px;
+    }
+}
+
+/* Focus States for Accessibility */
+.rbc-calendar *:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Selection States */
+.rbc-selected {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    color: white !important;
+}
+
+/* Drag and Drop States */
+.rbc-addons-dnd-drag-row {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.rbc-addons-dnd-over {
+    background: rgba(59, 130, 246, 0.2);
 }
 `;
 
@@ -604,304 +940,333 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
             {/* Custom styles */}
             <style dangerouslySetInnerHTML={{ __html: calendarStyle }} />
             
-            <div className="flex flex-col gap-6 p-6">
-                {/* Notificaciones */}
-                {notifications.length > 0 && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <div className="flex items-start gap-3">
-                            <CalendarIcon className="w-5 h-5 text-yellow-600 mt-0.5" />
-                            <div className="flex-1">
-                                <h3 className="text-sm font-medium text-yellow-800 mb-2">Upcoming Appointments</h3>
-                                <div className="space-y-1">
-                                    {notifications.map((notification, index) => (
-                                        <p key={index} className="text-sm text-yellow-700">{notification}</p>
-                                    ))}
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+                {/* Modern Header with Glass Effect */}
+                <div className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-200/60 shadow-sm">
+                    <div className=" mx-auto px-6 py-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg">
+                                    <CalendarIcon className="w-8 h-8 text-white" />
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                                        {isTechnical || isTechnicalDefault ? 'My Schedule' : 'Calendar Management'}
+                                    </h1>
+                                    <p className="text-sm text-slate-600 font-medium">
+                                        {isTechnical || isTechnicalDefault 
+                                            ? `${auth.user.name}'s appointments and tasks` 
+                                            : 'Comprehensive appointment scheduling system'
+                                        }
+                                    </p>
                                 </div>
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setNotifications([])}
-                                className="text-yellow-600 hover:text-yellow-800"
-                            >
-                                ×
-                            </Button>
+                            
+                            {/* Status Legend - Modern Pills */}
+                            <div className="hidden lg:flex items-center gap-2">
+                                {Object.entries(statusConfig).map(([status, config]) => {
+                                    const IconComponent = config.icon;
+                                    return (
+                                        <div 
+                                            key={status} 
+                                            className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/60 backdrop-blur-sm border border-white/40 shadow-sm hover:shadow-md transition-all duration-200"
+                                        >
+                                            <div 
+                                                className="w-2 h-2 rounded-full"
+                                                style={{ backgroundColor: config.bgColor }}
+                                            />
+                                            <IconComponent className="w-3.5 h-3.5 text-slate-600" />
+                                            <span className="text-xs font-medium text-slate-700">{config.label}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Notifications - Modern Alert */}
+                {notifications.length > 0 && (
+                    <div className=" mx-auto px-6 pt-6">
+                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl p-4 shadow-sm backdrop-blur-sm">
+                            <div className="flex items-start gap-4">
+                                <div className="p-2 bg-amber-100 rounded-xl">
+                                    <CalendarIcon className="w-5 h-5 text-amber-600" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-sm font-semibold text-amber-900 mb-2">Upcoming Appointments</h3>
+                                    <div className="space-y-1">
+                                        {notifications.map((notification, index) => (
+                                            <p key={index} className="text-sm text-amber-800">{notification}</p>
+                                        ))}
+                                    </div>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setNotifications([])}
+                                    className="p-2 h-8 w-8 rounded-full hover:bg-amber-100 text-amber-600 hover:text-amber-800"
+                                >
+                                    ×
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900">
-                            {isTechnical || isTechnicalDefault 
-                                ? 'My Appointments' 
-                                : 'All Appointments Calendar'
-                            }
-                        </h1>
-                        <p className="text-gray-600 mt-2">
-                            {isTechnical || isTechnicalDefault 
-                                ? `View and manage your scheduled on-site appointments - ${auth.user.name}` 
-                                : 'Manage all scheduled on-site appointments across the organization'
-                            }
-                        </p>
-                    </div>
-                    
-                    {/* Status Legend */}
-                    <div className="flex gap-4 text-sm">
-                        {Object.entries(statusConfig).map(([status, config]) => {
-                            const IconComponent = config.icon;
-                            return (
-                                <div key={status} className="flex items-center gap-2">
-                                    <div 
-                                        className="w-3 h-3 rounded"
-                                        style={{ backgroundColor: config.bgColor }}
-                                    />
-                                    <IconComponent className="w-4 h-4" />
-                                    <span>{config.label}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    {/* Main Calendar Area */}
-                    <div className="lg:col-span-3">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center justify-between">
-                                    <span className="flex items-center gap-2">
-                                        <CalendarIcon className="w-5 h-5" />
-                                       
-                                    </span>
-                                    
-                                    {/* Navigation Controls */}
-                                    <div className="flex items-center gap-4">
+                {/* Main Content - Google Calendar Style */}
+                <div className=" mx-auto px-6 py-6">
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                        {/* Calendar Area - Primary Content */}
+                        <div className="xl:col-span-9">
+                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+                                {/* Calendar Controls - Google Style */}
+                                <div className="bg-gradient-to-r from-white to-slate-50 border-b border-slate-100 p-6">
+                                    <div className="flex items-center justify-between flex-wrap gap-4">
                                         {/* Date Navigation */}
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => navigateCalendar('prev')}
-                                            >
-                                                <ChevronLeft className="w-4 h-4" />
-                                            </Button>
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => navigateCalendar('prev')}
+                                                    className="h-10 w-10 rounded-xl hover:bg-slate-100"
+                                                >
+                                                    <ChevronLeft className="w-4 h-4" />
+                                                </Button>
+                                                
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => navigateCalendar('today')}
+                                                    className="px-6 h-10 rounded-xl font-medium hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                                >
+                                                    Today
+                                                </Button>
+                                                
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => navigateCalendar('next')}
+                                                    className="h-10 w-10 rounded-xl hover:bg-slate-100"
+                                                >
+                                                    <ChevronRight className="w-4 h-4" />
+                                                </Button>
+                                            </div>
                                             
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => navigateCalendar('today')}
-                                                className="min-w-[80px]"
-                                            >
-                                                Today
-                                            </Button>
-                                            
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => navigateCalendar('next')}
-                                            >
-                                                <ChevronRight className="w-4 h-4" />
-                                            </Button>
+                                            {/* Current Date Display - Large and Beautiful */}
+                                            <div className="px-4">
+                                                <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                                                    {getCalendarTitle()}
+                                                </h2>
+                                            </div>
                                         </div>
                                         
-                                        {/* Current Date/Range Display */}
-                                        <div className="text-sm font-medium text-gray-700 min-w-[200px] text-center">
-                                            {getCalendarTitle()}
-                                        </div>
-                                        
-                                        {/* View Toggle Buttons */}
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant={calendarView === Views.DAY ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setCalendarView(Views.DAY)}
-                                            >
-                                                Day
-                                            </Button>
-                                            <Button
-                                                variant={calendarView === Views.WEEK ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setCalendarView(Views.WEEK)}
-                                            >
-                                                Week
-                                            </Button>
-                                            <Button
-                                                variant={calendarView === Views.MONTH ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setCalendarView(Views.MONTH)}
-                                            >
-                                                Month
-                                            </Button>
-                                            <Button
-                                                variant={calendarView === Views.AGENDA ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setCalendarView(Views.AGENDA)}
-                                            >
-                                                Agenda
-                                            </Button>
+                                        {/* View Toggle - Modern Pills */}
+                                        <div className="flex items-center gap-1 bg-slate-100 rounded-2xl p-1">
+                                            {[
+                                                { view: Views.DAY, label: 'Day', icon: CalendarIcon },
+                                                { view: Views.WEEK, label: 'Week', icon: CalendarIcon },
+                                                { view: Views.MONTH, label: 'Month', icon: CalendarIcon },
+                                                { view: Views.AGENDA, label: 'Agenda', icon: CalendarIcon }
+                                            ].map(({ view, label, icon: Icon }) => (
+                                                <Button
+                                                    key={view}
+                                                    variant={calendarView === view ? "default" : "ghost"}
+                                                    size="sm"
+                                                    onClick={() => setCalendarView(view)}
+                                                    className={`h-10 px-6 rounded-xl font-medium transition-all duration-200 ${
+                                                        calendarView === view
+                                                            ? 'bg-white shadow-sm text-slate-900 hover:bg-white'
+                                                            : 'hover:bg-white/60 text-slate-600 hover:text-slate-900'
+                                                    }`}
+                                                >
+                                                    <Icon className="w-4 h-4 mr-2" />
+                                                    {label}
+                                                </Button>
+                                            ))}
                                         </div>
                                     </div>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="h-[600px]">
-                                    <Calendar
-                                        localizer={localizer}
-                                        events={calendarEvents}
-                                        startAccessor="start"
-                                        endAccessor="end"
-                                        view={calendarView}
-                                        onView={setCalendarView}
-                                        date={calendarDate}
-                                        onNavigate={setCalendarDate}
-                                        onSelectEvent={handleSelectEvent}
-                                        onSelectSlot={handleSelectSlot}
-                                        selectable
-                                        eventPropGetter={eventStyleGetter}
-                                        components={{
-                                            event: CustomEvent,
-                                            toolbar: () => null // Deshabilitar la toolbar por defecto para evitar duplicación
-                                        }}
-                                        style={{ height: '100%' }}
-                                        formats={{
-                                            timeGutterFormat: 'HH:mm',
-                                            eventTimeRangeFormat: ({ start, end }) => {
-                                                return `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`;
-                                            }
-                                        }}
-                                        min={new Date(2025, 0, 1, 6, 0, 0)} // 6:00 AM
-                                        max={new Date(2025, 0, 1, 22, 0, 0)} // 10:00 PM
-                                        step={15} // 15 minute steps
-                                        timeslots={4} // 4 slots per hour (15 min each)
-                                        showMultiDayTimes={true}
-                                        popup={true}
-                                        popupOffset={30}
-                                    />
                                 </div>
-                            </CardContent>
-                        </Card>
-                    </div>
 
-                    {/* Sidebar */}
-                    <div className="space-y-6">
-                        {/* Upcoming Appointments */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">Upcoming Appointments</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {upcomingAppointments.length === 0 ? (
-                                    <p className="text-gray-500 text-sm">No upcoming appointments</p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {upcomingAppointments.slice(0, 5).map((appointment) => (
-                                            <div 
-                                                key={appointment.id} 
-                                                className="border-l-4 border-blue-500 pl-3 py-2 hover:bg-gray-50 rounded-r transition-colors duration-200"
-                                            >
-                                                <div className="flex items-start justify-between">
-                                                    <div 
-                                                        className="flex-1 cursor-pointer"
-                                                        onClick={() => {
-                                                            openAppointmentModal(appointment);
-                                                        }}
-                                                    >
-                                                        <p className="font-medium text-sm">{appointment.title}</p>
-                                                        <p className="text-xs text-gray-600">
-                                                            {formatDate(appointment.scheduled_for)} - {formatTime(appointment.scheduled_for)}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500">{appointment.technical.name}</p>
-                                                    </div>
+                                {/* Calendar Content */}
+                                <div className="p-6">
+                                    <div className="h-[700px] bg-white rounded-2xl shadow-inner border border-slate-100 overflow-hidden">
+                                        <Calendar
+                                            localizer={localizer}
+                                            events={calendarEvents}
+                                            startAccessor="start"
+                                            endAccessor="end"
+                                            view={calendarView}
+                                            onView={setCalendarView}
+                                            date={calendarDate}
+                                            onNavigate={setCalendarDate}
+                                            onSelectEvent={handleSelectEvent}
+                                            onSelectSlot={handleSelectSlot}
+                                            selectable
+                                            eventPropGetter={eventStyleGetter}
+                                            components={{
+                                                event: CustomEvent,
+                                                toolbar: () => null
+                                            }}
+                                            style={{ height: '100%' }}
+                                            formats={{
+                                                timeGutterFormat: 'HH:mm',
+                                                eventTimeRangeFormat: ({ start, end }) => {
+                                                    return `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`;
+                                                }
+                                            }}
+                                            min={new Date(2025, 0, 1, 6, 0, 0)}
+                                            max={new Date(2025, 0, 1, 22, 0, 0)}
+                                            step={15}
+                                            timeslots={4}
+                                            showMultiDayTimes={true}
+                                            popup={true}
+                                            popupOffset={30}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sidebar - Modern Cards */}
+                        <div className="xl:col-span-3 space-y-6">
+                            {/* Upcoming Appointments - Redesigned */}
+                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-blue-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-blue-100 rounded-xl">
+                                            <Clock className="w-5 h-5 text-blue-600" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-blue-900">Upcoming</h3>
+                                    </div>
+                                </div>
+                                <div className="p-6">
+                                    {upcomingAppointments.length === 0 ? (
+                                        <div className="text-center py-8">
+                                            <div className="p-4 bg-slate-50 rounded-2xl mx-auto w-fit mb-4">
+                                                <CalendarIcon className="w-8 h-8 text-slate-400" />
+                                            </div>
+                                            <p className="text-slate-500 font-medium">No upcoming appointments</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {upcomingAppointments.slice(0, 4).map((appointment) => (
+                                                <div 
+                                                    key={appointment.id} 
+                                                    className="group relative bg-gradient-to-r from-slate-50 to-white rounded-2xl p-4 border border-slate-100 hover:shadow-lg hover:border-blue-200 transition-all duration-300 cursor-pointer"
+                                                    onClick={() => openAppointmentModal(appointment)}
+                                                >
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
                                                     
-                                                    {/* Botón rápido "Iniciar Visita" para técnicos */}
-                                                    {(isTechnical || isTechnicalDefault) && appointment.status === 'scheduled' && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleAppointmentAction('start', appointment.id);
-                                                            }}
-                                                            className="ml-2 text-xs px-2 py-1 h-7 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
-                                                            title="Start Visit"
-                                                        >
-                                                            <PlayCircle className="w-3 h-3 mr-1" />
-                                                            Start
-                                                        </Button>
-                                                    )}
+                                                    <div className="relative">
+                                                        <div className="flex items-start justify-between mb-3">
+                                                            <div className="flex-1">
+                                                                <h4 className="font-semibold text-slate-900 mb-1 group-hover:text-blue-900 transition-colors">
+                                                                    {appointment.title}
+                                                                </h4>
+                                                                <p className="text-sm text-slate-600 font-medium">
+                                                                    {appointment.ticket.user.name}
+                                                                </p>
+                                                            </div>
+                                                            
+                                                            <div className="flex items-center gap-2">
+                                                                {(isTechnical || isTechnicalDefault) && appointment.status === 'scheduled' && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleAppointmentAction('start', appointment.id);
+                                                                        }}
+                                                                        className="h-8 px-3 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-medium shadow-sm"
+                                                                    >
+                                                                        <PlayCircle className="w-3 h-3 mr-1" />
+                                                                        Start
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center gap-4 text-xs">
+                                                            <div className="flex items-center gap-1 text-slate-500">
+                                                                <Clock className="w-3 h-3" />
+                                                                {formatTime(appointment.scheduled_for)}
+                                                            </div>
+                                                            <div className="flex items-center gap-1 text-slate-500">
+                                                                <User className="w-3 h-3" />
+                                                                {appointment.technical.name}
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Quick Stats - Modern Design */}
+                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+                                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-6 border-b border-emerald-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-emerald-100 rounded-xl">
+                                            <CheckCircle className="w-5 h-5 text-emerald-600" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-emerald-900">Statistics</h3>
+                                    </div>
+                                </div>
+                                <div className="p-6">
+                                    <div className="space-y-4">
+                                        {[
+                                            { label: 'Total', count: filteredAppointments.length, color: 'text-slate-600' },
+                                            { label: 'Scheduled', count: filteredAppointments.filter(a => a.status === 'scheduled').length, color: 'text-blue-600' },
+                                            { label: 'In Progress', count: filteredAppointments.filter(a => a.status === 'in_progress').length, color: 'text-yellow-600' },
+                                            { label: 'Completed', count: filteredAppointments.filter(a => a.status === 'completed').length, color: 'text-green-600' },
+                                            { label: 'No Show', count: filteredAppointments.filter(a => a.status === 'no_show').length, color: 'text-orange-600' },
+                                            { label: 'Cancelled', count: filteredAppointments.filter(a => a.status === 'cancelled').length, color: 'text-red-600' }
+                                        ].map((stat) => (
+                                            <div key={stat.label} className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-50 to-white rounded-xl border border-slate-100">
+                                                <span className="text-sm font-medium text-slate-700">{stat.label}:</span>
+                                                <span className={`text-lg font-bold ${stat.color}`}>{stat.count}</span>
                                             </div>
                                         ))}
                                     </div>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Quick Stats */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">Statistics</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Total Appointments:</span>
-                                        <span className="font-medium">{filteredAppointments.length}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Scheduled:</span>
-                                        <span className="font-medium text-blue-600">
-                                            {filteredAppointments.filter(a => a.status === 'scheduled').length}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">In Progress:</span>
-                                        <span className="font-medium text-yellow-600">
-                                            {filteredAppointments.filter(a => a.status === 'in_progress').length}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Completed:</span>
-                                        <span className="font-medium text-green-600">
-                                            {filteredAppointments.filter(a => a.status === 'completed').length}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">No Show:</span>
-                                        <span className="font-medium text-orange-600">
-                                            {filteredAppointments.filter(a => a.status === 'no_show').length}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-600">Cancelled:</span>
-                                        <span className="font-medium text-red-600">
-                                            {filteredAppointments.filter(a => a.status === 'cancelled').length}
-                                        </span>
-                                    </div>
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
 
-                        {/* Available Technicians */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">Available Technicians</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2">
-                                    {technicals.map((technical: any) => (
-                                        <div key={technical.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                            <span className="text-sm font-medium">{technical.name}</span>
-                                            <Badge variant="outline" className="text-xs">
-                                                {technical.shift || 'Available'}
-                                            </Badge>
+                            {/* Available Technicians - Modern Cards */}
+                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+                                <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-6 border-b border-purple-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-purple-100 rounded-xl">
+                                            <User className="w-5 h-5 text-purple-600" />
                                         </div>
-                                    ))}
+                                        <h3 className="text-lg font-bold text-purple-900">Team</h3>
+                                    </div>
                                 </div>
-                            </CardContent>
-                        </Card>
+                                <div className="p-6">
+                                    <div className="space-y-3">
+                                        {technicals.map((technical: any) => (
+                                            <div key={technical.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-slate-50 to-white rounded-xl border border-slate-100 hover:shadow-md transition-all duration-200">
+                                                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
+                                                    {technical.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="font-semibold text-slate-900 text-sm">{technical.name}</p>
+                                                    <p className="text-xs text-slate-500">{technical.email}</p>
+                                                </div>
+                                                <Badge 
+                                                    variant="outline" 
+                                                    className="text-xs bg-green-50 text-green-700 border-green-200 px-2 py-1 rounded-lg"
+                                                >
+                                                    Available
+                                                </Badge>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
