@@ -30,7 +30,7 @@ class TicketController extends Controller
         $user = Auth::user();
         $withRelations = [
             'technical',
-            'device',
+            'device.tenants.apartment.building', // Device relationships to get building/apartment info
             'device.name_device',
             'device.brand',
             'device.model', 
@@ -40,8 +40,10 @@ class TicketController extends Controller
             'createdByOwner', // Relación con Owner que creó el ticket
             'createdByDoorman', // Relación con Doorman que creó el ticket
             'createdByAdmin', // Relación con Admin que creó el ticket
-            'appointments', // Todas las citas del ticket
-            'activeAppointment', // Cita activa actual
+            'appointments.technical', // Todas las citas del ticket con técnico
+            'activeAppointment.technical', // Cita activa actual con técnico
+            'activeAppointment.ticket.device.tenants.apartment.building', // Full ticket relationship for active appointment
+            'activeAppointment.ticket.user.tenant.apartment.building', // Full user relationship for active appointment
             'lastCompletedAppointment', // Última cita completada
         ];
         $ticketsQuery = Ticket::with($withRelations);
@@ -274,6 +276,7 @@ class TicketController extends Controller
             'statusFilter' => $statusFilter, // Pasar el filtro actual al frontend
             'allMembers' => $allMembers, // Para doorman y owner
             'allApartments' => $allApartments, // Para doorman y owner
+            'googleMapsApiKey' => env('GMAPS_API_KEY'),
         ]);
     }
 
@@ -476,7 +479,7 @@ class TicketController extends Controller
     {
         $ticket = Ticket::with([
             'technical',
-            'device',
+            'device.tenants.apartment.building', // Device relationships to get building/apartment info
             'device.name_device',
             'device.brand',
             'device.model',
@@ -486,8 +489,10 @@ class TicketController extends Controller
             'createdByOwner', // Relación con Owner que creó el ticket
             'createdByDoorman', // Relación con Doorman que creó el ticket
             'createdByAdmin', // Relación con Admin que creó el ticket
-            'appointments', // Todas las citas del ticket
-            'activeAppointment', // Cita activa actual
+            'appointments.technical', // Todas las citas del ticket con técnico
+            'activeAppointment.technical', // Cita activa actual con técnico
+            'activeAppointment.ticket.device.tenants.apartment.building', // Full ticket relationship for active appointment
+            'activeAppointment.ticket.user.tenant.apartment.building', // Full user relationship for active appointment
             'lastCompletedAppointment', // Última cita completada
         ])->findOrFail($id);
         // Si es AJAX/fetch, devolver JSON

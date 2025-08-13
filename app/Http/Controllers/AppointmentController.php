@@ -89,6 +89,41 @@ class AppointmentController extends Controller
     }
 
     /**
+     * Get appointment details with full relationships
+     */
+    public function getDetails($id)
+    {
+        try {
+            $appointment = Appointment::with([
+                'ticket',
+                'ticket.device',
+                'ticket.device.tenants',
+                'ticket.device.tenants.apartment',
+                'ticket.device.tenants.apartment.building',
+                'ticket.user',
+                'ticket.user.tenant',
+                'ticket.user.tenant.apartment',
+                'ticket.user.tenant.apartment.building',
+                'technical'
+            ])->find($id);
+
+            if (!$appointment) {
+                return response()->json(['error' => 'Appointment not found'], 404);
+            }
+
+            return response()->json([
+                'appointment' => $appointment,
+                'googleMapsApiKey' => env('GMAPS_API_KEY'),
+                'success' => true
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch appointment details: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Schedule a new appointment for a ticket
      */
     public function store(Request $request)

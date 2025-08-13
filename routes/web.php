@@ -82,6 +82,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Appointment Routes
     Route::get('appointments', [\App\Http\Controllers\AppointmentController::class, 'index'])->name('appointments.index');
     Route::get('appointments/{appointment}', [\App\Http\Controllers\AppointmentController::class, 'show'])->name('appointments.show');
+    Route::get('appointments/{id}/details', [\App\Http\Controllers\AppointmentController::class, 'getDetails'])->name('appointments.details');
     Route::post('appointments', [\App\Http\Controllers\AppointmentController::class, 'store'])->name('appointments.store');
     Route::put('appointments/{appointment}', [\App\Http\Controllers\AppointmentController::class, 'update'])->name('appointments.update');
     Route::post('appointments/{appointment}/start', [\App\Http\Controllers\AppointmentController::class, 'start'])->name('appointments.start');

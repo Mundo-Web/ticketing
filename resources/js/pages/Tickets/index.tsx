@@ -402,7 +402,51 @@ export default function TicketsIndex({
         notes: ""
     });
     const [schedulingAppointment, setSchedulingAppointment] = useState(false);
-    const [showAppointmentDetailsModal, setShowAppointmentDetailsModal] = useState<{ open: boolean; appointment?: any }>({ open: false });
+    const [showAppointmentDetailsModal, setShowAppointmentDetailsModal] = useState<{ open: boolean; appointment?: any; action?: string }>({ open: false });
+    const [showLocationModal, setShowLocationModal] = useState<{ open: boolean; building?: any }>({ open: false });
+
+    // Function to fetch full appointment data with relationships
+    const fetchFullAppointmentData = async (appointmentId: number) => {
+        console.log('fetchFullAppointmentData called with ID:', appointmentId);
+        try {
+            const response = await fetch(`/appointments/${appointmentId}/details`);
+            console.log('API response status:', response.status);
+            if (response.ok) {
+                const appointmentData = await response.json();
+                console.log('Received appointment data:', appointmentData);
+                return appointmentData.appointment;
+            } else {
+                console.error('API response not ok:', response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error('Error fetching appointment details:', error);
+        }
+        return null;
+    };
+
+    // Function to open appointment modal with full data
+    const openAppointmentModal = async (appointment: any, action: string) => {
+        console.log('openAppointmentModal called with:', { appointment, action });
+        
+        // If the appointment already has full ticket data, use it directly
+        if (appointment?.ticket?.device?.tenants || appointment?.ticket?.user?.tenant) {
+            console.log('Using existing appointment data - has relationships');
+            setShowAppointmentDetailsModal({ open: true, appointment, action });
+            return;
+        }
+
+        console.log('Fetching full appointment data for ID:', appointment.id);
+        // Otherwise, fetch the full appointment data
+        const fullAppointment = await fetchFullAppointmentData(appointment.id);
+        if (fullAppointment) {
+            console.log('Successfully fetched full appointment data:', fullAppointment);
+            setShowAppointmentDetailsModal({ open: true, appointment: fullAppointment, action });
+        } else {
+            console.log('Failed to fetch full appointment data, using fallback');
+            // Fallback to the original appointment if fetch fails
+            setShowAppointmentDetailsModal({ open: true, appointment, action });
+        }
+    };
     const [appointmentAction, setAppointmentAction] = useState<{ type: string; appointmentId?: number }>({ type: "" });
     const [appointmentActionForm, setAppointmentActionForm] = useState({
         completion_notes: "",
@@ -432,7 +476,7 @@ export default function TicketsIndex({
     const [uploadingEvidence, setUploadingEvidence] = useState(false);
     const [addingPrivateNote, setAddingPrivateNote] = useState(false);
     
-    const { auth, isTechnicalDefault } = usePage<SharedData & { isTechnicalDefault?: boolean }>().props;
+    const { auth, isTechnicalDefault, googleMapsApiKey } = usePage<SharedData & { isTechnicalDefault?: boolean; googleMapsApiKey?: string }>().props;
     const isMember = (auth.user as any)?.roles?.includes("member");
     const isSuperAdmin = (auth.user as any)?.roles?.includes("super-admin");
     const isTechnical = (auth.user as any)?.roles?.includes("technical");
@@ -476,11 +520,12 @@ export default function TicketsIndex({
             console.log("Appointment modal opened:", {
                 appointmentId: showAppointmentDetailsModal.appointment.id,
                 status: showAppointmentDetailsModal.appointment.status,
+                action: showAppointmentDetailsModal.action,
                 isMember,
                 shouldShowFeedback: showAppointmentDetailsModal.appointment.status === 'awaiting_feedback' && isMember
             });
         }
-    }, [showAppointmentDetailsModal.open, showAppointmentDetailsModal.appointment, isMember]);
+    }, [showAppointmentDetailsModal.open, showAppointmentDetailsModal.appointment, showAppointmentDetailsModal.action, isMember]);
 
     // Estados para filtros de doorman y owner
     const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>('all');
@@ -1297,6 +1342,31 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
         } finally {
             setAddingPrivateNote(false);
         }
+    };
+
+    // Google Maps embed URL function (similar to Buildings index)
+    const getEmbedUrl = (locationLink: string): string => {
+        if (!locationLink) return '';
+
+        if (locationLink.includes('maps.app.goo.gl')) {
+            return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=-10.916879,-74.883391&zoom=15`;
+        }
+
+        if (locationLink.includes('/embed')) return locationLink;
+
+        if (locationLink.includes('google.com/maps')) {
+            const coordsMatch = locationLink.match(/@([-0-9.]+),([-0-9.]+)/);
+            if (coordsMatch) {
+                return `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${coordsMatch[1]},${coordsMatch[2]}&zoom=15`;
+            }
+
+            const placeIdMatch = locationLink.match(/place\/([^\/]+)/);
+            if (placeIdMatch) {
+                return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=place_id:${placeIdMatch[1]}`;
+            }
+        }
+
+        return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(locationLink)}`;
     };
 
     // Load user device alerts for member notifications
@@ -2854,17 +2924,26 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                     {(isTechnical || isTechnicalDefault || isSuperAdmin) && (
                                                                         <>
                                                                             {selectedTicket.active_appointment.status === 'scheduled' && (
-                                                                                <button
-                                                                                    onClick={() => handleAppointmentAction('start', selectedTicket.active_appointment.id)}
-                                                                                    className="text-xs px-3 py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg transition-colors font-medium"
-                                                                                >
-                                                                                    <PlayCircle className="w-3 h-3 inline mr-1" />
-                                                                                    Start Visit
-                                                                                </button>
+                                                                                <>
+                                                                                    <button
+                                                                                        onClick={() => handleAppointmentAction('start', selectedTicket.active_appointment.id)}
+                                                                                        className="text-xs px-3 py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg transition-colors font-medium"
+                                                                                    >
+                                                                                        <PlayCircle className="w-3 h-3 inline mr-1" />
+                                                                                        Start Visit
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={() => openAppointmentModal(selectedTicket.active_appointment, 'reschedule')}
+                                                                                        className="text-xs px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors font-medium"
+                                                                                    >
+                                                                                        <Calendar className="w-3 h-3 inline mr-1" />
+                                                                                        Reschedule
+                                                                                    </button>
+                                                                                </>
                                                                             )}
                                                                             {selectedTicket.active_appointment.status === 'in_progress' && (
                                                                                 <button
-                                                                                    onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
+                                                                                    onClick={() => openAppointmentModal(selectedTicket.active_appointment, 'complete')}
                                                                                     className="text-xs px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors font-medium"
                                                                                 >
                                                                                     <CheckCircle className="w-3 h-3 inline mr-1" />
@@ -2877,7 +2956,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                     {/* Member Action */}
                                                                     {isMember && selectedTicket.active_appointment.status === 'awaiting_feedback' && (
                                                                         <button
-                                                                            onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
+                                                                            onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment, action: 'feedback' })}
                                                                             className="text-xs px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg transition-colors font-medium animate-pulse"
                                                                         >
                                                                             <Star className="w-3 h-3 inline mr-1" />
@@ -2887,7 +2966,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                                                                     {/* Common View Details Button */}
                                                                     <button
-                                                                        onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
+                                                                        onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment, action: 'view' })}
                                                                         className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded transition-colors"
                                                                     >
                                                                         View Details
@@ -2945,7 +3024,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                 {/* Reschedule Button - only if there's an active appointment */}
                                                                 {selectedTicket.active_appointment && (
                                                                     <button
-                                                                        onClick={() => setShowAppointmentDetailsModal({ open: true, appointment: selectedTicket.active_appointment })}
+                                                                        onClick={() => openAppointmentModal(selectedTicket.active_appointment, 'reschedule')}
                                                                         className="inline-flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 rounded-lg text-sm font-medium transition-colors border border-amber-200 hover:border-amber-300"
                                                                     >
                                                                         <Calendar className="w-4 h-4" />
@@ -4746,18 +4825,34 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
             {/* Appointment Details/Action Modal */}
             <Dialog
                 open={showAppointmentDetailsModal.open}
-                onOpenChange={(open) => setShowAppointmentDetailsModal({ open, appointment: showAppointmentDetailsModal.appointment })}
+                onOpenChange={(open) => setShowAppointmentDetailsModal({ open, appointment: showAppointmentDetailsModal.appointment, action: showAppointmentDetailsModal.action })}
             >
                 <DialogContent className="sm:max-w-4xl max-h-[95vh] overflow-y-auto">
                     <DialogHeader className="pb-6 border-b border-slate-200">
                         <DialogTitle className="flex items-center gap-3 text-2xl font-bold">
-                            <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
-                                <Calendar className="w-7 h-7 text-white" />
+                            <div className={`p-3 rounded-xl shadow-lg ${
+                                showAppointmentDetailsModal.action === 'complete' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                                showAppointmentDetailsModal.action === 'feedback' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                                showAppointmentDetailsModal.action === 'reschedule' ? 'bg-gradient-to-br from-amber-500 to-amber-600' :
+                                'bg-gradient-to-br from-blue-500 to-blue-600'
+                            }`}>
+                                {showAppointmentDetailsModal.action === 'complete' && <CheckCircle className="w-7 h-7 text-white" />}
+                                {showAppointmentDetailsModal.action === 'feedback' && <Star className="w-7 h-7 text-white" />}
+                                {showAppointmentDetailsModal.action === 'reschedule' && <Calendar className="w-7 h-7 text-white" />}
+                                {(!showAppointmentDetailsModal.action || showAppointmentDetailsModal.action === 'view') && <Calendar className="w-7 h-7 text-white" />}
                             </div>
                             <div>
-                                <div>Appointment Details</div>
+                                <div>
+                                    {showAppointmentDetailsModal.action === 'complete' && 'Complete Visit'}
+                                    {showAppointmentDetailsModal.action === 'feedback' && 'Provide Feedback'}
+                                    {showAppointmentDetailsModal.action === 'reschedule' && 'Reschedule Appointment'}
+                                    {(!showAppointmentDetailsModal.action || showAppointmentDetailsModal.action === 'view') && 'Appointment Details'}
+                                </div>
                                 <div className="text-sm font-normal text-slate-600 mt-1">
-                                    Manage and track appointment progress
+                                    {showAppointmentDetailsModal.action === 'complete' && 'Mark this visit as completed with your notes'}
+                                    {showAppointmentDetailsModal.action === 'feedback' && 'Rate the service and provide your comments'}
+                                    {showAppointmentDetailsModal.action === 'reschedule' && 'Change the date and time of this appointment'}
+                                    {(!showAppointmentDetailsModal.action || showAppointmentDetailsModal.action === 'view') && 'Manage and track appointment progress'}
                                 </div>
                             </div>
                         </DialogTitle>
@@ -4814,12 +4909,57 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 <div className="p-2 bg-green-100 rounded-lg">
                                                     <MapPin className="w-5 h-5 text-green-600" />
                                                 </div>
-                                                <div>
+                                                <div className="flex-1">
                                                     <div className="text-sm font-medium text-slate-600">Location</div>
                                                     <div className="text-base font-semibold text-slate-900">
-                                                        {showAppointmentDetailsModal.appointment.address}
+                                                        {(() => {
+                                                            const appointment = showAppointmentDetailsModal.appointment;
+                                                            console.log('DEBUG - Full appointment object:', appointment);
+                                                            console.log('DEBUG - Ticket object:', appointment?.ticket);
+                                                            console.log('DEBUG - Device object:', appointment?.ticket?.device);
+                                                            console.log('DEBUG - Device tenants:', appointment?.ticket?.device?.tenants);
+                                                            console.log('DEBUG - User tenant:', appointment?.ticket?.user?.tenant);
+                                                            
+                                                            // Try to get building info from multiple sources
+                                                            const building = appointment?.ticket?.device?.tenants?.[0]?.apartment?.building?.name ||
+                                                                            appointment?.ticket?.user?.tenant?.apartment?.building?.name ||
+                                                                            'Building not specified';
+                                                            const apartment = appointment?.ticket?.device?.tenants?.[0]?.apartment?.name ||
+                                                                            appointment?.ticket?.user?.tenant?.apartment?.name;
+                                                            
+                                                            let location = building;
+                                                            if (apartment) {
+                                                                location += ` - ${apartment}`;
+                                                            }
+                                                            return location;
+                                                        })()}
                                                     </div>
+                                                    {showAppointmentDetailsModal.appointment.address && (
+                                                        <div className="text-sm text-slate-600 mt-1">
+                                                            {showAppointmentDetailsModal.appointment.address}
+                                                        </div>
+                                                    )}
                                                 </div>
+                                                {(() => {
+                                                    const appointment = showAppointmentDetailsModal.appointment;
+                                                    const building = appointment?.ticket?.device?.tenants?.[0]?.apartment?.building ||
+                                                                    appointment?.ticket?.user?.tenant?.apartment?.building;
+                                                    
+                                                    if (building?.location_link) {
+                                                        return (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => setShowLocationModal({ open: true, building })}
+                                                                className="ml-2 p-2 h-8 w-8 rounded-full bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 transition-all duration-200"
+                                                                title="View on Map"
+                                                            >
+                                                                <MapPin className="w-4 h-4 text-red-600" />
+                                                            </Button>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
                                             </div>
                                         </div>
 
@@ -4843,7 +4983,11 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 <div>
                                                     <div className="text-sm font-medium text-slate-600">Related Ticket</div>
                                                     <div className="text-base font-semibold text-slate-900">
-                                                        #{showAppointmentDetailsModal.appointment.ticket?.code || 'N/A'}
+                                                        {(() => {
+                                                            const appointment = showAppointmentDetailsModal.appointment;
+                                                            console.log('DEBUG - Ticket code:', appointment?.ticket?.code);
+                                                            return `#${appointment?.ticket?.code || 'N/A'}`;
+                                                        })()}
                                                     </div>
                                                 </div>
                                             </div>
@@ -5432,6 +5576,30 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             </Button>
                         </div>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Location Modal */}
+            <Dialog open={showLocationModal.open} onOpenChange={(open) => setShowLocationModal({ open })}>
+                <DialogContent className="sm:max-w-[800px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <MapPin className="w-5 h-5 text-red-600" />
+                            {showLocationModal.building?.name || 'Building Location'}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="w-full aspect-video">
+                        <iframe
+                            src={showLocationModal.building?.location_link ? getEmbedUrl(showLocationModal.building.location_link) : ''}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            title="Building Location"
+                        />
+                    </div>
                 </DialogContent>
             </Dialog>
         </AppLayout>
