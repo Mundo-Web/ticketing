@@ -73,6 +73,7 @@ class AppointmentController extends Controller
             'calendarEvents' => $calendarEvents,
             'technicals' => $technicals,
             'currentDate' => Carbon::now()->toDateString(),
+            'googleMapsApiKey' => env('GMAPS_API_KEY'),
         ]);
     }
 

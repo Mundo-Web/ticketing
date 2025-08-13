@@ -159,6 +159,7 @@ interface AppointmentsProps {
         };
     };
     isTechnicalDefault?: boolean;
+    googleMapsApiKey?: string;
 }
 
 const statusConfig = {
@@ -200,22 +201,97 @@ const statusConfig = {
     }
 };
 
-export default function AppointmentsIndex({ appointments, technicals, auth, isTechnicalDefault }: AppointmentsProps) {
+export default function AppointmentsIndex({ appointments, technicals, auth, isTechnicalDefault, googleMapsApiKey }: AppointmentsProps) {
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [showAppointmentModal, setShowAppointmentModal] = useState(false);
-    const [calendarView, setCalendarView] = useState<any>(Views.DAY); // Vista por defecto: Día
+    
+    // Usar la misma lógica de detección de roles que en el index de Tickets
+    const { props } = usePage<any>();
+    const isTechnical = (auth.user as any)?.roles?.includes("technical");
+    const isSuperAdmin = (auth.user as any)?.roles?.includes("super-admin");
+    
+    // Vista por defecto: Agenda para técnicos, Día para super admins
+    const defaultView = (isTechnical || isTechnicalDefault) ? Views.AGENDA : Views.DAY;
+    const [calendarView, setCalendarView] = useState<any>(defaultView);
+    
     const [calendarDate, setCalendarDate] = useState(new Date()); // Usar fecha actual del cliente
     const [notifications, setNotifications] = useState<string[]>([]);
     const [selectedAppointmentLoading, setSelectedAppointmentLoading] = useState(false);
     
     // Estados del modal de detalles de cita - igual que en el index de Tickets
     const [showAppointmentDetailsModal, setShowAppointmentDetailsModal] = useState<{ open: boolean; appointment?: any }>({ open: false });
-
-    // Usar la misma lógica de detección de roles que en el index de Tickets
-    const { props } = usePage<any>();
-    const isTechnical = (auth.user as any)?.roles?.includes("technical");
-    const isSuperAdmin = (auth.user as any)?.roles?.includes("super-admin");
+    
+    // Estado para el modal de ubicación (igual que en Tickets)
+    const [showLocationModal, setShowLocationModal] = useState<{ open: boolean; building?: any }>({ open: false });
     // isTechnicalDefault ahora viene del backend correctamente
+
+    // Función para obtener URL del embed de Google Maps (igual que en Tickets)
+    const getEmbedUrl = (locationLink: string): string => {
+        if (!locationLink) return '';
+
+        if (locationLink.includes('maps.app.goo.gl')) {
+            return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=-10.916879,-74.883391&zoom=15`;
+        }
+
+        if (locationLink.includes('/embed')) return locationLink;
+
+        if (locationLink.includes('google.com/maps')) {
+            const coordsMatch = locationLink.match(/@([-0-9.]+),([-0-9.]+)/);
+            if (coordsMatch) {
+                return `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${coordsMatch[1]},${coordsMatch[2]}&zoom=15`;
+            }
+
+            const placeIdMatch = locationLink.match(/place\/([^\/]+)/);
+            if (placeIdMatch) {
+                return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=place_id:${placeIdMatch[1]}`;
+            }
+        }
+
+        return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(locationLink)}`;
+    };
+
+    // Función para obtener datos completos de la cita (igual que en Tickets)
+    const fetchFullAppointmentData = async (appointmentId: number) => {
+        console.log('fetchFullAppointmentData called with ID:', appointmentId);
+        try {
+            const response = await fetch(`/appointments/${appointmentId}/details`);
+            console.log('API response status:', response.status);
+            if (response.ok) {
+                const appointmentData = await response.json();
+                console.log('Received appointment data:', appointmentData);
+                return appointmentData.appointment;
+            } else {
+                console.error('API response not ok:', response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error('Error fetching appointment details:', error);
+        }
+        return null;
+    };
+
+    // Función para abrir modal de cita con datos completos (igual que en Tickets)
+    const openAppointmentModal = async (appointment: any, action: string = 'view') => {
+        console.log('openAppointmentModal called with:', { appointment, action });
+        
+        // Si la cita ya tiene datos completos del ticket, usarlos directamente
+        if (appointment?.ticket?.device?.tenants || appointment?.ticket?.user?.tenant) {
+            console.log('Using existing appointment data - has relationships');
+            setShowAppointmentDetailsModal({ open: true, appointment });
+            return;
+        }
+
+        console.log('Fetching full appointment data for ID:', appointment.id);
+        // De lo contrario, obtener los datos completos de la cita
+        const fullAppointment = await fetchFullAppointmentData(appointment.id);
+        if (fullAppointment) {
+            console.log('Successfully fetched full appointment data:', fullAppointment);
+            setShowAppointmentDetailsModal({ open: true, appointment: fullAppointment });
+        } else {
+            console.log('Failed to fetch full appointment data, using fallback');
+            // Fallback a la cita original si falla la obtención
+            setShowAppointmentDetailsModal({ open: true, appointment });
+        }
+    };
 
     // Refresca la cita seleccionada desde el backend
     const refreshSelectedAppointment = async (appointmentId?: number) => {
@@ -247,7 +323,9 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                     const appointmentTime = new Date(appointment.scheduled_for);
                     if (appointmentTime <= thirtyMinutesFromNow && appointmentTime > now) {
                         const timeLeft = Math.floor((appointmentTime.getTime() - now.getTime()) / (1000 * 60));
-                        const message = `You have an appointment in ${timeLeft} minutes: ${appointment.title}`;
+                        const message = isTechnical || isTechnicalDefault 
+                            ? `🔔 You have an appointment in ${timeLeft} minutes with ${appointment.ticket.user.name}: ${appointment.title}`
+                            : `Upcoming appointment in ${timeLeft} minutes: ${appointment.title}`;
                         
                         setNotifications(prev => {
                             if (!prev.includes(message)) {
@@ -264,7 +342,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
         const interval = setInterval(checkUpcomingAppointments, 60000); // Verificar cada minuto
         
         return () => clearInterval(interval);
-    }, [filteredAppointments]);
+    }, [filteredAppointments, isTechnical, isTechnicalDefault]);
 
     // Define getStatusConfig first
     const getStatusConfig = (status: string) => {
@@ -291,7 +369,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
     }, [filteredAppointments]);
 
     const handleSelectEvent = (event: any) => {
-        setShowAppointmentDetailsModal({ open: true, appointment: event.resource });
+        openAppointmentModal(event.resource);
     };
 
     const handleSelectSlot = (slotInfo: any) => {
@@ -364,7 +442,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                     const data = (page.props as any).flash || {};
 
                     // Show success notification with specific messages
-                    const successMessages = {
+                    const successMessages: Record<string, string> = {
                         'start': 'Visit started successfully!',
                         'complete': 'Visit completed successfully! Waiting for member feedback.',
                         'member_feedback': 'Thank you for your feedback!',
@@ -460,8 +538,21 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                 </div>
                 
                 {/* Título de la cita */}
-                <div className="text-xs opacity-95 leading-tight flex-1 overflow-hidden">
+                <div className="text-xs opacity-95 leading-tight mb-1 overflow-hidden">
                     {appointment.title}
+                </div>
+                
+                {/* Dirección/Ubicación */}
+                <div className="text-xs opacity-90 leading-tight flex-1 overflow-hidden">
+                    <MapPin className="w-2 h-2 inline mr-1" />
+                    {(() => {
+                        // Mostrar building y apartment si están disponibles
+                        const address = appointment.address;
+                        if (address && address.length > 20) {
+                            return address.substring(0, 20) + '...';
+                        }
+                        return address || 'No address';
+                    })()}
                 </div>
                 
                 {/* Status indicator dot */}
@@ -550,8 +641,8 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                         </h1>
                         <p className="text-gray-600 mt-2">
                             {isTechnical || isTechnicalDefault 
-                                ? `Manage your scheduled on-site appointments - User: ${auth.user.name}` 
-                                : 'Manage all scheduled on-site appointments'
+                                ? `View and manage your scheduled on-site appointments - ${auth.user.name}` 
+                                : 'Manage all scheduled on-site appointments across the organization'
                             }
                         </p>
                     </div>
@@ -708,16 +799,39 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                         {upcomingAppointments.slice(0, 5).map((appointment) => (
                                             <div 
                                                 key={appointment.id} 
-                                                className="border-l-4 border-blue-500 pl-3 py-2 cursor-pointer hover:bg-gray-50 rounded-r"
-                                                onClick={() => {
-                                                    setShowAppointmentDetailsModal({ open: true, appointment });
-                                                }}
+                                                className="border-l-4 border-blue-500 pl-3 py-2 hover:bg-gray-50 rounded-r transition-colors duration-200"
                                             >
-                                                <p className="font-medium text-sm">{appointment.title}</p>
-                                                <p className="text-xs text-gray-600">
-                                                    {formatDate(appointment.scheduled_for)} - {formatTime(appointment.scheduled_for)}
-                                                </p>
-                                                <p className="text-xs text-gray-500">{appointment.technical.name}</p>
+                                                <div className="flex items-start justify-between">
+                                                    <div 
+                                                        className="flex-1 cursor-pointer"
+                                                        onClick={() => {
+                                                            openAppointmentModal(appointment);
+                                                        }}
+                                                    >
+                                                        <p className="font-medium text-sm">{appointment.title}</p>
+                                                        <p className="text-xs text-gray-600">
+                                                            {formatDate(appointment.scheduled_for)} - {formatTime(appointment.scheduled_for)}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">{appointment.technical.name}</p>
+                                                    </div>
+                                                    
+                                                    {/* Botón rápido "Iniciar Visita" para técnicos */}
+                                                    {(isTechnical || isTechnicalDefault) && appointment.status === 'scheduled' && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleAppointmentAction('start', appointment.id);
+                                                            }}
+                                                            className="ml-2 text-xs px-2 py-1 h-7 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                                                            title="Start Visit"
+                                                        >
+                                                            <PlayCircle className="w-3 h-3 mr-1" />
+                                                            Start
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -849,12 +963,57 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                                     <div className="p-2 bg-green-100 rounded-lg">
                                                         <MapPin className="w-5 h-5 text-green-600" />
                                                     </div>
-                                                    <div>
+                                                    <div className="flex-1">
                                                         <div className="text-sm font-medium text-slate-600">Location</div>
                                                         <div className="text-base font-semibold text-slate-900">
-                                                            {showAppointmentDetailsModal.appointment.address}
+                                                            {(() => {
+                                                                const appointment = showAppointmentDetailsModal.appointment;
+                                                                console.log('DEBUG - Full appointment object:', appointment);
+                                                                console.log('DEBUG - Ticket object:', appointment?.ticket);
+                                                                console.log('DEBUG - Device object:', appointment?.ticket?.device);
+                                                                console.log('DEBUG - Device tenants:', appointment?.ticket?.device?.tenants);
+                                                                console.log('DEBUG - User tenant:', appointment?.ticket?.user?.tenant);
+                                                                
+                                                                // Try to get building info from multiple sources
+                                                                const building = appointment?.ticket?.device?.tenants?.[0]?.apartment?.building?.name ||
+                                                                                appointment?.ticket?.user?.tenant?.apartment?.building?.name ||
+                                                                                'Building not specified';
+                                                                const apartment = appointment?.ticket?.device?.tenants?.[0]?.apartment?.name ||
+                                                                                appointment?.ticket?.user?.tenant?.apartment?.name;
+                                                                
+                                                                let location = building;
+                                                                if (apartment) {
+                                                                    location += ` - ${apartment}`;
+                                                                }
+                                                                return location;
+                                                            })()}
                                                         </div>
+                                                        {showAppointmentDetailsModal.appointment.address && (
+                                                            <div className="text-sm text-slate-600 mt-1">
+                                                                {showAppointmentDetailsModal.appointment.address}
+                                                            </div>
+                                                        )}
                                                     </div>
+                                                    {(() => {
+                                                        const appointment = showAppointmentDetailsModal.appointment;
+                                                        const building = appointment?.ticket?.device?.tenants?.[0]?.apartment?.building ||
+                                                                        appointment?.ticket?.user?.tenant?.apartment?.building;
+                                                        
+                                                        if (building?.location_link) {
+                                                            return (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => setShowLocationModal({ open: true, building })}
+                                                                    className="ml-2 p-2 h-8 w-8 rounded-full bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 transition-all duration-200"
+                                                                    title="View on Map"
+                                                                >
+                                                                    <MapPin className="w-4 h-4 text-red-600" />
+                                                                </Button>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
                                                 </div>
                                             </div>
 
@@ -970,6 +1129,30 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                 </Button>
                             </div>
                         </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Location Modal - igual que en Tickets */}
+                <Dialog open={showLocationModal.open} onOpenChange={(open) => setShowLocationModal({ open })}>
+                    <DialogContent className="sm:max-w-[800px]">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <MapPin className="w-5 h-5 text-red-600" />
+                                {showLocationModal.building?.name || 'Building Location'}
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="w-full aspect-video">
+                            <iframe
+                                src={showLocationModal.building?.location_link ? getEmbedUrl(showLocationModal.building.location_link) : ''}
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0 }}
+                                allowFullScreen
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                                title="Building Location"
+                            />
+                        </div>
                     </DialogContent>
                 </Dialog>
             </div>
