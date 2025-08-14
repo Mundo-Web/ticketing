@@ -691,17 +691,44 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
         const events = filteredAppointments.map(appointment => {
             // Crear fechas usando el timezone local para evitar problemas de offset
             const start = new Date(appointment.scheduled_for);
-            const end = new Date(start.getTime() + appointment.estimated_duration * 60000); // Add duration in minutes
+            
+            // Para eventos nocturnos (después de las 18:00), limitar la duración más agresivamente
+            const hour = start.getHours();
+            let durationMinutes = appointment.estimated_duration;
+            
+            // Si es un evento nocturno, limitarlo para que NO se extienda al día siguiente
+            if (hour >= 18) { // Desde las 6 PM
+                const minutesUntilMidnight = (24 - hour) * 60 - start.getMinutes();
+                
+                // Para eventos muy tardíos (después de las 22:00), usar duración muy corta
+                if (hour >= 22) {
+                    durationMinutes = Math.min(30, minutesUntilMidnight - 30); // máximo 30 min, termina 30 min antes de medianoche
+                } else {
+                    // Para eventos entre 18:00 y 22:00, limitar pero menos agresivamente
+                    durationMinutes = Math.min(durationMinutes, minutesUntilMidnight - 60); // termina 1 hora antes de medianoche
+                }
+                
+                // Asegurar que siempre sea al menos 15 minutos
+                durationMinutes = Math.max(15, durationMinutes);
+            }
+            
+            const end = new Date(start.getTime() + durationMinutes * 60000);
             
             // Debug para verificar fechas
             console.log('🗓️ Converting appointment:', {
                 id: appointment.id,
                 title: appointment.title,
                 scheduled_for: appointment.scheduled_for,
+                originalDuration: appointment.estimated_duration,
+                adjustedDuration: durationMinutes,
                 start: start.toISOString(),
                 end: end.toISOString(),
-                localStart: start.toLocaleString(),
-                localEnd: end.toLocaleString()
+                startDay: start.getDate(),
+                endDay: end.getDate(),
+                hour: hour,
+                isNightEvent: hour >= 18,
+                startsAt: start.toLocaleTimeString(),
+                endsAt: end.toLocaleTimeString()
             });
 
             return {
