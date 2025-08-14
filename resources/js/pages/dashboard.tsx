@@ -51,8 +51,7 @@ import {
     Timer, Download, ExternalLink, RefreshCcw, FileSpreadsheet,
     Bell, Zap, UserPlus, UserCheck, AlertTriangle, X, User, Phone, Mail,
     Monitor, ChevronLeft, ChevronRight, Laptop, Check,
-    MessageSquare, Info, AlertOctagon, MapPin, PlayCircle, Eye,
-    UserMinus, BarChart, UserCog, CalendarPlus
+    MessageSquare, Info, AlertOctagon, MapPin, PlayCircle, Eye
 } from 'lucide-react';
 
 // Charts
@@ -1233,9 +1232,6 @@ export default function Dashboard({
     ) || false;
     const isTechnical = userRoles.some((role) => 
         typeof role === 'string' ? role === 'technical' : role.name === 'technical'
-    ) || false;
-    const isChiefTech = userRoles.some((role) => 
-        typeof role === 'string' ? role === 'technical-leader' : role.name === 'technical-leader'
     ) || false;
     const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false;
     const isDoorman = userRoles.some((role) => 
@@ -2710,51 +2706,123 @@ export default function Dashboard({
                         </div>
 
 
-                        {/* SECTION: UNASSIGNED TICKETS TABLE  canAssignTickets &&*/}
+                        {/* SECTION: ENHANCED UNASSIGNED TICKETS TABLE */}
                         {lists.unassignedTickets && lists.unassignedTickets.length > 0 && (
-                            <div className="space-y-8">                                <div className="text-center space-y-4">                                    <h2 className="text-4xl font-bold text-chart-3">
-                                Unassigned Tickets
-                            </h2>
-                                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                                    Recent tickets awaiting technical assignment - quick actions available
-                                </p>
-                            </div>
+                            <div className="space-y-12">
+                                {/* Premium Header Section */}
+                                <div className="text-center space-y-6">
+                                    <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-orange-100 to-orange-50 rounded-full shadow-lg">
+                                        <AlertTriangle className="h-6 w-6 text-orange-600" />
+                                        <span className="text-sm font-bold text-orange-700 uppercase tracking-wider">
+                                            Immediate Action Required
+                                        </span>
+                                    </div>
+                                    <h2 className="text-4xl font-bold bg-gradient-to-br from-orange-600 to-orange-800 bg-clip-text text-transparent">
+                                        Unassigned Tickets
+                                    </h2>
+                                    <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                                        Critical tickets awaiting technical assignment - streamlined management for maximum efficiency
+                                    </p>
+                                </div>
 
-                                <Card className="border-0 shadow-xl bg-gradient-to-br from-slate-50 via-white to-slate-50">                                    <CardHeader className="border-b border-slate-100 bg-slate-50">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-lg bg-orange-100">
-                                                <AlertTriangle className="h-5 w-5 text-orange-600" />
+                                {/* Enhanced Card Container */}
+                                <Card className="group border-0 shadow-2xl bg-gradient-to-br from-white via-slate-50/30 to-orange-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-3xl hover:-translate-y-1 overflow-hidden">
+                                    {/* Animated gradient border */}
+                                    <div className="absolute inset-0 bg-gradient-to-r from-orange-200/30 via-transparent to-orange-200/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                    
+                                    {/* Premium Header */}
+                                    <CardHeader className="relative border-b border-gradient-to-r from-orange-200/50 via-slate-200/30 to-orange-200/50 bg-gradient-to-r from-orange-50/50 via-white to-slate-50/50 backdrop-blur-sm">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="relative">
+                                                    <div className="p-3 rounded-xl bg-gradient-to-br from-orange-100 to-orange-200 shadow-lg group-hover:shadow-xl transition-all duration-300">
+                                                        <AlertTriangle className="h-6 w-6 text-orange-700" />
+                                                    </div>
+                                                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                                                        <span className="text-xs font-bold text-white">{lists.unassignedTickets.length}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <CardTitle className="text-2xl font-bold text-slate-800 group-hover:text-orange-700 transition-colors">
+                                                        Critical Unassigned Queue
+                                                    </CardTitle>
+                                                    <p className="text-sm text-slate-600 font-medium">
+                                                        Managing {lists.unassignedTickets.length} urgent ticket{lists.unassignedTickets.length !== 1 ? 's' : ''} requiring immediate technical assignment
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <CardTitle className="text-xl text-slate-800">Latest Unassigned Tickets</CardTitle>
-                                                <p className="text-sm text-slate-600 mt-1">Showing {lists.unassignedTickets.length} most recent unassigned tickets</p>
+                                            <div className="flex items-center gap-3">
+                                                <div className="px-3 py-2 bg-gradient-to-r from-orange-100 to-orange-200 rounded-lg border border-orange-300">
+                                                    <span className="text-sm font-bold text-orange-700">Priority: High</span>
+                                                </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="lg"
+                                                    className="bg-gradient-to-r from-orange-100 to-orange-200 border-orange-300 text-orange-700 hover:from-orange-200 hover:to-orange-300 hover:border-orange-400 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group"
+                                                    onClick={() => window.open('/tickets', '_blank')}
+                                                >
+                                                    <UserPlus className="h-5 w-5 mr-2" />
+                                                    Bulk Assignment Portal
+                                                    <ExternalLink className="h-4 w-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                </Button>
                                             </div>
                                         </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
-                                            onClick={() => window.open('/tickets', '_blank')}
-                                        >
-                                            <UserPlus className="h-4 w-4 mr-2" />
-                                            Bulk Assign
-                                        </Button>
-                                    </div>
-                                </CardHeader>
-                                    <CardContent className="p-0">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full">
-                                                <thead>
-                                                    <tr className="border-b border-slate-100">
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Ticket</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Location</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Device</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Category</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Created</th>
-                                                        <th className="text-left py-4 px-6 font-semibold text-slate-700 text-sm">Actions</th>
+                                    </CardHeader>
+
+                                    {/* Enhanced Table Content */}
+                                    <CardContent className="relative p-0 overflow-hidden">
+                                        {/* Animated background pattern */}
+                                        <div className="absolute inset-0 opacity-5">
+                                            <div className="absolute inset-0 bg-gradient-to-br from-orange-100 via-transparent to-slate-100 animate-pulse duration-3000"></div>
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 via-red-500 to-orange-400 animate-pulse"></div>
+                                        </div>
+
+                                        <div className="relative overflow-x-auto custom-scrollbar">
+                                            <table className="w-full border-collapse">
+                                                {/* Premium Table Header */}
+                                                <thead className="bg-gradient-to-r from-slate-100/50 via-orange-50/30 to-slate-100/50 sticky top-0 z-10">
+                                                    <tr className="border-b-2 border-orange-200/50">
+                                                        <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                            <div className="flex items-center gap-2">
+                                                                <Ticket className="h-4 w-4 text-orange-600" />
+                                                                Ticket Details
+                                                            </div>
+                                                        </th>
+                                                        <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                            <div className="flex items-center gap-2">
+                                                                <MapPin className="h-4 w-4 text-orange-600" />
+                                                                Location
+                                                            </div>
+                                                        </th>
+                                                        <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                            <div className="flex items-center gap-2">
+                                                                <Monitor className="h-4 w-4 text-orange-600" />
+                                                                Device
+                                                            </div>
+                                                        </th>
+                                                        <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                            <div className="flex items-center gap-2">
+                                                                <Activity className="h-4 w-4 text-orange-600" />
+                                                                Category
+                                                            </div>
+                                                        </th>
+                                                        <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                            <div className="flex items-center gap-2">
+                                                                <Clock className="h-4 w-4 text-orange-600" />
+                                                                Created
+                                                            </div>
+                                                        </th>
+                                                        <th className="text-center py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <Zap className="h-4 w-4 text-orange-600" />
+                                                                Quick Actions
+                                                            </div>
+                                                        </th>
                                                     </tr>
-                                                </thead>                                                <tbody>
+                                                </thead>
+
+                                                {/* Enhanced Table Body */}
+                                                <tbody className="divide-y divide-slate-100/50">
                                                     {lists.unassignedTickets.length > 0 ? (
                                                         lists.unassignedTickets.map((ticket, index) => (
                                                             <UnassignedTicketRow
@@ -2765,12 +2833,68 @@ export default function Dashboard({
                                                             />
                                                         ))
                                                     ) : (
-                                                        <tr>
-                                                            <td colSpan={6} className="py-12 text-center">
-                                                                <div className="space-y-3">
-                                                                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-                                                                    <p className="text-lg font-semibold text-slate-600">All tickets are assigned!</p>
-                                                                    <p className="text-sm text-slate-500">Great job keeping up with the workflow.</p>
+                                                        <tr className="relative group">
+                                                            {/* Animated gradient background for empty state */}
+                                                            <td colSpan={6} className="relative py-20 text-center overflow-hidden">
+                                                                {/* Premium background with multiple gradients */}
+                                                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-green-25 to-teal-50 opacity-80"></div>
+                                                                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-green-100/30 to-transparent"></div>
+                                                                
+                                                                {/* Floating elements */}
+                                                                <div className="absolute top-4 left-4 w-3 h-3 bg-green-400 rounded-full animate-ping opacity-60"></div>
+                                                                <div className="absolute top-8 right-8 w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                                                <div className="absolute bottom-6 left-1/3 w-4 h-4 bg-teal-400 rounded-full animate-bounce opacity-40"></div>
+                                                                
+                                                                <div className="relative z-10 space-y-6">
+                                                                    {/* Premium success icon */}
+                                                                    <div className="relative inline-flex">
+                                                                        <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full blur-lg opacity-30 animate-pulse"></div>
+                                                                        <div className="relative flex items-center justify-center">
+                                                                            <CheckCircle className="h-20 w-20 text-green-500 drop-shadow-lg animate-bounce" />
+                                                                            <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-xl animate-pulse">
+                                                                                <Check className="h-4 w-4 text-white font-bold" />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    {/* Enhanced messaging */}
+                                                                    <div className="space-y-4">
+                                                                        <h3 className="text-2xl font-black text-green-800 tracking-tight">
+                                                                            🎉 Outstanding Performance!
+                                                                        </h3>
+                                                                        <p className="text-lg font-bold text-green-700">
+                                                                            All tickets successfully assigned to technical team
+                                                                        </p>
+                                                                        <p className="text-sm text-green-600 max-w-lg mx-auto leading-relaxed font-medium">
+                                                                            Exceptional workflow management - every support request has been efficiently distributed 
+                                                                            to qualified technicians. The system is running at optimal efficiency.
+                                                                        </p>
+                                                                    </div>
+                                                                    
+                                                                    {/* Status indicators */}
+                                                                    <div className="flex items-center justify-center gap-4 pt-4">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
+                                                                            <span className="text-xs text-green-700 font-bold uppercase tracking-wider">System Optimized</span>
+                                                                        </div>
+                                                                        <div className="w-1 h-1 bg-green-400 rounded-full"></div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Activity className="h-3 w-3 text-green-600" />
+                                                                            <span className="text-xs text-green-600 font-semibold">100% Efficiency</span>
+                                                                        </div>
+                                                                        <div className="w-1 h-1 bg-green-400 rounded-full"></div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Users className="h-3 w-3 text-green-600" />
+                                                                            <span className="text-xs text-green-600 font-semibold">Team Active</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    {/* Achievement badge */}
+                                                                    <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full text-white shadow-xl mt-6">
+                                                                        <CheckCircle className="h-5 w-5" />
+                                                                        <span className="text-sm font-bold uppercase tracking-wider">Perfect Assignment Rate</span>
+                                                                        <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                                                                    </div>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -2778,393 +2902,13 @@ export default function Dashboard({
                                                 </tbody>
                                             </table>
                                         </div>
+
                                     </CardContent>
                                 </Card>
                             </div>
                         )}
 
-                        {/* CHIEF TECH (TECHNICAL LEADER) SPECIFIC DASHBOARD SECTION */}
-                        {isChiefTech && (
-                            <div className="space-y-12">
-                                <div className="text-center space-y-6">
-                                    <div className="inline-flex items-center gap-3 px-6 py-3 bg-primary/10 rounded-full">
-                                        <Users className="h-6 w-6 text-primary" />
-                                        <span className="text-sm font-semibold text-primary uppercase tracking-wider">
-                                            Technical Leader Dashboard
-                                        </span>
-                                    </div>
-                                    <h2 className="text-4xl font-bold bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-                                        Team Management Hub
-                                    </h2>
-                                    <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                                        Comprehensive oversight of technical team performance, ticket distribution, and operational efficiency
-                                    </p>
-                                </div>
 
-                                {/* Enhanced Team Performance Overview */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {/* Total Team Tickets */}
-                                    <Card className="group relative transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 border-0 bg-gradient-to-br from-primary/5 via-background to-primary/10 overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        <CardContent className="relative p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/30 shadow-lg">
-                                                    <Users className="h-6 w-6 text-primary" />
-                                                </div>
-                                                <ExternalLink
-                                                    className="h-4 w-4 text-primary/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 hover:text-primary"
-                                                    onClick={() => window.open('/tickets', '_blank')}
-                                                />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <p className="text-xs font-bold text-primary uppercase tracking-widest">
-                                                    Total Team Tickets
-                                                </p>
-                                                <p className="text-3xl font-black text-foreground">{metrics.tickets.total}</p>
-                                                <p className="text-xs text-muted-foreground font-medium">All technical team assignments</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* My Assigned Tickets */}
-                                    <Card className="group relative transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 border-0 bg-gradient-to-br from-blue-50 via-background to-blue-100 overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        <CardContent className="relative p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-200 to-blue-300 shadow-lg">
-                                                    <User className="h-6 w-6 text-blue-700" />
-                                                </div>
-                                                <ExternalLink
-                                                    className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 hover:text-blue-700"
-                                                    onClick={() => window.open('/tickets?assigned=me', '_blank')}
-                                                />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <p className="text-xs font-bold text-blue-700 uppercase tracking-widest">
-                                                    My Assigned
-                                                </p>
-                                                <p className="text-3xl font-black text-foreground">{metrics.tickets.open || 0}</p>
-                                                <p className="text-xs text-muted-foreground font-medium">Personal workload</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Unassigned Tickets - Critical */}
-                                    <Card className="group relative transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 border-0 bg-gradient-to-br from-orange-50 via-background to-orange-100 overflow-hidden animate-pulse">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-orange-100/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        <CardContent className="relative p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-gradient-to-br from-orange-200 to-orange-300 shadow-lg">
-                                                    <UserMinus className="h-6 w-6 text-orange-700" />
-                                                </div>
-                                                <ExternalLink
-                                                    className="h-4 w-4 text-orange-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 hover:text-orange-700"
-                                                    onClick={() => window.open('/tickets?unassigned=1', '_blank')}
-                                                />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-xs font-bold text-orange-700 uppercase tracking-widest">
-                                                        Unassigned
-                                                    </p>
-                                                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-                                                </div>
-                                                <p className="text-3xl font-black text-foreground">{metrics.tickets.unassigned}</p>
-                                                <p className="text-xs text-muted-foreground font-medium">Require immediate attention</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Resolved Today - Success */}
-                                    <Card className="group relative transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-green-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        <CardContent className="relative p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-gradient-to-br from-green-200 to-green-300 shadow-lg">
-                                                    <CheckCircle className="h-6 w-6 text-green-700" />
-                                                </div>
-                                                <ExternalLink
-                                                    className="h-4 w-4 text-green-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 hover:text-green-700"
-                                                    onClick={() => window.open('/tickets?status=resolved&resolved_today=1', '_blank')}
-                                                />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <p className="text-xs font-bold text-green-700 uppercase tracking-widest">
-                                                    Today's Success
-                                                </p>
-                                                <p className="text-3xl font-black text-foreground">{metrics.tickets.resolved_today}</p>
-                                                <p className="text-xs text-muted-foreground font-medium">Resolved tickets today</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-
-                                {/* Advanced Team Analytics & Critical Actions */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Enhanced Technical Team Performance */}
-                                    <Card className="border-0 shadow-xl bg-gradient-to-br from-slate-50/50 via-background to-slate-100/50 backdrop-blur-sm">
-                                        <CardHeader className="border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-background pb-6">
-                                            <CardTitle className="flex items-center gap-3 text-xl">
-                                                <div className="p-2 rounded-lg bg-primary/20">
-                                                    <BarChart className="h-5 w-5 text-primary" />
-                                                </div>
-                                                <div>
-                                                    <span className="text-foreground font-bold">Team Performance Analytics</span>
-                                                    <p className="text-sm text-muted-foreground font-normal mt-1">Individual technician workloads and productivity</p>
-                                                </div>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="p-6">
-                                            <div className="space-y-4">
-                                                {lists.availableTechnicals && lists.availableTechnicals.slice(0, 5).map((tech, index) => (
-                                                    <div key={tech.id} className="group relative p-4 bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-xl hover:from-primary/5 hover:to-primary/10 transition-all duration-300 border border-slate-200/50 hover:border-primary/20 hover:shadow-lg">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="relative">
-                                                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center shadow-lg">
-                                                                        <UserCog className="w-6 h-6 text-primary" />
-                                                                    </div>
-                                                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                                                                        <span className="text-xs font-bold text-white">{index + 1}</span>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="space-y-1">
-                                                                    <p className="font-bold text-slate-900 text-lg">{tech.name}</p>
-                                                                    <div className="flex items-center gap-3">
-                                                                        <span className="text-sm text-slate-600 font-medium">{(tech as { id: number; name: string; is_default: boolean; tickets_count?: number }).tickets_count || 0} active tickets</span>
-                                                                        <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
-                                                                        <span className="text-xs text-primary font-semibold uppercase tracking-wider">Active</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex flex-col items-end gap-2">
-                                                                <Badge variant="outline" className="bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 font-semibold">
-                                                                    {(tech as { id: number; name: string; is_default: boolean; tickets_count?: number }).tickets_count || 0} completed
-                                                                </Badge>
-                                                                <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
-                                                                    <div 
-                                                                        className="h-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-500"
-                                                                        style={{ width: `${Math.min(((tech as { id: number; name: string; is_default: boolean; tickets_count?: number }).tickets_count || 0) * 10, 100)}%` }}
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Critical Unassigned Tickets */}
-                                    <Card className="border-0 shadow-xl bg-gradient-to-br from-orange-50/50 via-background to-orange-100/50 backdrop-blur-sm">
-                                        <CardHeader className="border-b border-orange-200/50 bg-gradient-to-r from-orange-50 to-background pb-6">
-                                            <CardTitle className="flex items-center gap-3 text-xl">
-                                                <div className="p-2 rounded-lg bg-orange-200/50">
-                                                    <AlertCircle className="h-5 w-5 text-orange-600" />
-                                                </div>
-                                                <div>
-                                                    <span className="text-foreground font-bold">Critical Unassigned Tickets</span>
-                                                    <p className="text-sm text-muted-foreground font-normal mt-1">Requires immediate technical assignment</p>
-                                                </div>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="p-6">
-                                            <div className="space-y-3">
-                                                {lists.unassignedTickets && lists.unassignedTickets.length > 0 ? lists.unassignedTickets.slice(0, 5).map((ticket) => (
-                                                    <div key={ticket.id} className="group relative p-3 bg-gradient-to-r from-white to-orange-50/30 rounded-xl hover:from-orange-50 hover:to-orange-100/50 transition-all duration-300 border border-orange-200/30 hover:border-orange-300 hover:shadow-lg cursor-pointer"
-                                                         onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}>
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="relative">
-                                                                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 shadow-sm animate-pulse" />
-                                                                    <div className="absolute inset-0 w-3 h-3 rounded-full bg-orange-500 animate-ping opacity-20" />
-                                                                </div>
-                                                                <div className="space-y-1 flex-1">
-                                                                    <p className="font-bold text-slate-900 truncate max-w-xs group-hover:text-orange-800 transition-colors">{ticket.title}</p>
-                                                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                                        <span className="font-medium">{ticket.device?.apartment?.name || 'No apt'}</span>
-                                                                        <span>•</span>
-                                                                        <span className="text-xs">{formatDate(ticket.created_at)}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <Button variant="outline" size="sm" className="flex items-center gap-2 bg-gradient-to-r from-orange-100 to-orange-200 border-orange-300 text-orange-700 hover:from-orange-200 hover:to-orange-300 hover:border-orange-400 font-semibold"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        window.open(`/tickets/${ticket.id}/assign`, '_blank');
-                                                                    }}>
-                                                                <UserPlus className="w-3 h-3" />
-                                                                Assign Now
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                )) : (
-                                                    <div className="flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl border-2 border-green-200 border-dashed">
-                                                        <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-                                                        <p className="text-lg font-bold text-green-700">All Tickets Assigned!</p>
-                                                        <p className="text-sm text-green-600 mt-1">Excellent team management</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                        <CardFooter className="flex justify-center border-t pt-6 bg-gradient-to-r from-orange-50/50 to-background">
-                                            <Button 
-                                                variant="outline"
-                                                size="lg"
-                                                className="bg-gradient-to-r from-orange-100 to-orange-200 border-orange-300 text-orange-700 hover:from-orange-200 hover:to-orange-300 font-semibold px-8"
-                                                onClick={() => window.open('/tickets?unassigned=1', '_blank')}
-                                            >
-                                                <UserPlus className="w-4 h-4 mr-2" />
-                                                Manage All Unassigned
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                </div>
-
-                                {/* Strategic Operations Center */}
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                    {/* Enhanced Team Appointment Calendar */}
-                                    <Card className="col-span-2 border-0 shadow-xl bg-gradient-to-br from-slate-50/50 via-background to-slate-100/50 backdrop-blur-sm">
-                                        <CardHeader className="border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-background pb-6">
-                                            <CardTitle className="flex items-center gap-3 text-xl">
-                                                <div className="p-2 rounded-lg bg-blue-200/50">
-                                                    <Calendar className="h-5 w-5 text-blue-600" />
-                                                </div>
-                                                <div>
-                                                    <span className="text-foreground font-bold">Team Appointment Calendar</span>
-                                                    <p className="text-sm text-muted-foreground font-normal mt-1">Upcoming scheduled technical visits and maintenance</p>
-                                                </div>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="p-6">
-                                            <div className="space-y-4">
-                                                {lists.upcomingAppointments && lists.upcomingAppointments.length > 0 ? (
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        {lists.upcomingAppointments.slice(0, 6).map((appointment) => (
-                                                            <div key={appointment.id} className="group relative p-4 bg-gradient-to-r from-white to-blue-50/30 rounded-xl hover:from-blue-50 hover:to-blue-100/50 transition-all duration-300 border border-blue-200/30 hover:border-blue-300 hover:shadow-lg cursor-pointer"
-                                                                onClick={() => window.open(`/appointments/${appointment.id}`, '_blank')}>
-                                                                <div className="flex items-start gap-3">
-                                                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-200 to-blue-300 flex items-center justify-center shadow-lg shrink-0">
-                                                                        <Calendar className="w-5 h-5 text-blue-700" />
-                                                                    </div>
-                                                                    <div className="flex-1 space-y-2">
-                                                                        <p className="font-bold text-slate-900 line-clamp-2 group-hover:text-blue-800 transition-colors">{appointment.title}</p>
-                                                                        <div className="space-y-1">
-                                                                            <div className="flex items-center gap-2 text-sm">
-                                                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                                                                <span className="font-semibold text-blue-700">{formatDate(appointment.scheduled_at || appointment.scheduled_for)}</span>
-                                                                            </div>
-                                                                            <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                                                <UserCog className="w-3 h-3" />
-                                                                                <span className="font-medium">{appointment.technical?.name || 'Unassigned'}</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border-2 border-blue-200 border-dashed">
-                                                        <Calendar className="h-16 w-16 text-blue-400 mb-4" />
-                                                        <p className="text-lg font-bold text-blue-700">No Upcoming Appointments</p>
-                                                        <p className="text-sm text-blue-600 mt-1">Schedule new appointments to manage workload</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                        <CardFooter className="flex justify-center border-t pt-6 bg-gradient-to-r from-blue-50/50 to-background">
-                                            <Button 
-                                                variant="outline"
-                                                size="lg"
-                                                className="bg-gradient-to-r from-blue-100 to-blue-200 border-blue-300 text-blue-700 hover:from-blue-200 hover:to-blue-300 font-semibold px-8"
-                                                onClick={() => window.open('/appointments', '_blank')}
-                                            >
-                                                <Calendar className="w-4 h-4 mr-2" />
-                                                View Full Calendar
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-
-                                    {/* Premium Quick Actions Hub */}
-                                    <Card className="col-span-1 border-0 shadow-xl bg-gradient-to-br from-primary/5 via-background to-primary/10 backdrop-blur-sm">
-                                        <CardHeader className="border-b border-primary/20 bg-gradient-to-r from-primary/10 to-background pb-6">
-                                            <CardTitle className="flex items-center gap-3 text-xl">
-                                                <div className="p-2 rounded-lg bg-primary/30">
-                                                    <Zap className="h-5 w-5 text-primary" />
-                                                </div>
-                                                <div>
-                                                    <span className="text-foreground font-bold">Quick Actions</span>
-                                                    <p className="text-sm text-muted-foreground font-normal mt-1">Essential management tools</p>
-                                                </div>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="p-6">
-                                            <div className="space-y-4">
-                                                <Button 
-                                                    className="w-full flex items-center gap-3 h-14 justify-start bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
-                                                    onClick={() => window.open('/tickets/unassigned', '_blank')}
-                                                >
-                                                    <div className="p-2 rounded-lg bg-white/20">
-                                                        <UserPlus className="w-4 h-4" />
-                                                    </div>
-                                                    <div className="text-left">
-                                                        <div className="font-semibold">Assign Tickets</div>
-                                                        <div className="text-xs opacity-90">Distribute workload</div>
-                                                    </div>
-                                                    <ExternalLink className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                </Button>
-                                                
-                                                <Button 
-                                                    variant="outline"
-                                                    className="w-full flex items-center gap-3 h-14 justify-start bg-gradient-to-r from-slate-50 to-slate-100 border-slate-300 text-slate-700 hover:from-slate-100 hover:to-slate-200 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-300 group"
-                                                    onClick={() => window.open('/appointments/create', '_blank')}
-                                                >
-                                                    <div className="p-2 rounded-lg bg-blue-200">
-                                                        <CalendarPlus className="w-4 h-4 text-blue-700" />
-                                                    </div>
-                                                    <div className="text-left">
-                                                        <div className="font-semibold">Schedule Appointment</div>
-                                                        <div className="text-xs text-slate-600">Plan technical visits</div>
-                                                    </div>
-                                                    <ExternalLink className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                </Button>
-                                                
-                                                <Button 
-                                                    variant="outline"
-                                                    className="w-full flex items-center gap-3 h-14 justify-start bg-gradient-to-r from-slate-50 to-slate-100 border-slate-300 text-slate-700 hover:from-slate-100 hover:to-slate-200 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-300 group"
-                                                    onClick={() => window.open('/reports/technicians', '_blank')}
-                                                >
-                                                    <div className="p-2 rounded-lg bg-green-200">
-                                                        <BarChart className="w-4 h-4 text-green-700" />
-                                                    </div>
-                                                    <div className="text-left">
-                                                        <div className="font-semibold">Team Reports</div>
-                                                        <div className="text-xs text-slate-600">Performance analytics</div>
-                                                    </div>
-                                                    <ExternalLink className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                </Button>
-                                                
-                                                <Button 
-                                                    variant="outline"
-                                                    className="w-full flex items-center gap-3 h-14 justify-start bg-gradient-to-r from-slate-50 to-slate-100 border-slate-300 text-slate-700 hover:from-slate-100 hover:to-slate-200 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-300 group"
-                                                    onClick={() => window.open('/tickets/assigned', '_blank')}
-                                                >
-                                                    <div className="p-2 rounded-lg bg-purple-200">
-                                                        <User className="w-4 h-4 text-purple-700" />
-                                                    </div>
-                                                    <div className="text-left">
-                                                        <div className="font-semibold">Assigned Tickets</div>
-                                                        <div className="text-xs text-slate-600">Manage assignments</div>
-                                                    </div>
-                                                    <ExternalLink className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            </div>
-                        )}
 
                         {/* DOORMAN/OWNER SPECIFIC DASHBOARD SECTION */}
                         {(isDoorman || isOwner) && (

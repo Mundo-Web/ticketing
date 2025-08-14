@@ -77,4 +77,31 @@ class User extends Authenticatable
         return $this->hasOne(Technical::class, 'email', 'email');
     }
 
+    /**
+     * Check if user is a Chief Technical (technical-leader role or default technical)
+     */
+    public function isChiefTech(): bool
+    {
+        // Check if user has technical-leader role
+        if ($this->hasRole('technical-leader')) {
+            return true;
+        }
+
+        // Check if user is a default technical
+        if ($this->hasRole('technical')) {
+            $technical = $this->technical;
+            return $technical && $technical->is_default;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user has Chief Tech privileges (super-admin or Chief Tech)
+     */
+    public function hasChiefTechPrivileges(): bool
+    {
+        return $this->hasRole('super-admin') || $this->isChiefTech();
+    }
+
 }

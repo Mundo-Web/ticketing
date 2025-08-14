@@ -121,6 +121,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('technicals/{technical}/send-instruction', [TechnicalController::class, 'sendInstruction'])
         ->name('technicals.send-instruction');
 
+    // Chief Tech Routes - Protected by chief_tech middleware
+    Route::prefix('chief-tech')->name('chief-tech.')->middleware('chief_tech')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\ChiefTechController::class, 'dashboard'])->name('dashboard');
+        Route::post('/assign-ticket', [\App\Http\Controllers\ChiefTechController::class, 'assignTicket'])->name('assign-ticket');
+        Route::post('/bulk-assign-tickets', [\App\Http\Controllers\ChiefTechController::class, 'bulkAssignTickets'])->name('bulk-assign-tickets');
+        Route::get('/unassigned-tickets', [\App\Http\Controllers\ChiefTechController::class, 'getUnassignedTickets'])->name('unassigned-tickets');
+        Route::get('/available-technicians', [\App\Http\Controllers\ChiefTechController::class, 'getAvailableTechnicians'])->name('available-technicians');
+        Route::put('/technician/{technical}/status', [\App\Http\Controllers\ChiefTechController::class, 'updateTechnicianStatus'])->name('technician.status');
+        Route::post('/technician/{technical}/instructions', [\App\Http\Controllers\ChiefTechController::class, 'sendInstructions'])->name('technician.instructions');
+        Route::post('/schedule-appointment', [\App\Http\Controllers\ChiefTechController::class, 'scheduleAppointment'])->name('schedule-appointment');
+        Route::get('/team-analytics', [\App\Http\Controllers\ChiefTechController::class, 'getTeamAnalytics'])->name('team-analytics');
+    });
+
 
 
     Route::post('/devices/{device}/share', [DeviceController::class, 'share'])
