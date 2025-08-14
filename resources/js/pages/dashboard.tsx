@@ -1346,26 +1346,29 @@ export default function Dashboard({
     // Función para marcar como leída
     const markAsRead = async (notificationId: string) => {
         try {
-            const response = await fetch(`/notifications/${notificationId}/read`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            console.log('🔔 Marking notification as read:', notificationId);
+            
+            router.post(`/notifications/${notificationId}/read`, {}, {
+                onSuccess: () => {
+                    setNotifications(prev => 
+                        prev.map(n => 
+                            n.id === notificationId 
+                                ? { ...n, read_at: new Date().toISOString() }
+                                : n
+                        )
+                    );
+                    setUnreadNotifications(prev => Math.max(0, prev - 1));
+                    console.log('🔔 Notification marked as read successfully');
+                    toast.success('Notification marked as read');
+                },
+                onError: (errors) => {
+                    console.error('🔔 Error marking notification as read:', errors);
+                    toast.error('Failed to mark notification as read');
                 }
             });
-
-            if (response.ok) {
-                setNotifications(prev => 
-                    prev.map(n => 
-                        n.id === notificationId 
-                            ? { ...n, read_at: new Date().toISOString() }
-                            : n
-                    )
-                );
-                setUnreadNotifications(prev => Math.max(0, prev - 1));
-            }
         } catch (error) {
-            console.error('Error marking notification as read:', error);
+            console.error('🔔 Error marking notification as read:', error);
+            toast.error('Network error occurred');
         }
     };
 
@@ -1373,48 +1376,58 @@ export default function Dashboard({
     const markAllAsRead = async () => {
         try {
             const unreadIds = notifications.filter(n => !n.read_at).map(n => n.id);
+            console.log('🔔 Marking all notifications as read:', unreadIds.length, 'notifications');
             
-            await Promise.all(
-                unreadIds.map(id => 
-                    fetch(`/notifications/${id}/read`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                        }
-                    })
-                )
+            if (unreadIds.length === 0) {
+                toast.info('No unread notifications to mark');
+                return;
+            }
+            
+            // Usar Promise.all con router.post para cada notificación
+            const markPromises = unreadIds.map(id => 
+                new Promise<void>((resolve, reject) => {
+                    router.post(`/notifications/${id}/read`, {}, {
+                        onSuccess: () => resolve(),
+                        onError: () => reject(new Error(`Failed to mark notification ${id} as read`))
+                    });
+                })
             );
+
+            await Promise.all(markPromises);
 
             setNotifications(prev => 
                 prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
             );
             setUnreadNotifications(0);
+            console.log('🔔 All notifications marked as read successfully');
+            toast.success(`${unreadIds.length} notifications marked as read`);
         } catch (error) {
-            console.error('Error marking all notifications as read:', error);
+            console.error('🔔 Error marking all notifications as read:', error);
+            toast.error('Failed to mark all notifications as read');
         }
     };
 
     // Función para eliminar notificación
     const clearNotification = async (notificationId: string) => {
         try {
-            const response = await fetch(`/notifications/${notificationId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            router.delete(`/notifications/${notificationId}`, {
+                onSuccess: () => {
+                    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+                    
+                    const wasUnread = notifications.find(n => n.id === notificationId && !n.read_at);
+                    if (wasUnread) {
+                        setUnreadNotifications(prev => Math.max(0, prev - 1));
+                    }
+                    toast.success('Notification deleted');
+                },
+                onError: (errors) => {
+                    console.error('Error deleting notification:', errors);
+                    toast.error('Failed to delete notification');
                 }
             });
-
-            if (response.ok) {
-                setNotifications(prev => prev.filter(n => n.id !== notificationId));
-                
-                const wasUnread = notifications.find(n => n.id === notificationId && !n.read_at);
-                if (wasUnread) {
-                    setUnreadNotifications(prev => Math.max(0, prev - 1));
-                }
-            }
         } catch (error) {
             console.error('Error deleting notification:', error);
+            toast.error('Network error occurred');
         }
     };
 
@@ -2196,9 +2209,9 @@ export default function Dashboard({
                                                                     if (!notification.read_at) {
                                                                         markAsRead(notification.id);
                                                                     }
-                                                                    if (notification.data.action_url) {
+                                                                /* if (notification.data.action_url) {
                                                                         window.open(notification.data.action_url, '_blank');
-                                                                    }
+                                                                    }*/
                                                                 }}
                                                             >
                                                                 <div className="w-full p-4 flex items-start gap-4">

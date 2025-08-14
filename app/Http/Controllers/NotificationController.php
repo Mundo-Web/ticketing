@@ -89,15 +89,24 @@ class NotificationController extends Controller
             $notification = $user->notifications()->find($id);
             
             if (!$notification) {
+                if ($request->inertia()) {
+                    return back()->withErrors(['message' => 'Notificación no encontrada']);
+                }
                 return response()->json(['success' => false, 'message' => 'Notificación no encontrada'], 404);
             }
             
             $notification->markAsRead();
             
+            if ($request->inertia()) {
+                return back()->with('success', 'Notificación marcada como leída');
+            }
             return response()->json(['success' => true, 'message' => 'Notificación marcada como leída']);
             
         } catch (\Exception $e) {
             Log::error('Error marking notification as read: ' . $e->getMessage());
+            if ($request->inertia()) {
+                return back()->withErrors(['message' => 'Error al marcar como leída']);
+            }
             return response()->json(['success' => false, 'message' => 'Error al marcar como leída'], 500);
         }
     }
@@ -112,15 +121,24 @@ class NotificationController extends Controller
             $notification = $user->notifications()->find($id);
             
             if (!$notification) {
+                if ($request->inertia()) {
+                    return back()->withErrors(['message' => 'Notificación no encontrada']);
+                }
                 return response()->json(['success' => false, 'message' => 'Notificación no encontrada'], 404);
             }
             
             $notification->delete();
             
+            if ($request->inertia()) {
+                return back()->with('success', 'Notificación eliminada');
+            }
             return response()->json(['success' => true, 'message' => 'Notificación eliminada']);
             
         } catch (\Exception $e) {
             Log::error('Error deleting notification: ' . $e->getMessage());
+            if ($request->inertia()) {
+                return back()->withErrors(['message' => 'Error al eliminar notificación']);
+            }
             return response()->json(['success' => false, 'message' => 'Error al eliminar notificación'], 500);
         }
     }
@@ -128,15 +146,21 @@ class NotificationController extends Controller
     /**
      * Mark all notifications as read
      */
-    public function markAllAsRead()
+    public function markAllAsRead(Request $request)
     {
         try {
             $user = Auth::user();
             $user->unreadNotifications->markAsRead();
             
+            if ($request->inertia()) {
+                return back()->with('success', 'Todas las notificaciones marcadas como leídas');
+            }
             return response()->json(['success' => true, 'message' => 'Todas las notificaciones marcadas como leídas']);
         } catch (\Exception $e) {
             Log::error('Error marking all notifications as read: ' . $e->getMessage());
+            if ($request->inertia()) {
+                return back()->withErrors(['message' => 'Error al marcar todas como leídas']);
+            }
             return response()->json(['success' => false, 'message' => 'Error al marcar todas como leídas'], 500);
         }
     }
