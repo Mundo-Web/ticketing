@@ -522,6 +522,10 @@ class TicketController extends Controller
         $validated = $request->validate([
             'status' => 'required|in:open,in_progress,resolved,closed,cancelled,reopened',
         ]);
+        
+        // Guardar el estado anterior para las notificaciones
+        $oldStatus = $ticket->status;
+        
         $ticket->status = $validated['status'];
         if ($ticket->status === Ticket::STATUS_RESOLVED) {
             $ticket->resolved_at = now();
@@ -530,6 +534,7 @@ class TicketController extends Controller
             $ticket->closed_at = now();
         }
         $ticket->save();
+        
         // Agregar al historial
         $user = Auth::user();
         $technical = Technical::where('email', $user->email)->first();
@@ -544,6 +549,13 @@ class TicketController extends Controller
             null,
             $technicalId
         );
+
+        // Enviar notificaciones de cambio de estado
+        if ($oldStatus !== $ticket->status) {
+            $notificationService = new \App\Services\NotificationDispatcherService();
+            $notificationService->dispatchTicketStatusChanged($ticket, $oldStatus, $ticket->status, $user);
+        }
+
         return redirect()->back()->with('success', 'Estado del ticket actualizado');
     }
 
@@ -848,7 +860,7 @@ class TicketController extends Controller
         return redirect()->back()->with('success', 'History added');
     }
 
-        /**
+    /**
      * Actualizar solo el estado del ticket (para Kanban drag & drop)
      */
     public function updateStatus(Request $request, Ticket $ticket)
@@ -856,6 +868,9 @@ class TicketController extends Controller
         $validated = $request->validate([
             'status' => 'required|string|max:50',
         ]);
+
+        // Guardar el estado anterior para las notificaciones
+        $oldStatus = $ticket->status;
 
         $ticket->status = $validated['status'];
         $ticket->save();
@@ -872,6 +887,12 @@ class TicketController extends Controller
             null,
             $technical ? $technical->id : null
         );
+
+        // Enviar notificaciones de cambio de estado
+        if ($oldStatus !== $ticket->status) {
+            $notificationService = new \App\Services\NotificationDispatcherService();
+            $notificationService->dispatchTicketStatusChanged($ticket, $oldStatus, $ticket->status, $user);
+        }
 
         // Para peticiones AJAX/JSON
         if ($request->wantsJson()) {

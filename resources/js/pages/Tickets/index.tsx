@@ -5417,8 +5417,6 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         </div>
 
                                         <div className="space-y-4">
-                                            {/* DEBUG: Log appointment data */}
-                                            {console.log('Appointment data for completed appointment:', showAppointmentDetailsModal.appointment)}
                                             {showAppointmentDetailsModal.appointment.completion_notes && (
                                                 <div className="p-4 bg-white rounded-xl border border-green-200">
                                                     <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">

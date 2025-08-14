@@ -108,6 +108,14 @@ class NotificationDispatcherService
             'new_status' => $newStatus,
             'changed_by' => $changedBy->id
         ]);
+
+        // Cargar todas las relaciones necesarias
+        $ticket->load([
+            'user.tenant.apartment.building',
+            'device.tenants.apartment.building',
+            'device.name_device',
+            'technical'
+        ]);
         
         // 1. Notificar al usuario que creó el ticket
         if ($ticket->user) {
@@ -155,6 +163,11 @@ class NotificationDispatcherService
                 'type' => 'ticket_status_changed',
                 'priority' => 'low'
             ], [$changedBy->id]);
+        }
+
+        // 4. Notificar a doorman y owner del building cuando el ticket se resuelve
+        if ($newStatus === 'resolved') {
+            $this->notifyBuildingStaff($ticket, $newStatus, $changedBy);
         }
     }
     
@@ -279,6 +292,158 @@ class NotificationDispatcherService
         }
     }
     
+    /**
+     * Notificar a doorman y owner del building cuando un ticket se resuelve
+     */
+    private function notifyBuildingStaff(Ticket $ticket, string $status, User $changedBy): void
+    {
+        try {
+            Log::info('Notifying building staff for resolved ticket', [
+                'ticket_id' => $ticket->id,
+                'status' => $status
+            ]);
+
+            // Buscar el building a través de las relaciones del ticket
+            $building = null;
+            
+            // Opción 1: A través del usuario (member/tenant)
+            if ($ticket->user && $ticket->user->tenant && $ticket->user->tenant->apartment) {
+                $building = $ticket->user->tenant->apartment->building;
+                Log::info('Building found via user->tenant->apartment', [
+                    'building_id' => $building?->id,
+                    'building_name' => $building?->name
+                ]);
+            }
+            
+            // Opción 2: A través del device si no se encontró por usuario
+            if (!$building && $ticket->device) {
+                // Cargar las relaciones necesarias del device
+                $ticket->load('device.tenants.apartment.building');
+                
+                if ($ticket->device->tenants && $ticket->device->tenants->count() > 0) {
+                    $building = $ticket->device->tenants->first()->apartment->building ?? null;
+                    Log::info('Building found via device->tenants->apartment', [
+                        'building_id' => $building?->id,
+                        'building_name' => $building?->name
+                    ]);
+                }
+            }
+
+            if (!$building) {
+                Log::warning('No building found for ticket, cannot notify building staff', [
+                    'ticket_id' => $ticket->id
+                ]);
+                return;
+            }
+
+            // Preparar datos de la notificación
+            $notificationData = [
+                'ticket_id' => $ticket->id,
+                'ticket_code' => $ticket->code,
+                'ticket_title' => $ticket->title,
+                'status' => $status,
+                'changed_by' => $changedBy->name,
+                'device_name' => $ticket->device->name_device->name ?? 'Unknown Device',
+                'building_name' => $building->name,
+                'apartment_name' => $ticket->user->tenant->apartment->name ?? 'Unknown Apartment',
+                'member_name' => $ticket->user->name ?? 'Unknown Member',
+                'message' => "Ticket #{$ticket->code} in {$building->name} has been resolved",
+                'type' => 'ticket_resolved',
+                'priority' => 'medium'
+            ];
+
+            // Notificar a todos los doorman del building
+            $this->notifyBuildingDoormen($building, $notificationData);
+            
+            // Notificar a todos los owners del building
+            $this->notifyBuildingOwners($building, $notificationData);
+
+        } catch (\Exception $e) {
+            Log::error('Error notifying building staff', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Notificar a todos los doormen del building
+     */
+    private function notifyBuildingDoormen($building, array $data): void
+    {
+        try {
+            // Buscar doormen asignados a este building
+            $doormen = User::role('doorman')
+                ->whereHas('doorman', function($query) use ($building) {
+                    $query->where('building_id', $building->id);
+                })
+                ->get();
+
+            Log::info('Found doormen for building', [
+                'building_id' => $building->id,
+                'doormen_count' => $doormen->count()
+            ]);
+
+            foreach ($doormen as $doorman) {
+                $doormanData = array_merge($data, [
+                    'message' => "🎫 Ticket #{$data['ticket_code']} resolved in your building {$building->name}",
+                    'role_context' => 'doorman'
+                ]);
+                
+                $this->createDatabaseNotification($doorman, $doormanData);
+                
+                Log::info('Doorman notified', [
+                    'doorman_id' => $doorman->id,
+                    'building_id' => $building->id
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error notifying doormen', [
+                'building_id' => $building->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Notificar a todos los owners del building
+     */
+    private function notifyBuildingOwners($building, array $data): void
+    {
+        try {
+            // Buscar owners asignados a este building
+            $owners = User::role('owner')
+                ->whereHas('owner', function($query) use ($building) {
+                    $query->where('building_id', $building->id);
+                })
+                ->get();
+
+            Log::info('Found owners for building', [
+                'building_id' => $building->id,
+                'owners_count' => $owners->count()
+            ]);
+
+            foreach ($owners as $owner) {
+                $ownerData = array_merge($data, [
+                    'message' => "🏢 Ticket #{$data['ticket_code']} resolved in your building {$building->name}",
+                    'role_context' => 'owner'
+                ]);
+                
+                $this->createDatabaseNotification($owner, $ownerData);
+                
+                Log::info('Owner notified', [
+                    'owner_id' => $owner->id,
+                    'building_id' => $building->id
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error notifying owners', [
+                'building_id' => $building->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
     /**
      * Obtener prioridad basada en el cambio de estado
      */
