@@ -4,7 +4,7 @@ import { Head, usePage, router } from '@inertiajs/react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { Search as SearchIcon, Plus } from 'lucide-react';
+import { Search as SearchIcon, Plus, CalendarPlus } from 'lucide-react';
 
 // Extended User interface for dashboard
 interface ExtendedUser extends UserType {

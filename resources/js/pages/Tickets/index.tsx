@@ -338,6 +338,11 @@ export default function TicketsIndex({
             { title: statusFilter === 'closed,cancelled' ? "Closed & Cancelled" : statusFilter, href: "#" }
         ]
         : [{ title: "Tickets", href: "/tickets" }];
+        
+    // Get auth user info at component level
+    const { props } = usePage();
+    const authUser = (props as any)?.auth?.user;
+        
     // Refresca el ticket seleccionado desde el backend
     const refreshSelectedTicket = async (ticketId?: number) => {
         if (!ticketId) return;
@@ -468,7 +473,7 @@ export default function TicketsIndex({
     const [allTenants, setAllTenants] = useState<any[]>([]);
     
     // Evidence and Private Notes states
-    const [showEvidenceModal, setShowEvidenceModal] = useState<{ open: boolean; ticketId?: number }>({ open: false });
+    const [showEvidenceModal, setShowEvidenceModal] = useState<{ open: boolean; ticketId: number | null }>({ open: false, ticketId: null });
     const [showPrivateNoteModal, setShowPrivateNoteModal] = useState<{ open: boolean; ticketId?: number }>({ open: false });
     const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
     const [evidenceDescription, setEvidenceDescription] = useState("");
@@ -1252,48 +1257,121 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
     // Evidence and Private Note functions
     const handleUploadEvidence = (ticketId: number) => {
+        console.log('Opening evidence modal for ticket:', ticketId);
+        console.log('Type of ticketId:', typeof ticketId);
         setShowEvidenceModal({ open: true, ticketId });
+        console.log('Modal state after setting:', { open: true, ticketId });
         setEvidenceFile(null);
         setEvidenceDescription("");
     };
 
     const submitEvidence = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!evidenceFile || !showEvidenceModal.ticketId) return;
+        console.log('submitEvidence called - current modal state:', showEvidenceModal);
+        
+        if (!evidenceFile) {
+            console.log('No evidence file selected');
+            return;
+        }
+        
+        if (!showEvidenceModal.ticketId) {
+            console.log('No ticketId in modal state:', showEvidenceModal);
+            alert('Error: No ticket ID found. Please close and reopen the modal.');
+            return;
+        }
 
         setUploadingEvidence(true);
         try {
+            console.log('=== UPLOAD EVIDENCE DEBUG START ===');
+            console.log('Uploading evidence for ticket:', showEvidenceModal.ticketId);
+            console.log('Type of ticketId:', typeof showEvidenceModal.ticketId);
+            console.log('Evidence file:', evidenceFile);
+            console.log('Evidence file name:', evidenceFile?.name);
+            console.log('Evidence file size:', evidenceFile?.size);
+            console.log('Evidence file type:', evidenceFile?.type);
+            
+            // Check authentication status from props
+            console.log('Auth user:', authUser);
+            console.log('User ID:', authUser?.id);
+            console.log('User email:', authUser?.email);
+            console.log('User roles:', authUser?.roles);
+            
             const formData = new FormData();
             formData.append('evidence', evidenceFile);
             formData.append('description', evidenceDescription);
+            
+            console.log('FormData created with:');
+            console.log('- evidence file:', formData.get('evidence'));
+            console.log('- description:', formData.get('description'));
 
-            const response = await fetch(`/tickets/${showEvidenceModal.ticketId}/upload-evidence`, {
+            // Back to original URL since test-upload works
+            const url = `/tickets/${showEvidenceModal.ticketId}/upload-evidence`;
+            console.log('Final URL being used:', url);
+            
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            console.log('CSRF Token present:', !!csrfToken);
+            console.log('CSRF Token (first 10 chars):', csrfToken?.substring(0, 10));
+            console.log('CSRF Token full (for debug):', csrfToken);
+
+            console.log('About to make fetch request...');
+            const response = await fetch(url, {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'X-CSRF-TOKEN': csrfToken || '',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
             });
+            console.log('Fetch request completed!');
+            console.log('Response status:', response.status);
+            console.log('Response content-type:', response.headers.get('content-type'));
 
-            const data = await response.json();
-
-            if (response.ok) {
-                setShowEvidenceModal({ open: false });
-                setEvidenceFile(null);
-                setEvidenceDescription("");
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
                 
-                // Refresh kanban
-                setRefreshKey(prev => prev + 1);
-                
-                // Refresh selected ticket if open
-                if (selectedTicket?.id === showEvidenceModal.ticketId) {
-                    refreshSelectedTicket(showEvidenceModal.ticketId);
+                if (response.ok) {
+                    setShowEvidenceModal(prev => ({ ...prev, open: false }));
+                    setEvidenceFile(null);
+                    setEvidenceDescription("");
+                    
+                    // Refresh kanban
+                    setRefreshKey(prev => prev + 1);
+                    
+                    // Refresh selected ticket if open
+                    if (selectedTicket?.id === showEvidenceModal.ticketId) {
+                        refreshSelectedTicket(showEvidenceModal.ticketId);
+                    }
+                    
+                    console.log('Evidence uploaded successfully');
+                } else {
+                    console.error('Error uploading evidence:', data.message || data);
+                    alert(`Error uploading evidence: ${data.message || 'Unknown error'}`);
                 }
             } else {
-                console.error('Error uploading evidence:', data.message);
+                // Response is not JSON, likely HTML error page
+                const text = await response.text();
+                console.error('Server returned HTML instead of JSON. Status:', response.status);
+                console.error('Response text (first 500 chars):', text.substring(0, 500));
+                
+                if (response.status === 404) {
+                    alert('Error: Upload endpoint not found. Please contact support.');
+                } else if (response.status === 403) {
+                    alert('Error: Permission denied. You may not have access to upload evidence for this ticket.');
+                } else if (response.status === 500) {
+                    alert('Error: Server error occurred. Please try again or contact support.');
+                } else if (response.status === 419) {
+                    alert('Error: Session expired. Please refresh the page and try again.');
+                } else {
+                    alert(`Error: Server returned status ${response.status}. Please try again.`);
+                }
             }
         } catch (error) {
             console.error('Error uploading evidence:', error);
+            alert('Error uploading evidence. Please check your connection and try again.');
         } finally {
             setUploadingEvidence(false);
         }
@@ -1343,6 +1421,11 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
             setAddingPrivateNote(false);
         }
     };
+
+    // Debug effect to monitor modal state changes
+    useEffect(() => {
+        console.log('Modal state changed:', showEvidenceModal);
+    }, [showEvidenceModal]);
 
     // Google Maps embed URL function (similar to Buildings index)
     const getEmbedUrl = (locationLink: string): string => {
@@ -3005,7 +3088,19 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                                                                 {/* Upload Evidence Button */}
                                                                 <button
-                                                                    onClick={() => handleUploadEvidence(selectedTicket.id)}
+                                                                    onClick={() => {
+                                                                        console.log('Button clicked - selectedTicket:', selectedTicket);
+                                                                        console.log('Button clicked - selectedTicket.id:', selectedTicket.id);
+                                                                        console.log('Button clicked - typeof selectedTicket.id:', typeof selectedTicket.id);
+                                                                        
+                                                                        // Verificar que el ID es válido antes de llamar la función
+                                                                        if (selectedTicket?.id && typeof selectedTicket.id === 'number') {
+                                                                            handleUploadEvidence(selectedTicket.id);
+                                                                        } else {
+                                                                            console.error('Invalid ticket ID:', selectedTicket?.id);
+                                                                            alert('Error: Invalid ticket ID');
+                                                                        }
+                                                                    }}
                                                                     className="inline-flex items-center gap-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-600 hover:text-purple-700 rounded-lg text-sm font-medium transition-colors border border-purple-200 hover:border-purple-300"
                                                                 >
                                                                     <Camera className="w-4 h-4" />
@@ -5459,7 +5554,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
             </Dialog>
 
             {/* Upload Evidence Modal */}
-            <Dialog open={showEvidenceModal.open} onOpenChange={(open) => setShowEvidenceModal({ open })}>
+            <Dialog open={showEvidenceModal.open} onOpenChange={(open) => setShowEvidenceModal(prev => ({ ...prev, open }))}>
                 <DialogContent className="max-w-md mx-auto">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-semibold text-slate-900 flex items-center gap-2">
@@ -5508,7 +5603,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => setShowEvidenceModal({ open: false })}
+                                onClick={() => setShowEvidenceModal(prev => ({ ...prev, open: false }))}
                                 className="flex-1"
                             >
                                 Cancel

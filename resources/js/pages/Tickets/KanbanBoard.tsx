@@ -776,7 +776,9 @@ export default function KanbanBoard(props: any) {
                                                                                             e.stopPropagation();
                                                                                             setMenuOpen(null);
                                                                                             if (props.onUploadEvidence) {
-                                                                                                props.onUploadEvidence(ticket);
+                                                                                                console.log('KanbanBoard - Calling onUploadEvidence with ticket:', ticket);
+                                                                                                console.log('KanbanBoard - ticket.id:', ticket.id);
+                                                                                                props.onUploadEvidence(ticket.id);
                                                                                             }
                                                                                         }}
                                                                                     >

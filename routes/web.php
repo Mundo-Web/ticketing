@@ -14,11 +14,13 @@ use App\Http\Controllers\NotificationController;
 use App\Models\Support;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('dashboard/mark-instruction-read', [DashboardController::class, 'markInstructionAsRead'])->name('dashboard.mark-instruction-read');
 
@@ -40,6 +42,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ] : null,
             'notifications_count' => $user ? $user->notifications()->count() : 0,
             'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
+        ]);
+    });
+
+    // Test logging route
+    Route::get('/test-log', function() {
+        Log::info('Test log message working');
+        return 'Log test complete. Check logs.';
+    });
+
+    // Test upload route - simple version
+    Route::post('/test-upload', function(Request $request) {
+        Log::info('Test upload called', [
+            'has_file' => $request->hasFile('evidence'),
+            'all_files' => $request->allFiles(),
+            'all_input' => $request->all(),
+            'headers' => $request->headers->all()
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Test upload received',
+            'has_file' => $request->hasFile('evidence'),
+            'files' => $request->allFiles()
         ]);
     });
 

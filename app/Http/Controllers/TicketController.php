@@ -939,10 +939,21 @@ class TicketController extends Controller
      */
     public function uploadEvidence(Request $request, Ticket $ticket)
     {
+        // Debug logging
+        Log::info('UploadEvidence called', [
+            'user_id' => Auth::id(),
+            'ticket_id' => $ticket->id,
+            'request_headers' => $request->headers->all(),
+            'has_file' => $request->hasFile('evidence'),
+            'expects_json' => $request->expectsJson(),
+        ]);
+
         $validated = $request->validate([
             'evidence' => 'required|file|mimes:jpg,jpeg,png,gif,mp4,mov,avi|max:10240', // 10MB max
             'description' => 'nullable|string|max:500',
         ]);
+
+        Log::info('Validation passed', ['validated' => $validated]);
 
         $user = Auth::user();
         
@@ -951,6 +962,14 @@ class TicketController extends Controller
         $isTechnicalDefault = $technical && $technical->is_default;
         $isSuperAdmin = $user->hasRole('super-admin');
         $isAssignedTechnical = $ticket->technical_id === $technical?->id;
+
+        Log::info('Permission check', [
+            'technical_id' => $technical?->id,
+            'ticket_technical_id' => $ticket->technical_id,
+            'isTechnicalDefault' => $isTechnicalDefault,
+            'isSuperAdmin' => $isSuperAdmin,
+            'isAssignedTechnical' => $isAssignedTechnical,
+        ]);
 
         if (!$isSuperAdmin && !$isTechnicalDefault && !$isAssignedTechnical) {
             abort(403, 'You can only upload evidence to tickets assigned to you.');
