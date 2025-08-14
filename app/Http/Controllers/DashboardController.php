@@ -133,6 +133,26 @@ class DashboardController extends Controller
                 $query->where('buildings_id', $buildingId);
             })->count();
             $totalTechnicals = Technical::where('status', true)->count(); // All active technicals
+
+            // Add specific metrics for doorman/owner
+            $ticketsCreatedToday = (clone $ticketsQuery)
+                ->whereDate('created_at', Carbon::today())
+                ->count();
+
+            $ticketsResolvedThisWeek = (clone $ticketsQuery)
+                ->where('status', 'resolved')
+                ->where('resolved_at', '>=', Carbon::now()->startOfWeek())
+                ->count();
+
+            // Tickets by apartment/floor for building management
+            $ticketsByApartment = (clone $ticketsQuery)
+                ->join('users', 'tickets.user_id', '=', 'users.id')
+                ->join('tenants', 'users.email', '=', 'tenants.email')
+                ->join('apartments', 'tenants.apartment_id', '=', 'apartments.id')
+                ->select('apartments.name as apartment_name', 'apartments.ubicacion as floor', DB::raw('count(*) as count'))
+                ->groupBy('apartments.id', 'apartments.name', 'apartments.ubicacion')
+                ->orderBy('count', 'desc')
+                ->get();
         } else {
             // Para otros roles, métricas limitadas
             $totalBuildings = 0;
@@ -206,12 +226,16 @@ class DashboardController extends Controller
                 ->select(
                     'apartments.id',
                     'apartments.name',
+                    'apartments.ubicacion as floor',
                     DB::raw('NULL as image'),
                     DB::raw('1 as apartments_count'),
                     DB::raw('COUNT(DISTINCT tenants.id) as tenants_count'),
-                    DB::raw('COUNT(tickets.id) as tickets_count')
+                    DB::raw('COUNT(tickets.id) as tickets_count'),
+                    DB::raw('COUNT(CASE WHEN tickets.status = "open" THEN 1 END) as open_tickets'),
+                    DB::raw('COUNT(CASE WHEN tickets.status = "in_progress" THEN 1 END) as in_progress_tickets'),
+                    DB::raw('COUNT(CASE WHEN tickets.status = "resolved" THEN 1 END) as resolved_tickets')
                 )
-                ->groupBy('apartments.id', 'apartments.name')
+                ->groupBy('apartments.id', 'apartments.name', 'apartments.ubicacion')
                 ->orderBy('apartments.name')
                 ->get();
         } else {
@@ -561,6 +585,9 @@ class DashboardController extends Controller
                     'resolved_today' => $ticketsResolvedToday,
                     'avg_resolution_hours' => $avgResolutionTime ? round($avgResolutionTime->avg_hours, 1) : 0,
                     'unassigned' => $unassignedTickets,
+                    // Add doorman-specific metrics
+                    'created_today' => isset($ticketsCreatedToday) ? $ticketsCreatedToday : 0,
+                    'resolved_this_week' => isset($ticketsResolvedThisWeek) ? $ticketsResolvedThisWeek : 0,
                 ],
                 'resources' => [
                     'buildings' => $totalBuildings,
@@ -576,6 +603,13 @@ class DashboardController extends Controller
                     'urgent_tickets' => $technicalUrgentTickets,
                     'is_technical' => $isTechnical,
                     'is_default' => $isDefaultTechnical,
+                ],
+                // Add building-specific metrics for doorman/owner
+                'building' => [
+                    'tickets_by_apartment' => isset($ticketsByApartment) ? $ticketsByApartment : collect(),
+                    'building_id' => $buildingId,
+                    'is_doorman' => $isDoorman,
+                    'is_owner' => $isOwner,
                 ]
             ],
             'charts' => [

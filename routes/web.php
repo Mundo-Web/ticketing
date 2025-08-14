@@ -5,6 +5,7 @@ use App\Http\Controllers\BuildingController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\DoormanController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\TechnicalController;
 use App\Http\Controllers\TicketController;
@@ -160,6 +161,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/owner-doorman/devices', [\App\Http\Controllers\OwnerDoormanDeviceController::class, 'index'])
         ->name('owner-doorman.devices')
         ->middleware('role:owner|doorman');
+    
+    // Doorman-specific API routes
+    Route::prefix('doorman')->name('doorman.')->middleware('role:doorman')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\DoormanController::class, 'dashboard'])->name('dashboard');
+        Route::get('/residents', [\App\Http\Controllers\DoormanController::class, 'getResidents'])->name('residents');
+        Route::get('/residents/search', [\App\Http\Controllers\DoormanController::class, 'searchResidents'])->name('residents.search');
+        Route::post('/tickets/quick-create', [\App\Http\Controllers\DoormanController::class, 'createQuickTicket'])->name('tickets.quick-create');
+        Route::get('/notifications/resolved', [\App\Http\Controllers\DoormanController::class, 'getResolvedTicketNotifications'])->name('notifications.resolved');
+        Route::get('/building/stats', [\App\Http\Controllers\DoormanController::class, 'getBuildingStats'])->name('building.stats');
+    });
     
     // NinjaOne Routes
     Route::prefix('ninjaone')->name('ninjaone.')->group(function () {

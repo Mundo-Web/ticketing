@@ -2699,7 +2699,7 @@ export default function Dashboard({
                                             </p>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-medium px-2 py-1 rounded-full bg-teal-100 text-teal-700">
-                                                    ResoluciÃ³n
+                                                    Resolution
                                                 </span>
                                                 <span className="text-xs text-slate-500">Tasa general</span>
                                             </div>
@@ -3178,165 +3178,119 @@ export default function Dashboard({
                                     </p>
                                 </div>
 
-                                {/* Quick Stats Row for Doorman/Owner */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {/* Tickets Today */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-background to-blue-100 overflow-hidden">
-                                        <CardContent className="p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-blue-100">
-                                                    <Calendar className="h-6 w-6 text-blue-600" />
-                                                </div>
-                                                <ExternalLink
-                                                    className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => window.open('/tickets?created_today=1', '_blank')}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">
-                                                    Tickets Today
-                                                </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved_today}</p>
-                                                <p className="text-xs text-muted-foreground">New tickets created today</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Open Tickets */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-orange-50 via-background to-orange-100 overflow-hidden">
-                                        <CardContent className="p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-orange-100">
-                                                    <AlertCircle className="h-6 w-6 text-orange-600" />
-                                                </div>
-                                                <ExternalLink
-                                                    className="h-4 w-4 text-orange-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => window.open('/tickets?status=open', '_blank')}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-orange-600 uppercase tracking-wider">
-                                                    Open Tickets
-                                                </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.open}</p>
-                                                <p className="text-xs text-muted-foreground">Pending resolution</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* In Progress */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-yellow-50 via-background to-yellow-100 overflow-hidden">
-                                        <CardContent className="p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-yellow-100">
-                                                    <Clock className="h-6 w-6 text-yellow-600" />
-                                                </div>
-                                                <ExternalLink
-                                                    className="h-4 w-4 text-yellow-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => window.open('/tickets?status=in_progress', '_blank')}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-yellow-600 uppercase tracking-wider">
-                                                    In Progress
-                                                </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.in_progress}</p>
-                                                <p className="text-xs text-muted-foreground">Being worked on</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Resolved Today */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden">
-                                        <CardContent className="p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-green-100">
-                                                    <CheckCircle className="h-6 w-6 text-green-600" />
-                                                </div>
-                                                <Bell className="h-4 w-4 text-green-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">
-                                                    Resolved Today
-                                                </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved}</p>
-                                                <p className="text-xs text-muted-foreground">Completed tickets</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-
-                                {/* Building Overview & Ticket Status */}
+                                {/* Building Overview & Apartment Breakdown */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Tickets by Floor/Apartment */}
-                                    <Card className="col-span-1">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2">
-                                                <Building className="h-5 w-5 text-primary" />
-                                                Tickets by Building Area
+                                    {/* Enhanced Tickets by Apartment */}
+                                    <Card className="group col-span-1 border-0 shadow-xl bg-gradient-to-br from-slate-50/50 via-background to-slate-100/50 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-slate-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+                                        <CardHeader className="relative border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-background pb-6">
+                                            <CardTitle className="flex items-center gap-3 text-xl">
+                                                <div className="p-3 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                                                    <Home className="h-6 w-6 text-slate-700" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-foreground">Tickets by Apartment</h3>
+                                                    <p className="text-sm text-muted-foreground font-normal">Building unit distribution</p>
+                                                </div>
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent>
+                                        <CardContent className="relative p-6">
                                             <div className="space-y-4">
-                                                {lists.buildingsWithTickets.slice(0, 5).map((building) => (
-                                                    <div key={building.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                                                                <Building className="w-5 h-5 text-primary" />
+                                                {metrics.building && metrics.building.tickets_by_apartment && Object.entries(metrics.building.tickets_by_apartment).slice(0, 6).map(([apartment, data], index) => {
+                                                    // Handle both simple count and complex object data
+                                                    const count = typeof data === 'object' && data !== null ? (data.count || 0) : (data || 0);
+                                                    const apartmentName = typeof data === 'object' && data !== null ? (data.apartment_name || apartment) : apartment;
+                                                    const floor = typeof data === 'object' && data !== null ? data.floor : null;
+                                                    
+                                                    return (
+                                                        <div key={apartment} 
+                                                             className="group/item flex items-center justify-between p-5 bg-gradient-to-r from-white/80 via-white/70 to-white/80 rounded-xl hover:from-white/95 hover:via-white/90 hover:to-white/95 transition-all duration-300 shadow-sm hover:shadow-xl border border-slate-200/50 hover:border-slate-300/70 cursor-pointer transform hover:-translate-y-1"
+                                                             style={{animationDelay: `${index * 100}ms`}}>
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="relative w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 via-primary/15 to-primary/10 flex items-center justify-center shadow-lg group-hover/item:shadow-xl transition-all duration-300 group-hover/item:scale-110">
+                                                                    <Home className="w-7 h-7 text-primary transition-transform duration-300 group-hover/item:scale-110" />
+                                                                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-lg text-slate-900 group-hover/item:text-primary transition-colors duration-300">{apartmentName}</p>
+                                                                    <p className="text-sm text-slate-600 group-hover/item:text-slate-700 transition-colors duration-300 flex items-center gap-2">
+                                                                        <Building className="w-4 h-4" />
+                                                                        {floor ? `Floor ${floor} • Unit` : 'Apartment unit'}
+                                                                    </p>
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                <p className="font-medium text-slate-900">{building.name}</p>
-                                                                <p className="text-sm text-slate-600">{building.apartments_count} apartments</p>
+                                                            <div className="text-right">
+                                                                <p className="text-3xl font-black text-slate-900 group-hover/item:text-primary transition-colors duration-300">{count}</p>
+                                                                <p className="text-xs text-slate-600 uppercase tracking-widest font-bold group-hover/item:text-slate-700 transition-colors duration-300">tickets</p>
                                                             </div>
                                                         </div>
-                                                        <div className="text-right">
-                                                            <p className="text-lg font-bold text-slate-900">{building.tickets_count}</p>
-                                                            <p className="text-xs text-slate-600">tickets</p>
+                                                    );
+                                                })}
+                                                {(!metrics.building?.tickets_by_apartment || Object.keys(metrics.building.tickets_by_apartment).length === 0) && (
+                                                    <div className="text-center py-16 text-slate-500">
+                                                        <div className="relative mx-auto mb-8 w-24 h-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shadow-lg">
+                                                            <Home className="w-12 h-12 opacity-40" />
                                                         </div>
+                                                        <p className="text-xl font-bold mb-2">No apartment data available</p>
+                                                        <p className="text-sm">Apartment ticket breakdown will appear here</p>
                                                     </div>
-                                                ))}
+                                                )}
                                             </div>
                                         </CardContent>
                                     </Card>
 
-                                    {/* Ticket Status Overview */}
-                                    <Card className="col-span-1">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2">
-                                                <Activity className="h-5 w-5 text-primary" />
-                                                Current Ticket Status
+                                    {/* Enhanced Building Statistics */}
+                                    <Card className="group col-span-1 border-0 shadow-xl bg-gradient-to-br from-emerald-50/50 via-background to-emerald-100/50 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+                                        <CardHeader className="relative border-b border-emerald-200/50 bg-gradient-to-r from-emerald-50 to-background pb-6">
+                                            <CardTitle className="flex items-center gap-3 text-xl">
+                                                <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-300 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                                                    <Building className="h-6 w-6 text-emerald-700" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-foreground">Building Overview</h3>
+                                                    <p className="text-sm text-muted-foreground font-normal">Resource statistics</p>
+                                                </div>
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent>
-                                            <div className="space-y-4">
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="bg-blue-50 p-4 rounded-lg">
-                                                        <div className="flex items-center gap-2">
-                                                            <Ticket className="w-4 h-4 text-blue-600" />
-                                                            <span className="text-sm font-medium text-blue-600">Open</span>
+                                        <CardContent className="relative p-6">
+                                            <div className="space-y-6">
+                                                <div className="grid grid-cols-2 gap-5">
+                                                    <div className="group/stat bg-gradient-to-br from-blue-50 via-blue-100/90 to-blue-200/80 p-6 rounded-xl border border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+                                                        <div className="flex items-center gap-3 mb-3">
+                                                            <div className="p-2 rounded-lg bg-blue-200/70 group-hover/stat:bg-blue-300/80 transition-colors duration-300">
+                                                                <Building className="w-5 h-5 text-blue-700" />
+                                                            </div>
+                                                            <span className="text-sm font-bold text-blue-700 uppercase tracking-widest">Apartments</span>
                                                         </div>
-                                                        <p className="text-2xl font-bold text-blue-600">{metrics.tickets.open}</p>
+                                                        <p className="text-4xl font-black text-blue-700 group-hover/stat:text-blue-800 transition-colors duration-300">{metrics.resources?.apartments || 0}</p>
                                                     </div>
-                                                    <div className="bg-yellow-50 p-4 rounded-lg">
-                                                        <div className="flex items-center gap-2">
-                                                            <Clock className="w-4 h-4 text-yellow-600" />
-                                                            <span className="text-sm font-medium text-yellow-600">In Progress</span>
+                                                    <div className="group/stat bg-gradient-to-br from-green-50 via-green-100/90 to-green-200/80 p-6 rounded-xl border border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+                                                        <div className="flex items-center gap-3 mb-3">
+                                                            <div className="p-2 rounded-lg bg-green-200/70 group-hover/stat:bg-green-300/80 transition-colors duration-300">
+                                                                <Users className="w-5 h-5 text-green-700" />
+                                                            </div>
+                                                            <span className="text-sm font-bold text-green-700 uppercase tracking-widest">Tenants</span>
                                                         </div>
-                                                        <p className="text-2xl font-bold text-yellow-600">{metrics.tickets.in_progress}</p>
+                                                        <p className="text-4xl font-black text-green-700 group-hover/stat:text-green-800 transition-colors duration-300">{metrics.resources?.tenants || 0}</p>
                                                     </div>
-                                                    <div className="bg-green-50 p-4 rounded-lg">
-                                                        <div className="flex items-center gap-2">
-                                                            <CheckCircle className="w-4 h-4 text-green-600" />
-                                                            <span className="text-sm font-medium text-green-600">Resolved</span>
+                                                    <div className="group/stat bg-gradient-to-br from-purple-50 via-purple-100/90 to-purple-200/80 p-6 rounded-xl border border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+                                                        <div className="flex items-center gap-3 mb-3">
+                                                            <div className="p-2 rounded-lg bg-purple-200/70 group-hover/stat:bg-purple-300/80 transition-colors duration-300">
+                                                                <Monitor className="w-5 h-5 text-purple-700" />
+                                                            </div>
+                                                            <span className="text-sm font-bold text-purple-700 uppercase tracking-widest">Devices</span>
                                                         </div>
-                                                        <p className="text-2xl font-bold text-green-600">{metrics.tickets.resolved}</p>
+                                                        <p className="text-4xl font-black text-purple-700 group-hover/stat:text-purple-800 transition-colors duration-300">{metrics.resources?.devices || 0}</p>
                                                     </div>
-                                                    <div className="bg-red-50 p-4 rounded-lg">
-                                                        <div className="flex items-center gap-2">
-                                                            <AlertTriangle className="w-4 h-4 text-red-600" />
-                                                            <span className="text-sm font-medium text-red-600">Unassigned</span>
+                                                    <div className="group/stat bg-gradient-to-br from-orange-50 via-orange-100/90 to-orange-200/80 p-6 rounded-xl border border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+                                                        <div className="flex items-center gap-3 mb-3">
+                                                            <div className="p-2 rounded-lg bg-orange-200/70 group-hover/stat:bg-orange-300/80 transition-colors duration-300">
+                                                                <Clock className="w-5 h-5 text-orange-700" />
+                                                            </div>
+                                                            <span className="text-sm font-bold text-orange-700 uppercase tracking-widest">Avg Time</span>
                                                         </div>
-                                                        <p className="text-2xl font-bold text-red-600">{metrics.tickets.unassigned}</p>
+                                                        <p className="text-4xl font-black text-orange-700 group-hover/stat:text-orange-800 transition-colors duration-300">{metrics.tickets.avg_resolution_hours || 0}h</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -3344,153 +3298,94 @@ export default function Dashboard({
                                     </Card>
                                 </div>
 
-                                {/* Recent Activity & Notifications */}
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                    {/* Recent Tickets */}
-                                    <Card className="col-span-2">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2">
-                                                <Clock className="h-5 w-5 text-primary" />
-                                                Recent Ticket Activity
+                                {/* Recent Activity & Enhanced Notifications */}
+                                <div className="grid grid-cols-1  gap-8">
+                                    {/* Enhanced Recent Tickets */}
+                                    <Card className="group col-span-2 border-0 shadow-xl bg-gradient-to-br from-slate-50/50 via-background to-slate-100/50 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-slate-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+                                        <CardHeader className="relative border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-background pb-6">
+                                            <CardTitle className="flex items-center gap-3 text-xl">
+                                                <div className="p-3 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                                                    <Clock className="h-6 w-6 text-slate-700" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-foreground">Recent Ticket Activity</h3>
+                                                    <p className="text-sm text-muted-foreground font-normal">Latest service requests</p>
+                                                </div>
                                             </CardTitle>
                                         </CardHeader>
-                                        <CardContent>
-                                            <div className="space-y-3">
-                                                {lists.recentTickets.slice(0, 5).map((ticket) => (
-                                                    <div key={ticket.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                                                         onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}>
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`w-3 h-3 rounded-full ${
-                                                                ticket.status === 'open' ? 'bg-blue-500' :
-                                                                ticket.status === 'in_progress' ? 'bg-yellow-500' :
-                                                                ticket.status === 'resolved' ? 'bg-green-500' : 'bg-gray-500'
-                                                            }`} />
-                                                            <div>
-                                                                <p className="font-medium text-slate-900 truncate max-w-xs">{ticket.title}</p>
-                                                                <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                                    <span>{ticket.user?.name || 'Unknown'}</span>
-                                                                    <span>â€¢</span>
-                                                                    <span>{ticket.device?.apartment?.name || 'No apt'}</span>
+                                        <CardContent className="relative p-6">
+                                            <div className="space-y-4">
+                                                {lists.recentTickets && lists.recentTickets.slice(0, 5).map((ticket, index) => (
+                                                    <div key={ticket.id} 
+                                                         className="group/ticket flex items-center justify-between p-5 bg-gradient-to-r from-white/80 via-white/70 to-white/80 rounded-xl hover:from-white/95 hover:via-white/90 hover:to-white/95 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl border border-slate-200/50 hover:border-slate-300/70 transform hover:-translate-y-1"
+                                                         onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}
+                                                         style={{animationDelay: `${index * 100}ms`}}>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="relative">
+                                                                <div className={`w-5 h-5 rounded-full shadow-lg transition-all duration-300 group-hover/ticket:scale-125 ${
+                                                                    ticket.status === 'open' ? 'bg-gradient-to-br from-blue-400 to-blue-600' :
+                                                                    ticket.status === 'in_progress' ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
+                                                                    ticket.status === 'resolved' ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-gray-400 to-gray-600'
+                                                                }`} />
+                                                                <div className={`absolute inset-0 rounded-full animate-pulse ${
+                                                                    ticket.status === 'open' ? 'bg-blue-400' :
+                                                                    ticket.status === 'in_progress' ? 'bg-yellow-400' :
+                                                                    ticket.status === 'resolved' ? 'bg-green-400' : 'bg-gray-400'
+                                                                } opacity-30`} />
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <p className="font-bold text-lg text-slate-900 truncate max-w-sm group-hover/ticket:text-primary transition-colors duration-300">{ticket.title}</p>
+                                                                <div className="flex items-center gap-3 text-sm text-slate-600 group-hover/ticket:text-slate-700 transition-colors duration-300">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Users className="w-4 h-4" />
+                                                                        <span className="font-medium">{ticket.user?.name || 'Unknown'}</span>
+                                                                    </div>
+                                                                    <span>•</span>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Home className="w-4 h-4" />
+                                                                        <span className="font-medium">{ticket.device?.apartment?.name || 'No apt'}</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div className="text-right">
+                                                        <div className="text-right flex flex-col items-end gap-2">
                                                             <Badge variant={
                                                                 ticket.status === 'open' ? 'default' :
                                                                 ticket.status === 'in_progress' ? 'secondary' :
                                                                 ticket.status === 'resolved' ? 'default' : 'outline'
-                                                            } className={`
-                                                                ${ticket.status === 'open' ? 'bg-blue-100 text-blue-700' : ''}
-                                                                ${ticket.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' : ''}
-                                                                ${ticket.status === 'resolved' ? 'bg-green-100 text-green-700' : ''}
-                                                            `}>
+                                                            } className={`font-bold px-3 py-1 transition-all duration-300 group-hover/ticket:scale-105 ${
+                                                                ticket.status === 'open' ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300 shadow-lg' : ''
+                                                            } ${
+                                                                ticket.status === 'in_progress' ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300 shadow-lg' : ''
+                                                            } ${
+                                                                ticket.status === 'resolved' ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-lg' : ''
+                                                            }`}>
                                                                 {ticket.status}
                                                             </Badge>
+                                                            <div className="opacity-0 group-hover/ticket:opacity-100 transition-opacity duration-300">
+                                                                <ExternalLink className="w-4 h-4 text-slate-400" />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Notifications */}
-                                    <Card className="col-span-1">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2">
-                                                <Bell className="h-5 w-5 text-primary" />
-                                                Notifications
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="space-y-3">
-                                                {/* Resolved Ticket Notifications */}
-                                                {metrics.tickets.resolved_today > 0 && (
-                                                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                                                        <div className="flex items-center gap-2">
-                                                            <CheckCircle className="w-4 h-4 text-green-600" />
-                                                            <span className="text-sm font-medium text-green-700">
-                                                                {metrics.tickets.resolved_today} tickets resolved today
-                                                            </span>
+                                                {(!lists.recentTickets || lists.recentTickets.length === 0) && (
+                                                    <div className="text-center py-16 text-slate-500">
+                                                        <div className="relative mx-auto mb-8 w-24 h-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shadow-lg">
+                                                            <Clock className="w-12 h-12 opacity-40" />
                                                         </div>
-                                                    </div>
-                                                )}
-                                                
-                                                {/* Open Tickets Alert */}
-                                                {metrics.tickets.open > 5 && (
-                                                    <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                                                        <div className="flex items-center gap-2">
-                                                            <AlertCircle className="w-4 h-4 text-orange-600" />
-                                                            <span className="text-sm font-medium text-orange-700">
-                                                                High number of open tickets
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {/* Unassigned Tickets Alert */}
-                                                {metrics.tickets.unassigned > 0 && (
-                                                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                                                        <div className="flex items-center gap-2">
-                                                            <AlertTriangle className="w-4 h-4 text-red-600" />
-                                                            <span className="text-sm font-medium text-red-700">
-                                                                {metrics.tickets.unassigned} unassigned tickets
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {/* All good message */}
-                                                {metrics.tickets.unassigned === 0 && metrics.tickets.open <= 5 && (
-                                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                                        <div className="flex items-center gap-2">
-                                                            <CheckCircle className="w-4 h-4 text-blue-600" />
-                                                            <span className="text-sm font-medium text-blue-700">
-                                                                All systems running smoothly
-                                                            </span>
-                                                        </div>
+                                                        <p className="text-xl font-bold mb-2">No recent activity</p>
+                                                        <p className="text-sm">Recent tickets will appear here</p>
                                                     </div>
                                                 )}
                                             </div>
                                         </CardContent>
                                     </Card>
+
+                            
                                 </div>
 
-                                {/* Quick Actions for Doorman/Owner */}
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Zap className="h-5 w-5 text-primary" />
-                                            Quick Actions
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <Button 
-                                                className="flex items-center gap-2 h-12"
-                                                onClick={() => window.open('/owner-doorman/devices', '_blank')}
-                                            >
-                                                <Building className="w-4 h-4" />
-                                                Manage Building Members
-                                            </Button>
-                                            <Button 
-                                                variant="outline"
-                                                className="flex items-center gap-2 h-12"
-                                                onClick={() => window.open('/tickets/create', '_blank')}
-                                            >
-                                                <Ticket className="w-4 h-4" />
-                                                Create New Ticket
-                                            </Button>
-                                            <Button 
-                                                variant="outline"
-                                                className="flex items-center gap-2 h-12"
-                                                onClick={() => window.open('/appointments', '_blank')}
-                                            >
-                                                <Calendar className="w-4 h-4" />
-                                                View Appointments
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                             
                             </div>
                         )}
 
@@ -3760,7 +3655,7 @@ export default function Dashboard({
                         )}
 
                         {/* SECTION 2: SYSTEM RESOURCES - Hidden for regular technicians */}
-                        {(!isTechnical || isSuperAdmin || isDefaultTechnical) && metrics.resources.buildings > 0 && (
+                        {(isSuperAdmin || isDefaultTechnical) && metrics.resources.buildings > 0 && (
                             <div className="space-y-8">
                                 <div className="text-center space-y-4">                                    <div className="flex items-center justify-center gap-4">                                        <h2 className="text-4xl font-bold text-foreground">
                                     System Resources
@@ -4533,7 +4428,7 @@ export default function Dashboard({
 
 
                       {/* FOOTER PREMIUM - Hidden for regular technicians */}
-                      {(!isTechnical || isSuperAdmin) && (
+                      {(isDefaultTechnical || isSuperAdmin) && (
                         <div className="mt-32">
                             <Card className="border-0 bg-chart-5 text-background shadow-2xl overflow-hidden relative dark:bg-white/10">
                                 <div className="absolute inset-0 bg-primary/10 dark:bg-transparent"></div>
