@@ -791,7 +791,8 @@ export default function KanbanBoard(props: any) {
                                                                                             e.stopPropagation();
                                                                                             setMenuOpen(null);
                                                                                             if (props.onAddPrivateNote) {
-                                                                                                props.onAddPrivateNote(ticket);
+                                                                                                console.log('KanbanBoard - Calling onAddPrivateNote with ticket.id:', ticket.id);
+                                                                                                props.onAddPrivateNote(ticket.id);
                                                                                             }
                                                                                         }}
                                                                                     >

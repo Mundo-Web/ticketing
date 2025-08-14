@@ -68,6 +68,21 @@ Route::middleware(['auth'])->group(function () {
         ]);
     });
 
+    // Test private note route
+    Route::post('/test-private-note', function(Request $request) {
+        Log::info('Test private note called', [
+            'all_input' => $request->all(),
+            'user_id' => Auth::id(),
+            'headers' => $request->headers->all()
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Test private note received',
+            'data' => $request->all()
+        ]);
+    });
+
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
     Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');

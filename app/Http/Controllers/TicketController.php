@@ -1016,9 +1016,19 @@ class TicketController extends Controller
      */
     public function addPrivateNote(Request $request, Ticket $ticket)
     {
+        // Debug logging
+        Log::info('AddPrivateNote called', [
+            'user_id' => Auth::id(),
+            'ticket_id' => $ticket->id,
+            'request_data' => $request->all(),
+            'expects_json' => $request->expectsJson(),
+        ]);
+
         $validated = $request->validate([
             'note' => 'required|string|max:1000',
         ]);
+
+        Log::info('AddPrivateNote validation passed', ['validated' => $validated]);
 
         $user = Auth::user();
         
@@ -1026,7 +1036,15 @@ class TicketController extends Controller
         $technical = Technical::where('email', $user->email)->first();
         $isSuperAdmin = $user->hasRole('super-admin');
 
+        Log::info('AddPrivateNote permission check', [
+            'technical_found' => !!$technical,
+            'technical_id' => $technical?->id,
+            'isSuperAdmin' => $isSuperAdmin,
+            'user_email' => $user->email,
+        ]);
+
         if (!$technical && !$isSuperAdmin) {
+            Log::info('AddPrivateNote permission denied');
             abort(403, 'Only technicians can add private notes.');
         }
 

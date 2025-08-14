@@ -1388,15 +1388,18 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
         setAddingPrivateNote(true);
         try {
+            // Use FormData like upload evidence does
+            const formData = new FormData();
+            formData.append('note', privateNote);
+            
             const response = await fetch(`/tickets/${showPrivateNoteModal.ticketId}/add-private-note`, {
                 method: 'POST',
+                body: formData,
                 headers: {
-                    'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
-                body: JSON.stringify({
-                    note: privateNote,
-                }),
             });
 
             const data = await response.json();
