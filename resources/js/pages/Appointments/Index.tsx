@@ -10,7 +10,8 @@ import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { toast } from 'sonner';
 
-// Configure moment localizer
+// Configure moment localizer with timezone
+moment.locale('en'); // o 'es' si prefieres español
 const localizer = momentLocalizer(moment);
 
 // Modern Google Calendar Style CSS
@@ -688,8 +689,20 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
     // Convert appointments to calendar events
     const calendarEvents = useMemo(() => {
         const events = filteredAppointments.map(appointment => {
+            // Crear fechas usando el timezone local para evitar problemas de offset
             const start = new Date(appointment.scheduled_for);
             const end = new Date(start.getTime() + appointment.estimated_duration * 60000); // Add duration in minutes
+            
+            // Debug para verificar fechas
+            console.log('🗓️ Converting appointment:', {
+                id: appointment.id,
+                title: appointment.title,
+                scheduled_for: appointment.scheduled_for,
+                start: start.toISOString(),
+                end: end.toISOString(),
+                localStart: start.toLocaleString(),
+                localEnd: end.toLocaleString()
+            });
 
             return {
                 id: appointment.id,
@@ -701,6 +714,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
             };
         });
         
+        console.log('🗓️ Total calendar events created:', events.length);
         return events;
     }, [filteredAppointments]);
 
@@ -906,9 +920,10 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
     }).sort((a, b) => new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime());
 
     const formatTime = (dateString: string) => {
-        return new Date(dateString).toLocaleTimeString('en-US', {
+        return new Date(dateString).toLocaleTimeString('en-GB', {
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            hour12: false // Formato 24 horas
         });
     };
 
@@ -1114,10 +1129,21 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                                 timeGutterFormat: 'HH:mm',
                                                 eventTimeRangeFormat: ({ start, end }) => {
                                                     return `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`;
+                                                },
+                                                dayFormat: 'ddd DD/MM',
+                                                dateFormat: 'DD',
+                                                dayHeaderFormat: 'dddd DD/MM/YYYY',
+                                                dayRangeHeaderFormat: ({ start, end }) => {
+                                                    return `${moment(start).format('DD/MM')} - ${moment(end).format('DD/MM/YYYY')}`;
+                                                },
+                                                agendaDateFormat: 'dddd DD/MM/YYYY',
+                                                agendaTimeFormat: 'HH:mm',
+                                                agendaTimeRangeFormat: ({ start, end }) => {
+                                                    return `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`;
                                                 }
                                             }}
-                                            min={new Date(2025, 0, 1, 6, 0, 0)}
-                                            max={new Date(2025, 0, 1, 22, 0, 0)}
+                                            min={new Date(2025, 0, 1, 0, 0, 0)}
+                                            max={new Date(2025, 0, 1, 23, 59, 59)}
                                             step={15}
                                             timeslots={4}
                                             showMultiDayTimes={true}
