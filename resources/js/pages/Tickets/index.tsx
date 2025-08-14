@@ -5156,6 +5156,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     </div>
                                 )}
 
+                             
+
                                 {/* Member Feedback Form - Only for Members */}
                                 {showAppointmentDetailsModal.appointment && showAppointmentDetailsModal.appointment.status === 'awaiting_feedback' && isMember && (
                                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
@@ -5219,6 +5221,33 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 Submit Feedback
                                             </button>
                                         </form>
+                                    </div>
+                                )}
+
+                                {/* Show Completion Notes for Technical Staff when status is awaiting_feedback */}
+                                {showAppointmentDetailsModal.appointment && 
+                                 showAppointmentDetailsModal.appointment.status === 'awaiting_feedback' && 
+                                 !isMember && 
+                                 showAppointmentDetailsModal.appointment.completion_notes && (
+                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="p-2 bg-green-100 rounded-lg">
+                                                <CheckCircle className="w-6 h-6 text-green-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-green-900">Work Completed - Awaiting User Feedback</h3>
+                                                <p className="text-sm text-green-700">Your completion notes are visible</p>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 bg-white rounded-xl border border-green-200">
+                                            <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
+                                                <FileText className="w-4 h-4" />
+                                                Your Completion Notes
+                                            </h4>
+                                            <p className="text-green-800 leading-relaxed">
+                                                {showAppointmentDetailsModal.appointment.completion_notes}
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
 
@@ -5388,6 +5417,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         </div>
 
                                         <div className="space-y-4">
+                                            {/* DEBUG: Log appointment data */}
+                                            {console.log('Appointment data for completed appointment:', showAppointmentDetailsModal.appointment)}
                                             {showAppointmentDetailsModal.appointment.completion_notes && (
                                                 <div className="p-4 bg-white rounded-xl border border-green-200">
                                                     <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
