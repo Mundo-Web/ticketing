@@ -5,6 +5,9 @@ namespace App\Listeners;
 use App\Events\TicketAssigned;
 use App\Jobs\SendTicketAssignedEmailsJob;
 
+// TEMPORALMENTE DESHABILITADO PARA EVITAR NOTIFICACIONES DUPLICADAS
+// El sistema manual en TicketController ya maneja las notificaciones
+/*
 class SendTicketAssignedNotifications
 {
     /**
@@ -28,3 +31,4 @@ class SendTicketAssignedNotifications
         );
     }
 }
+*/
