@@ -426,7 +426,14 @@ class TicketController extends Controller
             })->get();
 
             foreach ($admins as $admin) {
-                $admin->notify(new \App\Notifications\TicketCreatedNotification($ticket));
+                $notification = $admin->notify(new \App\Notifications\TicketCreatedNotification($ticket));
+                
+                // Emit real-time notification event
+                $databaseNotification = $admin->notifications()->latest()->first();
+                if ($databaseNotification) {
+                    event(new \App\Events\NotificationCreated($databaseNotification, $admin->id));
+                }
+                
                 Log::info('Notification sent to super-admin', [
                     'admin_id' => $admin->id,
                     'admin_name' => $admin->name,
@@ -443,7 +450,14 @@ class TicketController extends Controller
             })->get();
 
             foreach ($defaultTechnicals as $technical) {
-                $technical->notify(new \App\Notifications\TicketCreatedNotification($ticket));
+                $notification = $technical->notify(new \App\Notifications\TicketCreatedNotification($ticket));
+                
+                // Emit real-time notification event
+                $databaseNotification = $technical->notifications()->latest()->first();
+                if ($databaseNotification) {
+                    event(new \App\Events\NotificationCreated($databaseNotification, $technical->id));
+                }
+                
                 Log::info('Notification sent to technical-default', [
                     'technical_id' => $technical->id,
                     'technical_name' => $technical->name,
