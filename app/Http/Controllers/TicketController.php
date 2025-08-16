@@ -840,13 +840,27 @@ class TicketController extends Controller
             $validated['meta'] ?? null,
             $technicalId
         );
-        
+
+        // Emitir evento socket si corresponde
+        if (
+            $request->has('broadcastNotification') &&
+            $request->broadcastNotification &&
+            $validated['action'] === 'status_change_resolved'
+        ) {
+            broadcast(new \App\Events\TicketStatusChanged(
+                $ticket,
+                $ticket->status, // oldStatus (puedes guardar el anterior si lo necesitas)
+                'resolved',      // newStatus
+                $user
+            ));
+        }
+
         // Check if this is an Inertia request
         if ($request->header('X-Inertia')) {
             // For Inertia requests, redirect back with success message
             return redirect()->back()->with('success', 'History added');
         }
-        
+
         // For AJAX/fetch requests (not Inertia), return JSON
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
@@ -855,7 +869,7 @@ class TicketController extends Controller
                 'ticket' => $ticket->fresh(['histories.technical', 'user.tenant', 'device.tenants'])
             ]);
         }
-        
+
         // SIEMPRE redirige (no devuelvas JSON)
         return redirect()->back()->with('success', 'History added');
     }

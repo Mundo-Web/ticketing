@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\Technical;
 use App\Models\Ticket;
+use App\Events\NotificationCreated;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Log;
 
@@ -269,7 +270,7 @@ class NotificationDispatcherService
     private function createDatabaseNotification(User $user, array $data): void
     {
         try {
-            DatabaseNotification::create([
+            $notification = DatabaseNotification::create([
                 'id' => \Illuminate\Support\Str::uuid(),
                 'type' => 'App\Notifications\TicketNotification',
                 'notifiable_type' => 'App\Models\User',
@@ -279,7 +280,15 @@ class NotificationDispatcherService
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            
+
+            // Emitir evento socket para notificación en tiempo real
+            Log::info('Broadcasting NotificationCreated event', [
+                'user_id' => $user->id,
+                'notification_id' => $notification->id,
+                'type' => $data['type'] ?? 'unknown'
+            ]);
+            event(new NotificationCreated($notification, $user->id));
+
             Log::info('Database notification created', [
                 'user_id' => $user->id,
                 'type' => $data['type'] ?? 'unknown'

@@ -364,6 +364,24 @@ export default function TicketsIndex({
     const [showAssignModal, setShowAssignModal] = useState<{ open: boolean; ticketId?: number }>({ open: false })
     const [showStatusChangeModal, setShowStatusChangeModal] = useState<{ open: boolean; ticketId?: number; newStatus?: string; ticket?: any }>({ open: false })
     const [historyText, setHistoryText] = useState("")
+    // Escuchar evento socket para cambios de estado en tiempo real
+    useEffect(() => {
+        if (showStatusChangeModal.ticketId) {
+            const channel = window.Echo.private(`ticket.${showStatusChangeModal.ticketId}`);
+            channel.listen('.TicketStatusChanged', (data) => {
+                if (data.newStatus === 'resolved') {
+                    if (window?.toast) {
+                        window.toast.success('El ticket ha sido marcado como resuelto.');
+                    }
+                    refreshSelectedTicket(showStatusChangeModal.ticketId);
+                    setRefreshKey(prev => prev + 1);
+                }
+            });
+            return () => {
+                channel.stopListening('.TicketStatusChanged');
+            };
+        }
+    }, [showStatusChangeModal.ticketId]);
     const [historyAction, setHistoryAction] = useState("comment")
     const [statusChangeComment, setStatusChangeComment] = useState("")
     const [assignTechnicalId, setAssignTechnicalId] = useState<number | null>(null)
@@ -4168,7 +4186,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         router.post(`/tickets/${showStatusChangeModal.ticketId}/add-history`,
                                             {
                                                 action: `status_change_${showStatusChangeModal.newStatus}`,
-                                                description: statusChangeComment
+                                                description: statusChangeComment,
+                                                broadcastNotification: showStatusChangeModal.newStatus === 'resolved'
                                             },
                                             {
                                                 preserveScroll: true,
@@ -4178,6 +4197,9 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     refreshSelectedTicket(showStatusChangeModal.ticketId);
                                                     // Forzar re-render del kanban
                                                     setRefreshKey(prev => prev + 1);
+                                                    
+                                                    // El evento será emitido desde el backend
+                                                    // y escuchado por el hook useNotifications
                                                 },
                                                 onFinish: () => {
                                                     setChangingStatus(false);

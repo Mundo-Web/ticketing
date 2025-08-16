@@ -15,10 +15,12 @@ use App\Models\Support;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-
+// Broadcasting authentication routes (must be outside auth middleware group)
+Broadcast::routes(['middleware' => ['web', 'auth']]);
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -49,6 +51,88 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/test-log', function() {
         Log::info('Test log message working');
         return 'Log test complete. Check logs.';
+    });
+
+    // Test notification route
+    Route::get('/test-notification-page', function() {
+        return view('test-notification');
+    });
+    
+    // Pusher debug page
+    Route::get('/pusher-debug', function() {
+        return view('pusher-debug');
+    });
+    
+    // Ruta GET simple para enviar notificación (sin CSRF)
+    Route::get('/direct-pusher-test', function () {
+    return view('direct-pusher-test');
+});
+
+Route::get('/test-send-notification-simple', function () {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return '<h1>❌ Not authenticated</h1><p><a href="/login">Login first</a></p>';
+        }
+        
+        $notification = \Illuminate\Notifications\DatabaseNotification::create([
+            'id' => \Illuminate\Support\Str::uuid(),
+            'type' => 'App\Notifications\TicketNotification',
+            'notifiable_type' => 'App\Models\User',
+            'notifiable_id' => $user->id,
+            'data' => [
+                'title' => 'Simple Test Notification',
+                'message' => 'This notification was sent via GET at ' . now()->format('H:i:s') . ' for user ' . $user->id,
+                'type' => 'test',
+                'color' => 'blue',
+                'ticket_code' => 'GET-' . time(),
+                'priority' => 'high'
+            ],
+            'read_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        
+        // Emit socket event
+        event(new \App\Events\NotificationCreated($notification, $user->id));
+        
+        \Illuminate\Support\Facades\Log::info('Manual notification sent', [
+            'user_id' => $user->id,
+            'notification_id' => $notification->id
+        ]);
+        
+        return '<h1>✅ Notification sent!</h1><p>User ID: ' . $user->id . '</p><p>Notification ID: ' . $notification->id . '</p><p><a href="/dashboard">Go to Dashboard</a></p>';
+    });
+    
+    Route::post('/test-send-notification', function() {
+        $user = Auth::user();
+        
+        $notification = \Illuminate\Notifications\DatabaseNotification::create([
+            'id' => \Illuminate\Support\Str::uuid(),
+            'type' => 'App\Notifications\TicketNotification',
+            'notifiable_type' => 'App\Models\User',
+            'notifiable_id' => $user->id,
+            'data' => [
+                'title' => 'Manual Test Notification',
+                'message' => 'This notification was sent manually at ' . now()->format('H:i:s'),
+                'type' => 'test',
+                'color' => 'green',
+                'ticket_code' => 'MANUAL-' . time(),
+                'priority' => 'high'
+            ],
+            'read_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        
+        // Emit socket event
+        event(new \App\Events\NotificationCreated($notification, $user->id));
+        
+        return response()->json([
+            'success' => true,
+            'notification_id' => $notification->id,
+            'message' => 'Notification sent successfully!'
+        ]);
     });
 
     // Test upload route - simple version

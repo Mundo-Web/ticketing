@@ -39,7 +39,7 @@ class SendTicketStatusChangedEmailsJob implements ShouldQueue
     {
         try {
             // Cargar relaciones necesarias
-            $this->ticket->load(['user', 'assignedTo', 'device', 'building']);
+            $this->ticket->load(['user', 'technical', 'device']);
 
             $recipients = collect();
 
@@ -49,8 +49,8 @@ class SendTicketStatusChangedEmailsJob implements ShouldQueue
             }
 
             // 2. Notificar al técnico asignado
-            if ($this->ticket->assignedTo && $this->ticket->assignedTo->email_notifications) {
-                $recipients->push($this->ticket->assignedTo);
+            if ($this->ticket->technical && $this->ticket->technical->email_notifications) {
+                $recipients->push($this->ticket->technical);
             }
 
             // 3. Notificar a admins

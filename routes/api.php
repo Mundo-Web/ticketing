@@ -64,6 +64,75 @@ Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
     Route::put('/settings', [NotificationController::class, 'updateSettings']);
 });
 
+// Notification routes for web auth (session-based)
+Route::middleware(['web', 'auth'])->prefix('notifications')->group(function () {
+    Route::get('/api', [NotificationController::class, 'index']);
+    Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+});
+
+// Test notification route
+Route::post('/send-test-notification', function (Illuminate\Http\Request $request) {
+    $userId = $request->input('user_id', 183);
+    
+    // Create notification data (without saving to DB for now)
+    $notificationData = [
+        'id' => rand(1000, 9999),
+        'user_id' => $userId,
+        'title' => 'Direct Test Notification',
+        'message' => 'This is a direct test from API route at ' . now(),
+        'type' => 'test',
+        'is_read' => false,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ];
+    
+    // Método 1: Laravel Broadcasting (el que no funciona)
+    try {
+        $event = new \App\Events\NotificationCreated($notificationData, $userId);
+        broadcast($event)->toOthers();
+        \Illuminate\Support\Facades\Log::info('✅ Laravel Broadcasting sent');
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('❌ Laravel Broadcasting failed: ' . $e->getMessage());
+    }
+    
+    // Método 2: Pusher directo (el que SÍ funciona)
+    try {
+        $pusher = new \Pusher\Pusher(
+            config('broadcasting.connections.pusher.key'),
+            config('broadcasting.connections.pusher.secret'),
+            config('broadcasting.connections.pusher.app_id'),
+            config('broadcasting.connections.pusher.options')
+        );
+        
+        $result = $pusher->trigger(
+            'notifications-public.' . $userId,
+            'notification.created',
+            [
+                'notification' => $notificationData,
+                'user_id' => $userId,
+                'timestamp' => now()
+            ]
+        );
+        
+        \Illuminate\Support\Facades\Log::info('✅ Direct Pusher sent', ['result' => $result]);
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('❌ Direct Pusher failed: ' . $e->getMessage());
+    }
+    
+    \Illuminate\Support\Facades\Log::info('🚨 API Manual notification sent', [
+        'notification_data' => $notificationData,
+        'user_id' => $userId,
+        'event_dispatched' => true
+    ]);
+    
+    return response()->json([
+        'success' => true,
+        'notification' => $notificationData,
+        'message' => 'Test notification sent via API (both methods)'
+    ]);
+});
+
 // Technical API routes
 Route::get('/technicals', [TechnicalController::class, 'index']);
 Route::get('/technicals/{technical}/tickets', [TechnicalController::class, 'getTickets']);

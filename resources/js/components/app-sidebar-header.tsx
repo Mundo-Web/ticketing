@@ -9,9 +9,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
+import { type BreadcrumbItem as BreadcrumbItemType, type PageProps } from '@/types';
 import { format } from 'date-fns';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { useNotifications } from '@/hooks/useNotifications';
 
 interface AppSidebarHeaderProps {
@@ -25,12 +25,25 @@ interface NotificationIconColors {
 }
 
 export function AppSidebarHeader({ breadcrumbs = [] }: AppSidebarHeaderProps) {
+    const { auth } = usePage<PageProps>().props;
+    
+    // Debug logging
+    console.log('🔍 [AppSidebarHeader] User auth data:', auth.user);
+    console.log('🔍 [AppSidebarHeader] User ID for notifications:', auth.user?.id);
+    
     const { 
         notifications, 
         unreadCount, 
         isLoading,
-        markAsRead 
-    } = useNotifications();
+        markAsRead, 
+        markAllAsRead
+    } = useNotifications(auth.user?.id);
+    
+    // Debug logging for notifications
+    console.log('🔍 [AppSidebarHeader] Notifications count:', notifications.length);
+    console.log('🔍 [AppSidebarHeader] Unread count:', unreadCount);
+    console.log('🔍 [AppSidebarHeader] Is loading:', isLoading);
+    
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
     const getTimeAgo = (dateString: string) => {
@@ -78,6 +91,7 @@ export function AppSidebarHeader({ breadcrumbs = [] }: AppSidebarHeaderProps) {
         }
     };
 
+    
     return (
         <header className="border-sidebar-border/50 flex h-16 shrink-0 items-center justify-between gap-2 border-b px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4">
             <div className="flex items-center gap-2">
@@ -115,7 +129,7 @@ export function AppSidebarHeader({ breadcrumbs = [] }: AppSidebarHeaderProps) {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => notifications.length > 0 && markAsRead(notifications[0].id)}
+                                        onClick={markAllAsRead}
                                         className="text-white bg-primary hover:bg-primary text-xs font-medium"
                                     >
                                         Marcar todo como leído
@@ -124,7 +138,11 @@ export function AppSidebarHeader({ breadcrumbs = [] }: AppSidebarHeaderProps) {
                             </div>
                         </div>
 
-                        {notifications.length === 0 ? (
+                        {isLoading ? (
+                            <div className="p-8 text-center">
+                                <p>Loading notifications...</p>
+                            </div>
+                        ) : notifications.length === 0 ? (
                             <div className="p-8 text-center">
                                 <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
                                     <Bell className="h-10 w-10 text-gray-400" />
