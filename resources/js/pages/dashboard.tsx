@@ -1797,7 +1797,7 @@ export default function Dashboard({
     }));
 
     return (
-        <TooltipProvider>
+       
             <AppLayout breadcrumbs={breadcrumbs}>                <Head title="Dashboard" />
 
                 {/* Custom styles for scrollbar */}                <style dangerouslySetInnerHTML={{
@@ -1850,7 +1850,7 @@ export default function Dashboard({
                 }} />
                 {/* Main container with premium spacing */}
                 <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-                    <div className="container mx-auto px-8 py-16 space-y-20">
+                    <div className="mx-auto px-4 py-16 space-y-20">
 
                         {/* Premium header with maximum spacing */}
                         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-12">
@@ -4489,7 +4489,7 @@ export default function Dashboard({
                     title="Resolved Tickets"
                 />
             </AppLayout>
-        </TooltipProvider>
+ 
     );
 }
 
