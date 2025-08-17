@@ -110,7 +110,7 @@ export function useNotifications(userId: number | undefined): UseNotificationsRe
                         newNotification = {
                             id: dbNotification.id,
                             data: {
-                                title: dbNotification.data.message || 'Nueva notificación',
+                                title: dbNotification.data.title || 'Nueva notificación',
                                 message: dbNotification.data.message || 'Tienes una nueva notificación',
                                 type: dbNotification.data.type || 'info',
                                 ticket_code: dbNotification.data.ticket_code,
@@ -125,7 +125,7 @@ export function useNotifications(userId: number | undefined): UseNotificationsRe
                         newNotification = {
                             id: notificationData.id || Math.random().toString(),
                             data: {
-                                title: notificationData.data?.message || notificationData.title || notificationData.message || 'Nueva notificación',
+                                title: notificationData.data?.title || notificationData.title || 'Nueva notificación',
                                 message: notificationData.data?.message || notificationData.message || 'Tienes una nueva notificación',
                                 type: notificationData.data?.type || notificationData.type || 'info',
                                 ticket_code: notificationData.data?.ticket_code || notificationData.ticket_code,

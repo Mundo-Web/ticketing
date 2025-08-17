@@ -91,7 +91,7 @@ export function AppSidebarHeader({ breadcrumbs = [] }: AppSidebarHeaderProps) {
         }
     };
 
-    
+
     return (
         <header className="border-sidebar-border/50 flex h-16 shrink-0 items-center justify-between gap-2 border-b px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4">
             <div className="flex items-center gap-2">
@@ -184,7 +184,7 @@ export function AppSidebarHeader({ breadcrumbs = [] }: AppSidebarHeaderProps) {
                                                             <h4 className={`text-sm font-bold leading-tight ${
                                                                 !notification.read_at ? 'text-gray-900' : 'text-gray-700'
                                                             }`}>
-                                                                {notification.data.title}
+                                                                {notification?.data?.title}
                                                             </h4>
                                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                                 <span className="text-xs text-gray-500 font-medium">
@@ -196,7 +196,7 @@ export function AppSidebarHeader({ breadcrumbs = [] }: AppSidebarHeaderProps) {
                                                         <p className={`text-sm leading-relaxed ${
                                                             !notification.read_at ? 'text-gray-800' : 'text-gray-600'
                                                         }`}>
-                                                            {notification.data.message}
+                                                            {notification?.data?.message}
                                                         </p>
 
                                                         {notification.data.type === 'ticket_assigned' && (

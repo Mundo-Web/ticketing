@@ -269,6 +269,35 @@ class TechnicalController extends Controller
         // Actualizar las instrucciones del técnico
         $technical->update(['instructions' => $currentInstructions]);
 
+        // Enviar notificación en tiempo real al técnico (siguiendo el patrón de assignTechnical)
+        $technicalUser = \App\Models\User::where('email', $technical->email)->first();
+        
+        if ($technicalUser) {
+            // 1. Crear notificación en la base de datos
+            $technicalUser->notify(new \App\Notifications\InstructionReceivedNotification(
+                $technical,
+                $validated['instruction'],
+                $validated['priority'],
+                Auth::user()
+            ));
+            
+            // 2. Obtener la notificación recién creada de la BD
+            $databaseNotification = $technicalUser->notifications()->latest()->first();
+            
+            // 3. Disparar evento real-time con la notificación de BD (siguiendo patrón exacto)
+            if ($databaseNotification) {
+                event(new \App\Events\NotificationCreated($databaseNotification, $technicalUser->id));
+            }
+            
+            \Illuminate\Support\Facades\Log::info('Instruction notification sent', [
+                'technical_id' => $technicalUser->id,
+                'technical_name' => $technical->name,
+                'instruction' => $validated['instruction'],
+                'priority' => $validated['priority'],
+                'sent_by' => Auth::user()->name
+            ]);
+        }
+
         $priorityMessage = [
             'low' => 'Low priority',
             'normal' => 'Normal priority',
