@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use App\Events\NotificationCreated;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class Appointment extends Model
 {
@@ -33,6 +36,129 @@ class Appointment extends Model
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
+
+    /**
+     * Boot method para agregar event listeners
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Después de cualquier consulta, verificar recordatorios pendientes
+        static::retrieved(function ($appointment) {
+            $appointment->checkAndSendReminders();
+        });
+    }
+
+    /**
+     * Verificar y enviar recordatorios de citas próximas
+     */
+    public function checkAndSendReminders()
+    {
+        // Solo verificar citas programadas
+        if ($this->status !== self::STATUS_SCHEDULED) {
+            return;
+        }
+
+        $appointmentTime = Carbon::parse($this->scheduled_for);
+        $now = Carbon::now();
+        
+        // Solo verificar citas futuras (permitir hasta 1 minuto de retraso)
+        if ($appointmentTime->addMinute()->lte($now)) {
+            return;
+        }
+
+        $minutesUntilAppointment = $now->diffInMinutes($appointmentTime);
+        $reminderIntervals = [5, 4, 3, 2, 1];
+
+        foreach ($reminderIntervals as $reminderMinutes) {
+            // Verificar si estamos exactamente en el momento del recordatorio (±1 minuto de tolerancia)
+            if (abs($minutesUntilAppointment - $reminderMinutes) <= 1) {
+                $this->sendReminderNotification($reminderMinutes);
+            }
+        }
+    }
+
+    /**
+     * Enviar notificación de recordatorio
+     */
+    private function sendReminderNotification($minutes)
+    {
+        // Cache key para evitar enviar el mismo recordatorio múltiples veces
+        $cacheKey = "reminder_sent_{$this->id}_{$minutes}";
+        
+        if (Cache::has($cacheKey)) {
+            return; // Ya se envió este recordatorio
+        }
+
+        // Cargar las relaciones necesarias
+        $this->load(['technical', 'ticket.user']);
+
+        if (!$this->technical || !$this->ticket || !$this->ticket->user) {
+            return;
+        }
+
+        // Obtener el usuario correspondiente al técnico
+        $technicalUser = \App\Models\User::where('email', $this->technical->email)->first();
+        if (!$technicalUser) {
+            return;
+        }
+
+        $timeText = $minutes === 1 ? 'en 1 minuto' : "en {$minutes} minutos";
+        $urgency = $minutes <= 2 ? 'high' : 'medium';
+
+        try {
+            // Datos para la notificación
+            $notificationData = [
+                'type' => 'appointment_reminder',
+                'title' => '🔔 Recordatorio de Cita',
+                'message' => "Tu cita iniciará {$timeText}: {$this->title}",
+                'appointment_id' => $this->id,
+                'minutes_before' => $minutes,
+                'urgency' => $urgency,
+                'appointment_title' => $this->title,
+                'appointment_address' => $this->address,
+                'ticket_code' => $this->ticket->code,
+                'scheduled_for' => $this->scheduled_for,
+            ];
+
+            // Crear notificación para el técnico EN LA BASE DE DATOS (igual que otras notificaciones)
+            $technicalNotification = $technicalUser->notifications()->create([
+                'id' => \Illuminate\Support\Str::uuid(),
+                'type' => 'App\\Notifications\\AppointmentReminderNotification',
+                'data' => array_merge($notificationData, [
+                    'message' => "Tu cita como técnico iniciará {$timeText}: {$this->title}",
+                ]),
+                'read_at' => null,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // Crear notificación para el cliente EN LA BASE DE DATOS
+            $clientNotification = $this->ticket->user->notifications()->create([
+                'id' => \Illuminate\Support\Str::uuid(),
+                'type' => 'App\\Notifications\\AppointmentReminderNotification',
+                'data' => array_merge($notificationData, [
+                    'message' => "Tu cita como cliente iniciará {$timeText}: {$this->title}",
+                ]),
+                'read_at' => null,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // Emitir eventos igual que las otras notificaciones que funcionan
+            event(new NotificationCreated($technicalNotification, $technicalUser->id));
+            event(new NotificationCreated($clientNotification, $this->ticket->user->id));
+
+            // Marcar recordatorio como enviado (cache por 1 hora)
+            Cache::put($cacheKey, true, 3600);
+
+            Log::info("🔔 Sent automatic reminder for {$minutes} minutes before appointment {$this->id} - Using same pattern as working notifications");
+
+        } catch (\Exception $e) {
+            Log::error("Error sending reminder for appointment {$this->id}: " . $e->getMessage());
+        }
+    }
 
     // Status constants
     public const STATUS_SCHEDULED = 'scheduled';

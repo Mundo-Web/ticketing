@@ -95,6 +95,7 @@ export function useNotifications(userId: number | undefined): UseNotificationsRe
 
             const handleNewNotification = (data: unknown) => {
                 console.log('🎉 [useNotifications] New notification received!');
+                console.log('📦 [useNotifications] Raw event data:', data);
                 
                 // Manejar diferentes formatos de datos de Laravel
                 const eventData = data as any;
@@ -168,13 +169,31 @@ export function useNotifications(userId: number | undefined): UseNotificationsRe
                 }
                 
                 console.log('✅ [useNotifications] Processed notification:', newNotification.data.title);
+                console.log('🔍 [useNotifications] Notification ID:', newNotification.id);
 
                 setNotifications(prev => {
-                    if (prev.find(n => n.id === newNotification.id)) {
-                        console.log('[useNotifications] Duplicate notification prevented.');
+                    const existingNotification = prev.find(n => n.id === newNotification.id);
+                    if (existingNotification) {
+                        console.log('❌ [useNotifications] Duplicate notification prevented - ID already exists:', newNotification.id);
                         return prev;
                     }
-                    console.log('[useNotifications] Adding new notification to state.');
+                    
+                    // También verificar por contenido similar (en caso de que los IDs sean diferentes pero sea la misma notificación)
+                    const similarNotification = prev.find(n => 
+                        n.data.title === newNotification.data.title &&
+                        n.data.message === newNotification.data.message &&
+                        Math.abs(new Date(n.created_at).getTime() - new Date(newNotification.created_at).getTime()) < 10000 // Menos de 10 segundos
+                    );
+                    
+                    if (similarNotification) {
+                        console.log('❌ [useNotifications] Duplicate notification prevented - Similar content found:', {
+                            existing: similarNotification.data.title,
+                            new: newNotification.data.title
+                        });
+                        return prev;
+                    }
+                    
+                    console.log('✅ [useNotifications] Adding new notification to state.');
                     return [newNotification, ...prev];
                 });
 
@@ -202,10 +221,8 @@ export function useNotifications(userId: number | undefined): UseNotificationsRe
 
             console.log('🔧 [useNotifications] ABOUT TO ATTACH LISTENER...');
             
-            // Agregar múltiples listeners para debugging
+            // Agregar SOLO UN listener para evitar duplicación
             channel.listen('notification.created', handleNewNotification);
-            channel.listen('.notification.created', handleNewNotification); // Con punto
-            channel.listen('NotificationCreated', handleNewNotification); // Clase del evento
             
             console.log(`[useNotifications] ✅ Listener attached for event: notification.created`);
             console.log(`[useNotifications] Channel state:`, channel);
@@ -216,16 +233,6 @@ export function useNotifications(userId: number | undefined): UseNotificationsRe
                 console.error(`[useNotifications] Subscription error for channel notifications-public.${userId}:`, error);
                 toast.error("Real-time connection failed. Please refresh.");
             });
-
-            // Debug: Agregar listener directo al canal Pusher
-            const pusherChannel = window.Echo.connector.pusher.channels.channels[`notifications-public.${userId}`];
-            if (pusherChannel) {
-                console.log('🔍 [useNotifications] Adding direct Pusher listener to channel:', `notifications-public.${userId}`);
-                pusherChannel.bind('notification.created', function(data: any) {
-                    console.log('🌟 [DIRECT PUSHER] Event received:', data);
-                    handleNewNotification(data);
-                });
-            }
 
             return channel;
         };

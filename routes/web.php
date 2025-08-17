@@ -216,6 +216,30 @@ Route::get('/test-send-notification-simple', function () {
     Route::post('appointments/{appointment}/cancel', [\App\Http\Controllers\AppointmentController::class, 'cancel'])->name('appointments.cancel');
     Route::post('appointments/{appointment}/reschedule', [\App\Http\Controllers\AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
     Route::get('technicals/{technical}/availability', [\App\Http\Controllers\AppointmentController::class, 'getTechnicalAvailability'])->name('technicals.availability');
+    
+    // Ruta para verificar recordatorios automáticamente
+    Route::get('appointments/check-reminders', function() {
+        try {
+            // Consultar todas las citas programadas para hoy y próximas
+            $upcomingAppointments = \App\Models\Appointment::where('status', \App\Models\Appointment::STATUS_SCHEDULED)
+                ->where('scheduled_for', '>=', \Carbon\Carbon::now())
+                ->where('scheduled_for', '<=', \Carbon\Carbon::now()->addHours(2))
+                ->get();
+
+            $checkedCount = $upcomingAppointments->count();
+            
+            Log::info("🔍 Checked {$checkedCount} upcoming appointments for reminders");
+            
+            return response()->json([
+                'success' => true,
+                'checked_appointments' => $checkedCount,
+                'timestamp' => now()->toISOString()
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error checking appointment reminders: " . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    })->name('appointments.check-reminders');
 
 
     Route::get('/apartment/member/{id}/devices', [ApartmentController::class, 'apartmentMemberDevice'])
@@ -387,4 +411,38 @@ Route::get('/debug-appointments', function() {
 });
 
 require __DIR__ . '/settings.php';
-require __DIR__ . '/auth.php';
+
+// Ruta temporal para probar recordatorios (sin autenticación)
+Route::get('/test-appointment-reminders', function() {
+    try {
+        // Consultar todas las citas programadas para hoy y próximas
+        $upcomingAppointments = \App\Models\Appointment::where('status', \App\Models\Appointment::STATUS_SCHEDULED)
+            ->where('scheduled_for', '>=', \Carbon\Carbon::now())
+            ->where('scheduled_for', '<=', \Carbon\Carbon::now()->addHours(2))
+            ->get();
+
+        $checkedCount = $upcomingAppointments->count();
+        
+        Log::info("🔍 Checked {$checkedCount} upcoming appointments for reminders");
+        
+        return response()->json([
+            'success' => true,
+            'checked_appointments' => $checkedCount,
+            'appointments' => $upcomingAppointments->map(function($apt) {
+                return [
+                    'id' => $apt->id,
+                    'title' => $apt->title,
+                    'scheduled_for' => $apt->scheduled_for,
+                    'status' => $apt->status,
+                    'minutes_until' => \Carbon\Carbon::now()->diffInMinutes(\Carbon\Carbon::parse($apt->scheduled_for))
+                ];
+            }),
+            'timestamp' => now()->toISOString()
+        ]);
+    } catch (\Exception $e) {
+        Log::error("Error checking appointment reminders: " . $e->getMessage());
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
+
+require __DIR__.'/auth.php';
