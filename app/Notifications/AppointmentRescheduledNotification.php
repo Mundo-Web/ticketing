@@ -62,15 +62,15 @@ class AppointmentRescheduledNotification extends Notification
         $newDate = Carbon::parse($this->newDateTime)->format('d/m/Y H:i');
         
         return (new MailMessage)
-            ->subject('Cita Reagendada - ' . $this->appointment->ticket->code)
-            ->greeting('¡Hola ' . $notifiable->name . '!')
-            ->line('Tu cita ha sido reagendada.')
+            ->subject('Rescheduled Appointment - ' . $this->appointment->ticket->code)
+            ->greeting('Hello ' . $notifiable->name . '!')
+            ->line('Your appointment has been rescheduled.')
             ->line('Ticket: ' . $this->appointment->ticket->code)
-            ->line('Título: ' . ($this->appointment->title ?? 'Sin título'))
-            ->line('Fecha anterior: ' . $oldDate)
-            ->line('Nueva fecha: ' . $newDate)
-            ->action('Ver Cita', url('/appointments/' . $this->appointment->id))
-            ->line('¡Por favor revisa los nuevos detalles de tu cita!');
+            ->line('Title: ' . ($this->appointment->title ?? 'No title'))
+            ->line('Previous Date: ' . $oldDate)
+            ->line('New Date: ' . $newDate)
+            ->action('View Appointment', url('/appointments/' . $this->appointment->id))
+            ->line('Please check the new details of your appointment!');
     }
 
     /**
@@ -101,9 +101,9 @@ class AppointmentRescheduledNotification extends Notification
 
         if ($this->recipientType === 'technical') {
             // Mensaje para el técnico
-            $title = '📅 Cita reagendada - Técnico';
+            $title = '📅 Rescheduled Appointment - Technician';
             $message = sprintf(
-                'Tu cita como técnico ha sido reagendada. Ticket %s - De %s a %s',
+                'Your appointment as a technician has been rescheduled. Ticket %s - From %s to %s',
                 $this->appointment->ticket->code,
                 $oldDate,
                 $newDate
@@ -112,9 +112,9 @@ class AppointmentRescheduledNotification extends Notification
             $color = 'blue';
         } else {
             // Mensaje para el cliente/miembro
-            $title = '📅 Cita reagendada - Cliente';
+            $title = '📅 Rescheduled Appointment - Client';
             $message = sprintf(
-                'Tu cita ha sido reagendada. Ticket %s - De %s a %s',
+                'Your appointment has been rescheduled. Ticket %s - From %s to %s',
                 $this->appointment->ticket->code,
                 $oldDate,
                 $newDate

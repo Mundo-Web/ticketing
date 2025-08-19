@@ -449,7 +449,7 @@ class AppointmentController extends Controller
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Cita reagendada exitosamente',
+                    'message' => 'Appointment successfully rescheduled',
                     'appointment' => $appointment->fresh()
                 ]);
             }
