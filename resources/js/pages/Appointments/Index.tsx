@@ -111,7 +111,7 @@ const calendarStyle = `
 /* Time Slots - Minimal and Clean */
 .rbc-time-slot {
     border-top: 1px solid #f8fafc;
-    min-height: 30px;
+    min-height: 60px;
     transition: background-color 0.15s ease;
     background: #ffffff;
 }
@@ -938,6 +938,23 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
         );
     };
 
+    // Effect para scroll automático a las 6:00 AM en vista Week
+    useEffect(() => {
+        if (calendarView === Views.WEEK || calendarView === Views.DAY) {
+            // Pequeño delay para asegurar que el calendario se haya renderizado
+            setTimeout(() => {
+                const timeContent = document.querySelector('.rbc-time-content');
+                if (timeContent) {
+                    // Calcular la posición de las 6:00 AM
+                    // Cada hora son aproximadamente 60px, entonces 6 horas = 360px
+                    const scrollTo = 6 * 60; // 6:00 AM * 60px por hora
+                    timeContent.scrollTop = scrollTo;
+                    console.log('📅 Auto-scrolled to 6:00 AM in Week view');
+                }
+            }, 100);
+        }
+    }, [calendarView, calendarDate]);
+
     // Get upcoming appointments (next 7 days) - usando filteredAppointments
     const upcomingAppointments = filteredAppointments.filter(appointment => {
         const appointmentDate = new Date(appointment.scheduled_for);
@@ -1171,8 +1188,8 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                             }}
                                             min={new Date(2025, 0, 1, 0, 0, 0)}
                                             max={new Date(2025, 0, 1, 23, 59, 59)}
-                                            step={15}
-                                            timeslots={4}
+                                            step={60}
+                                            timeslots={1}
                                             showMultiDayTimes={true}
                                             popup={true}
                                             popupOffset={30}
