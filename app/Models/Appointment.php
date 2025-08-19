@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use App\Events\NotificationCreated;
+use App\Events\AppointmentRescheduled;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 
@@ -368,6 +369,18 @@ class Appointment extends Model
         $oldDateString = $this->scheduled_for;
         $newDateString = is_string($newDateTime) ? $newDateTime : $newDateTime->format('Y-m-d H:i:s');
         
+        // Crear clave única para prevenir ejecuciones duplicadas
+        $rescheduleKey = "reschedule_processing_{$this->id}_{$oldDateString}_{$newDateString}";
+        
+        // Verificar si ya se está procesando este reagendamiento
+        if (\Illuminate\Support\Facades\Cache::has($rescheduleKey)) {
+            Log::info("🚫 Reschedule ya en proceso para appointment {$this->id}, evitando duplicado");
+            return $this;
+        }
+        
+        // Marcar como en proceso por 10 segundos
+        \Illuminate\Support\Facades\Cache::put($rescheduleKey, true, 10);
+        
         // Parse dates only for formatting in history (not for storage)
         $oldDateForHistory = Carbon::parse($oldDateString);
         $newDateForHistory = Carbon::parse($newDateString);
@@ -391,6 +404,80 @@ class Appointment extends Model
             $this->technical_id
         );
 
+        // Disparar el evento AppointmentRescheduled para notificaciones
+        Log::info("🔔 Disparando evento AppointmentRescheduled para appointment {$this->id}");
+        event(new AppointmentRescheduled($this, $oldDateString, $newDateString));
+        
+        // Enviar notificaciones directamente para evitar problemas de listeners duplicados
+        $this->sendRescheduleNotifications($oldDateString, $newDateString);
+
         return $this;
+    }
+
+    /**
+     * Enviar notificaciones de reagendamiento directamente
+     */
+    private function sendRescheduleNotifications($oldDateTime, $newDateTime)
+    {
+        // Cargar las relaciones necesarias
+        $this->load(['technical', 'ticket.user']);
+
+        if (!$this->technical || !$this->ticket || !$this->ticket->user) {
+            Log::warning("Missing technical or member for rescheduled appointment {$this->id}");
+            return;
+        }
+
+        // Obtener el usuario correspondiente al técnico por email
+        $technicalUser = \App\Models\User::where('email', $this->technical->email)->first();
+        if (!$technicalUser) {
+            Log::warning("No user found for technical email: {$this->technical->email}");
+            return;
+        }
+
+        Log::info("📅 Appointment rescheduled - sending notifications directly for appointment {$this->id}");
+        Log::info("🔄 Rescheduled from {$oldDateTime} to {$newDateTime}");
+
+        try {
+            // 1. Crear y enviar notificación de reagendamiento al técnico
+            $technicalNotification = new \App\Notifications\AppointmentRescheduledNotification($this, $oldDateTime, $newDateTime, 'technical');
+            $technicalUser->notify($technicalNotification);
+            Log::info("📧 Technical notification saved to database for user {$technicalUser->id}");
+            
+            // Obtener la notificación específica que acabamos de crear
+            $technicalDatabaseNotification = $technicalUser->notifications()
+                ->where('type', 'App\\Notifications\\AppointmentRescheduledNotification')
+                ->where('data->appointment_id', $this->id)
+                ->where('data->recipient_type', 'technical')
+                ->latest()
+                ->first();
+            
+            if ($technicalDatabaseNotification) {
+                event(new \App\Events\NotificationCreated($technicalDatabaseNotification, $technicalUser->id));
+                Log::info("📡 Technical notification broadcasted for user {$technicalUser->id}");
+            }
+
+            // 2. Crear y enviar notificación de reagendamiento al cliente
+            $memberNotification = new \App\Notifications\AppointmentRescheduledNotification($this, $oldDateTime, $newDateTime, 'member');
+            $this->ticket->user->notify($memberNotification);
+            Log::info("📧 Member notification saved to database for user {$this->ticket->user->id}");
+            
+            // Obtener la notificación específica que acabamos de crear
+            $memberDatabaseNotification = $this->ticket->user->notifications()
+                ->where('type', 'App\\Notifications\\AppointmentRescheduledNotification')
+                ->where('data->appointment_id', $this->id)
+                ->where('data->recipient_type', 'member')
+                ->latest()
+                ->first();
+            
+            if ($memberDatabaseNotification) {
+                event(new \App\Events\NotificationCreated($memberDatabaseNotification, $this->ticket->user->id));
+                Log::info("📡 Member notification broadcasted for user {$this->ticket->user->id}");
+            }
+
+            Log::info("✅ All reschedule notifications sent successfully for appointment {$this->id}");
+
+        } catch (\Exception $e) {
+            Log::error("❌ Error sending reschedule notifications for appointment {$this->id}: " . $e->getMessage());
+        }
     }
 }

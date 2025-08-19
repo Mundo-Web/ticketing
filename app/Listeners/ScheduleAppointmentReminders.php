@@ -44,7 +44,7 @@ class ScheduleAppointmentReminders
         Log::info("📅 New appointment created - sending immediate reminders for appointment {$appointment->id} at {$appointmentTime}");
 
         // Definir los intervalos de recordatorio (en minutos antes de la cita)
-        $reminderIntervals = [5, 4, 3, 2, 1];
+        $reminderIntervals = [30, 15, 10, 5, 1];
         
         // Enviar recordatorios inmediatos para cada intervalo
         foreach ($reminderIntervals as $minutes) {

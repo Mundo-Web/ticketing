@@ -27,6 +27,18 @@ class HandleAppointmentRescheduled
         $oldDateTime = $event->oldDateTime;
         $newDateTime = $event->newDateTime;
         
+        // Crear una clave única para este reagendamiento específico
+        $rescheduleKey = "appointment_rescheduled_{$appointment->id}_{$oldDateTime}_{$newDateTime}";
+        
+        // Verificar si ya se procesó este reagendamiento en los últimos 5 segundos
+        if (\Illuminate\Support\Facades\Cache::has($rescheduleKey)) {
+            Log::info("🚫 Reagendamiento ya procesado, evitando duplicado para appointment {$appointment->id}");
+            return;
+        }
+        
+        // Marcar como procesado por 5 segundos
+        \Illuminate\Support\Facades\Cache::put($rescheduleKey, true, 5);
+        
         // Cargar las relaciones necesarias
         $appointment->load(['technical', 'ticket.user']);
 
@@ -46,40 +58,30 @@ class HandleAppointmentRescheduled
         Log::info("🔄 Rescheduled from {$oldDateTime} to {$newDateTime}");
 
         // 1. Crear y enviar notificación de reagendamiento al técnico
-        $technicalNotification = new AppointmentRescheduledNotification($appointment, $oldDateTime, $newDateTime, 'technical');
-        $technicalUser->notify($technicalNotification);
+        $technicalUser->notify(new AppointmentRescheduledNotification($appointment, $oldDateTime, $newDateTime, 'technical'));
         Log::info("📧 Technical notification saved to database for user {$technicalUser->id}");
+        
+        // Emit real-time notification event for technical
+        $technicalDatabaseNotification = $technicalUser->notifications()->latest()->first();
+        if ($technicalDatabaseNotification) {
+            event(new NotificationCreated($technicalDatabaseNotification, $technicalUser->id));
+            Log::info("� Technical notification broadcasted for user {$technicalUser->id}");
+        }
 
         // 2. Crear y enviar notificación de reagendamiento al cliente
-        $memberNotification = new AppointmentRescheduledNotification($appointment, $oldDateTime, $newDateTime, 'member');
-        $appointment->ticket->user->notify($memberNotification);
+        $appointment->ticket->user->notify(new AppointmentRescheduledNotification($appointment, $oldDateTime, $newDateTime, 'member'));
         Log::info("📧 Member notification saved to database for user {$appointment->ticket->user->id}");
-
-        // 3. Enviar las notificaciones por broadcasting (obtener de DB y enviar)
-        $this->broadcastDatabaseNotifications($technicalUser, $appointment->ticket->user);
+        
+        // Emit real-time notification event for member
+        $memberDatabaseNotification = $appointment->ticket->user->notifications()->latest()->first();
+        if ($memberDatabaseNotification) {
+            event(new NotificationCreated($memberDatabaseNotification, $appointment->ticket->user->id));
+            Log::info("📡 Member notification broadcasted for user {$appointment->ticket->user->id}");
+        }
 
         // 4. Programar nuevos recordatorios para la nueva hora (solo broadcasting de recordatorios)
-        $this->scheduleNewReminders($appointment, $newDateTime, $technicalUser);
-    }
-
-    /**
-     * Broadcast database notifications that were just created
-     */
-    protected function broadcastDatabaseNotifications($technicalUser, $memberUser)
-    {
-        // Obtener la última notificación del técnico y enviarla por broadcasting
-        $technicalNotification = $technicalUser->notifications()->latest()->first();
-        if ($technicalNotification) {
-            event(new NotificationCreated($technicalNotification, $technicalUser->id));
-            Log::info("📡 Technical notification broadcasted for user {$technicalUser->id}");
-        }
-
-        // Obtener la última notificación del cliente y enviarla por broadcasting
-        $memberNotification = $memberUser->notifications()->latest()->first();
-        if ($memberNotification) {
-            event(new NotificationCreated($memberNotification, $memberUser->id));
-            Log::info("📡 Member notification broadcasted for user {$memberUser->id}");
-        }
+        // TEMPORALMENTE DESHABILITADO PARA DEBUG
+        // $this->scheduleNewReminders($appointment, $newDateTime, $technicalUser);
     }
 
     /**
@@ -92,7 +94,7 @@ class HandleAppointmentRescheduled
         
         // Solo programar recordatorios si la nueva cita está en el futuro
         if ($appointmentTime->gt($now)) {
-            $reminderIntervals = [5, 4, 3, 2, 1];
+            $reminderIntervals = [30, 15, 10, 5, 1];
 
             // Enviar recordatorios inmediatos para cada intervalo
             foreach ($reminderIntervals as $minutes) {

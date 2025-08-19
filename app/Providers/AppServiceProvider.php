@@ -19,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Las notificaciones de reagendamiento se manejan directamente 
+        // en el método reschedule() del modelo Appointment para evitar duplicaciones
     }
 }
