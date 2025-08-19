@@ -479,6 +479,7 @@ export default function TicketsIndex({
         reason: "",
         new_scheduled_for: ""
     });
+    const [completionNotesError, setCompletionNotesError] = useState(false);
 
     // NinjaOne Alerts States
     const [deviceAlerts, setDeviceAlerts] = useState<any[]>([]);
@@ -547,6 +548,18 @@ export default function TicketsIndex({
                 isMember,
                 shouldShowFeedback: showAppointmentDetailsModal.appointment.status === 'awaiting_feedback' && isMember
             });
+            // Reset completion notes error when modal opens
+            setCompletionNotesError(false);
+            // Reset form when modal opens
+            setAppointmentActionForm(prev => ({
+                ...prev,
+                completion_notes: "",
+                member_feedback: "",
+                rating: 0,
+                service_rating: 0,
+                reason: "",
+                new_scheduled_for: ""
+            }));
         }
     }, [showAppointmentDetailsModal.open, showAppointmentDetailsModal.appointment, showAppointmentDetailsModal.action, isMember]);
 
@@ -5135,6 +5148,22 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                                         <form onSubmit={async (e) => {
                                             e.preventDefault();
+                                            
+                                            console.log('Form submitted - completion_notes:', appointmentActionForm.completion_notes);
+                                            console.log('Trimmed notes:', appointmentActionForm.completion_notes.trim());
+                                            console.log('Is empty?', !appointmentActionForm.completion_notes.trim());
+                                            
+                                            // Validate completion notes
+                                            if (!appointmentActionForm.completion_notes.trim()) {
+                                                console.log('Setting completion notes error to true');
+                                                setCompletionNotesError(true);
+                                                console.log('Showing toast error');
+                                                toast.error('Completion notes are required. Please provide details about the work completed.');
+                                                console.log('Toast should be visible now');
+                                                return;
+                                            }
+                                            
+                                            console.log('Validation passed, proceeding with submission');
                                             await handleAppointmentAction('complete', showAppointmentDetailsModal.appointment.id, {
                                                 completion_notes: appointmentActionForm.completion_notes
                                             });
@@ -5146,11 +5175,32 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 </label>
                                                 <textarea
                                                     value={appointmentActionForm.completion_notes}
-                                                    onChange={e => setAppointmentActionForm(prev => ({ ...prev, completion_notes: e.target.value }))}
-                                                    className="w-full border-2 border-green-200 rounded-xl px-4 py-3 text-base focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all duration-200 min-h-[120px] resize-none bg-white"
+                                                    onChange={e => {
+                                                        console.log('Textarea changed:', e.target.value);
+                                                        setAppointmentActionForm(prev => ({ ...prev, completion_notes: e.target.value }));
+                                                        // Clear error when user starts typing
+                                                        if (e.target.value.trim() && completionNotesError) {
+                                                            console.log('Clearing completion notes error');
+                                                            setCompletionNotesError(false);
+                                                        }
+                                                    }}
+                                                    className={`w-full border-2 rounded-xl px-4 py-3 text-base focus:ring-2 transition-all duration-200 min-h-[120px] resize-none bg-white ${
+                                                        completionNotesError && !appointmentActionForm.completion_notes.trim()
+                                                            ? 'border-red-200 focus:border-red-400 focus:ring-red-100' 
+                                                            : 'border-green-200 focus:border-green-400 focus:ring-green-100'
+                                                    }`}
                                                     placeholder="Describe what was performed during the visit and the outcome..."
-                                                    required
+                                                    
                                                 />
+                                                {completionNotesError && !appointmentActionForm.completion_notes.trim() && (
+                                                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                                                        <p className="text-sm text-red-600 flex items-center gap-2">
+                                                            <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></span>
+                                                            <span className="font-medium">This field is required.</span>
+                                                            <span>Please provide details about the work completed.</span>
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
@@ -5166,7 +5216,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             <button
                                                 type="submit"
                                                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
-                                                disabled={!appointmentActionForm.completion_notes.trim()}
+                                               // disabled={!appointmentActionForm.completion_notes.trim()}
                                             >
                                                 <CheckCircle className="w-5 h-5" />
                                                 Complete Visit
