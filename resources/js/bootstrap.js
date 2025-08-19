@@ -7,6 +7,9 @@ console.log('🔧 [Bootstrap] Echo available:', !!Echo);
 
 window.Pusher = Pusher;
 
+// Enable Pusher logging for debugging
+Pusher.logToConsole = true;
+
 // Configuración simple para canales públicos
 window.Echo = new Echo({
     broadcaster: 'pusher',

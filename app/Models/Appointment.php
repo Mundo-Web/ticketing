@@ -69,7 +69,7 @@ class Appointment extends Model
         }
 
         $minutesUntilAppointment = $now->diffInMinutes($appointmentTime);
-        $reminderIntervals = [5, 4, 3, 2, 1];
+        $reminderIntervals = [30, 15, 10, 5, 1];
 
         foreach ($reminderIntervals as $reminderMinutes) {
             // Verificar si estamos exactamente en el momento del recordatorio (±1 minuto de tolerancia)

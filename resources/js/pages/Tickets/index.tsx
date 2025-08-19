@@ -3477,6 +3477,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         'Content-Type': 'application/json',
                                         'Accept': 'application/json',
                                         'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                                        'X-Requested-With': 'XMLHttpRequest', // Important for Laravel to detect AJAX
                                     },
                                     credentials: 'same-origin',
                                     body: JSON.stringify({

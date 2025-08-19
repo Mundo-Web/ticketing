@@ -221,8 +221,18 @@ export function useNotifications(userId: number | undefined): UseNotificationsRe
 
             console.log('🔧 [useNotifications] ABOUT TO ATTACH LISTENER...');
             
-            // Agregar SOLO UN listener para evitar duplicación
-            channel.listen('notification.created', handleNewNotification);
+            // Usar la sintaxis correcta de Laravel Echo para eventos personalizados
+            // Laravel Echo espera que uses .listen() para eventos custom
+            channel.listen('.notification.created', (data: unknown) => {
+                console.log('🎯 [useNotifications] Laravel Echo Listener RECEIVED:', data);
+                handleNewNotification(data);
+            });
+            
+            // También intentar sin el punto inicial por si acaso
+            channel.listen('notification.created', (data: unknown) => {
+                console.log('🎯 [useNotifications] Laravel Echo Listener (sin punto) RECEIVED:', data);
+                handleNewNotification(data);
+            });
             
             console.log(`[useNotifications] ✅ Listener attached for event: notification.created`);
             console.log(`[useNotifications] Channel state:`, channel);

@@ -1,5 +1,5 @@
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { useAppointmentReminders } from '@/hooks/useAppointmentReminders';
+// import { useAppointmentReminders } from '@/hooks/useAppointmentReminders'; // Disabled due to 404 errors blocking WebSocket notifications
 import { useState } from 'react';
 
 interface AppShellProps {
@@ -10,11 +10,11 @@ interface AppShellProps {
 export function AppShell({ children, variant = 'header' }: AppShellProps) {
     const [isOpen, setIsOpen] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('sidebar') !== 'false' : true));
 
-    // Activar verificación automática de recordatorios
-    useAppointmentReminders({ 
-        enabled: true, 
-        intervalMinutes: 1 
-    });
+    // Activar verificación automática de recordatorios - DISABLED: Causing 404 errors that block WebSocket notifications
+    // useAppointmentReminders({ 
+    //     enabled: true, 
+    //     intervalMinutes: 1 
+    // });
 
     const handleSidebarChange = (open: boolean) => {
         setIsOpen(open);
