@@ -112,8 +112,8 @@ class Appointment extends Model
             // Datos para la notificación
             $notificationData = [
                 'type' => 'appointment_reminder',
-                'title' => '🔔 Recordatorio de Cita',
-                'message' => "Tu cita iniciará {$timeText}: {$this->title}",
+                'title' => '🔔 Appointment Reminder',
+                'message' => "Your appointment will begin {$timeText}: {$this->title}",
                 'appointment_id' => $this->id,
                 'minutes_before' => $minutes,
                 'urgency' => $urgency,
@@ -128,7 +128,7 @@ class Appointment extends Model
                 'id' => \Illuminate\Support\Str::uuid(),
                 'type' => 'App\\Notifications\\AppointmentReminderNotification',
                 'data' => array_merge($notificationData, [
-                    'message' => "Tu cita como técnico iniciará {$timeText}: {$this->title}",
+                    'message' => "Your appointment as a technician will begin {$timeText}: {$this->title}",
                 ]),
                 'read_at' => null,
                 'created_at' => now(),
@@ -140,7 +140,7 @@ class Appointment extends Model
                 'id' => \Illuminate\Support\Str::uuid(),
                 'type' => 'App\\Notifications\\AppointmentReminderNotification',
                 'data' => array_merge($notificationData, [
-                    'message' => "Tu cita como cliente iniciará {$timeText}: {$this->title}",
+                    'message' => "Your appointment as a client will begin {$timeText}: {$this->title}",
                 ]),
                 'read_at' => null,
                 'created_at' => now(),
@@ -303,7 +303,7 @@ class Appointment extends Model
         // Add history to ticket
         $this->ticket->addHistory(
             'appointment_started',
-            "Visita presencial iniciada por {$this->technical->name}",
+            "In-person visit initiated by {$this->technical->name}",
             ['appointment_id' => $this->id],
             $this->technical_id
         );
@@ -328,7 +328,7 @@ class Appointment extends Model
         // Add history to ticket
         $this->ticket->addHistory(
             'appointment_completed',
-            "Visita presencial completada por {$this->technical->name}" . 
+            "In-person visit completed by {$this->technical->name}" . 
             ($completionNotes ? " - {$completionNotes}" : ''),
             ['appointment_id' => $this->id],
             $this->technical_id
