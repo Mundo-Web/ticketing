@@ -153,7 +153,7 @@ interface DashboardProps extends PageProps {
             resolved_today: number;
             created_today: number;
             avg_resolution_hours: number;
-            unassigned: number; // AÃ±adido para tickets sin asignar
+            unassigned: number; // Añadido para tickets sin asignar
         };
         resources: {
             buildings: number;
@@ -186,6 +186,14 @@ interface DashboardProps extends PageProps {
         }>;
         ticketsByPriority: Record<string, number>;
         ticketsByCategory: Record<string, number>;
+        technicalAnalysis: Array<{
+            id: number;
+            name: string;
+            tickets_resolved: number;
+            total_tickets: number;
+            avg_resolution_hours: number;
+            sla_compliance_percentage: number;
+        }>;
     }; lists: {
         topTechnicals: Array<{
             id: number;
@@ -3960,7 +3968,7 @@ export default function Dashboard({
                                                     'Estado': 'En Proceso'
                                                 },
                                                 {
-                                                    'MÃ©trica': 'Tickets Resueltos',
+                                                    'Métrica': 'Resolved Tickets',
                                                     'Valor': metrics.tickets.resolved,
                                                     'Estado': 'Completado'
                                                 }
@@ -4164,6 +4172,269 @@ export default function Dashboard({
                             </div>
                         </div>
                         )}
+
+                    {/* SECTION: TECHNICAL PERFORMANCE ANALYSIS */}
+                    {(isSuperAdmin || isDefaultTechnical) && charts.technicalAnalysis && charts.technicalAnalysis.length > 0 && (
+                        <div className="space-y-8 mt-4">
+                            {/* Header */}
+                            <div className="text-center space-y-4">
+                                <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-100 to-indigo-50 rounded-full shadow-lg">
+                                    <BarChart3 className="h-6 w-6 text-blue-600" />
+                                    <span className="text-sm font-bold text-blue-700 uppercase tracking-wider">
+                                        Performance Analytics
+                                    </span>
+                                </div>
+                                <h2 className="text-4xl font-bold bg-gradient-to-br from-blue-600 to-indigo-800 bg-clip-text text-transparent">
+                                    Technical Team Analysis
+                                </h2>
+                                <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                                    Comprehensive performance metrics and efficiency analysis for technical staff
+                                </p>
+                            </div>
+
+                            {/* Technical Analysis Charts Grid */}
+                            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                                {/* Tickets Resolved Chart */}
+                                <Card className="group border-0 shadow-xl bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                    <CardHeader className="pb-6 border-b border-blue-100/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-3 rounded-xl bg-cyan-100 group-hover:bg-cyan-200 transition-colors">
+                                                <CheckCircle className="h-6 w-6 text-cyan-600" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-xl font-bold text-cyan-700">Resolved Tickets</CardTitle>
+                                                <p className="text-sm text-cyan-600/80">Count</p>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <div className="space-y-6">
+                                            {/* Chart Area */}
+                                            <div className="relative h-80 bg-white rounded-lg p-4 border border-gray-200">
+                                                {/* Y-axis labels (Technical names) */}
+                                                <div className="absolute left-0 top-4 bottom-4 w-20 flex flex-col justify-between">
+                                                    {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => (
+                                                        <div key={tech.id} className="text-xs font-medium text-gray-700 text-right pr-2">
+                                                            {tech.name}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                
+                                                {/* Chart bars area */}
+                                                <div className="ml-24 mr-8 h-full relative">
+                                                    {/* Grid lines */}
+                                                    <div className="absolute inset-0 flex">
+                                                        {[0, 20, 40, 60, 80].map((tick) => (
+                                                            <div key={tick} className="flex-1 border-l border-gray-200" />
+                                                        ))}
+                                                    </div>
+                                                    
+                                                    {/* Bars */}
+                                                    <div className="relative h-full flex flex-col justify-between py-2">
+                                                        {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => {
+                                                            const maxResolved = Math.max(...charts.technicalAnalysis.map(t => t.tickets_resolved));
+                                                            const percentage = maxResolved > 0 ? (tech.tickets_resolved / maxResolved) * 100 : 0;
+                                                            
+                                                            return (
+                                                                <div key={tech.id} className="flex items-center h-8">
+                                                                    <div 
+                                                                        className="h-6 bg-gradient-to-r from-cyan-400 to-cyan-500 rounded-r transition-all duration-1000 ease-out flex items-center justify-end pr-2"
+                                                                        style={{ width: `${percentage}%` }}
+                                                                    >
+                                                                        <span className="text-xs font-bold text-white">
+                                                                            {tech.tickets_resolved}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* X-axis labels */}
+                                                <div className="absolute bottom-0 left-24 right-8 flex justify-between border-t border-gray-300 pt-1">
+                                                    {[0, 10, 20, 30, 40, 50, 60, 70].map((tick) => (
+                                                        <span key={tick} className="text-xs text-gray-600">{tick}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* SLA Compliance Chart */}
+                                <Card className="group border-0 shadow-xl bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                    <CardHeader className="pb-6 border-b border-blue-100/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-3 rounded-xl bg-green-100 group-hover:bg-green-200 transition-colors">
+                                                <TrendingUp className="h-6 w-6 text-green-600" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-xl font-bold text-green-700">SLA Compliance %</CardTitle>
+                                                <p className="text-sm text-green-600/80">Percentage</p>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <div className="space-y-6">
+                                            {/* Chart Area */}
+                                            <div className="relative h-80 bg-white rounded-lg p-4 border border-gray-200">
+                                                {/* Y-axis labels (Technical names) */}
+                                                <div className="absolute left-0 top-4 bottom-4 w-20 flex flex-col justify-between">
+                                                    {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => (
+                                                        <div key={tech.id} className="text-xs font-medium text-gray-700 text-right pr-2">
+                                                            {tech.name}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                
+                                                {/* Chart bars area */}
+                                                <div className="ml-24 mr-8 h-full relative">
+                                                    {/* Grid lines */}
+                                                    <div className="absolute inset-0 flex">
+                                                        {[0, 20, 40, 60, 80, 100].map((tick) => (
+                                                            <div key={tick} className="flex-1 border-l border-gray-200" />
+                                                        ))}
+                                                    </div>
+                                                    
+                                                    {/* Bars */}
+                                                    <div className="relative h-full flex flex-col justify-between py-2">
+                                                        {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => {
+                                                            const percentage = Math.min(tech.sla_compliance_percentage, 100);
+                                                            
+                                                            return (
+                                                                <div key={tech.id} className="flex items-center h-8">
+                                                                    <div 
+                                                                        className="h-6 bg-gradient-to-r from-green-400 to-green-500 rounded-r transition-all duration-1000 ease-out flex items-center justify-end pr-2"
+                                                                        style={{ width: `${percentage}%` }}
+                                                                    >
+                                                                        <span className="text-xs font-bold text-white">
+                                                                            {percentage.toFixed(1)}%
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* X-axis labels */}
+                                                <div className="absolute bottom-0 left-24 right-8 flex justify-between border-t border-gray-300 pt-1">
+                                                    {[0, 20, 40, 60, 80, 100].map((tick) => (
+                                                        <span key={tick} className="text-xs text-gray-600">{tick}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Average Resolution Time Chart */}
+                                <Card className="group border-0 shadow-xl bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                    <CardHeader className="pb-6 border-b border-blue-100/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-3 rounded-xl bg-red-100 group-hover:bg-red-200 transition-colors">
+                                                <Clock className="h-6 w-6 text-red-600" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-xl font-bold text-red-700">Average Time (hrs)</CardTitle>
+                                                <p className="text-sm text-red-600/80">Hours</p>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <div className="space-y-6">
+                                            {/* Chart Area */}
+                                            <div className="relative h-80 bg-white rounded-lg p-4 border border-gray-200">
+                                                {/* Y-axis labels (Technical names) */}
+                                                <div className="absolute left-0 top-4 bottom-4 w-20 flex flex-col justify-between">
+                                                    {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => (
+                                                        <div key={tech.id} className="text-xs font-medium text-gray-700 text-right pr-2">
+                                                            {tech.name}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                
+                                                {/* Chart bars area */}
+                                                <div className="ml-24 mr-8 h-full relative">
+                                                    {/* Grid lines */}
+                                                    <div className="absolute inset-0 flex">
+                                                        {[0, 1, 2, 3, 4].map((tick) => (
+                                                            <div key={tick} className="flex-1 border-l border-gray-200" />
+                                                        ))}
+                                                    </div>
+                                                    
+                                                    {/* Bars */}
+                                                    <div className="relative h-full flex flex-col justify-between py-2">
+                                                        {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => {
+                                                            const maxTime = Math.max(...charts.technicalAnalysis.map(t => t.avg_resolution_hours));
+                                                            const percentage = maxTime > 0 ? (tech.avg_resolution_hours / maxTime) * 100 : 0;
+                                                            
+                                                            return (
+                                                                <div key={tech.id} className="flex items-center h-8">
+                                                                    <div 
+                                                                        className="h-6 bg-gradient-to-r from-red-400 to-red-500 rounded-r transition-all duration-1000 ease-out flex items-center justify-end pr-2"
+                                                                        style={{ width: `${percentage}%` }}
+                                                                    >
+                                                                        <span className="text-xs font-bold text-white">
+                                                                            {tech.avg_resolution_hours.toFixed(1)}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* X-axis labels */}
+                                                <div className="absolute bottom-0 left-24 right-8 flex justify-between border-t border-gray-300 pt-1">
+                                                    {[0, 1, 2, 3, 4].map((tick) => (
+                                                        <span key={tick} className="text-xs text-gray-600">{tick}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Summary Stats Row */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                                    <CardContent className="p-6 text-center">
+                                        <div className="text-3xl font-bold text-green-700">
+                                            {charts.technicalAnalysis.reduce((sum, tech) => sum + tech.tickets_resolved, 0)}
+                                        </div>
+                                        <div className="text-sm text-green-600 font-medium">Total Resueltos</div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                                    <CardContent className="p-6 text-center">
+                                        <div className="text-3xl font-bold text-blue-700">
+                                            {(charts.technicalAnalysis.reduce((sum, tech) => sum + tech.sla_compliance_percentage, 0) / charts.technicalAnalysis.length).toFixed(1)}%
+                                        </div>
+                                        <div className="text-sm text-blue-600 font-medium">SLA Promedio</div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                                    <CardContent className="p-6 text-center">
+                                        <div className="text-3xl font-bold text-orange-700">
+                                            {(charts.technicalAnalysis.reduce((sum, tech) => sum + tech.avg_resolution_hours, 0) / charts.technicalAnalysis.length).toFixed(1)}h
+                                        </div>
+                                        <div className="text-sm text-orange-600 font-medium">Avg Time</div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                                    <CardContent className="p-6 text-center">
+                                        <div className="text-3xl font-bold text-purple-700">
+                                            {charts.technicalAnalysis.length}
+                                        </div>
+                                        <div className="text-sm text-purple-600 font-medium">Active Technicians</div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    )}
 
                     {/* SECTION 3: ADVANCED CHARTS - Hidden for regular technicians */}
                     {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (

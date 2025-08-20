@@ -292,12 +292,50 @@ class DashboardController extends Controller
             ->whereDate('resolved_at', Carbon::today())
             ->count();
 
+        // Tickets creados hoy
+        $ticketsCreatedToday = (clone $ticketsQuery)
+            ->whereDate('created_at', Carbon::today())
+            ->count();
+
         // Promedio de tiempo de resolución (en horas)
         $avgResolutionTime = (clone $ticketsQuery)
             ->where('status', 'resolved')
             ->whereNotNull('resolved_at')
             ->select(DB::raw('AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) as avg_hours'))
             ->first();
+
+        // Análisis detallado de técnicos (para gráficos de barras)
+        $technicalAnalysis = collect();
+        if ($hasAdminPrivileges) {
+            $technicalAnalysis = Technical::leftJoin('tickets', 'technicals.id', '=', 'tickets.technical_id')
+                ->select(
+                    'technicals.id',
+                    'technicals.name',
+                    DB::raw('COUNT(CASE WHEN tickets.status = "resolved" THEN 1 END) as tickets_resolved'),
+                    DB::raw('COUNT(tickets.id) as total_tickets'),
+                    DB::raw('AVG(CASE WHEN tickets.status = "resolved" AND tickets.resolved_at IS NOT NULL 
+                        THEN TIMESTAMPDIFF(HOUR, tickets.created_at, tickets.resolved_at) END) as avg_resolution_hours'),
+                    DB::raw('(COUNT(CASE WHEN tickets.status = "resolved" AND 
+                        TIMESTAMPDIFF(HOUR, tickets.created_at, tickets.resolved_at) <= 24 THEN 1 END) * 100.0 / 
+                        NULLIF(COUNT(CASE WHEN tickets.status = "resolved" THEN 1 END), 0)) as sla_compliance_percentage')
+                )
+                ->where('technicals.status', true)
+                ->groupBy('technicals.id', 'technicals.name')
+                ->havingRaw('COUNT(tickets.id) > 0') // Solo técnicos con tickets
+                ->orderByDesc('tickets_resolved')
+                ->limit(10) // Top 10 técnicos
+                ->get()
+                ->map(function ($technical) {
+                    return [
+                        'id' => $technical->id,
+                        'name' => $technical->name,
+                        'tickets_resolved' => (int) $technical->tickets_resolved,
+                        'total_tickets' => (int) $technical->total_tickets,
+                        'avg_resolution_hours' => round($technical->avg_resolution_hours ?? 0, 1),
+                        'sla_compliance_percentage' => round($technical->sla_compliance_percentage ?? 0, 1),
+                    ];
+                });
+        }
 
         // Tickets por categoría
         $ticketsByCategory = (clone $ticketsQuery)
@@ -618,6 +656,7 @@ class DashboardController extends Controller
                 'devicesByType' => $deviceTypesSummary,
                 'ticketsByPriority' => $ticketsByPriority,
                 'ticketsByCategory' => $ticketsByCategory,
+                'technicalAnalysis' => $technicalAnalysis,
             ],
             'lists' => [
                 'topTechnicals' => $topTechnicals,
