@@ -4159,8 +4159,8 @@ export default function Dashboard({
                             {/* Technical Analysis Charts Grid */}
                             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                                 {/* Open Tickets Chart */}
-                                <Card className="group border-0 shadow-xl bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl overflow-hidden">
-                                    <CardHeader className="pb-6 border-b border-blue-100/50">
+                                <Card className="gap-0 group border-0 shadow-xl bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                    <CardHeader className=" border-b border-blue-100/50">
                                         <div className="flex items-center gap-3">
                                             <div className="p-3 rounded-xl bg-red-100 group-hover:bg-red-200 transition-colors">
                                                 <AlertCircle className="h-6 w-6 text-red-600" />
@@ -4205,8 +4205,8 @@ export default function Dashboard({
                                 </Card>
 
                                 {/* In Progress Tickets Chart */}
-                                <Card className="group border-0 shadow-xl bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl overflow-hidden">
-                                    <CardHeader className="pb-6 border-b border-blue-100/50">
+                                <Card className="gap-0 group border-0 shadow-xl bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                    <CardHeader className=" border-b border-blue-100/50">
                                         <div className="flex items-center gap-3">
                                             <div className="p-3 rounded-xl bg-yellow-100 group-hover:bg-yellow-200 transition-colors">
                                                 <Clock className="h-6 w-6 text-yellow-600" />
@@ -4251,8 +4251,8 @@ export default function Dashboard({
                                 </Card>
 
                                 {/* Resolved Tickets Chart */}
-                                <Card className="group border-0 shadow-xl bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl overflow-hidden">
-                                    <CardHeader className="pb-6 border-b border-blue-100/50">
+                                <Card className="gap-0 group border-0 shadow-xl bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                    <CardHeader className="border-b border-blue-100/50">
                                         <div className="flex items-center gap-3">
                                             <div className="p-3 rounded-xl bg-green-100 group-hover:bg-green-200 transition-colors">
                                                 <CheckCircle className="h-6 w-6 text-green-600" />

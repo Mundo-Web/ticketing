@@ -56,11 +56,11 @@ const D3BarChart: React.FC<D3BarChartProps> = ({
                               data.length <= 3 ? barSpacing * 0.6 : // Tighter for 3 bars
                               barSpacing; // Normal spacing for 4+ bars
 
-        // For few bars, use a more compact range to center them
+        // For few bars, use a more compact range starting from top
         const useCompactRange = data.length <= 3;
         const compactHeight = useCompactRange ? Math.min(innerHeight, data.length * 60) : innerHeight;
-        const rangeStart = useCompactRange ? (innerHeight - compactHeight) / 2 : 0;
-        const rangeEnd = useCompactRange ? rangeStart + compactHeight : innerHeight;
+        const rangeStart = 0; // Always start from top
+        const rangeEnd = useCompactRange ? compactHeight : innerHeight;
 
         const yScale = d3
             .scaleBand()
