@@ -49,6 +49,65 @@ const calendarStyle = `
     border-left: 1px solid #e2e8f0;
 }
 
+/* Week View Header - Force single cell appearance per day */
+.rbc-time-header .rbc-header {
+    border-left: none !important;
+    border-right: 1px solid #e2e8f0 !important;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+}
+
+.rbc-time-header .rbc-header:first-child {
+    border-left: none !important;
+}
+
+.rbc-time-header .rbc-header:last-child {
+    border-right: none !important;
+}
+
+/* Hide internal subdivisions in day headers */
+.rbc-time-header-gutter + .rbc-header,
+.rbc-time-header .rbc-header ~ .rbc-header {
+    border-left: 1px solid #e2e8f0 !important;
+}
+
+/* Ensure day headers span full width without subdivisions */
+.rbc-time-view .rbc-time-header {
+    display: flex !important;
+}
+
+.rbc-time-view .rbc-time-header .rbc-header {
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+/* Fix for rbc-row-bg - Remove internal subdivisions */
+.rbc-row-bg {
+    display: flex !important;
+}
+
+.rbc-row-bg .rbc-day-bg {
+    border-left: 1px solid #f1f5f9 !important;
+    border-right: none !important;
+    flex: 1 !important;
+}
+
+.rbc-row-bg .rbc-day-bg:first-child {
+    border-left: none !important;
+}
+
+.rbc-row-bg .rbc-day-bg:last-child {
+    border-right: none !important;
+}
+
+/* Hide extra day-bg elements that create subdivisions */
+.rbc-time-view .rbc-row-bg .rbc-day-bg + .rbc-day-bg + .rbc-day-bg {
+    display: none !important;
+}
+
+.rbc-time-view .rbc-row-bg .rbc-day-bg + .rbc-day-bg:not(:last-child) {
+    display: none !important;
+}
+
 /* Today Cell - Subtle Highlight */
 .rbc-today {
     background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
@@ -123,6 +182,22 @@ const calendarStyle = `
 .rbc-timeslot-group {
     border-bottom: 1px solid #f1f5f9;
     min-height: 60px;
+}
+
+/* Week View - Force single cells per hour */
+.rbc-time-view .rbc-timeslot-group {
+    min-height: 60px !important;
+    height: 60px !important;
+}
+
+.rbc-time-view .rbc-time-slot {
+    min-height: 60px !important;
+    height: 60px !important;
+    border-top: none !important;
+}
+
+.rbc-time-view .rbc-timeslot-group:last-child .rbc-time-slot {
+    border-bottom: 1px solid #f1f5f9 !important;
 }
 
 .rbc-time-gutter .rbc-timeslot-group {
@@ -319,7 +394,35 @@ const calendarStyle = `
 .rbc-allday-cell {
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     border-bottom: 2px solid #e2e8f0;
-    padding: 6px 0;
+    padding: 0px 0;
+    visibility: hidden;
+    display: none !important;
+}
+
+/* Fix for rbc-allday-cell - Remove internal subdivisions */
+.rbc-time-view .rbc-allday-cell {
+    border-left: none !important;
+    border-right: 1px solid #e2e8f0 !important;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    display: none !important;
+    flex: 1 !important;
+}
+
+.rbc-time-view .rbc-allday-cell:first-child {
+    border-left: none !important;
+}
+
+.rbc-time-view .rbc-allday-cell:last-child {
+    border-right: none !important;
+}
+
+/* Hide extra allday cells that create subdivisions */
+.rbc-time-view .rbc-header-row .rbc-allday-cell + .rbc-allday-cell + .rbc-allday-cell {
+    display: none !important;
+}
+
+.rbc-time-view .rbc-header-row .rbc-allday-cell + .rbc-allday-cell:not(:last-child) {
+    display: none !important;
 }
 
 .rbc-row-content {
@@ -1190,9 +1293,16 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                             max={new Date(2025, 0, 1, 23, 59, 59)}
                                             step={60}
                                             timeslots={1}
+                                            views={{
+                                                day: true,
+                                                week: true,
+                                                month: true,
+                                                agenda: true
+                                            }}
                                             showMultiDayTimes={true}
                                             popup={true}
                                             popupOffset={30}
+                                            scrollToTime={new Date(1970, 1, 1, 6, 0, 0)}
                                         />
                                     </div>
                                 </div>
@@ -1203,7 +1313,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                         <div className="xl:col-span-3 space-y-6">
                             {/* Upcoming Appointments - Redesigned */}
                             <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 overflow-hidden">
-                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-blue-100">
+                                <div className=" bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-blue-100">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-blue-100 rounded-xl">
                                             <Clock className="w-5 h-5 text-blue-600" />
