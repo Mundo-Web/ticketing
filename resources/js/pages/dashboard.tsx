@@ -151,6 +151,7 @@ interface DashboardProps extends PageProps {
             in_progress: number;
             resolved: number;
             resolved_today: number;
+            created_today: number;
             avg_resolution_hours: number;
             unassigned: number; // AÃ±adido para tickets sin asignar
         };
@@ -2632,50 +2633,97 @@ export default function Dashboard({
                                     </CardContent>
                                 </Card>
 
-                                {/* Card 6: Resolved Today */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-4/10 via-background to-chart-4/5 overflow-hidden">
-                                    <CardContent className="p-6">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="p-3 rounded-xl bg-purple-100">
-                                                <Calendar className="h-6 w-6 text-purple-600" />
+                                {/* Card 6: Created Today (for Owner/Doorman) or Resolved Today (for others) */}
+                                {(isOwner || isDoorman) ? (
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-3/10 via-background to-chart-3/5 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-green-100">
+                                                    <Plus className="h-6 w-6 text-green-600" />
+                                                </div>
+                                                <TrendingUp className="h-4 w-4 text-green-500" />
                                             </div>
-                                            <TrendingUp className="h-4 w-4 text-green-500" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-purple-600 uppercase tracking-wider">Resolved Today</p>
-                                            <p className="text-3xl font-bold text-slate-900 dark:text-white ">{metrics.tickets.resolved_today}</p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-100 text-purple-700">
-                                                    Today
-                                                </span>
-                                                <span className="text-xs text-slate-500">Daily Productivity</span>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">Created Today</p>
+                                                <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.tickets.created_today || 0}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
+                                                        New
+                                                    </span>
+                                                    <span className="text-xs text-slate-500">Daily intake</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                        </CardContent>
+                                    </Card>
+                                ) : (
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-4/10 via-background to-chart-4/5 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-purple-100">
+                                                    <Calendar className="h-6 w-6 text-purple-600" />
+                                                </div>
+                                                <TrendingUp className="h-4 w-4 text-green-500" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-purple-600 uppercase tracking-wider">Resolved Today</p>
+                                                <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.tickets.resolved_today}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-100 text-purple-700">
+                                                        Today
+                                                    </span>
+                                                    <span className="text-xs text-slate-500">Daily Productivity</span>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
 
-                                {/* Card 7: Average Time */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-2/10 via-background to-chart-2/5 overflow-hidden">
-                                    <CardContent className="p-6">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="p-3 rounded-xl bg-indigo-100">
-                                                <Timer className="h-6 w-6 text-indigo-600" />
+                                {/* Card 7: Resolved Today (for Owner/Doorman) or Average Time (for others) */}
+                                {(isOwner || isDoorman) ? (
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-4/10 via-background to-chart-4/5 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-purple-100">
+                                                    <Calendar className="h-6 w-6 text-purple-600" />
+                                                </div>
+                                                <TrendingUp className="h-4 w-4 text-green-500" />
                                             </div>
-                                            <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
-                                                -2h
-                                            </span>
-                                        </div>                                        <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wider">Average Time</p>
-                                            <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.tickets.avg_resolution_hours}h</p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-indigo-100 text-indigo-700">
-                                                    Resolution
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-purple-600 uppercase tracking-wider">Resolved Today</p>
+                                                <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.tickets.resolved_today}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-100 text-purple-700">
+                                                        Today
+                                                    </span>
+                                                    <span className="text-xs text-slate-500">Daily Productivity</span>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ) : (
+                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-2/10 via-background to-chart-2/5 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="p-3 rounded-xl bg-indigo-100">
+                                                    <Timer className="h-6 w-6 text-indigo-600" />
+                                                </div>
+                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
+                                                    -2h
                                                 </span>
-                                                <span className="text-xs text-slate-500">Overall average</span>
                                             </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wider">Average Time</p>
+                                                <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.tickets.avg_resolution_hours}h</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-indigo-100 text-indigo-700">
+                                                        Resolution
+                                                    </span>
+                                                    <span className="text-xs text-slate-500">Overall average</span>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
 
                                 {/* Card 8: Efficiency */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-5/10 via-background to-chart-5/5 overflow-hidden">
