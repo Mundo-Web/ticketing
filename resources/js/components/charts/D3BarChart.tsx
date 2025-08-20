@@ -13,6 +13,8 @@ interface D3BarChartProps {
     color?: string;
     title?: string;
     valueLabel?: string;
+    barHeight?: number; // New prop for bar thickness
+    barSpacing?: number; // New prop for spacing between bars (0-1)
 }
 
 const D3BarChart: React.FC<D3BarChartProps> = ({
@@ -21,7 +23,9 @@ const D3BarChart: React.FC<D3BarChartProps> = ({
     height = 300,
     color = '#3B82F6',
     title = 'Chart',
-    valueLabel = 'Value'
+    valueLabel = 'Value',
+    barHeight = 24, // Default bar height
+    barSpacing = 0.1 // Default spacing (0 = no space, 1 = maximum space)
 }) => {
     const svgRef = useRef<SVGSVGElement>(null);
 
@@ -46,11 +50,32 @@ const D3BarChart: React.FC<D3BarChartProps> = ({
             .domain([0, d3.max(data, d => d.value) || 0])
             .range([0, innerWidth]);
 
+        // Dynamic spacing based on number of data points
+        // Fewer bars = less spacing to avoid wide gaps
+        const dynamicSpacing = data.length <= 2 ? barSpacing * 0.3 : // Very tight for 1-2 bars
+                              data.length <= 3 ? barSpacing * 0.6 : // Tighter for 3 bars
+                              barSpacing; // Normal spacing for 4+ bars
+
+        // For few bars, use a more compact range to center them
+        const useCompactRange = data.length <= 3;
+        const compactHeight = useCompactRange ? Math.min(innerHeight, data.length * 60) : innerHeight;
+        const rangeStart = useCompactRange ? (innerHeight - compactHeight) / 2 : 0;
+        const rangeEnd = useCompactRange ? rangeStart + compactHeight : innerHeight;
+
         const yScale = d3
             .scaleBand()
             .domain(data.map(d => d.name))
-            .range([0, innerHeight])
-            .padding(0.2);
+            .range([rangeStart, rangeEnd])
+            .paddingInner(dynamicSpacing) // Use dynamic spacing
+            .paddingOuter(dynamicSpacing / 2); // Use half spacing at edges
+
+        // Calculate actual bar height (ensure it doesn't exceed available space)
+        // Make bars slightly bigger when there are few of them
+        const enhancedBarHeight = data.length <= 2 ? Math.min(barHeight * 1.3, yScale.bandwidth()) :
+                                 data.length <= 3 ? Math.min(barHeight * 1.1, yScale.bandwidth()) :
+                                 Math.min(barHeight, yScale.bandwidth());
+        
+        const availableBarHeight = enhancedBarHeight;
 
         // Create gradient
         const gradient = svg
@@ -80,8 +105,8 @@ const D3BarChart: React.FC<D3BarChartProps> = ({
             .append('rect')
             .attr('class', 'bar')
             .attr('x', 0)
-            .attr('y', d => yScale(d.name) || 0)
-            .attr('height', yScale.bandwidth())
+            .attr('y', d => (yScale(d.name) || 0) + (yScale.bandwidth() - availableBarHeight) / 2) // Center the bar vertically
+            .attr('height', availableBarHeight) // Use custom bar height
             .attr('fill', `url(#gradient-${title.replace(/\s+/g, '-')})`)
             .attr('rx', 4)
             .attr('ry', 4)
@@ -133,7 +158,7 @@ const D3BarChart: React.FC<D3BarChartProps> = ({
             .append('text')
             .attr('class', 'value-label')
             .attr('x', d => xScale(d.value) + 5)
-            .attr('y', d => (yScale(d.name) || 0) + yScale.bandwidth() / 2)
+            .attr('y', d => (yScale(d.name) || 0) + yScale.bandwidth() / 2) // Keep centered in the band space
             .attr('dy', '0.35em')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
@@ -174,7 +199,7 @@ const D3BarChart: React.FC<D3BarChartProps> = ({
         // Remove domain line
         g.selectAll('.domain').remove();
 
-    }, [data, width, height, color, title, valueLabel]);
+    }, [data, width, height, color, title, valueLabel, barHeight, barSpacing]);
 
     return (
         <svg

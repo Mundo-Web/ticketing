@@ -4187,6 +4187,8 @@ export default function Dashboard({
                                                         color="#EF4444"
                                                         title="Open Tickets"
                                                         valueLabel="Open Tickets"
+                                                        barHeight={28}
+                                                        barSpacing={0.05}
                                                     />
                                                 </div>
                                             ) : (
@@ -4231,6 +4233,8 @@ export default function Dashboard({
                                                         color="#F59E0B"
                                                         title="In Progress Tickets"
                                                         valueLabel="In Progress Tickets"
+                                                        barHeight={28}
+                                                        barSpacing={0.05}
                                                     />
                                                 </div>
                                             ) : (
@@ -4275,6 +4279,8 @@ export default function Dashboard({
                                                         color="#10B981"
                                                         title="Resolved Tickets"
                                                         valueLabel="Resolved Tickets"
+                                                        barHeight={28}
+                                                        barSpacing={0.05}
                                                     />
                                                 </div>
                                             ) : (
