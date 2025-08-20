@@ -2760,7 +2760,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     )}
 
                                                     {/* �💻 Device Information - Modern Card */}
-                                                    {selectedTicket.device && (
+                                                   {!isDoorman && 
+                                                     selectedTicket.device && (
                                                         <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-blue-200">
                                                             <div className="flex items-center gap-3 mb-4">
                                                                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-card rounded-xl flex items-center justify-center shadow-lg">
@@ -2833,7 +2834,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                 )}
                                                             </div>
                                                         </div>
-                                                    )}
+                                                    )
+                                                   }
 
                                                     {/* Creator Information */}
                                                     {selectedTicket.user?.tenant && (
@@ -5190,7 +5192,6 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                             : 'border-green-200 focus:border-green-400 focus:ring-green-100'
                                                     }`}
                                                     placeholder="Describe what was performed during the visit and the outcome..."
-                                                    
                                                 />
                                                 {completionNotesError && !appointmentActionForm.completion_notes.trim() && (
                                                     <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
