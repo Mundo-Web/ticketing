@@ -266,6 +266,8 @@ Route::get('/test-send-notification-simple', function () {
         ->name('technicals.update-status');
     Route::put('technicals/{technical}/set-default', [TechnicalController::class, 'setDefault'])
         ->name('technicals.set-default');
+    Route::put('technicals/{technical}/reset-password', [TechnicalController::class, 'resetPassword'])
+        ->name('technicals.reset-password');
     Route::post('technicals/{technical}/send-instruction', [TechnicalController::class, 'sendInstruction'])
         ->name('technicals.send-instruction');
 

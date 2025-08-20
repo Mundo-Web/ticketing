@@ -1,6 +1,7 @@
 import React from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 import { useState } from 'react';
 import {
     Plus, Edit, Trash2, MoreHorizontal, User, Search, Filter, Calendar, Clock,
@@ -703,6 +704,12 @@ export default function Index({
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                         </DropdownMenuItem>
+                       {isSuperAdmin && (
+                         <DropdownMenuItem onClick={() => handleResetPassword(row.original)}>
+                            <RefreshCw className="mr-2 h-4 w-4 text-orange-600" />
+                            Reset Password
+                        </DropdownMenuItem>
+                       )}
                         <DropdownMenuItem onClick={() => handleDelete(row.original)}>
                             <Trash2 className="mr-2 h-4 w-4 text-destructive" />
                             Delete
@@ -899,6 +906,25 @@ export default function Index({
                                                 <p>Edit technical information</p>
                                             </TooltipContent>
                                         </Tooltip>
+
+                                     {isSuperAdmin && (
+                                           <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    onClick={() => handleResetPassword(technical)}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-2 px-4 border-orange-300 transition-all duration-300"
+                                                >
+                                                    <RefreshCw className="w-4 h-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Reset password to email</p>
+                                                <p className="text-orange-500">Password will be set to their email</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                     )}
 
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -1106,6 +1132,23 @@ export default function Index({
                                                     <p>Edit technical information</p>
                                                 </TooltipContent>
                                             </Tooltip>
+{isSuperAdmin && (   <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        onClick={() => handleResetPassword(technical)}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex-1 border-orange-300 transition-colors duration-300"
+                                                    >
+                                                        <RefreshCw className="w-4 h-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Reset password to email</p>
+                                                    <p className="text-orange-500">Password will be set to their email</p>
+                                                </TooltipContent>
+                                            </Tooltip>)}
+                                         
 
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -1619,6 +1662,28 @@ export default function Index({
         setDeleteOpen(true);
     };
 
+    const handleResetPassword = async (technical: Technical) => {
+        try {
+            router.put(route('technicals.reset-password', technical.id), {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    toast.success(`Password reset for ${technical.name}. New password is their email: ${technical.email}`);
+                },
+                onError: (errors: Record<string, string>) => {
+                    console.error('Reset password errors:', errors);
+                    if (errors.error) {
+                        toast.error(errors.error);
+                    } else {
+                        Object.values(errors).forEach(error => toast.error(error));
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Reset password error:', error);
+            toast.error('Error resetting password');
+        }
+    };
+
     // Funciones para manejar instrucciones
     const handleSendInstruction = (technical: Technical) => {
         setSelectedTechnicalForInstruction(technical);
@@ -1655,7 +1720,7 @@ export default function Index({
                     Object.values(errors).forEach(error => toast.error(error));
                 }
             });
-        } catch (error) {
+        } catch {
             toast.error('Error sending instruction');
         } finally {
             setSendingInstruction(false);

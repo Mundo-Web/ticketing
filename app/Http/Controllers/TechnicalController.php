@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class TechnicalController extends Controller
@@ -230,6 +231,43 @@ class TechnicalController extends Controller
             : 'Technical removed from Tech Chief role successfully';
             
         return back()->with('success', $message);
+    }
+
+    public function resetPassword(Request $request, Technical $technical)
+    {
+        try {
+            // Verificar que el usuario tenga rol super-admin o sea un technical default
+            $isSuperAdmin = Auth::user()->hasRole('super-admin');
+            $isDefaultTechnical = Auth::user()->hasRole('technical') && 
+                                  Technical::where('email', Auth::user()->email)->where('is_default', true)->exists();
+
+            if (!$isSuperAdmin && !$isDefaultTechnical) {
+                return back()->withErrors(['error' => 'Only super-admin or Tech Chief can reset passwords']);
+            }
+
+            // Buscar el usuario asociado al técnico
+            $user = User::where('email', $technical->email)->first();
+            
+            if (!$user) {
+                return back()->withErrors(['error' => 'User not found for this technical']);
+            }
+
+            // Establecer la contraseña como el email del usuario
+            $user->update([
+                'password' => Hash::make($technical->email),
+            ]);
+
+            return back()->with('success', "Password reset for {$technical->name}. New password is their email: {$technical->email}");
+
+        } catch (\Exception $e) {
+            Log::error('Error resetting password', [
+                'technical_id' => $technical->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->withErrors(['error' => 'An error occurred while resetting the password']);
+        }
     }
 
     public function sendInstruction(Request $request, Technical $technical)
