@@ -3212,7 +3212,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     )}
 
                                                     {/* 📅 Enhanced Timeline */}
-                                                    {selectedTicket.histories && selectedTicket.histories.length > 0 && (
+                                                    {!isDoorman && selectedTicket.histories && selectedTicket.histories.length > 0 && (
                                                         <div className="px-6">
                                                             <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                                                                 <Clock className="w-4 h-4 text-primary" />
