@@ -311,13 +311,10 @@ class DashboardController extends Controller
                 ->select(
                     'technicals.id',
                     'technicals.name',
+                    DB::raw('COUNT(CASE WHEN tickets.status = "open" THEN 1 END) as tickets_open'),
+                    DB::raw('COUNT(CASE WHEN tickets.status = "in_progress" THEN 1 END) as tickets_in_progress'),
                     DB::raw('COUNT(CASE WHEN tickets.status = "resolved" THEN 1 END) as tickets_resolved'),
-                    DB::raw('COUNT(tickets.id) as total_tickets'),
-                    DB::raw('AVG(CASE WHEN tickets.status = "resolved" AND tickets.resolved_at IS NOT NULL 
-                        THEN TIMESTAMPDIFF(HOUR, tickets.created_at, tickets.resolved_at) END) as avg_resolution_hours'),
-                    DB::raw('(COUNT(CASE WHEN tickets.status = "resolved" AND 
-                        TIMESTAMPDIFF(HOUR, tickets.created_at, tickets.resolved_at) <= 24 THEN 1 END) * 100.0 / 
-                        NULLIF(COUNT(CASE WHEN tickets.status = "resolved" THEN 1 END), 0)) as sla_compliance_percentage')
+                    DB::raw('COUNT(tickets.id) as total_tickets')
                 )
                 ->where('technicals.status', true)
                 ->groupBy('technicals.id', 'technicals.name')
@@ -329,10 +326,10 @@ class DashboardController extends Controller
                     return [
                         'id' => $technical->id,
                         'name' => $technical->name,
+                        'tickets_open' => (int) $technical->tickets_open,
+                        'tickets_in_progress' => (int) $technical->tickets_in_progress,
                         'tickets_resolved' => (int) $technical->tickets_resolved,
                         'total_tickets' => (int) $technical->total_tickets,
-                        'avg_resolution_hours' => round($technical->avg_resolution_hours ?? 0, 1),
-                        'sla_compliance_percentage' => round($technical->sla_compliance_percentage ?? 0, 1),
                     ];
                 });
         }
