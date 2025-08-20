@@ -54,11 +54,12 @@ import {
     MessageSquare, Info, AlertOctagon, MapPin, PlayCircle, Eye
 } from 'lucide-react';
 
-// Charts
+// Charts - D3.js
+import D3BarChart from '@/components/charts/D3BarChart';
+import D3PieChart from '@/components/charts/D3PieChart';
 import {
-    ResponsiveContainer, PieChart as RechartsPieChart, Cell, Pie,
-    XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-    Legend, Area, AreaChart
+    ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
+    Area, AreaChart
 } from 'recharts';
 
 // Export utilities
@@ -4016,59 +4017,22 @@ export default function Dashboard({
                                             </div>
                                         </CardHeader>
                                         <CardContent className="pt-0 pb-16 relative">
-                                            <div className="h-[500px]">
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <RechartsPieChart>
-                                                        <Pie
-                                                            data={Object.entries(charts.ticketsByStatus).map(([key, value], index) => ({
-                                                                name: key.replace('_', ' ').toUpperCase(),
-                                                                value,
-                                                                color: CHART_COLORS[index % CHART_COLORS.length]
-                                                            }))}
-                                                            cx="50%"
-                                                            cy="50%"
-                                                            outerRadius={160}
-                                                            innerRadius={80}
-                                                            paddingAngle={8}
-                                                            dataKey="value"
-                                                            onClick={(data) => handleTicketStatusClick(data.name.toLowerCase().replace(' ', '_'), data.value)}
-                                                            className="cursor-pointer drop-shadow-2xl"
-                                                        >
-                                                            {Object.entries(charts.ticketsByStatus).map((entry, index) => (
-                                                                <Cell
-                                                                    key={`cell-${index}`}
-                                                                    fill={CHART_COLORS[index % CHART_COLORS.length]}
-                                                                    stroke="#fff"
-                                                                    strokeWidth={6}
-                                                                    className="hover:opacity-80 transition-all duration-500"
-                                                                />
-                                                            ))}
-                                                        </Pie>
-                                                        <RechartsTooltip
-                                                            formatter={(value: number) => [
-                                                                `${value} tickets (${Math.round((value / Object.values(charts.ticketsByStatus).reduce((sum, val) => sum + val, 0)) * 100)}%)`,
-                                                                'Cantidad'
-                                                            ]}
-                                                            labelStyle={{ color: '#374151', fontWeight: 'bold', fontSize: '18px' }}
-                                                            contentStyle={{
-                                                                backgroundColor: '#fff',
-                                                                border: 'none',
-                                                                borderRadius: '20px',
-                                                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
-                                                                padding: '20px 24px'
-                                                            }}
-                                                        />
-                                                        <Legend
-                                                            verticalAlign="bottom"
-                                                            height={80}
-                                                            formatter={(value) => (
-                                                                <span className="text-lg font-black text-slate-700">
-                                                                    {value}
-                                                                </span>
-                                                            )}
-                                                        />
-                                                    </RechartsPieChart>
-                                                </ResponsiveContainer>
+                                            <div className="h-[500px] flex items-center justify-center">
+                                                <D3PieChart
+                                                    data={Object.entries(charts.ticketsByStatus).map(([key, value], index) => ({
+                                                        name: key.replace('_', ' ').toUpperCase(),
+                                                        value: value as number,
+                                                        color: CHART_COLORS[index % CHART_COLORS.length]
+                                                    }))}
+                                                    width={500}
+                                                    height={500}
+                                                    innerRadius={80}
+                                                    outerRadius={160}
+                                                    onSliceClick={(data) => {
+                                                        const statusKey = data.name.toLowerCase().replace(' ', '_');
+                                                        handleTicketStatusClick(statusKey, data.value);
+                                                    }}
+                                                />
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -4209,55 +4173,31 @@ export default function Dashboard({
                                     </CardHeader>
                                     <CardContent className="p-6">
                                         <div className="space-y-6">
-                                            {/* Chart Area */}
-                                            <div className="relative h-80 bg-white rounded-lg p-4 border border-gray-200">
-                                                {/* Y-axis labels (Technical names) */}
-                                                <div className="absolute left-0 top-4 bottom-4 w-20 flex flex-col justify-between">
-                                                    {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => (
-                                                        <div key={tech.id} className="text-xs font-medium text-gray-700 text-right pr-2">
-                                                            {tech.name}
-                                                        </div>
-                                                    ))}
+                                            {charts.technicalAnalysis.slice(0, 5).some(tech => tech.tickets_open > 0) ? (
+                                                <div className="h-80 flex items-center justify-center">
+                                                    <D3BarChart
+                                                        data={charts.technicalAnalysis.slice(0, 5)
+                                                            .filter(tech => tech.tickets_open > 0)
+                                                            .map(tech => ({
+                                                                name: tech.name,
+                                                                value: tech.tickets_open
+                                                            }))}
+                                                        width={400}
+                                                        height={320}
+                                                        color="#EF4444"
+                                                        title="Open Tickets"
+                                                        valueLabel="Open Tickets"
+                                                    />
                                                 </div>
-                                                
-                                                {/* Chart bars area */}
-                                                <div className="ml-24 mr-8 h-full relative">
-                                                    {/* Grid lines */}
-                                                    <div className="absolute inset-0 flex">
-                                                        {[0, 20, 40, 60, 80].map((tick) => (
-                                                            <div key={tick} className="flex-1 border-l border-gray-200" />
-                                                        ))}
-                                                    </div>
-                                                    
-                                                    {/* Bars */}
-                                                    <div className="relative h-full flex flex-col justify-between py-2">
-                                                        {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => {
-                                                            const maxOpen = Math.max(...charts.technicalAnalysis.map(t => t.tickets_open));
-                                                            const percentage = maxOpen > 0 ? (tech.tickets_open / maxOpen) * 100 : 0;
-                                                            
-                                                            return (
-                                                                <div key={tech.id} className="flex items-center h-8">
-                                                                    <div 
-                                                                        className="h-6 bg-gradient-to-r from-red-400 to-red-500 rounded-r transition-all duration-1000 ease-out flex items-center justify-end pr-2"
-                                                                        style={{ width: `${percentage}%` }}
-                                                                    >
-                                                                        <span className="text-xs font-bold text-white">
-                                                                            {tech.tickets_open}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
+                                            ) : (
+                                                <div className="h-80 flex items-center justify-center text-gray-500">
+                                                    <div className="text-center">
+                                                        <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                                                        <p className="text-lg font-medium">No Open Tickets</p>
+                                                        <p className="text-sm">All tickets have been resolved or are in progress</p>
                                                     </div>
                                                 </div>
-                                                
-                                                {/* X-axis labels */}
-                                                <div className="absolute bottom-0 left-24 right-8 flex justify-between border-t border-gray-300 pt-1">
-                                                    {[0, 10, 20, 30, 40, 50, 60, 70].map((tick) => (
-                                                        <span key={tick} className="text-xs text-gray-600">{tick}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -4277,55 +4217,31 @@ export default function Dashboard({
                                     </CardHeader>
                                     <CardContent className="p-6">
                                         <div className="space-y-6">
-                                            {/* Chart Area */}
-                                            <div className="relative h-80 bg-white rounded-lg p-4 border border-gray-200">
-                                                {/* Y-axis labels (Technical names) */}
-                                                <div className="absolute left-0 top-4 bottom-4 w-20 flex flex-col justify-between">
-                                                    {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => (
-                                                        <div key={tech.id} className="text-xs font-medium text-gray-700 text-right pr-2">
-                                                            {tech.name}
-                                                        </div>
-                                                    ))}
+                                            {charts.technicalAnalysis.slice(0, 5).some(tech => tech.tickets_in_progress > 0) ? (
+                                                <div className="h-80 flex items-center justify-center">
+                                                    <D3BarChart
+                                                        data={charts.technicalAnalysis.slice(0, 5)
+                                                            .filter(tech => tech.tickets_in_progress > 0)
+                                                            .map(tech => ({
+                                                                name: tech.name,
+                                                                value: tech.tickets_in_progress
+                                                            }))}
+                                                        width={400}
+                                                        height={320}
+                                                        color="#F59E0B"
+                                                        title="In Progress Tickets"
+                                                        valueLabel="In Progress Tickets"
+                                                    />
                                                 </div>
-                                                
-                                                {/* Chart bars area */}
-                                                <div className="ml-24 mr-8 h-full relative">
-                                                    {/* Grid lines */}
-                                                    <div className="absolute inset-0 flex">
-                                                        {[0, 20, 40, 60, 80].map((tick) => (
-                                                            <div key={tick} className="flex-1 border-l border-gray-200" />
-                                                        ))}
-                                                    </div>
-                                                    
-                                                    {/* Bars */}
-                                                    <div className="relative h-full flex flex-col justify-between py-2">
-                                                        {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => {
-                                                            const maxInProgress = Math.max(...charts.technicalAnalysis.map(t => t.tickets_in_progress));
-                                                            const percentage = maxInProgress > 0 ? (tech.tickets_in_progress / maxInProgress) * 100 : 0;
-                                                            
-                                                            return (
-                                                                <div key={tech.id} className="flex items-center h-8">
-                                                                    <div 
-                                                                        className="h-6 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-r transition-all duration-1000 ease-out flex items-center justify-end pr-2"
-                                                                        style={{ width: `${percentage}%` }}
-                                                                    >
-                                                                        <span className="text-xs font-bold text-white">
-                                                                            {tech.tickets_in_progress}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
+                                            ) : (
+                                                <div className="h-80 flex items-center justify-center text-gray-500">
+                                                    <div className="text-center">
+                                                        <Clock className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                                                        <p className="text-lg font-medium">No In Progress Tickets</p>
+                                                        <p className="text-sm">All tickets are either resolved or pending</p>
                                                     </div>
                                                 </div>
-                                                
-                                                {/* X-axis labels */}
-                                                <div className="absolute bottom-0 left-24 right-8 flex justify-between border-t border-gray-300 pt-1">
-                                                    {[0, 10, 20, 30, 40, 50, 60, 70].map((tick) => (
-                                                        <span key={tick} className="text-xs text-gray-600">{tick}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -4345,55 +4261,31 @@ export default function Dashboard({
                                     </CardHeader>
                                     <CardContent className="p-6">
                                         <div className="space-y-6">
-                                            {/* Chart Area */}
-                                            <div className="relative h-80 bg-white rounded-lg p-4 border border-gray-200">
-                                                {/* Y-axis labels (Technical names) */}
-                                                <div className="absolute left-0 top-4 bottom-4 w-20 flex flex-col justify-between">
-                                                    {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => (
-                                                        <div key={tech.id} className="text-xs font-medium text-gray-700 text-right pr-2">
-                                                            {tech.name}
-                                                        </div>
-                                                    ))}
+                                            {charts.technicalAnalysis.slice(0, 5).some(tech => tech.tickets_resolved > 0) ? (
+                                                <div className="h-80 flex items-center justify-center">
+                                                    <D3BarChart
+                                                        data={charts.technicalAnalysis.slice(0, 5)
+                                                            .filter(tech => tech.tickets_resolved > 0)
+                                                            .map(tech => ({
+                                                                name: tech.name,
+                                                                value: tech.tickets_resolved
+                                                            }))}
+                                                        width={400}
+                                                        height={320}
+                                                        color="#10B981"
+                                                        title="Resolved Tickets"
+                                                        valueLabel="Resolved Tickets"
+                                                    />
                                                 </div>
-                                                
-                                                {/* Chart bars area */}
-                                                <div className="ml-24 mr-8 h-full relative">
-                                                    {/* Grid lines */}
-                                                    <div className="absolute inset-0 flex">
-                                                        {[0, 20, 40, 60, 80].map((tick) => (
-                                                            <div key={tick} className="flex-1 border-l border-gray-200" />
-                                                        ))}
-                                                    </div>
-                                                    
-                                                    {/* Bars */}
-                                                    <div className="relative h-full flex flex-col justify-between py-2">
-                                                        {charts.technicalAnalysis.slice(0, 5).reverse().map((tech) => {
-                                                            const maxResolved = Math.max(...charts.technicalAnalysis.map(t => t.tickets_resolved));
-                                                            const percentage = maxResolved > 0 ? (tech.tickets_resolved / maxResolved) * 100 : 0;
-                                                            
-                                                            return (
-                                                                <div key={tech.id} className="flex items-center h-8">
-                                                                    <div 
-                                                                        className="h-6 bg-gradient-to-r from-green-400 to-green-500 rounded-r transition-all duration-1000 ease-out flex items-center justify-end pr-2"
-                                                                        style={{ width: `${percentage}%` }}
-                                                                    >
-                                                                        <span className="text-xs font-bold text-white">
-                                                                            {tech.tickets_resolved}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
+                                            ) : (
+                                                <div className="h-80 flex items-center justify-center text-gray-500">
+                                                    <div className="text-center">
+                                                        <CheckCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                                                        <p className="text-lg font-medium">No Resolved Tickets</p>
+                                                        <p className="text-sm">No tickets have been completed yet</p>
                                                     </div>
                                                 </div>
-                                                
-                                                {/* X-axis labels */}
-                                                <div className="absolute bottom-0 left-24 right-8 flex justify-between border-t border-gray-300 pt-1">
-                                                    {[0, 10, 20, 30, 40, 50, 60, 70].map((tick) => (
-                                                        <span key={tick} className="text-xs text-gray-600">{tick}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
