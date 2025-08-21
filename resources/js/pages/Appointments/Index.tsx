@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Calendar as CalendarIcon, Clock, MapPin, User, CheckCircle, XCircle, PlayCircle, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -663,6 +663,28 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
     
     // Estado para el modal de ubicación (igual que en Tickets)
     const [showLocationModal, setShowLocationModal] = useState<{ open: boolean; building?: any }>({ open: false });
+    
+    // No Show Modal States
+    const [showNoShowModal, setShowNoShowModal] = useState<{ open: boolean; appointment?: any }>({ open: false });
+    const [noShowForm, setNoShowForm] = useState({
+        reason: '',
+        description: '',
+        notifyMember: true,
+        rescheduleOffered: false
+    });
+    const [isSubmittingNoShow, setIsSubmittingNoShow] = useState(false);
+    
+    // No Show Reasons
+    const noShowReasons = [
+        { value: 'member_not_home', label: 'Member Not Home', description: 'Member was not present at the scheduled time' },
+        { value: 'no_response', label: 'No Response', description: 'Member did not respond to door/calls' },
+        { value: 'refused_service', label: 'Refused Service', description: 'Member refused to allow technician entry' },
+        { value: 'wrong_time', label: 'Wrong Time', description: 'Member expected different time' },
+        { value: 'emergency', label: 'Member Emergency', description: 'Member had an emergency and could not attend' },
+        { value: 'technical_issue', label: 'Technical Issue', description: 'Technical problem prevented the visit' },
+        { value: 'weather', label: 'Weather Conditions', description: 'Weather prevented the visit' },
+        { value: 'other', label: 'Other', description: 'Other reason not listed above' }
+    ];
     // isTechnicalDefault ahora viene del backend correctamente
 
     // Función para obtener URL del embed de Google Maps (igual que en Tickets)
@@ -957,6 +979,33 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
         } catch (error) {
             console.error(`Error ${action} appointment:`, error);
             toast.error(`Error processing ${action} action`);
+        }
+    };
+
+    const handleNoShow = async () => {
+        try {
+            if (!showNoShowModal.appointment) return;
+            
+            setIsSubmittingNoShow(true);
+            
+            // Call backend API to mark appointment as no-show
+            await router.post(route('appointments.no-show', showNoShowModal.appointment.id), {
+                reason: noShowForm.reason,
+                description: noShowForm.description || null
+            });
+            
+            toast.success('Appointment marked as No Show successfully');
+            setShowNoShowModal({ open: false });
+            setNoShowForm({ reason: '', description: '', notifyMember: true, rescheduleOffered: false });
+            
+            // Refresh appointments
+            router.reload();
+            
+        } catch (error) {
+            console.error('Error marking appointment as no-show:', error);
+            toast.error('Error marking appointment as no-show');
+        } finally {
+            setIsSubmittingNoShow(false);
         }
     };
 
@@ -1642,7 +1691,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                                 <Button
                                                     variant="outline"
                                                     onClick={() => {
-                                                        handleAppointmentAction('no-show', showAppointmentDetailsModal.appointment.id);
+                                                        setShowNoShowModal({ open: true, appointment: showAppointmentDetailsModal.appointment });
                                                         setShowAppointmentDetailsModal({ open: false });
                                                     }}
                                                     className="flex-1 border-orange-300 text-orange-600 hover:bg-orange-50 py-3 px-6 rounded-xl font-semibold"
@@ -1697,6 +1746,73 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                 referrerPolicy="no-referrer-when-downgrade"
                                 title="Building Location"
                             />
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* No Show Modal */}
+                <Dialog open={showNoShowModal.open} onOpenChange={(open) => setShowNoShowModal({ open })}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <User className="w-5 h-5 text-orange-600" />
+                                Mark as No Show
+                            </DialogTitle>
+                        </DialogHeader>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Reason for No Show *
+                                </label>
+                                <select
+                                    value={noShowForm.reason}
+                                    onChange={(e) => setNoShowForm({ ...noShowForm, reason: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    required
+                                >
+                                    <option value="">Select a reason</option>
+                                    {noShowReasons.map((reasonObj) => (
+                                        <option key={reasonObj.value} value={reasonObj.value}>
+                                            {reasonObj.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Additional Description (Optional)
+                                </label>
+                                <textarea
+                                    value={noShowForm.description}
+                                    onChange={(e) => setNoShowForm({ ...noShowForm, description: e.target.value })}
+                                    placeholder="Enter additional details about the no-show..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    rows={3}
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="flex gap-3 mt-6">
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setShowNoShowModal({ open: false });
+                                    setNoShowForm({ reason: '', description: '', notifyMember: true, rescheduleOffered: false });
+                                }}
+                                className="flex-1"
+                                disabled={isSubmittingNoShow}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleNoShow}
+                                disabled={!noShowForm.reason || isSubmittingNoShow}
+                                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                            >
+                                {isSubmittingNoShow ? 'Processing...' : 'Mark as No Show'}
+                            </Button>
                         </div>
                     </DialogContent>
                 </Dialog>

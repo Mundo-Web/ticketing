@@ -30,7 +30,11 @@ class Appointment extends Model
         'started_at',
         'completed_at',
         'member_feedback',
-        'service_rating'
+        'service_rating',
+        'no_show_reason',
+        'no_show_description',
+        'marked_no_show_at',
+        'marked_no_show_by'
     ];
 
     protected $casts = [
@@ -168,6 +172,7 @@ class Appointment extends Model
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_CANCELLED = 'cancelled';
     public const STATUS_RESCHEDULED = 'rescheduled';
+    public const STATUS_NO_SHOW = 'no_show';
 
     // Relationships
     public function ticket()
@@ -272,6 +277,7 @@ class Appointment extends Model
             self::STATUS_COMPLETED => 'green',
             self::STATUS_CANCELLED => 'red',
             self::STATUS_RESCHEDULED => 'gray',
+            self::STATUS_NO_SHOW => 'orange',
             default => 'gray'
         };
     }
@@ -284,6 +290,7 @@ class Appointment extends Model
             self::STATUS_COMPLETED => 'Completada',
             self::STATUS_CANCELLED => 'Cancelada',
             self::STATUS_RESCHEDULED => 'Reagendada',
+            self::STATUS_NO_SHOW => 'No Show',
             default => $this->status
         };
     }

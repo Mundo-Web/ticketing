@@ -468,6 +468,78 @@ class AppointmentController extends Controller
     }
 
     /**
+     * Mark an appointment as No Show
+     */
+    public function noShow(Request $request, Appointment $appointment)
+    {
+        $validator = Validator::make($request->all(), [
+            'reason' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            return back()->withErrors($validator)->withInput();
+        }
+
+        try {
+            // Update appointment status to no-show
+            $appointment->status = Appointment::STATUS_NO_SHOW;
+            $appointment->no_show_reason = $request->reason;
+            $appointment->no_show_description = $request->description;
+            $appointment->marked_no_show_at = Carbon::now();
+            $appointment->marked_no_show_by = Auth::id();
+            $appointment->save();
+
+            // Create a technical comment about the no-show
+            $appointment->technical_comments = $appointment->technical_comments 
+                ? $appointment->technical_comments . "\n\n[No Show] Reason: {$request->reason}"
+                : "[No Show] Reason: {$request->reason}";
+            
+            if ($request->description) {
+                $appointment->technical_comments .= "\nDescription: {$request->description}";
+            }
+            
+            $appointment->save();
+
+            // Log the action
+            Log::info("Appointment {$appointment->id} marked as no-show", [
+                'appointment_id' => $appointment->id,
+                'reason' => $request->reason,
+                'description' => $request->description,
+                'marked_by' => Auth::id()
+            ]);
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Appointment marked as No Show successfully',
+                    'appointment' => $appointment->fresh()
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'Appointment marked as No Show successfully');
+        } catch (\Exception $e) {
+            Log::error("Error marking appointment as no-show: " . $e->getMessage());
+            
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error marking appointment as no-show'
+                ], 500);
+            }
+
+            return redirect()->back()->withErrors(['error' => 'Error marking appointment as no-show']);
+        }
+    }
+
+    /**
      * Get technician's availability for a specific date
      */
     public function getTechnicalAvailability(Request $request, Technical $technical)

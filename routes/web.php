@@ -215,6 +215,7 @@ Route::get('/test-send-notification-simple', function () {
     Route::post('appointments/{appointment}/member-feedback', [\App\Http\Controllers\AppointmentController::class, 'memberFeedback'])->name('appointments.member-feedback');
     Route::post('appointments/{appointment}/cancel', [\App\Http\Controllers\AppointmentController::class, 'cancel'])->name('appointments.cancel');
     Route::post('appointments/{appointment}/reschedule', [\App\Http\Controllers\AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
+    Route::post('appointments/{appointment}/no-show', [\App\Http\Controllers\AppointmentController::class, 'noShow'])->name('appointments.no-show');
     Route::get('technicals/{technical}/availability', [\App\Http\Controllers\AppointmentController::class, 'getTechnicalAvailability'])->name('technicals.availability');
     
     // Ruta para verificar recordatorios automáticamente
