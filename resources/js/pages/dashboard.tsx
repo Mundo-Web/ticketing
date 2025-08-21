@@ -1060,7 +1060,7 @@ interface TicketModalItem {
         name?: string;
         apartment?: {
             name: string;
-            building?: { 
+            building?: {
                 name: string;
             };
         };
@@ -1068,16 +1068,16 @@ interface TicketModalItem {
 }
 
 // Ticket Modal Component
-const TicketsModal = ({ 
-    isOpen, 
-    onClose, 
-    tickets, 
-    title 
-}: { 
-    isOpen: boolean, 
-    onClose: () => void, 
-    tickets: TicketModalItem[], 
-    title: string 
+const TicketsModal = ({
+    isOpen,
+    onClose,
+    tickets,
+    title
+}: {
+    isOpen: boolean,
+    onClose: () => void,
+    tickets: TicketModalItem[],
+    title: string
 }) => {
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -1098,7 +1098,7 @@ const TicketsModal = ({
             'cancelled': 'bg-red-100 text-red-800 border border-red-200',
             'reopened': 'bg-purple-100 text-purple-800 border border-purple-200'
         };
-        
+
         return statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800';
     };
 
@@ -1111,15 +1111,15 @@ const TicketsModal = ({
                         {tickets.length} ticket{tickets.length !== 1 ? 's' : ''} found
                     </DialogDescription>
                 </DialogHeader>
-                
+
                 <div className="overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(90vh - 200px)' }}>
                     {tickets.length > 0 ? (
                         <div className="space-y-4">
                             {tickets.map((ticket) => (
-                                <div 
-                                    key={ticket.id} 
+                                <div
+                                    key={ticket.id}
                                     className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                                    //onClick={() => router.visit(`/tickets/${ticket.id}`)}
+                                //onClick={() => router.visit(`/tickets/${ticket.id}`)}
                                 >
                                     {/* Header with Code and Status */}
                                     <div className="flex justify-between items-start mb-3">
@@ -1199,7 +1199,7 @@ const TicketsModal = ({
                                         <span className="text-xs text-gray-500 font-mono">
                                             ID: {ticket.id}
                                         </span>
-                                      
+
                                     </div>
                                 </div>
                             ))}
@@ -1221,11 +1221,11 @@ const TicketsModal = ({
     );
 };
 
-export default function Dashboard({ 
-    metrics, 
-    charts, 
-    lists, 
-    googleMapsApiKey, 
+export default function Dashboard({
+    metrics,
+    charts,
+    lists,
+    googleMapsApiKey,
     technicalInstructions = [],
     currentTechnical = null
 }: DashboardProps) {
@@ -1234,23 +1234,23 @@ export default function Dashboard({
     console.log('Auth user:', pageProps?.auth?.user);
     console.log('Roles array:', pageProps?.auth?.user?.roles);
     console.log('First role:', pageProps?.auth?.user?.roles?.[0]);
-    
+
     // Handle both string array and object array formats for roles
     const userRoles = pageProps?.auth?.user?.roles || [];
-    const isSuperAdmin = userRoles.some((role) => 
+    const isSuperAdmin = userRoles.some((role) =>
         typeof role === 'string' ? role === 'super-admin' : role.name === 'super-admin'
     ) || false;
-    const isTechnical = userRoles.some((role) => 
+    const isTechnical = userRoles.some((role) =>
         typeof role === 'string' ? role === 'technical' : role.name === 'technical'
     ) || false;
     const isDefaultTechnical = pageProps?.auth?.user?.technical?.is_default || false;
-    const isDoorman = userRoles.some((role) => 
+    const isDoorman = userRoles.some((role) =>
         typeof role === 'string' ? role === 'doorman' : role.name === 'doorman'
     ) || false;
-    const isOwner = userRoles.some((role) => 
+    const isOwner = userRoles.some((role) =>
         typeof role === 'string' ? role === 'owner' : role.name === 'owner'
     ) || false;
-    const isTenant = userRoles.some((role) => 
+    const isTenant = userRoles.some((role) =>
         typeof role === 'string' ? role === 'tenant' : role.name === 'tenant'
     ) || false;
     const canAssignTickets = isSuperAdmin || isDefaultTechnical;
@@ -1260,7 +1260,7 @@ export default function Dashboard({
     const [selectedAppointment, setSelectedAppointment] = useState<AppointmentItem | null>(null);
     const [isAppointmentsOpen, setIsAppointmentsOpen] = useState(false);
     const buildingsContainerRef = useRef<HTMLDivElement>(null);
-    
+
     // States for ticket modals
     const [showOpenTicketsModal, setShowOpenTicketsModal] = useState(false);
     const [showInProgressTicketsModal, setShowInProgressTicketsModal] = useState(false);
@@ -1297,8 +1297,8 @@ export default function Dashboard({
             });
 
             // Actualizar estado local
-            setCurrentInstructions(prev => 
-                prev.map((instruction, index) => 
+            setCurrentInstructions(prev =>
+                prev.map((instruction, index) =>
                     index === instructionIndex ? { ...instruction, read: true } : instruction
                 )
             );
@@ -1322,14 +1322,14 @@ export default function Dashboard({
             if (response.ok) {
                 const data = await response.json();
                 console.log('🔔 Dashboard: Notifications response:', data);
-                
+
                 if (data.success) {
                     const notificationsArray = data.notifications || [];
                     const unreadCount = data.unread_count || 0;
-                    
+
                     console.log('🔔 Dashboard: Setting notifications:', notificationsArray.length);
                     console.log('🔔 Dashboard: Setting unread count:', unreadCount);
-                    
+
                     setNotifications(notificationsArray);
                     setUnreadNotifications(unreadCount);
                 } else {
@@ -1353,12 +1353,12 @@ export default function Dashboard({
     const markAsRead = async (notificationId: string) => {
         try {
             console.log('🔔 Marking notification as read:', notificationId);
-            
+
             router.post(`/notifications/${notificationId}/read`, {}, {
                 onSuccess: () => {
-                    setNotifications(prev => 
-                        prev.map(n => 
-                            n.id === notificationId 
+                    setNotifications(prev =>
+                        prev.map(n =>
+                            n.id === notificationId
                                 ? { ...n, read_at: new Date().toISOString() }
                                 : n
                         )
@@ -1383,14 +1383,14 @@ export default function Dashboard({
         try {
             const unreadIds = notifications.filter(n => !n.read_at).map(n => n.id);
             console.log('🔔 Marking all notifications as read:', unreadIds.length, 'notifications');
-            
+
             if (unreadIds.length === 0) {
                 toast.info('No unread notifications to mark');
                 return;
             }
-            
+
             // Usar Promise.all con router.post para cada notificación
-            const markPromises = unreadIds.map(id => 
+            const markPromises = unreadIds.map(id =>
                 new Promise<void>((resolve, reject) => {
                     router.post(`/notifications/${id}/read`, {}, {
                         onSuccess: () => resolve(),
@@ -1401,7 +1401,7 @@ export default function Dashboard({
 
             await Promise.all(markPromises);
 
-            setNotifications(prev => 
+            setNotifications(prev =>
                 prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
             );
             setUnreadNotifications(0);
@@ -1419,7 +1419,7 @@ export default function Dashboard({
             router.delete(`/notifications/${notificationId}`, {
                 onSuccess: () => {
                     setNotifications(prev => prev.filter(n => n.id !== notificationId));
-                    
+
                     const wasUnread = notifications.find(n => n.id === notificationId && !n.read_at);
                     if (wasUnread) {
                         setUnreadNotifications(prev => Math.max(0, prev - 1));
@@ -1440,10 +1440,10 @@ export default function Dashboard({
     // Cargar notificaciones al montar el componente
     useEffect(() => {
         fetchNotifications();
-        
+
         // Refrescar notificaciones cada 30 segundos
         const interval = setInterval(fetchNotifications, 30000);
-        
+
         return () => clearInterval(interval);
     }, []);
 
@@ -1457,12 +1457,12 @@ export default function Dashboard({
         console.log('User roles:', pageProps?.auth?.user?.roles);
         console.log('Is technical user:', isTechnical);
         console.log('Is default technical:', isDefaultTechnical);
-        
+
         // Add more detailed debugging
         if (lists.upcomingAppointments && lists.upcomingAppointments.length > 0) {
             console.log('Total appointments received:', lists.upcomingAppointments.length);
             console.log('First appointment details:', lists.upcomingAppointments[0]);
-            console.log('All appointment technical assignments:', 
+            console.log('All appointment technical assignments:',
                 lists.upcomingAppointments.map(app => ({
                     id: app.id,
                     title: app.title,
@@ -1472,7 +1472,7 @@ export default function Dashboard({
                     status: app.status
                 }))
             );
-            
+
             // For regular technical users (not default), filter to show only their appointments
             if (isTechnical && !isDefaultTechnical && currentTechnical) {
                 const filteredAppointments = lists.upcomingAppointments.filter(
@@ -1483,13 +1483,13 @@ export default function Dashboard({
                 console.log('=== END INITIAL APPOINTMENT DEBUG ===');
                 return filteredAppointments;
             }
-            
+
             console.log('=== END INITIAL APPOINTMENT DEBUG ===');
         } else {
             console.log('No appointments in initial props');
             console.log('=== END INITIAL APPOINTMENT DEBUG ===');
         }
-        
+
         return lists.upcomingAppointments || [];
     });
 
@@ -1497,7 +1497,7 @@ export default function Dashboard({
     useEffect(() => {
         if (lists.upcomingAppointments) {
             console.log('Updating appointments with new data:', lists.upcomingAppointments);
-            
+
             // For regular technical users (not default), filter to show only their appointments
             if (isTechnical && !isDefaultTechnical && currentTechnical) {
                 const filteredAppointments = lists.upcomingAppointments.filter(
@@ -1517,59 +1517,59 @@ export default function Dashboard({
             console.log('No appointments available in state');
             return 0;
         }
-        
+
         console.log('Total appointments in state:', appointments.length);
         console.log('All appointments:', appointments);
-        
+
         const today = new Date();
         // Set to beginning of the day
         today.setHours(0, 0, 0, 0);
-        
+
         // Next 3 days (today + 2 more days)
         const threeDaysLater = new Date(today);
         threeDaysLater.setDate(today.getDate() + 2);
         threeDaysLater.setHours(23, 59, 59, 999);
-        
-        console.log('Date range for appointments:', { 
-            today: today.toISOString(), 
-            threeDaysLater: threeDaysLater.toISOString() 
+
+        console.log('Date range for appointments:', {
+            today: today.toISOString(),
+            threeDaysLater: threeDaysLater.toISOString()
         });
-        
+
         // Add extra debugging
         const filteredAppointments = appointments.filter(appointment => {
             // Log each appointment to see its structure
             console.log('Processing appointment:', appointment);
-            
+
             // Handle different field names in the data
             const dateField = appointment.scheduled_for || appointment.scheduled_at || appointment.date || '';
             console.log('Date field found:', dateField);
-            
+
             const appointmentDate = new Date(dateField);
             console.log('Parsed date:', appointmentDate.toISOString());
-            
+
             // Skip invalid dates
             if (isNaN(appointmentDate.getTime())) {
                 console.log('Invalid date, skipping');
                 return false;
             }
-            
+
             const isInRange = appointmentDate >= today && appointmentDate <= threeDaysLater;
             const isNotCanceled = appointment.status !== 'canceled' && appointment.status !== 'cancelled';
-            
+
             // Include appointments that are in progress even if they started earlier today
-            const isInProgressToday = appointment.status === 'in_progress' && 
+            const isInProgressToday = appointment.status === 'in_progress' &&
                 appointmentDate.toDateString() === today.toDateString();
-            
+
             const shouldInclude = (isInRange || isInProgressToday) && isNotCanceled;
-            
+
             console.log('Is in range:', isInRange, 'Is not canceled:', isNotCanceled, 'Is in progress today:', isInProgressToday, 'Should include:', shouldInclude);
-            
+
             return shouldInclude;
         });
-        
+
         console.log('Filtered appointments count:', filteredAppointments.length);
         console.log('Filtered appointments:', filteredAppointments);
-        
+
         return filteredAppointments.length;
     }, [appointments]);
 
@@ -1635,7 +1635,7 @@ export default function Dashboard({
     const showAppointmentLocation = (appointment: AppointmentItem) => {
         // Primero cerramos el dropdown para evitar conflictos de overlay
         setIsAppointmentsOpen(false);
-        
+
         // PequeÃ±o delay para asegurar que el dropdown se cierre primero
         setTimeout(() => {
             setSelectedAppointment(appointment);
@@ -1646,14 +1646,14 @@ export default function Dashboard({
     // Function to close location modal
     const closeLocationModal = useCallback(() => {
         setShowLocationModal(false);
-        
+
         // PequeÃ±o delay para asegurar que el modal se cierre completamente
         setTimeout(() => {
             setSelectedAppointment(null);
-            
+
             // Aseguramos que no haya overlays activos
             document.body.classList.remove('overflow-hidden');
-            
+
             // Eliminamos cualquier elemento .overlay residual
             const overlays = document.querySelectorAll('[data-radix-portal]');
             overlays.forEach(overlay => {
@@ -1708,7 +1708,7 @@ export default function Dashboard({
         const tenant = appointment.ticket.device?.tenants?.[0];
         const apartment = tenant?.apartment;
         const building = apartment?.building;
-        
+
         return {
             buildingName: building?.name || 'No building',
             unitNumber: apartment?.name || 'N/A',
@@ -1751,7 +1751,7 @@ export default function Dashboard({
         // Reload the page to fetch fresh data
         router.reload();
     };
-    
+
     // Function to fetch tickets by status
     const fetchTicketsByStatus = async (status: string) => {
         try {
@@ -1764,14 +1764,14 @@ export default function Dashboard({
                 },
                 credentials: 'same-origin'
             });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             const data = await response.json();
             setModalTickets(data.tickets || []);
-            
+
             // Open the appropriate modal based on status
             if (status === 'open') {
                 setShowOpenTicketsModal(true);
@@ -1807,11 +1807,11 @@ export default function Dashboard({
     }));
 
     return (
-       
-            <AppLayout breadcrumbs={breadcrumbs}>                <Head title="Dashboard" />
 
-                {/* Custom styles for scrollbar */}                <style dangerouslySetInnerHTML={{
-                    __html: `
+        <AppLayout breadcrumbs={breadcrumbs}>                <Head title="Dashboard" />
+
+            {/* Custom styles for scrollbar */}                <style dangerouslySetInnerHTML={{
+                __html: `
                         .scrollbar-hide {
                             -ms-overflow-style: none;
                             scrollbar-width: none;
@@ -1857,121 +1857,121 @@ export default function Dashboard({
                             background: rgba(75, 85, 99, 0.6);
                         }
                     `
-                }} />
-                {/* Main container with premium spacing */}
-                <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-                    <div className="mx-auto px-4 py-16 space-y-20">
+            }} />
+            {/* Main container with premium spacing */}
+            <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
+                <div className="mx-auto px-4 py-16 space-y-20">
 
-                        {/* Premium header with maximum spacing */}
-                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-12">
-                            <div className="space-y-8">
-                                <div className="flex items-center gap-8">
-                                    <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-primary via-primary-foreground to-secondary-foreground flex items-center justify-center shadow-2xl ring-4 ring-blue-100">
-                                        <BarChart3 className="h-10 w-10 text-white" />
-                                    </div>
-                                    <div className="space-y-4">
-                                        <h1 className="text-6xl font-black tracking-tight text-slate-900 dark:text-white">
-                                            {isTechnical && !isSuperAdmin ? "ADK Assist Dashboard" : "Dashboard"}
-                                        </h1>
-                                        <p className="text-2xl text-slate-600 font-medium">
-                                            {isSuperAdmin
-                                                ? "Administrative control center of the system"
-                                                : isTechnical && !isSuperAdmin
+                    {/* Premium header with maximum spacing */}
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-12">
+                        <div className="space-y-8">
+                            <div className="flex items-center gap-8">
+                                <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-primary via-primary-foreground to-secondary-foreground flex items-center justify-center shadow-2xl ring-4 ring-blue-100">
+                                    <BarChart3 className="h-10 w-10 text-white" />
+                                </div>
+                                <div className="space-y-4">
+                                    <h1 className="text-6xl font-black tracking-tight text-slate-900 dark:text-white">
+                                        {isTechnical && !isSuperAdmin ? "ADK Assist Dashboard" : "Dashboard"}
+                                    </h1>
+                                    <p className="text-2xl text-slate-600 font-medium">
+                                        {isSuperAdmin
+                                            ? "Administrative control center of the system"
+                                            : isTechnical && !isSuperAdmin
                                                 ? "Your technical management control center"
                                                 : "Your personalized management panel"
-                                            }
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Real-time status indicators */}
-                                <div className="flex items-center gap-12">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
-                                        <span className="text-lg font-bold text-slate-600">System Online</span>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <Activity className="h-6 w-6 text-blue-500" />
-                                        <span className="text-lg font-bold text-slate-600">{updateText}</span>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <Zap className="h-6 w-6 text-yellow-500" />
-                                        <span className="text-lg font-bold text-slate-600">High Performance</span>
-                                    </div>
+                                        }
+                                    </p>
                                 </div>
                             </div>
 
-                            {/* Main controls */}
-                            <div className="flex flex-wrap items-center gap-6">
-                                <Button
-                                    variant="outline"
-                                    size="lg"
-                                    className="gap-4 h-14 px-4 shadow-xl"
-                                    onClick={handleRefresh}
-                                >
-                                    <RefreshCcw className="h-6 w-6" />
-                                </Button>
+                            {/* Real-time status indicators */}
+                            <div className="flex items-center gap-12">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
+                                    <span className="text-lg font-bold text-slate-600">System Online</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <Activity className="h-6 w-6 text-blue-500" />
+                                    <span className="text-lg font-bold text-slate-600">{updateText}</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <Zap className="h-6 w-6 text-yellow-500" />
+                                    <span className="text-lg font-bold text-slate-600">High Performance</span>
+                                </div>
+                            </div>
+                        </div>
 
-                                {/* Appointments Dropdown */}
-                                <DropdownMenu 
-                                    open={isAppointmentsOpen} 
-                                    onOpenChange={setIsAppointmentsOpen}
-                                >
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="lg" className="gap-4 h-14 px-4 shadow-xl relative">
-                                            <Calendar className="h-6 w-6" />
-                                            {upcomingAppointmentsCount > 0 && (
-                                                <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center p-0">
-                                                    {upcomingAppointmentsCount}
-                                                </Badge>
-                                            )}
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-96 max-h-96 mt-4" align="end">
-                                        <DropdownMenuLabel className="flex items-center justify-between">
-                                            <span className="text-lg font-semibold">All Appointments</span>
-                                            {appointments.length > 0 && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={viewAllAppointments}
-                                                    className="text-xs"
-                                                >
-                                                    View Calendar
-                                                </Button>
-                                            )}
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
+                        {/* Main controls */}
+                        <div className="flex flex-wrap items-center gap-6">
+                            <Button
+                                variant="outline"
+                                size="lg"
+                                className="gap-4 h-14 px-4 shadow-xl"
+                                onClick={handleRefresh}
+                            >
+                                <RefreshCcw className="h-6 w-6" />
+                            </Button>
 
-                                        {appointments.length === 0 ? (
-                                            <div className="p-4 text-center text-slate-500">
-                                                <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                <p className="text-sm">No appointments found</p>
-                                                <p className="text-xs text-slate-400 mt-1">Schedule appointments from ticket details</p>
-                                            </div>
-                                        ) : (
-                                            <div className="max-h-80 overflow-y-auto custom-scrollbar">
-                                                {appointments
-                                                    .sort((a, b) => new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime())
-                                                    .map((appointment: AppointmentItem) => {
+                            {/* Appointments Dropdown */}
+                            <DropdownMenu
+                                open={isAppointmentsOpen}
+                                onOpenChange={setIsAppointmentsOpen}
+                            >
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="lg" className="gap-4 h-14 px-4 shadow-xl relative">
+                                        <Calendar className="h-6 w-6" />
+                                        {upcomingAppointmentsCount > 0 && (
+                                            <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center p-0">
+                                                {upcomingAppointmentsCount}
+                                            </Badge>
+                                        )}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-96 max-h-96 mt-4" align="end">
+                                    <DropdownMenuLabel className="flex items-center justify-between">
+                                        <span className="text-lg font-semibold">All Appointments</span>
+                                        {appointments.length > 0 && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={viewAllAppointments}
+                                                className="text-xs"
+                                            >
+                                                View Calendar
+                                            </Button>
+                                        )}
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+
+                                    {appointments.length === 0 ? (
+                                        <div className="p-4 text-center text-slate-500">
+                                            <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                            <p className="text-sm">No appointments found</p>
+                                            <p className="text-xs text-slate-400 mt-1">Schedule appointments from ticket details</p>
+                                        </div>
+                                    ) : (
+                                        <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                                            {appointments
+                                                .sort((a, b) => new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime())
+                                                .map((appointment: AppointmentItem) => {
                                                     const statusConfig = getAppointmentStatusConfig(appointment.status);
                                                     const dateTime = formatAppointmentDateTime(appointment.scheduled_for);
                                                     const locationInfo = getAppointmentLocation(appointment);
                                                     const appointmentDate = new Date(appointment.scheduled_for);
                                                     const today = new Date();
-                                                    
+
                                                     // Check if it's today OR if it's yesterday after 6pm
                                                     const isToday = appointmentDate.toDateString() === today.toDateString();
                                                     const isYesterdayLate = (() => {
                                                         const yesterday = new Date();
                                                         yesterday.setDate(yesterday.getDate() - 1);
-                                                        return appointmentDate.toDateString() === yesterday.toDateString() && 
-                                                               appointmentDate.getHours() >= 18;
+                                                        return appointmentDate.toDateString() === yesterday.toDateString() &&
+                                                            appointmentDate.getHours() >= 18;
                                                     })();
-                                                    
+
                                                     // Treat late night appointments from yesterday as "today"
                                                     const showAsTodayAppointment = isToday || isYesterdayLate;
-                                                    
+
                                                     return (
                                                         <div key={appointment.id} className="group relative">
                                                             <DropdownMenuItem className={`p-0 focus:bg-slate-50 dark:focus:bg-slate-800/50 cursor-pointer ${showAsTodayAppointment ? 'border-2 border-red-500 rounded-lg my-1 bg-red-50/50' : ''}`}>
@@ -2032,7 +2032,7 @@ export default function Dashboard({
                                                                                 Member: {appointment.ticket.user?.name || "No Member"}
                                                                             </div>
                                                                         </div>
-                                                                        
+
                                                                         {/* Building and Unit Info with Location Icon */}
                                                                         <div className="flex items-center mb-1.5">
                                                                             <div className="flex items-center gap-1 flex-1">
@@ -2057,8 +2057,8 @@ export default function Dashboard({
                                                                                         {isYesterdayLate ? 'Urgent!' : 'Today!'}
                                                                                     </Badge>
                                                                                 )}
-                                                                                <Badge 
-                                                                                    variant="outline" 
+                                                                                <Badge
+                                                                                    variant="outline"
                                                                                     className={`text-xs px-2 py-0.5 ${statusConfig.color} border-current`}
                                                                                 >
                                                                                     {statusConfig.label}
@@ -2068,548 +2068,542 @@ export default function Dashboard({
                                                                     </div>
                                                                 </div>
                                                             </DropdownMenuItem>
-                                                            
+
                                                             {/* Separator */}
                                                             <DropdownMenuSeparator className="my-0 last:hidden" />
                                                         </div>
                                                     );
                                                 })}
-                                            </div>
-                                        )}
+                                        </div>
+                                    )}
 
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="p-0">
-                                            <Button 
-                                                variant="ghost" 
-                                                className="w-full justify-center py-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                onClick={viewAllAppointments}
-                                            >
-                                                <Calendar className="h-4 w-4 mr-2" />
-                                                View All Appointments
-                                            </Button>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-
-                                {/* Notifications Dropdown */}
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button 
-                                            variant="outline" 
-                                            size="lg" 
-                                            className="gap-4 h-14 px-4 shadow-xl relative hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="p-0">
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-center py-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                            onClick={viewAllAppointments}
                                         >
-                                            <Bell className="h-6 w-6" />
-                                            {unreadNotifications > 0 && (
-                                                <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs flex items-center justify-center p-0 notification-badge-pulse border-2 border-white shadow-lg">
-                                                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                                                </Badge>
-                                            )}
+                                            <Calendar className="h-4 w-4 mr-2" />
+                                            View All Appointments
                                         </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-[420px] max-h-[520px] mt-4 notification-dropdown shadow-2xl border-0" align="end">
-                                        {/* Header con gradiente */}
-                                        <div className=" px-4 py-2 rounded-t-lg">
-                                            <div className="flex items-center justify-between text-primary-foreground">
-                                                <div className="flex items-center gap-2">
-                                                    <Bell className="h-5 w-5" />
-                                                    <span className="text-lg font-bold ">Notifications</span>
-                                                    {unreadNotifications > 0 && (
-                                                        <Badge className="bg-primary/20 text-secondary text-xs px-2 py-1 notification-badge-pulse">
-                                                            {unreadNotifications} new
-                                                        </Badge>
-                                                    )}
-                                                </div>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            {/* Notifications Dropdown */}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="lg"
+                                        className="gap-4 h-14 px-4 shadow-xl relative hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                                    >
+                                        <Bell className="h-6 w-6" />
+                                        {unreadNotifications > 0 && (
+                                            <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs flex items-center justify-center p-0 notification-badge-pulse border-2 border-white shadow-lg">
+                                                {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                                            </Badge>
+                                        )}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-[420px] max-h-[520px] mt-4 notification-dropdown shadow-2xl border-0" align="end">
+                                    {/* Header con gradiente */}
+                                    <div className=" px-4 py-2 rounded-t-lg">
+                                        <div className="flex items-center justify-between text-primary-foreground">
+                                            <div className="flex items-center gap-2">
+                                                <Bell className="h-5 w-5" />
+                                                <span className="text-lg font-bold ">Notifications</span>
                                                 {unreadNotifications > 0 && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={markAllAsRead}
-                                                        className="text-white bg-primary hover:bg-primary text-xs font-medium"
-                                                    >
-                                                        Mark all read
-                                                    </Button>
+                                                    <Badge className="bg-primary/20 text-secondary text-xs px-2 py-1 notification-badge-pulse">
+                                                        {unreadNotifications} new
+                                                    </Badge>
                                                 )}
                                             </div>
+                                            {unreadNotifications > 0 && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={markAllAsRead}
+                                                    className="text-white bg-primary hover:bg-primary text-xs font-medium"
+                                                >
+                                                    Mark all read
+                                                </Button>
+                                            )}
                                         </div>
+                                    </div>
 
-                                        {notifications.length === 0 ? (
-                                            <div className="p-8 text-center">
-                                                <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                                                    <Bell className="h-10 w-10 text-gray-400" />
-                                                </div>
-                                                <h3 className="text-lg font-semibold text-gray-700 mb-2">All caught up!</h3>
-                                                <p className="text-sm text-gray-500">No new notifications at the moment</p>
+                                    {notifications.length === 0 ? (
+                                        <div className="p-8 text-center">
+                                            <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                                                <Bell className="h-10 w-10 text-gray-400" />
                                             </div>
-                                        ) : (
-                                            <div className="max-h-[400px] overflow-y-auto notification-scrollbar">
-                                                <div className="p-2 space-y-1">
-                                                    {notifications.map((notification: NotificationItem) => {
-                                                        // Mapear iconos basado en el tipo de notificación
-                                                        const IconComponent = notification.data.icon === 'user-plus' ? UserPlus :
-                                                            notification.data.icon === 'clipboard-check' ? CheckCircle :
+                                            <h3 className="text-lg font-semibold text-gray-700 mb-2">All caught up!</h3>
+                                            <p className="text-sm text-gray-500">No new notifications at the moment</p>
+                                        </div>
+                                    ) : (
+                                        <div className="max-h-[400px] overflow-y-auto notification-scrollbar">
+                                            <div className="p-2 space-y-1">
+                                                {notifications.map((notification: NotificationItem) => {
+                                                    // Mapear iconos basado en el tipo de notificación
+                                                    const IconComponent = notification.data.icon === 'user-plus' ? UserPlus :
+                                                        notification.data.icon === 'clipboard-check' ? CheckCircle :
                                                             notification.data.icon === 'user-check' ? UserCheck :
-                                                            notification.data.icon === 'users' ? Users :
-                                                            notification.data.icon === 'check-circle' ? CheckCircle :
-                                                            notification.data.icon === 'alert-circle' ? AlertCircle :
-                                                            notification.data.icon === 'info' ? Info : Bell;
-                                                        
-                                                        // Formatear tiempo relativo más elegante
-                                                        const timeAgo = (() => {
-                                                            const now = new Date();
-                                                            const created = new Date(notification.created_at);
-                                                            const diffMs = now.getTime() - created.getTime();
-                                                            const diffMins = Math.floor(diffMs / 60000);
-                                                            const diffHours = Math.floor(diffMs / 3600000);
-                                                            const diffDays = Math.floor(diffMs / 86400000);
+                                                                notification.data.icon === 'users' ? Users :
+                                                                    notification.data.icon === 'check-circle' ? CheckCircle :
+                                                                        notification.data.icon === 'alert-circle' ? AlertCircle :
+                                                                            notification.data.icon === 'info' ? Info : Bell;
 
-                                                            if (diffMins < 1) return 'Just now';
-                                                            if (diffMins < 60) return `${diffMins}m ago`;
-                                                            if (diffHours < 24) return `${diffHours}h ago`;
-                                                            if (diffDays < 7) return `${diffDays}d ago`;
-                                                            return created.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-                                                        })();
+                                                    // Formatear tiempo relativo más elegante
+                                                    const timeAgo = (() => {
+                                                        const now = new Date();
+                                                        const created = new Date(notification.created_at);
+                                                        const diffMs = now.getTime() - created.getTime();
+                                                        const diffMins = Math.floor(diffMs / 60000);
+                                                        const diffHours = Math.floor(diffMs / 3600000);
+                                                        const diffDays = Math.floor(diffMs / 86400000);
 
-                                                        // Determinar colores más modernos y elegantes
-                                                        const getColorScheme = () => {
-                                                            switch (notification.data.color) {
-                                                                case 'green': return {
-                                                                    icon: 'text-emerald-600 bg-gradient-to-r from-emerald-50 to-green-50',
-                                                                    border: 'border-emerald-200',
-                                                                    accent: 'text-emerald-600'
-                                                                };
-                                                                case 'blue': return {
-                                                                    icon: 'text-blue-600 bg-gradient-to-r from-blue-50 to-cyan-50',
-                                                                    border: 'border-blue-200',
-                                                                    accent: 'text-blue-600'
-                                                                };
-                                                                case 'red': return {
-                                                                    icon: 'text-red-600 bg-gradient-to-r from-red-50 to-pink-50',
-                                                                    border: 'border-red-200',
-                                                                    accent: 'text-red-600'
-                                                                };
-                                                                case 'purple': return {
-                                                                    icon: 'text-purple-600 bg-gradient-to-r from-purple-50 to-violet-50',
-                                                                    border: 'border-purple-200',
-                                                                    accent: 'text-purple-600'
-                                                                };
-                                                                default: return {
-                                                                    icon: 'text-gray-600 bg-gradient-to-r from-gray-50 to-slate-50',
-                                                                    border: 'border-gray-200',
-                                                                    accent: 'text-gray-600'
-                                                                };
-                                                            }
-                                                        };
+                                                        if (diffMins < 1) return 'Just now';
+                                                        if (diffMins < 60) return `${diffMins}m ago`;
+                                                        if (diffHours < 24) return `${diffHours}h ago`;
+                                                        if (diffDays < 7) return `${diffDays}d ago`;
+                                                        return created.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                                                    })();
 
-                                                        const colorScheme = getColorScheme();
+                                                    // Determinar colores más modernos y elegantes
+                                                    const getColorScheme = () => {
+                                                        switch (notification.data.color) {
+                                                            case 'green': return {
+                                                                icon: 'text-emerald-600 bg-gradient-to-r from-emerald-50 to-green-50',
+                                                                border: 'border-emerald-200',
+                                                                accent: 'text-emerald-600'
+                                                            };
+                                                            case 'blue': return {
+                                                                icon: 'text-blue-600 bg-gradient-to-r from-blue-50 to-cyan-50',
+                                                                border: 'border-blue-200',
+                                                                accent: 'text-blue-600'
+                                                            };
+                                                            case 'red': return {
+                                                                icon: 'text-red-600 bg-gradient-to-r from-red-50 to-pink-50',
+                                                                border: 'border-red-200',
+                                                                accent: 'text-red-600'
+                                                            };
+                                                            case 'purple': return {
+                                                                icon: 'text-purple-600 bg-gradient-to-r from-purple-50 to-violet-50',
+                                                                border: 'border-purple-200',
+                                                                accent: 'text-purple-600'
+                                                            };
+                                                            default: return {
+                                                                icon: 'text-gray-600 bg-gradient-to-r from-gray-50 to-slate-50',
+                                                                border: 'border-gray-200',
+                                                                accent: 'text-gray-600'
+                                                            };
+                                                        }
+                                                    };
 
-                                                        return (
-                                                            <DropdownMenuItem
-                                                                key={notification.id}
-                                                                className={`p-0 cursor-pointer group transition-all duration-200 rounded-xl overflow-hidden notification-item ${
-                                                                    !notification.read_at 
-                                                                        ? 'bg-gradient-to-r from-blue-50/80 to-purple-50/80 border border-blue-200/50 shadow-sm notification-unread' 
-                                                                        : 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-slate-50'
+                                                    const colorScheme = getColorScheme();
+
+                                                    return (
+                                                        <DropdownMenuItem
+                                                            key={notification.id}
+                                                            className={`p-0 cursor-pointer group transition-all duration-200 rounded-xl overflow-hidden notification-item ${!notification.read_at
+                                                                    ? 'bg-gradient-to-r from-blue-50/80 to-purple-50/80 border border-blue-200/50 shadow-sm notification-unread'
+                                                                    : 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-slate-50'
                                                                 }`}
-                                                                onClick={() => {
-                                                                    if (!notification.read_at) {
-                                                                        markAsRead(notification.id);
-                                                                    }
+                                                            onClick={() => {
+                                                                if (!notification.read_at) {
+                                                                    markAsRead(notification.id);
+                                                                }
                                                                 /* if (notification.data.action_url) {
                                                                         window.open(notification.data.action_url, '_blank');
                                                                     }*/
-                                                                }}
-                                                            >
-                                                                <div className="w-full p-4 flex items-start gap-4">
-                                                                    {/* Icon with gradient background */}
-                                                                    <div className={`relative p-3 rounded-xl ${colorScheme.icon} shadow-sm group-hover:shadow-md transition-shadow`}>
-                                                                        <IconComponent className="h-5 w-5" />
-                                                                        {!notification.read_at && (
-                                                                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
-                                                                        )}
+                                                            }}
+                                                        >
+                                                            <div className="w-full p-4 flex items-start gap-4">
+                                                                {/* Icon with gradient background */}
+                                                                <div className={`relative p-3 rounded-xl ${colorScheme.icon} shadow-sm group-hover:shadow-md transition-shadow`}>
+                                                                    <IconComponent className="h-5 w-5" />
+                                                                    {!notification.read_at && (
+                                                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="flex-1 space-y-2 min-w-0">
+                                                                    {/* Header */}
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <h4 className={`text-sm font-bold leading-tight ${!notification.read_at ? 'text-gray-900' : 'text-gray-700'
+                                                                            }`}>
+                                                                            {notification.data.title}
+                                                                        </h4>
+                                                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                                                            <span className="text-xs text-gray-500 font-medium">
+                                                                                {timeAgo}
+                                                                            </span>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    clearNotification(notification.id);
+                                                                                }}
+                                                                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600 transition-all"
+                                                                            >
+                                                                                <X className="h-3 w-3" />
+                                                                            </Button>
+                                                                        </div>
                                                                     </div>
 
-                                                                    <div className="flex-1 space-y-2 min-w-0">
-                                                                        {/* Header */}
-                                                                        <div className="flex items-start justify-between gap-2">
-                                                                            <h4 className={`text-sm font-bold leading-tight ${
-                                                                                !notification.read_at ? 'text-gray-900' : 'text-gray-700'
-                                                                            }`}>
-                                                                                {notification.data.title}
-                                                                            </h4>
-                                                                            <div className="flex items-center gap-2 flex-shrink-0">
-                                                                                <span className="text-xs text-gray-500 font-medium">
-                                                                                    {timeAgo}
-                                                                                </span>
-                                                                                <Button
-                                                                                    variant="ghost"
-                                                                                    size="sm"
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        clearNotification(notification.id);
-                                                                                    }}
-                                                                                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600 transition-all"
-                                                                                >
-                                                                                    <X className="h-3 w-3" />
-                                                                                </Button>
-                                                                            </div>
-                                                                        </div>
-
-                                                                        {/* Message */}
-                                                                        <p className={`text-sm leading-relaxed ${
-                                                                            !notification.read_at ? 'text-gray-800' : 'text-gray-600'
+                                                                    {/* Message */}
+                                                                    <p className={`text-sm leading-relaxed ${!notification.read_at ? 'text-gray-800' : 'text-gray-600'
                                                                         }`}>
-                                                                            {notification.data.message}
-                                                                        </p>
+                                                                        {notification.data.message}
+                                                                    </p>
 
-                                                                        {/* Enhanced ticket info */}
-                                                                        {notification.data.type === 'ticket_assigned' && (
-                                                                            <div className="mt-3 space-y-2">
-                                                                                <div className="flex flex-wrap gap-2">
-                                                                                    {notification.data.ticket_code && (
-                                                                                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-200">
-                                                                                            <span className="mr-1">🎫</span>
-                                                                                            {notification.data.ticket_code}
-                                                                                        </span>
-                                                                                    )}
-                                                                                    {notification.data.assigned_to && notification.data.assigned_to_id && (
-                                                                                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200">
-                                                                                            <span className="mr-1">👨‍💼</span>
-                                                                                            {notification.data.assigned_to}
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                                {notification.data.assigned_by && notification.data.assigned_by_id && (
-                                                                                    <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2 border border-gray-200">
-                                                                                        <span className="font-medium text-gray-700">Assigned by:</span> {notification.data.assigned_by} 
-                                                                                        <span className="ml-1 text-gray-400">(ID: {notification.data.assigned_by_id})</span>
-                                                                                    </div>
+                                                                    {/* Enhanced ticket info */}
+                                                                    {notification.data.type === 'ticket_assigned' && (
+                                                                        <div className="mt-3 space-y-2">
+                                                                            <div className="flex flex-wrap gap-2">
+                                                                                {notification.data.ticket_code && (
+                                                                                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-200">
+                                                                                        <span className="mr-1">🎫</span>
+                                                                                        {notification.data.ticket_code}
+                                                                                    </span>
+                                                                                )}
+                                                                                {notification.data.assigned_to && notification.data.assigned_to_id && (
+                                                                                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200">
+                                                                                        <span className="mr-1">👨‍💼</span>
+                                                                                        {notification.data.assigned_to}
+                                                                                    </span>
                                                                                 )}
                                                                             </div>
-                                                                        )}
-
-                                                                        {/* Action buttons */}
-                                                                        {!notification.read_at && (
-                                                                            <div className="flex items-center gap-2 mt-3 pt-2 border-t border-gray-100">
-                                                                                <Button
-                                                                                    variant="outline"
-                                                                                    size="sm"
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        markAsRead(notification.id);
-                                                                                    }}
-                                                                                    className="h-8 px-3 text-xs font-medium hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
-                                                                                >
-                                                                                    <Check className="h-3 w-3 mr-1.5" />
-                                                                                    Mark read
-                                                                                </Button>
-                                                                               
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </DropdownMenuItem>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        </div>
-
-   
-                        {/* SECCIÃ“N ESPECIAL: Instrucciones del Technical (solo para tÃ©cnicos) */}
-                        {console.log('Rendering instructions section - isTechnical:', isTechnical, 'currentInstructions:', currentInstructions)}
-                        {isTechnical && currentInstructions.length > 0 && (
-                            <div className="space-y-6">
-                                <div className="text-center space-y-4">
-                                    <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-3">
-                                        <MessageSquare className="h-8 w-8 text-blue-500" />
-                                        Instructions from Management
-                                    </h2>
-                                    <p className="text-lg text-muted-foreground">
-                                        Important instructions and guidelines from your supervisors
-                                    </p>
-                                </div>
-
-                                {/* Horizontal scrollable container for instructions */}
-                                <div className="relative">
-                                    <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-                                        {currentInstructions
-                                            // TEMPORAL: Comentar filtro para debugging
-                                            // .filter(instruction => !instruction.read)
-                                            .slice(0, 5) // Mostrar máximo 5 instrucciones
-                                            .map((instruction, index) => {
-                                                const priorityColors = {
-                                                    low: 'from-blue-500/10 to-blue-600/5 border-blue-200 text-blue-700',
-                                                    normal: 'from-gray-500/10 to-gray-600/5 border-gray-200 text-gray-700',
-                                                    high: 'from-orange-500/10 to-orange-600/5 border-orange-200 text-orange-700',
-                                                    urgent: 'from-red-500/10 to-red-600/5 border-red-200 text-red-700'
-                                                };
-
-                                                const priorityIcons = {
-                                                    low: Info,
-                                                    normal: MessageSquare,
-                                                    high: AlertTriangle,
-                                                    urgent: AlertOctagon
-                                                };
-
-                                                const PriorityIcon = priorityIcons[instruction.priority];
-
-                                                return (
-                                                    <Card 
-                                                        key={index} 
-                                                        className={`flex-shrink-0 w-80 transition-all duration-300 hover:shadow-lg border-l-4 bg-gradient-to-r ${priorityColors[instruction.priority]} snap-start`}
-                                                    >
-                                                        <CardContent className="p-5">
-                                                            <div className="space-y-4">
-                                                                {/* Header with priority and action */}
-                                                                <div className="flex items-start justify-between">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className={`p-2 rounded-lg flex-shrink-0 ${
-                                                                            instruction.priority === 'urgent' ? 'bg-red-100' : 'bg-white/50'
-                                                                        }`}>
-                                                                            <PriorityIcon className={`h-4 w-4 ${
-                                                                                instruction.priority === 'urgent' ? 'text-red-600' : 'text-current'
-                                                                            }`} />
+                                                                            {notification.data.assigned_by && notification.data.assigned_by_id && (
+                                                                                <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2 border border-gray-200">
+                                                                                    <span className="font-medium text-gray-700">Assigned by:</span> {notification.data.assigned_by}
+                                                                                    <span className="ml-1 text-gray-400">(ID: {notification.data.assigned_by_id})</span>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                        <Badge 
-                                                                            variant="outline" 
-                                                                            className={`font-semibold uppercase text-xs ${
-                                                                                instruction.priority === 'urgent' ? 'border-red-500 text-red-700 bg-red-50' : ''
-                                                                            }`}
-                                                                        >
-                                                                            {instruction.priority}
-                                                                        </Badge>
-                                                                    </div>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => markInstructionAsRead(index)}
-                                                                        className="h-8 w-8 p-0 hover:bg-white/20"
-                                                                    >
-                                                                        <Check className="h-4 w-4" />
-                                                                    </Button>
-                                                                </div>
+                                                                    )}
 
-                                                                {/* From and date */}
-                                                                <div className="flex items-center justify-between text-sm">
-                                                                    <span className="text-muted-foreground">
-                                                                        From: <strong className="text-foreground">{instruction.from}</strong>
-                                                                    </span>
-                                                                    <span className="text-xs text-muted-foreground">
-                                                                        {new Date(instruction.sent_at).toLocaleDateString('en-US', {
-                                                                            month: 'short',
-                                                                            day: 'numeric',
-                                                                            hour: '2-digit',
-                                                                            minute: '2-digit'
-                                                                        })}
-                                                                    </span>
-                                                                </div>
-                                                                
-                                                                {/* Instruction text */}
-                                                                <div className="max-h-32 overflow-y-auto custom-scrollbar">
-                                                                    <p className="text-foreground leading-relaxed text-sm">
-                                                                        {instruction.instruction}
-                                                                    </p>
+                                                                    {/* Action buttons */}
+                                                                    {!notification.read_at && (
+                                                                        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-gray-100">
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    markAsRead(notification.id);
+                                                                                }}
+                                                                                className="h-8 px-3 text-xs font-medium hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
+                                                                            >
+                                                                                <Check className="h-3 w-3 mr-1.5" />
+                                                                                Mark read
+                                                                            </Button>
+
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
-                                                        </CardContent>
-                                                    </Card>
-                                                );
-                                            })}
-                                    </div>
-                                    
-                                    {/* Scroll indicators */}
-                                    {currentInstructions.length > 1 && (
-                                        <div className="flex justify-center mt-4 gap-2">
-                                            {currentInstructions.slice(0, 5).map((_, index) => (
-                                                <div 
-                                                    key={index} 
-                                                    className="w-2 h-2 rounded-full bg-muted-foreground/30"
-                                                />
-                                            ))}
+                                                        </DropdownMenuItem>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     )}
+
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </div>
+
+
+                    {/* SECCIÃ“N ESPECIAL: Instrucciones del Technical (solo para tÃ©cnicos) */}
+                    {console.log('Rendering instructions section - isTechnical:', isTechnical, 'currentInstructions:', currentInstructions)}
+                    {isTechnical && currentInstructions.length > 0 && (
+                        <div className="space-y-6">
+                            <div className="text-center space-y-4">
+                                <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-3">
+                                    <MessageSquare className="h-8 w-8 text-blue-500" />
+                                    Instructions from Management
+                                </h2>
+                                <p className="text-lg text-muted-foreground">
+                                    Important instructions and guidelines from your supervisors
+                                </p>
+                            </div>
+
+                            {/* Horizontal scrollable container for instructions */}
+                            <div className="relative">
+                                <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+                                    {currentInstructions
+                                        // TEMPORAL: Comentar filtro para debugging
+                                        // .filter(instruction => !instruction.read)
+                                        .slice(0, 5) // Mostrar máximo 5 instrucciones
+                                        .map((instruction, index) => {
+                                            const priorityColors = {
+                                                low: 'from-blue-500/10 to-blue-600/5 border-blue-200 text-blue-700',
+                                                normal: 'from-gray-500/10 to-gray-600/5 border-gray-200 text-gray-700',
+                                                high: 'from-orange-500/10 to-orange-600/5 border-orange-200 text-orange-700',
+                                                urgent: 'from-red-500/10 to-red-600/5 border-red-200 text-red-700'
+                                            };
+
+                                            const priorityIcons = {
+                                                low: Info,
+                                                normal: MessageSquare,
+                                                high: AlertTriangle,
+                                                urgent: AlertOctagon
+                                            };
+
+                                            const PriorityIcon = priorityIcons[instruction.priority];
+
+                                            return (
+                                                <Card
+                                                    key={index}
+                                                    className={`flex-shrink-0 w-80 transition-all duration-300 hover:shadow-lg border-l-4 bg-gradient-to-r ${priorityColors[instruction.priority]} snap-start`}
+                                                >
+                                                    <CardContent className="p-5">
+                                                        <div className="space-y-4">
+                                                            {/* Header with priority and action */}
+                                                            <div className="flex items-start justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`p-2 rounded-lg flex-shrink-0 ${instruction.priority === 'urgent' ? 'bg-red-100' : 'bg-white/50'
+                                                                        }`}>
+                                                                        <PriorityIcon className={`h-4 w-4 ${instruction.priority === 'urgent' ? 'text-red-600' : 'text-current'
+                                                                            }`} />
+                                                                    </div>
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className={`font-semibold uppercase text-xs ${instruction.priority === 'urgent' ? 'border-red-500 text-red-700 bg-red-50' : ''
+                                                                            }`}
+                                                                    >
+                                                                        {instruction.priority}
+                                                                    </Badge>
+                                                                </div>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => markInstructionAsRead(index)}
+                                                                    className="h-8 w-8 p-0 hover:bg-white/20"
+                                                                >
+                                                                    <Check className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+
+                                                            {/* From and date */}
+                                                            <div className="flex items-center justify-between text-sm">
+                                                                <span className="text-muted-foreground">
+                                                                    From: <strong className="text-foreground">{instruction.from}</strong>
+                                                                </span>
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    {new Date(instruction.sent_at).toLocaleDateString('en-US', {
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Instruction text */}
+                                                            <div className="max-h-32 overflow-y-auto custom-scrollbar">
+                                                                <p className="text-foreground leading-relaxed text-sm">
+                                                                    {instruction.instruction}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })}
                                 </div>
-                                
-                                {/* All caught up message */}
-                                {currentInstructions.filter(i => !i.read).length === 0 && (
-                                    <Card className="max-w-md mx-auto">
-                                        <CardContent className="p-8 text-center">
-                                            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                                            <h3 className="text-lg font-semibold text-foreground mb-2">All caught up!</h3>
-                                            <p className="text-muted-foreground">You have no pending instructions.</p>
-                                        </CardContent>
-                                    </Card>
+
+                                {/* Scroll indicators */}
+                                {currentInstructions.length > 1 && (
+                                    <div className="flex justify-center mt-4 gap-2">
+                                        {currentInstructions.slice(0, 5).map((_, index) => (
+                                            <div
+                                                key={index}
+                                                className="w-2 h-2 rounded-full bg-muted-foreground/30"
+                                            />
+                                        ))}
+                                    </div>
                                 )}
                             </div>
-                        )}
+
+                            {/* All caught up message */}
+                            {currentInstructions.filter(i => !i.read).length === 0 && (
+                                <Card className="max-w-md mx-auto">
+                                    <CardContent className="p-8 text-center">
+                                        <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                                        <h3 className="text-lg font-semibold text-foreground mb-2">All caught up!</h3>
+                                        <p className="text-muted-foreground">You have no pending instructions.</p>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                    )}
 
 
 
-                        {/* SECTION 1: KEY TICKET METRICS */}
-                        <div className="space-y-12">                            <div className="text-center space-y-6">                                <h2 className="text-4xl font-bold text-foreground">
-                                    {isTechnical && !isSuperAdmin 
-                                        ? "My Tickets" 
-                                        : isDoorman 
-                                            ? "Building Tickets" 
-                                            : "Ticket Analytics"}
-                                </h2>
-                            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                                {isTechnical && !isSuperAdmin 
-                                    ? "Tickets assigned to you and your work summary" 
-                                    : isDoorman
-                                        ? "Monitor tickets for your building residents"
-                                        : "Real-time monitoring of workflow and performance metrics"
-                                }
-                            </p>
+                    {/* SECTION 1: KEY TICKET METRICS */}
+                    <div className="space-y-12">                            <div className="text-center space-y-6">                                <h2 className="text-4xl font-bold text-foreground">
+                        {isTechnical && !isSuperAdmin
+                            ? "My Tickets"
+                            : isDoorman
+                                ? "Building Tickets"
+                                : "Ticket Analytics"}
+                    </h2>
+                        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                            {isTechnical && !isSuperAdmin
+                                ? "Tickets assigned to you and your work summary"
+                                : isDoorman
+                                    ? "Monitor tickets for your building residents"
+                                    : "Real-time monitoring of workflow and performance metrics"
+                            }
+                        </p>
+                    </div>
+
+                        {/* Perfectly aligned metrics grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">                                {/* Card 1: Total Tickets - Hide for regular technicians */}
+                            {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-primary/10 via-background to-primary/5 overflow-hidden">
+                                    <CardContent className="p-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-3 rounded-xl bg-primary/20">
+                                                <Ticket className="h-6 w-6 text-primary" />
+                                            </div>
+                                            <ExternalLink
+                                                className="h-4 w-4 text-primary/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => window.open('/tickets', '_blank')}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-semibold text-primary uppercase tracking-wider">
+                                                {isTechnical && !isSuperAdmin ? "Mis Tickets Totales" : "Total Tickets"}
+                                            </p>
+                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.total}</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/20 text-primary">
+                                                    +12%
+                                                </span>
+                                                <span className="text-xs text-muted-foreground">vs last month</span>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}                                {/* Card 2: Critical Tickets - Clean design like In Progress */}
+                            <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-destructive/10 via-background to-destructive/5 overflow-hidden cursor-pointer animate-pulse duration-1000"
+                                onClick={() => fetchTicketsByStatus('open')}>
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="p-3 rounded-xl bg-destructive/20">
+                                            <AlertCircle className="h-6 w-6 text-destructive" />
+                                        </div>
+                                        <SearchIcon className="h-4 w-4 text-destructive/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-sm font-semibold text-destructive uppercase tracking-wider">
+                                            {isTechnical && !isSuperAdmin ? "Assigned Tickets" : "Open Tickets"}
+                                        </p>
+                                        <p className="text-3xl font-bold text-foreground">{metrics.tickets.open}</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-medium px-2 py-1 rounded-full bg-destructive/20 text-destructive">
+                                                {isTechnical && !isSuperAdmin ? "Active" : "Priority"}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {isTechnical && !isSuperAdmin ? "Your assignments" : "Immediate attention"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Card 3: In Progress - Enhanced for technicians */}
+                            <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-secondary/10 via-background to-secondary/5 overflow-hidden cursor-pointer"
+                                onClick={() => fetchTicketsByStatus('in_progress')}>
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="p-3 rounded-xl bg-secondary/20">
+                                            <Clock className="h-6 w-6 text-secondary" />
+                                        </div>
+                                        <SearchIcon className="h-4 w-4 text-secondary/60 opacity-0 group-hover:opacity-100 transition-opacity" />                                        </div>
+                                    <div className="space-y-2">
+                                        <p className="text-sm font-semibold text-secondary uppercase tracking-wider">
+                                            {isTechnical && !isSuperAdmin ? "In Progress - My Tickets" : "In Progress"}
+                                        </p>
+                                        <p className="text-3xl font-bold text-foreground">{metrics.tickets.in_progress}</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-medium px-2 py-1 rounded-full bg-secondary/20 text-secondary">
+                                                +8%
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {isTechnical && !isSuperAdmin ? "Active work" : "This week"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Card 4: Resolved - Enhanced for technicians */}
+                            <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-accent/10 via-background to-accent/5 overflow-hidden cursor-pointer"
+                                onClick={() => fetchTicketsByStatus('resolved')}>
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="p-3 rounded-xl bg-accent/20">
+                                            <CheckCircle className="h-6 w-6 text-accent" />
+                                        </div>
+                                        <SearchIcon className="h-4 w-4 text-accent/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-sm font-semibold text-accent uppercase tracking-wider">
+                                            {isTechnical && !isSuperAdmin ? "My Resolved Tickets" : "Resolved"}
+                                        </p>
+                                        <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved}</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-medium px-2 py-1 rounded-full bg-accent/20 text-accent">
+                                                +15%
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {isTechnical && !isSuperAdmin ? "My productivity" : "vs target"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Card 4: Upcoming Appointments - Only for technicians */}
+                            {(isTechnical && !isSuperAdmin && !isDefaultTechnical) && (
+                                <Card
+                                    className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden cursor-pointer"
+                                    onClick={() => window.open('/appointments', '_blank')}
+                                >
+                                    <CardContent className="p-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-3 rounded-xl bg-green-100">
+                                                <CalendarPlus className="h-6 w-6 text-green-600" />
+                                            </div>
+                                            <ExternalLink className="h-4 w-4 text-green-600/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">
+                                                Upcoming Appointments
+                                            </p>
+                                            <p className="text-3xl font-bold text-foreground">{metrics.technical.upcoming_visits}</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
+                                                    Scheduled
+                                                </span>
+                                                <span className="text-xs text-muted-foreground">go to calendar</span>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
                         </div>
 
-                            {/* Perfectly aligned metrics grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">                                {/* Card 1: Total Tickets - Hide for regular technicians */}
-                                {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-primary/10 via-background to-primary/5 overflow-hidden">
-                                        <CardContent className="p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-primary/20">
-                                                    <Ticket className="h-6 w-6 text-primary" />
-                                                </div>
-                                                <ExternalLink
-                                                    className="h-4 w-4 text-primary/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => window.open('/tickets', '_blank')}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-primary uppercase tracking-wider">
-                                                    {isTechnical && !isSuperAdmin ? "Mis Tickets Totales" : "Total Tickets"}
-                                                </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.total}</p>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/20 text-primary">
-                                                        +12%
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">vs last month</span>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )}                                {/* Card 2: Critical Tickets - Clean design like In Progress */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-destructive/10 via-background to-destructive/5 overflow-hidden cursor-pointer animate-pulse duration-1000"
-                                    onClick={() => fetchTicketsByStatus('open')}>
-                                    <CardContent className="p-6">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="p-3 rounded-xl bg-destructive/20">
-                                                <AlertCircle className="h-6 w-6 text-destructive" />
-                                            </div>
-                                            <SearchIcon className="h-4 w-4 text-destructive/60 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-destructive uppercase tracking-wider">
-                                                {isTechnical && !isSuperAdmin ? "Assigned Tickets" : "Open Tickets"}
-                                            </p>
-                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.open}</p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-destructive/20 text-destructive">
-                                                    {isTechnical && !isSuperAdmin ? "Active" : "Priority"}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {isTechnical && !isSuperAdmin ? "Your assignments" : "Immediate attention"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                {/* Card 3: In Progress - Enhanced for technicians */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-secondary/10 via-background to-secondary/5 overflow-hidden cursor-pointer"
-                                    onClick={() => fetchTicketsByStatus('in_progress')}>
-                                    <CardContent className="p-6">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="p-3 rounded-xl bg-secondary/20">
-                                                <Clock className="h-6 w-6 text-secondary" />
-                                            </div>
-                                            <SearchIcon className="h-4 w-4 text-secondary/60 opacity-0 group-hover:opacity-100 transition-opacity" />                                        </div>
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-secondary uppercase tracking-wider">
-                                                {isTechnical && !isSuperAdmin ? "In Progress - My Tickets" : "In Progress"}
-                                            </p>
-                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.in_progress}</p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-secondary/20 text-secondary">
-                                                    +8%
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {isTechnical && !isSuperAdmin ? "Active work" : "This week"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                {/* Card 4: Resolved - Enhanced for technicians */}
-                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-accent/10 via-background to-accent/5 overflow-hidden cursor-pointer"
-                                    onClick={() => fetchTicketsByStatus('resolved')}>
-                                    <CardContent className="p-6">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="p-3 rounded-xl bg-accent/20">
-                                                <CheckCircle className="h-6 w-6 text-accent" />
-                                            </div>
-                                            <SearchIcon className="h-4 w-4 text-accent/60 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-accent uppercase tracking-wider">
-                                                {isTechnical && !isSuperAdmin ? "My Resolved Tickets" : "Resolved"}
-                                            </p>
-                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved}</p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-accent/20 text-accent">
-                                                    +15%
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {isTechnical && !isSuperAdmin ? "My productivity" : "vs target"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                {/* Card 4: Upcoming Appointments - Only for technicians */}
-                                {(isTechnical && !isSuperAdmin && !isDefaultTechnical) && (
-                                    <Card 
-                                        className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden cursor-pointer"
-                                        onClick={() => window.open('/appointments', '_blank')}
-                                    >
-                                        <CardContent className="p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-green-100">
-                                                    <CalendarPlus className="h-6 w-6 text-green-600" />
-                                                </div>
-                                                <ExternalLink className="h-4 w-4 text-green-600/60 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">
-                                                    Upcoming Appointments
-                                                </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.technical.upcoming_visits}</p>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
-                                                        Scheduled
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">go to calendar</span>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )}
-                            </div>
-
-                            {/* Additional metrics cards - Second row - Hide for regular technicians */}
-                            {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* Additional metrics cards - Second row - Hide for regular technicians */}
+                        {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {/* Card 5: Unassigned (only visible for admins and default technicians) */}
                                 <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-3/10 via-background to-chart-3/5 overflow-hidden">
                                     <CardContent className="p-6">
@@ -2617,12 +2611,17 @@ export default function Dashboard({
                                             <div className="p-3 rounded-xl bg-orange-100">
                                                 <AlertTriangle className="h-6 w-6 text-orange-600" />
                                             </div>
-                                            {canAssignTickets && (
+                                            {canAssignTickets && metrics.tickets.unassigned > 0 && (
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    className="h-8 px-3 text-xs hover:bg-orange-50 border-orange-200 text-orange-700"
-                                                    onClick={() => window.open('/tickets/assign-unassigned', '_blank')}
+                                                    className="h-8 px-3 text-xs hover:bg-orange-50 hover:text-orange-900 border-orange-200 text-orange-700"
+                                                    onClick={() => {
+                                                        const section = document.querySelector('[data-section="unassigned-tickets"]');
+                                                        if (section) {
+                                                            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                        }
+                                                    }}
                                                 >
                                                     <UserPlus className="h-3 w-3 mr-1" />
                                                     Assign
@@ -2759,636 +2758,630 @@ export default function Dashboard({
                                         </div>
                                     </CardContent>
                                 </Card>                            </div>
-                            )}
-                        </div>
-
-
-                        {/* SECTION: ENHANCED UNASSIGNED TICKETS TABLE */}
-                        {lists.unassignedTickets && lists.unassignedTickets.length > 0 && (
-                            <div className="space-y-12">
-                                {/* Premium Header Section */}
-                                <div className="text-center space-y-6">
-                                    <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-orange-100 to-orange-50 rounded-full shadow-lg">
-                                        <AlertTriangle className="h-6 w-6 text-orange-600" />
-                                        <span className="text-sm font-bold text-orange-700 uppercase tracking-wider">
-                                            Immediate Action Required
-                                        </span>
-                                    </div>
-                                    <h2 className="text-4xl font-bold bg-gradient-to-br from-orange-600 to-orange-800 bg-clip-text text-transparent">
-                                        Unassigned Tickets
-                                    </h2>
-                                    <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                                        Critical tickets awaiting technical assignment - streamlined management for maximum efficiency
-                                    </p>
-                                </div>
-
-                                {/* Enhanced Card Container */}
-                                <Card className="group border-0 shadow-2xl bg-gradient-to-br from-white via-slate-50/30 to-orange-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-3xl hover:-translate-y-1 overflow-hidden">
-                                    {/* Animated gradient border */}
-                                    <div className="absolute inset-0 bg-gradient-to-r from-orange-200/30 via-transparent to-orange-200/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                    
-                                    {/* Premium Header */}
-                                    <CardHeader className="relative border-b border-gradient-to-r from-orange-200/50 via-slate-200/30 to-orange-200/50 bg-gradient-to-r from-orange-50/50 via-white to-slate-50/50 backdrop-blur-sm">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="relative">
-                                                    <div className="p-3 rounded-xl bg-gradient-to-br from-orange-100 to-orange-200 shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                                        <AlertTriangle className="h-6 w-6 text-orange-700" />
-                                                    </div>
-                                                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                                                        <span className="text-xs font-bold text-white">{lists.unassignedTickets.length}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <CardTitle className="text-2xl font-bold text-slate-800 group-hover:text-orange-700 transition-colors">
-                                                        Critical Unassigned Queue
-                                                    </CardTitle>
-                                                    <p className="text-sm text-slate-600 font-medium">
-                                                        Managing {lists.unassignedTickets.length} urgent ticket{lists.unassignedTickets.length !== 1 ? 's' : ''} requiring immediate technical assignment
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="px-3 py-2 bg-gradient-to-r from-orange-100 to-orange-200 rounded-lg border border-orange-300">
-                                                    <span className="text-sm font-bold text-orange-700">Priority: High</span>
-                                                </div>
-                                                <Button
-                                                    variant="outline"
-                                                    size="lg"
-                                                    className="bg-gradient-to-r from-orange-100 to-orange-200 border-orange-300 text-orange-700 hover:from-orange-200 hover:to-orange-300 hover:border-orange-400 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group"
-                                                    onClick={() => window.open('/tickets', '_blank')}
-                                                >
-                                                    <UserPlus className="h-5 w-5 mr-2" />
-                                                    Bulk Assignment Portal
-                                                    <ExternalLink className="h-4 w-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </CardHeader>
-
-                                    {/* Enhanced Table Content */}
-                                    <CardContent className="relative p-0 overflow-hidden">
-                                        {/* Animated background pattern */}
-                                        <div className="absolute inset-0 opacity-5">
-                                            <div className="absolute inset-0 bg-gradient-to-br from-orange-100 via-transparent to-slate-100 animate-pulse duration-3000"></div>
-                                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 via-red-500 to-orange-400 animate-pulse"></div>
-                                        </div>
-
-                                        <div className="relative overflow-x-auto custom-scrollbar">
-                                            <table className="w-full border-collapse">
-                                                {/* Premium Table Header */}
-                                                <thead className="bg-gradient-to-r from-slate-100/50 via-orange-50/30 to-slate-100/50 sticky top-0 z-10">
-                                                    <tr className="border-b-2 border-orange-200/50">
-                                                        <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
-                                                            <div className="flex items-center gap-2">
-                                                                <Ticket className="h-4 w-4 text-orange-600" />
-                                                                Ticket Details
-                                                            </div>
-                                                        </th>
-                                                        <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
-                                                            <div className="flex items-center gap-2">
-                                                                <MapPin className="h-4 w-4 text-orange-600" />
-                                                                Location
-                                                            </div>
-                                                        </th>
-                                                        <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
-                                                            <div className="flex items-center gap-2">
-                                                                <Monitor className="h-4 w-4 text-orange-600" />
-                                                                Device
-                                                            </div>
-                                                        </th>
-                                                        <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
-                                                            <div className="flex items-center gap-2">
-                                                                <Activity className="h-4 w-4 text-orange-600" />
-                                                                Category
-                                                            </div>
-                                                        </th>
-                                                        <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
-                                                            <div className="flex items-center gap-2">
-                                                                <Clock className="h-4 w-4 text-orange-600" />
-                                                                Created
-                                                            </div>
-                                                        </th>
-                                                        <th className="text-center py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <Zap className="h-4 w-4 text-orange-600" />
-                                                                Quick Actions
-                                                            </div>
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-
-                                                {/* Enhanced Table Body */}
-                                                <tbody className="divide-y divide-slate-100/50">
-                                                    {lists.unassignedTickets.length > 0 ? (
-                                                        lists.unassignedTickets.map((ticket, index) => (
-                                                            <UnassignedTicketRow
-                                                                key={ticket.id}
-                                                                ticket={ticket}
-                                                                index={index}
-                                                                technicals={lists.availableTechnicals}
-                                                            />
-                                                        ))
-                                                    ) : (
-                                                        <tr className="relative group">
-                                                            {/* Animated gradient background for empty state */}
-                                                            <td colSpan={6} className="relative py-20 text-center overflow-hidden">
-                                                                {/* Premium background with multiple gradients */}
-                                                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-green-25 to-teal-50 opacity-80"></div>
-                                                                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-green-100/30 to-transparent"></div>
-                                                                
-                                                                {/* Floating elements */}
-                                                                <div className="absolute top-4 left-4 w-3 h-3 bg-green-400 rounded-full animate-ping opacity-60"></div>
-                                                                <div className="absolute top-8 right-8 w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                                                <div className="absolute bottom-6 left-1/3 w-4 h-4 bg-teal-400 rounded-full animate-bounce opacity-40"></div>
-                                                                
-                                                                <div className="relative z-10 space-y-6">
-                                                                    {/* Premium success icon */}
-                                                                    <div className="relative inline-flex">
-                                                                        <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full blur-lg opacity-30 animate-pulse"></div>
-                                                                        <div className="relative flex items-center justify-center">
-                                                                            <CheckCircle className="h-20 w-20 text-green-500 drop-shadow-lg animate-bounce" />
-                                                                            <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-xl animate-pulse">
-                                                                                <Check className="h-4 w-4 text-white font-bold" />
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                    
-                                                                    {/* Enhanced messaging */}
-                                                                    <div className="space-y-4">
-                                                                        <h3 className="text-2xl font-black text-green-800 tracking-tight">
-                                                                            🎉 Outstanding Performance!
-                                                                        </h3>
-                                                                        <p className="text-lg font-bold text-green-700">
-                                                                            All tickets successfully assigned to technical team
-                                                                        </p>
-                                                                        <p className="text-sm text-green-600 max-w-lg mx-auto leading-relaxed font-medium">
-                                                                            Exceptional workflow management - every support request has been efficiently distributed 
-                                                                            to qualified technicians. The system is running at optimal efficiency.
-                                                                        </p>
-                                                                    </div>
-                                                                    
-                                                                    {/* Status indicators */}
-                                                                    <div className="flex items-center justify-center gap-4 pt-4">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
-                                                                            <span className="text-xs text-green-700 font-bold uppercase tracking-wider">System Optimized</span>
-                                                                        </div>
-                                                                        <div className="w-1 h-1 bg-green-400 rounded-full"></div>
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Activity className="h-3 w-3 text-green-600" />
-                                                                            <span className="text-xs text-green-600 font-semibold">100% Efficiency</span>
-                                                                        </div>
-                                                                        <div className="w-1 h-1 bg-green-400 rounded-full"></div>
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Users className="h-3 w-3 text-green-600" />
-                                                                            <span className="text-xs text-green-600 font-semibold">Team Active</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    
-                                                                    {/* Achievement badge */}
-                                                                    <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full text-white shadow-xl mt-6">
-                                                                        <CheckCircle className="h-5 w-5" />
-                                                                        <span className="text-sm font-bold uppercase tracking-wider">Perfect Assignment Rate</span>
-                                                                        <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                    </CardContent>
-                                </Card>
-                            </div>
                         )}
+                    </div>
 
 
-
-                        {/* DOORMAN/OWNER SPECIFIC DASHBOARD SECTION */}
-                        {(isDoorman || isOwner) && (
-                            <div className="space-y-8">
-                                <div className="text-center space-y-4">
-                                    <h2 className="text-4xl font-bold text-foreground">
-                                        {isOwner ? "Owner Dashboard" : "Doorman Dashboard"}
-                                    </h2>
-                                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                                        Building management overview and resident ticket monitoring
-                                    </p>
+                    {/* SECTION: ENHANCED UNASSIGNED TICKETS TABLE */}
+                    {lists.unassignedTickets && lists.unassignedTickets.length > 0 && (
+                        <div className="space-y-12" data-section="unassigned-tickets">
+                            {/* Premium Header Section */}
+                            <div className="text-center space-y-6">
+                                <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-orange-100 to-orange-50 rounded-full shadow-lg">
+                                    <AlertTriangle className="h-6 w-6 text-orange-600" />
+                                    <span className="text-sm font-bold text-orange-700 uppercase tracking-wider">
+                                        Immediate Action Required
+                                    </span>
                                 </div>
+                                <h2 className="text-4xl font-bold bg-gradient-to-br from-orange-600 to-orange-800 bg-clip-text text-transparent">
+                                    Unassigned Tickets
+                                </h2>
+                                <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                                    Critical tickets awaiting technical assignment - streamlined management for maximum efficiency
+                                </p>
+                            </div>
 
-                                {/* Building Overview & Apartment Breakdown */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Enhanced Tickets by Apartment */}
-                                    <Card className="group col-span-1 border-0 shadow-xl bg-gradient-to-br from-slate-50/50 via-background to-slate-100/50 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-slate-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
-                                        <CardHeader className="relative border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-background pb-6">
-                                            <CardTitle className="flex items-center gap-3 text-xl">
-                                                <div className="p-3 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                                                    <Home className="h-6 w-6 text-slate-700" />
+                            {/* Enhanced Card Container */}
+                            <Card className="group border-0 shadow-2xl bg-gradient-to-br from-white via-slate-50/30 to-orange-50/20 backdrop-blur-sm transition-all duration-500 hover:shadow-3xl hover:-translate-y-1 overflow-hidden">
+                                {/* Animated gradient border */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-orange-200/30 via-transparent to-orange-200/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                                {/* Premium Header */}
+                                <CardHeader className="relative border-b border-gradient-to-r from-orange-200/50 via-slate-200/30 to-orange-200/50 bg-gradient-to-r from-orange-50/50 via-white to-slate-50/50 backdrop-blur-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative">
+                                                <div className="p-3 rounded-xl bg-gradient-to-br from-orange-100 to-orange-200 shadow-lg group-hover:shadow-xl transition-all duration-300">
+                                                    <AlertTriangle className="h-6 w-6 text-orange-700" />
                                                 </div>
-                                                <div>
-                                                    <h3 className="text-xl font-bold text-foreground">Tickets by Apartment</h3>
-                                                    <p className="text-sm text-muted-foreground font-normal">Building unit distribution</p>
+                                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                                                    <span className="text-xs font-bold text-white">{lists.unassignedTickets.length}</span>
                                                 </div>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="relative p-6">
-                                            <div className="space-y-4">
-                                                {metrics.building && metrics.building.tickets_by_apartment && Object.entries(metrics.building.tickets_by_apartment).slice(0, 6).map(([apartment, data], index) => {
-                                                    // Handle both simple count and complex object data
-                                                    const count = typeof data === 'object' && data !== null ? (data.count || 0) : (data || 0);
-                                                    const apartmentName = typeof data === 'object' && data !== null ? (data.apartment_name || apartment) : apartment;
-                                                    const floor = typeof data === 'object' && data !== null ? data.floor : null;
-                                                    
-                                                    return (
-                                                        <div key={apartment} 
-                                                             className="group/item flex items-center justify-between p-5 bg-gradient-to-r from-white/80 via-white/70 to-white/80 rounded-xl hover:from-white/95 hover:via-white/90 hover:to-white/95 transition-all duration-300 shadow-sm hover:shadow-xl border border-slate-200/50 hover:border-slate-300/70 cursor-pointer transform hover:-translate-y-1"
-                                                             style={{animationDelay: `${index * 100}ms`}}>
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="relative w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 via-primary/15 to-primary/10 flex items-center justify-center shadow-lg group-hover/item:shadow-xl transition-all duration-300 group-hover/item:scale-110">
-                                                                    <Home className="w-7 h-7 text-primary transition-transform duration-300 group-hover/item:scale-110" />
-                                                                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <CardTitle className="text-2xl font-bold text-slate-800 group-hover:text-orange-700 transition-colors">
+                                                    Critical Unassigned Queue
+                                                </CardTitle>
+                                                <p className="text-sm text-slate-600 font-medium">
+                                                    Managing {lists.unassignedTickets.length} urgent ticket{lists.unassignedTickets.length !== 1 ? 's' : ''} requiring immediate technical assignment
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="px-3 py-2 bg-gradient-to-r from-orange-100 to-orange-200 rounded-lg border border-orange-300">
+                                                <span className="text-sm font-bold text-orange-700">Priority: High</span>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="lg"
+                                                className="bg-gradient-to-r from-orange-100 to-orange-200 border-orange-300 text-orange-700 hover:from-orange-200 hover:to-orange-300 hover:border-orange-400 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group"
+                                                onClick={() => window.open('/tickets', '_blank')}
+                                            >
+                                                <UserPlus className="h-5 w-5 mr-2" />
+                                                Bulk Assignment Portal
+                                                <ExternalLink className="h-4 w-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+
+                                {/* Enhanced Table Content */}
+                                <CardContent className="relative p-0 overflow-hidden">
+                                    {/* Animated background pattern */}
+                                    <div className="absolute inset-0 opacity-5">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-orange-100 via-transparent to-slate-100 animate-pulse duration-3000"></div>
+                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 via-red-500 to-orange-400 animate-pulse"></div>
+                                    </div>
+
+                                    <div className="relative overflow-x-auto custom-scrollbar">
+                                        <table className="w-full border-collapse">
+                                            {/* Premium Table Header */}
+                                            <thead className="bg-gradient-to-r from-slate-100/50 via-orange-50/30 to-slate-100/50 sticky top-0 z-10">
+                                                <tr className="border-b-2 border-orange-200/50">
+                                                    <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                        <div className="flex items-center gap-2">
+                                                            <Ticket className="h-4 w-4 text-orange-600" />
+                                                            Ticket Details
+                                                        </div>
+                                                    </th>
+                                                    <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                        <div className="flex items-center gap-2">
+                                                            <MapPin className="h-4 w-4 text-orange-600" />
+                                                            Location
+                                                        </div>
+                                                    </th>
+                                                    <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                        <div className="flex items-center gap-2">
+                                                            <Monitor className="h-4 w-4 text-orange-600" />
+                                                            Device
+                                                        </div>
+                                                    </th>
+                                                    <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                        <div className="flex items-center gap-2">
+                                                            <Activity className="h-4 w-4 text-orange-600" />
+                                                            Category
+                                                        </div>
+                                                    </th>
+                                                    <th className="text-left py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                        <div className="flex items-center gap-2">
+                                                            <Clock className="h-4 w-4 text-orange-600" />
+                                                            Created
+                                                        </div>
+                                                    </th>
+                                                    <th className="text-center py-6 px-8 font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <Zap className="h-4 w-4 text-orange-600" />
+                                                            Quick Actions
+                                                        </div>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+
+                                            {/* Enhanced Table Body */}
+                                            <tbody className="divide-y divide-slate-100/50">
+                                                {lists.unassignedTickets.length > 0 ? (
+                                                    lists.unassignedTickets.map((ticket, index) => (
+                                                        <UnassignedTicketRow
+                                                            key={ticket.id}
+                                                            ticket={ticket}
+                                                            index={index}
+                                                            technicals={lists.availableTechnicals}
+                                                        />
+                                                    ))
+                                                ) : (
+                                                    <tr className="relative group">
+                                                        {/* Animated gradient background for empty state */}
+                                                        <td colSpan={6} className="relative py-20 text-center overflow-hidden">
+                                                            {/* Premium background with multiple gradients */}
+                                                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-green-25 to-teal-50 opacity-80"></div>
+                                                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-green-100/30 to-transparent"></div>
+
+                                                            {/* Floating elements */}
+                                                            <div className="absolute top-4 left-4 w-3 h-3 bg-green-400 rounded-full animate-ping opacity-60"></div>
+                                                            <div className="absolute top-8 right-8 w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                                            <div className="absolute bottom-6 left-1/3 w-4 h-4 bg-teal-400 rounded-full animate-bounce opacity-40"></div>
+
+                                                            <div className="relative z-10 space-y-6">
+                                                                {/* Premium success icon */}
+                                                                <div className="relative inline-flex">
+                                                                    <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full blur-lg opacity-30 animate-pulse"></div>
+                                                                    <div className="relative flex items-center justify-center">
+                                                                        <CheckCircle className="h-20 w-20 text-green-500 drop-shadow-lg animate-bounce" />
+                                                                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-xl animate-pulse">
+                                                                            <Check className="h-4 w-4 text-white font-bold" />
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                                <div>
-                                                                    <p className="font-bold text-lg text-slate-900 group-hover/item:text-primary transition-colors duration-300">{apartmentName}</p>
-                                                                    <p className="text-sm text-slate-600 group-hover/item:text-slate-700 transition-colors duration-300 flex items-center gap-2">
-                                                                        <Building className="w-4 h-4" />
-                                                                        {floor ? `Floor ${floor} • Unit` : 'Apartment unit'}
+
+                                                                {/* Enhanced messaging */}
+                                                                <div className="space-y-4">
+                                                                    <h3 className="text-2xl font-black text-green-800 tracking-tight">
+                                                                        🎉 Outstanding Performance!
+                                                                    </h3>
+                                                                    <p className="text-lg font-bold text-green-700">
+                                                                        All tickets successfully assigned to technical team
+                                                                    </p>
+                                                                    <p className="text-sm text-green-600 max-w-lg mx-auto leading-relaxed font-medium">
+                                                                        Exceptional workflow management - every support request has been efficiently distributed
+                                                                        to qualified technicians. The system is running at optimal efficiency.
                                                                     </p>
                                                                 </div>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <p className="text-3xl font-black text-slate-900 group-hover/item:text-primary transition-colors duration-300">{count}</p>
-                                                                <p className="text-xs text-slate-600 uppercase tracking-widest font-bold group-hover/item:text-slate-700 transition-colors duration-300">tickets</p>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                                {(!metrics.building?.tickets_by_apartment || Object.keys(metrics.building.tickets_by_apartment).length === 0) && (
-                                                    <div className="text-center py-16 text-slate-500">
-                                                        <div className="relative mx-auto mb-8 w-24 h-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shadow-lg">
-                                                            <Home className="w-12 h-12 opacity-40" />
-                                                        </div>
-                                                        <p className="text-xl font-bold mb-2">No apartment data available</p>
-                                                        <p className="text-sm">Apartment ticket breakdown will appear here</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
 
-                                    {/* Enhanced Building Statistics */}
-                                    <Card className="group col-span-1 border-0 shadow-xl bg-gradient-to-br from-emerald-50/50 via-background to-emerald-100/50 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
-                                        <CardHeader className="relative border-b border-emerald-200/50 bg-gradient-to-r from-emerald-50 to-background pb-6">
-                                            <CardTitle className="flex items-center gap-3 text-xl">
-                                                <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-300 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                                                    <Building className="h-6 w-6 text-emerald-700" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-xl font-bold text-foreground">Building Overview</h3>
-                                                    <p className="text-sm text-muted-foreground font-normal">Resource statistics</p>
-                                                </div>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="relative p-6">
-                                            <div className="space-y-6">
-                                                <div className="grid grid-cols-2 gap-5">
-                                                    <div className="group/stat bg-gradient-to-br from-blue-50 via-blue-100/90 to-blue-200/80 p-6 rounded-xl border border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                                                        <div className="flex items-center gap-3 mb-3">
-                                                            <div className="p-2 rounded-lg bg-blue-200/70 group-hover/stat:bg-blue-300/80 transition-colors duration-300">
-                                                                <Building className="w-5 h-5 text-blue-700" />
-                                                            </div>
-                                                            <span className="text-sm font-bold text-blue-700 uppercase tracking-widest">Apartments</span>
-                                                        </div>
-                                                        <p className="text-4xl font-black text-blue-700 group-hover/stat:text-blue-800 transition-colors duration-300">{metrics.resources?.apartments || 0}</p>
-                                                    </div>
-                                                    <div className="group/stat bg-gradient-to-br from-green-50 via-green-100/90 to-green-200/80 p-6 rounded-xl border border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                                                        <div className="flex items-center gap-3 mb-3">
-                                                            <div className="p-2 rounded-lg bg-green-200/70 group-hover/stat:bg-green-300/80 transition-colors duration-300">
-                                                                <Users className="w-5 h-5 text-green-700" />
-                                                            </div>
-                                                            <span className="text-sm font-bold text-green-700 uppercase tracking-widest">Tenants</span>
-                                                        </div>
-                                                        <p className="text-4xl font-black text-green-700 group-hover/stat:text-green-800 transition-colors duration-300">{metrics.resources?.tenants || 0}</p>
-                                                    </div>
-                                                    <div className="group/stat bg-gradient-to-br from-purple-50 via-purple-100/90 to-purple-200/80 p-6 rounded-xl border border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                                                        <div className="flex items-center gap-3 mb-3">
-                                                            <div className="p-2 rounded-lg bg-purple-200/70 group-hover/stat:bg-purple-300/80 transition-colors duration-300">
-                                                                <Monitor className="w-5 h-5 text-purple-700" />
-                                                            </div>
-                                                            <span className="text-sm font-bold text-purple-700 uppercase tracking-widest">Devices</span>
-                                                        </div>
-                                                        <p className="text-4xl font-black text-purple-700 group-hover/stat:text-purple-800 transition-colors duration-300">{metrics.resources?.devices || 0}</p>
-                                                    </div>
-                                                    <div className="group/stat bg-gradient-to-br from-orange-50 via-orange-100/90 to-orange-200/80 p-6 rounded-xl border border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                                                        <div className="flex items-center gap-3 mb-3">
-                                                            <div className="p-2 rounded-lg bg-orange-200/70 group-hover/stat:bg-orange-300/80 transition-colors duration-300">
-                                                                <Clock className="w-5 h-5 text-orange-700" />
-                                                            </div>
-                                                            <span className="text-sm font-bold text-orange-700 uppercase tracking-widest">Avg Time</span>
-                                                        </div>
-                                                        <p className="text-4xl font-black text-orange-700 group-hover/stat:text-orange-800 transition-colors duration-300">{metrics.tickets.avg_resolution_hours || 0}h</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-
-                                {/* Recent Activity & Enhanced Notifications */}
-                                <div className="grid grid-cols-1  gap-8">
-                                    {/* Enhanced Recent Tickets */}
-                                    <Card className="group col-span-2 border-0 shadow-xl bg-gradient-to-br from-slate-50/50 via-background to-slate-100/50 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-slate-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
-                                        <CardHeader className="relative border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-background pb-6">
-                                            <CardTitle className="flex items-center gap-3 text-xl">
-                                                <div className="p-3 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                                                    <Clock className="h-6 w-6 text-slate-700" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-xl font-bold text-foreground">Recent Ticket Activity</h3>
-                                                    <p className="text-sm text-muted-foreground font-normal">Latest service requests</p>
-                                                </div>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="relative p-6">
-                                            <div className="space-y-4">
-                                                {lists.recentTickets && lists.recentTickets.slice(0, 5).map((ticket, index) => (
-                                                    <div key={ticket.id} 
-                                                         className="group/ticket flex items-center justify-between p-5 bg-gradient-to-r from-white/80 via-white/70 to-white/80 rounded-xl hover:from-white/95 hover:via-white/90 hover:to-white/95 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl border border-slate-200/50 hover:border-slate-300/70 transform hover:-translate-y-1"
-                                                         onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}
-                                                         style={{animationDelay: `${index * 100}ms`}}>
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="relative">
-                                                                <div className={`w-5 h-5 rounded-full shadow-lg transition-all duration-300 group-hover/ticket:scale-125 ${
-                                                                    ticket.status === 'open' ? 'bg-gradient-to-br from-blue-400 to-blue-600' :
-                                                                    ticket.status === 'in_progress' ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
-                                                                    ticket.status === 'resolved' ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-gray-400 to-gray-600'
-                                                                }`} />
-                                                                <div className={`absolute inset-0 rounded-full animate-pulse ${
-                                                                    ticket.status === 'open' ? 'bg-blue-400' :
-                                                                    ticket.status === 'in_progress' ? 'bg-yellow-400' :
-                                                                    ticket.status === 'resolved' ? 'bg-green-400' : 'bg-gray-400'
-                                                                } opacity-30`} />
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <p className="font-bold text-lg text-slate-900 truncate max-w-sm group-hover/ticket:text-primary transition-colors duration-300">{ticket.title}</p>
-                                                                <div className="flex items-center gap-3 text-sm text-slate-600 group-hover/ticket:text-slate-700 transition-colors duration-300">
-                                                                    <div className="flex items-center gap-1">
-                                                                        <Users className="w-4 h-4" />
-                                                                        <span className="font-medium">{ticket.user?.name || 'Unknown'}</span>
+                                                                {/* Status indicators */}
+                                                                <div className="flex items-center justify-center gap-4 pt-4">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
+                                                                        <span className="text-xs text-green-700 font-bold uppercase tracking-wider">System Optimized</span>
                                                                     </div>
-                                                                    <span>•</span>
-                                                                    <div className="flex items-center gap-1">
-                                                                        <Home className="w-4 h-4" />
-                                                                        <span className="font-medium">{ticket.device?.apartment?.name || 'No apt'}</span>
+                                                                    <div className="w-1 h-1 bg-green-400 rounded-full"></div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Activity className="h-3 w-3 text-green-600" />
+                                                                        <span className="text-xs text-green-600 font-semibold">100% Efficiency</span>
+                                                                    </div>
+                                                                    <div className="w-1 h-1 bg-green-400 rounded-full"></div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Users className="h-3 w-3 text-green-600" />
+                                                                        <span className="text-xs text-green-600 font-semibold">Team Active</span>
                                                                     </div>
                                                                 </div>
+
+                                                                {/* Achievement badge */}
+                                                                <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full text-white shadow-xl mt-6">
+                                                                    <CheckCircle className="h-5 w-5" />
+                                                                    <span className="text-sm font-bold uppercase tracking-wider">Perfect Assignment Rate</span>
+                                                                    <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <div className="text-right flex flex-col items-end gap-2">
-                                                            <Badge variant={
-                                                                ticket.status === 'open' ? 'default' :
-                                                                ticket.status === 'in_progress' ? 'secondary' :
-                                                                ticket.status === 'resolved' ? 'default' : 'outline'
-                                                            } className={`font-bold px-3 py-1 transition-all duration-300 group-hover/ticket:scale-105 ${
-                                                                ticket.status === 'open' ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300 shadow-lg' : ''
-                                                            } ${
-                                                                ticket.status === 'in_progress' ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300 shadow-lg' : ''
-                                                            } ${
-                                                                ticket.status === 'resolved' ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-lg' : ''
-                                                            }`}>
-                                                                {ticket.status}
-                                                            </Badge>
-                                                            <div className="opacity-0 group-hover/ticket:opacity-100 transition-opacity duration-300">
-                                                                <ExternalLink className="w-4 h-4 text-slate-400" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                {(!lists.recentTickets || lists.recentTickets.length === 0) && (
-                                                    <div className="text-center py-16 text-slate-500">
-                                                        <div className="relative mx-auto mb-8 w-24 h-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shadow-lg">
-                                                            <Clock className="w-12 h-12 opacity-40" />
-                                                        </div>
-                                                        <p className="text-xl font-bold mb-2">No recent activity</p>
-                                                        <p className="text-sm">Recent tickets will appear here</p>
-                                                    </div>
+                                                        </td>
+                                                    </tr>
                                                 )}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                            </tbody>
+                                        </table>
+                                    </div>
 
-                            
-                                </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
 
-                             
+
+
+                    {/* DOORMAN/OWNER SPECIFIC DASHBOARD SECTION */}
+                    {(isDoorman || isOwner) && (
+                        <div className="space-y-8">
+                            <div className="text-center space-y-4">
+                                <h2 className="text-4xl font-bold text-foreground">
+                                    {isOwner ? "Owner Dashboard" : "Doorman Dashboard"}
+                                </h2>
+                                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                                    Building management overview and resident ticket monitoring
+                                </p>
                             </div>
-                        )}
 
-                        {/* TENANT SPECIFIC DASHBOARD SECTION */}
-                        {isTenant && (
-                            <div className="space-y-8">
-                                <div className="text-center space-y-4">
-                                    <h2 className="text-4xl font-bold text-foreground">
-                                        Tenant Dashboard
-                                    </h2>
-                                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                                        Monitor your tickets and service requests
-                                    </p>
-                                </div>
+                            {/* Building Overview & Apartment Breakdown */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* Enhanced Tickets by Apartment */}
+                                <Card className="group col-span-1 border-0 shadow-xl bg-gradient-to-br from-slate-50/50 via-background to-slate-100/50 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+                                    <CardHeader className="relative border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-background pb-6">
+                                        <CardTitle className="flex items-center gap-3 text-xl">
+                                            <div className="p-3 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                                                <Home className="h-6 w-6 text-slate-700" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-foreground">Tickets by Apartment</h3>
+                                                <p className="text-sm text-muted-foreground font-normal">Building unit distribution</p>
+                                            </div>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="relative p-6">
+                                        <div className="space-y-4">
+                                            {metrics.building && metrics.building.tickets_by_apartment && Object.entries(metrics.building.tickets_by_apartment).slice(0, 6).map(([apartment, data], index) => {
+                                                // Handle both simple count and complex object data
+                                                const count = typeof data === 'object' && data !== null ? (data.count || 0) : (data || 0);
+                                                const apartmentName = typeof data === 'object' && data !== null ? (data.apartment_name || apartment) : apartment;
+                                                const floor = typeof data === 'object' && data !== null ? data.floor : null;
 
-                                {/* Tenant Tickets Overview */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {/* Open Tickets */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-background to-blue-100 overflow-hidden">
-                                        <CardContent className="p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-blue-100">
-                                                    <AlertCircle className="h-6 w-6 text-blue-600" />
-                                                </div>
-                                                <ExternalLink
-                                                    className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => window.open('/tickets?status=open', '_blank')}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">
-                                                    Open Tickets
-                                                </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.open || 0}</p>
-                                                <p className="text-xs text-muted-foreground">Awaiting service</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* In Progress Tickets */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-yellow-50 via-background to-yellow-100 overflow-hidden">
-                                        <CardContent className="p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-yellow-100">
-                                                    <Clock className="h-6 w-6 text-yellow-600" />
-                                                </div>
-                                                <ExternalLink
-                                                    className="h-4 w-4 text-yellow-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => window.open('/tickets?status=in_progress', '_blank')}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-yellow-600 uppercase tracking-wider">
-                                                    In Progress
-                                                </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.in_progress || 0}</p>
-                                                <p className="text-xs text-muted-foreground">Being worked on</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Resolved Tickets */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden">
-                                        <CardContent className="p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="p-3 rounded-xl bg-green-100">
-                                                    <CheckCircle className="h-6 w-6 text-green-600" />
-                                                </div>
-                                                <ExternalLink
-                                                    className="h-4 w-4 text-green-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => window.open('/tickets?status=resolved', '_blank')}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">
-                                                    Resolved
-                                                </p>
-                                                <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved || 0}</p>
-                                                <p className="text-xs text-muted-foreground">Completed tickets</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-
-                                {/* Recent Tickets & Apartment Info */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* My Recent Tickets */}
-                                    <Card className="col-span-1">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2">
-                                                <Ticket className="h-5 w-5 text-primary" />
-                                                My Recent Tickets
-                                            </CardTitle>
-                                            <CardDescription>
-                                                View the status of your recent service requests
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="space-y-3">
-                                                {lists.recentTickets && lists.recentTickets.length > 0 ? lists.recentTickets.slice(0, 5).map((ticket) => (
-                                                    <div key={ticket.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                                                         onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}>
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`w-3 h-3 rounded-full ${
-                                                                ticket.status === 'open' ? 'bg-blue-500' :
-                                                                ticket.status === 'in_progress' ? 'bg-yellow-500' :
-                                                                ticket.status === 'resolved' ? 'bg-green-500' : 'bg-gray-500'
-                                                            }`} />
+                                                return (
+                                                    <div key={apartment}
+                                                        className="group/item flex items-center justify-between p-5 bg-gradient-to-r from-white/80 via-white/70 to-white/80 rounded-xl hover:from-white/95 hover:via-white/90 hover:to-white/95 transition-all duration-300 shadow-sm hover:shadow-xl border border-slate-200/50 hover:border-slate-300/70 cursor-pointer transform hover:-translate-y-1"
+                                                        style={{ animationDelay: `${index * 100}ms` }}>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="relative w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 via-primary/15 to-primary/10 flex items-center justify-center shadow-lg group-hover/item:shadow-xl transition-all duration-300 group-hover/item:scale-110">
+                                                                <Home className="w-7 h-7 text-primary transition-transform duration-300 group-hover/item:scale-110" />
+                                                                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300" />
+                                                            </div>
                                                             <div>
-                                                                <p className="font-medium text-slate-900 truncate max-w-xs">{ticket.title}</p>
-                                                                <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                                    <span>{formatDate(ticket.created_at)}</span>
-                                                                    <span>â€¢</span>
-                                                                    <span>{ticket.device?.apartment?.name || 'No apt'}</span>
-                                                                </div>
+                                                                <p className="font-bold text-lg text-slate-900 group-hover/item:text-primary transition-colors duration-300">{apartmentName}</p>
+                                                                <p className="text-sm text-slate-600 group-hover/item:text-slate-700 transition-colors duration-300 flex items-center gap-2">
+                                                                    <Building className="w-4 h-4" />
+                                                                    {floor ? `Floor ${floor} • Unit` : 'Apartment unit'}
+                                                                </p>
                                                             </div>
                                                         </div>
                                                         <div className="text-right">
-                                                            <Badge variant={
-                                                                ticket.status === 'open' ? 'default' :
+                                                            <p className="text-3xl font-black text-slate-900 group-hover/item:text-primary transition-colors duration-300">{count}</p>
+                                                            <p className="text-xs text-slate-600 uppercase tracking-widest font-bold group-hover/item:text-slate-700 transition-colors duration-300">tickets</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {(!metrics.building?.tickets_by_apartment || Object.keys(metrics.building.tickets_by_apartment).length === 0) && (
+                                                <div className="text-center py-16 text-slate-500">
+                                                    <div className="relative mx-auto mb-8 w-24 h-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shadow-lg">
+                                                        <Home className="w-12 h-12 opacity-40" />
+                                                    </div>
+                                                    <p className="text-xl font-bold mb-2">No apartment data available</p>
+                                                    <p className="text-sm">Apartment ticket breakdown will appear here</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Enhanced Building Statistics */}
+                                <Card className="group col-span-1 border-0 shadow-xl bg-gradient-to-br from-emerald-50/50 via-background to-emerald-100/50 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+                                    <CardHeader className="relative border-b border-emerald-200/50 bg-gradient-to-r from-emerald-50 to-background pb-6">
+                                        <CardTitle className="flex items-center gap-3 text-xl">
+                                            <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-300 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                                                <Building className="h-6 w-6 text-emerald-700" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-foreground">Building Overview</h3>
+                                                <p className="text-sm text-muted-foreground font-normal">Resource statistics</p>
+                                            </div>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="relative p-6">
+                                        <div className="space-y-6">
+                                            <div className="grid grid-cols-2 gap-5">
+                                                <div className="group/stat bg-gradient-to-br from-blue-50 via-blue-100/90 to-blue-200/80 p-6 rounded-xl border border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="p-2 rounded-lg bg-blue-200/70 group-hover/stat:bg-blue-300/80 transition-colors duration-300">
+                                                            <Building className="w-5 h-5 text-blue-700" />
+                                                        </div>
+                                                        <span className="text-sm font-bold text-blue-700 uppercase tracking-widest">Apartments</span>
+                                                    </div>
+                                                    <p className="text-4xl font-black text-blue-700 group-hover/stat:text-blue-800 transition-colors duration-300">{metrics.resources?.apartments || 0}</p>
+                                                </div>
+                                                <div className="group/stat bg-gradient-to-br from-green-50 via-green-100/90 to-green-200/80 p-6 rounded-xl border border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="p-2 rounded-lg bg-green-200/70 group-hover/stat:bg-green-300/80 transition-colors duration-300">
+                                                            <Users className="w-5 h-5 text-green-700" />
+                                                        </div>
+                                                        <span className="text-sm font-bold text-green-700 uppercase tracking-widest">Tenants</span>
+                                                    </div>
+                                                    <p className="text-4xl font-black text-green-700 group-hover/stat:text-green-800 transition-colors duration-300">{metrics.resources?.tenants || 0}</p>
+                                                </div>
+                                                <div className="group/stat bg-gradient-to-br from-purple-50 via-purple-100/90 to-purple-200/80 p-6 rounded-xl border border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="p-2 rounded-lg bg-purple-200/70 group-hover/stat:bg-purple-300/80 transition-colors duration-300">
+                                                            <Monitor className="w-5 h-5 text-purple-700" />
+                                                        </div>
+                                                        <span className="text-sm font-bold text-purple-700 uppercase tracking-widest">Devices</span>
+                                                    </div>
+                                                    <p className="text-4xl font-black text-purple-700 group-hover/stat:text-purple-800 transition-colors duration-300">{metrics.resources?.devices || 0}</p>
+                                                </div>
+                                                <div className="group/stat bg-gradient-to-br from-orange-50 via-orange-100/90 to-orange-200/80 p-6 rounded-xl border border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="p-2 rounded-lg bg-orange-200/70 group-hover/stat:bg-orange-300/80 transition-colors duration-300">
+                                                            <Clock className="w-5 h-5 text-orange-700" />
+                                                        </div>
+                                                        <span className="text-sm font-bold text-orange-700 uppercase tracking-widest">Avg Time</span>
+                                                    </div>
+                                                    <p className="text-4xl font-black text-orange-700 group-hover/stat:text-orange-800 transition-colors duration-300">{metrics.tickets.avg_resolution_hours || 0}h</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Recent Activity & Enhanced Notifications */}
+                            <div className="grid grid-cols-1  gap-8">
+                                {/* Enhanced Recent Tickets */}
+                                <Card className="group col-span-2 border-0 shadow-xl bg-gradient-to-br from-slate-50/50 via-background to-slate-100/50 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+                                    <CardHeader className="relative border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-background pb-6">
+                                        <CardTitle className="flex items-center gap-3 text-xl">
+                                            <div className="p-3 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                                                <Clock className="h-6 w-6 text-slate-700" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-foreground">Recent Ticket Activity</h3>
+                                                <p className="text-sm text-muted-foreground font-normal">Latest service requests</p>
+                                            </div>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="relative p-6">
+                                        <div className="space-y-4">
+                                            {lists.recentTickets && lists.recentTickets.slice(0, 5).map((ticket, index) => (
+                                                <div key={ticket.id}
+                                                    className="group/ticket flex items-center justify-between p-5 bg-gradient-to-r from-white/80 via-white/70 to-white/80 rounded-xl hover:from-white/95 hover:via-white/90 hover:to-white/95 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl border border-slate-200/50 hover:border-slate-300/70 transform hover:-translate-y-1"
+                                                    onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}
+                                                    style={{ animationDelay: `${index * 100}ms` }}>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="relative">
+                                                            <div className={`w-5 h-5 rounded-full shadow-lg transition-all duration-300 group-hover/ticket:scale-125 ${ticket.status === 'open' ? 'bg-gradient-to-br from-blue-400 to-blue-600' :
+                                                                    ticket.status === 'in_progress' ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
+                                                                        ticket.status === 'resolved' ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-gray-400 to-gray-600'
+                                                                }`} />
+                                                            <div className={`absolute inset-0 rounded-full animate-pulse ${ticket.status === 'open' ? 'bg-blue-400' :
+                                                                    ticket.status === 'in_progress' ? 'bg-yellow-400' :
+                                                                        ticket.status === 'resolved' ? 'bg-green-400' : 'bg-gray-400'
+                                                                } opacity-30`} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="font-bold text-lg text-slate-900 truncate max-w-sm group-hover/ticket:text-primary transition-colors duration-300">{ticket.title}</p>
+                                                            <div className="flex items-center gap-3 text-sm text-slate-600 group-hover/ticket:text-slate-700 transition-colors duration-300">
+                                                                <div className="flex items-center gap-1">
+                                                                    <Users className="w-4 h-4" />
+                                                                    <span className="font-medium">{ticket.user?.name || 'Unknown'}</span>
+                                                                </div>
+                                                                <span>•</span>
+                                                                <div className="flex items-center gap-1">
+                                                                    <Home className="w-4 h-4" />
+                                                                    <span className="font-medium">{ticket.device?.apartment?.name || 'No apt'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right flex flex-col items-end gap-2">
+                                                        <Badge variant={
+                                                            ticket.status === 'open' ? 'default' :
                                                                 ticket.status === 'in_progress' ? 'secondary' :
-                                                                ticket.status === 'resolved' ? 'default' : 'outline'
-                                                            } className={`
+                                                                    ticket.status === 'resolved' ? 'default' : 'outline'
+                                                        } className={`font-bold px-3 py-1 transition-all duration-300 group-hover/ticket:scale-105 ${ticket.status === 'open' ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300 shadow-lg' : ''
+                                                            } ${ticket.status === 'in_progress' ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300 shadow-lg' : ''
+                                                            } ${ticket.status === 'resolved' ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-lg' : ''
+                                                            }`}>
+                                                            {ticket.status}
+                                                        </Badge>
+                                                        <div className="opacity-0 group-hover/ticket:opacity-100 transition-opacity duration-300">
+                                                            <ExternalLink className="w-4 h-4 text-slate-400" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {(!lists.recentTickets || lists.recentTickets.length === 0) && (
+                                                <div className="text-center py-16 text-slate-500">
+                                                    <div className="relative mx-auto mb-8 w-24 h-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shadow-lg">
+                                                        <Clock className="w-12 h-12 opacity-40" />
+                                                    </div>
+                                                    <p className="text-xl font-bold mb-2">No recent activity</p>
+                                                    <p className="text-sm">Recent tickets will appear here</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+
+                            </div>
+
+
+                        </div>
+                    )}
+
+                    {/* TENANT SPECIFIC DASHBOARD SECTION */}
+                    {isTenant && (
+                        <div className="space-y-8">
+                            <div className="text-center space-y-4">
+                                <h2 className="text-4xl font-bold text-foreground">
+                                    Tenant Dashboard
+                                </h2>
+                                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                                    Monitor your tickets and service requests
+                                </p>
+                            </div>
+
+                            {/* Tenant Tickets Overview */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {/* Open Tickets */}
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 via-background to-blue-100 overflow-hidden">
+                                    <CardContent className="p-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-3 rounded-xl bg-blue-100">
+                                                <AlertCircle className="h-6 w-6 text-blue-600" />
+                                            </div>
+                                            <ExternalLink
+                                                className="h-4 w-4 text-blue-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => window.open('/tickets?status=open', '_blank')}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">
+                                                Open Tickets
+                                            </p>
+                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.open || 0}</p>
+                                            <p className="text-xs text-muted-foreground">Awaiting service</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* In Progress Tickets */}
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-yellow-50 via-background to-yellow-100 overflow-hidden">
+                                    <CardContent className="p-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-3 rounded-xl bg-yellow-100">
+                                                <Clock className="h-6 w-6 text-yellow-600" />
+                                            </div>
+                                            <ExternalLink
+                                                className="h-4 w-4 text-yellow-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => window.open('/tickets?status=in_progress', '_blank')}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-semibold text-yellow-600 uppercase tracking-wider">
+                                                In Progress
+                                            </p>
+                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.in_progress || 0}</p>
+                                            <p className="text-xs text-muted-foreground">Being worked on</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Resolved Tickets */}
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 via-background to-green-100 overflow-hidden">
+                                    <CardContent className="p-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-3 rounded-xl bg-green-100">
+                                                <CheckCircle className="h-6 w-6 text-green-600" />
+                                            </div>
+                                            <ExternalLink
+                                                className="h-4 w-4 text-green-600/60 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => window.open('/tickets?status=resolved', '_blank')}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-semibold text-green-600 uppercase tracking-wider">
+                                                Resolved
+                                            </p>
+                                            <p className="text-3xl font-bold text-foreground">{metrics.tickets.resolved || 0}</p>
+                                            <p className="text-xs text-muted-foreground">Completed tickets</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Recent Tickets & Apartment Info */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* My Recent Tickets */}
+                                <Card className="col-span-1">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Ticket className="h-5 w-5 text-primary" />
+                                            My Recent Tickets
+                                        </CardTitle>
+                                        <CardDescription>
+                                            View the status of your recent service requests
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-3">
+                                            {lists.recentTickets && lists.recentTickets.length > 0 ? lists.recentTickets.slice(0, 5).map((ticket) => (
+                                                <div key={ticket.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                                                    onClick={() => window.open(`/tickets/${ticket.id}`, '_blank')}>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-3 h-3 rounded-full ${ticket.status === 'open' ? 'bg-blue-500' :
+                                                                ticket.status === 'in_progress' ? 'bg-yellow-500' :
+                                                                    ticket.status === 'resolved' ? 'bg-green-500' : 'bg-gray-500'
+                                                            }`} />
+                                                        <div>
+                                                            <p className="font-medium text-slate-900 truncate max-w-xs">{ticket.title}</p>
+                                                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                                <span>{formatDate(ticket.created_at)}</span>
+                                                                <span>â€¢</span>
+                                                                <span>{ticket.device?.apartment?.name || 'No apt'}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <Badge variant={
+                                                            ticket.status === 'open' ? 'default' :
+                                                                ticket.status === 'in_progress' ? 'secondary' :
+                                                                    ticket.status === 'resolved' ? 'default' : 'outline'
+                                                        } className={`
                                                                 ${ticket.status === 'open' ? 'bg-blue-100 text-blue-700' : ''}
                                                                 ${ticket.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' : ''}
                                                                 ${ticket.status === 'resolved' ? 'bg-green-100 text-green-700' : ''}
                                                             `}>
-                                                                {ticket.status}
-                                                            </Badge>
-                                                        </div>
+                                                            {ticket.status}
+                                                        </Badge>
                                                     </div>
-                                                )) : (
-                                                    <div className="flex flex-col items-center justify-center p-6 text-center">
-                                                        <Ticket className="h-12 w-12 text-muted-foreground mb-3" />
-                                                        <p className="text-muted-foreground">No tickets found</p>
-                                                        <Button
-                                                            className="mt-4"
-                                                            variant="outline"
-                                                            onClick={() => window.open('/tickets/create', '_blank')}
-                                                        >
-                                                            Create a New Ticket
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                        <CardFooter className="flex justify-center border-t pt-4">
-                                            <Button 
-                                                variant="outline"
-                                                size="sm"
-                                                className="w-full sm:w-auto"
-                                                onClick={() => window.open('/tickets', '_blank')}
-                                            >
-                                                View All Tickets
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
+                                                </div>
+                                            )) : (
+                                                <div className="flex flex-col items-center justify-center p-6 text-center">
+                                                    <Ticket className="h-12 w-12 text-muted-foreground mb-3" />
+                                                    <p className="text-muted-foreground">No tickets found</p>
+                                                    <Button
+                                                        className="mt-4"
+                                                        variant="outline"
+                                                        onClick={() => window.open('/tickets/create', '_blank')}
+                                                    >
+                                                        Create a New Ticket
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                    <CardFooter className="flex justify-center border-t pt-4">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full sm:w-auto"
+                                            onClick={() => window.open('/tickets', '_blank')}
+                                        >
+                                            View All Tickets
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
 
-                                    {/* My Apartment */}
-                                    <Card className="col-span-1">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2">
-                                                <Home className="h-5 w-5 text-primary" />
-                                                My Apartment
-                                            </CardTitle>
-                                            <CardDescription>
-                                                Your apartment details and upcoming appointments
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="space-y-4">
-                                                {/* For tenant dashboard, apartment info comes from user's tenant relationship */}
-                                                {(pageProps?.auth?.user as ExtendedUser)?.tenant?.apartment ? (
-                                                    <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
-                                                        <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
-                                                            <Building className="w-6 h-6 text-primary" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-medium text-slate-900">{(pageProps.auth.user as ExtendedUser).tenant!.apartment.name}</p>
-                                                            <p className="text-sm text-slate-600">{(pageProps.auth.user as ExtendedUser).tenant!.apartment.building?.name || 'Building'}</p>
-                                                        </div>
+                                {/* My Apartment */}
+                                <Card className="col-span-1">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Home className="h-5 w-5 text-primary" />
+                                            My Apartment
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Your apartment details and upcoming appointments
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            {/* For tenant dashboard, apartment info comes from user's tenant relationship */}
+                                            {(pageProps?.auth?.user as ExtendedUser)?.tenant?.apartment ? (
+                                                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
+                                                    <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
+                                                        <Building className="w-6 h-6 text-primary" />
                                                     </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center justify-center p-6 text-center">
-                                                        <Home className="h-12 w-12 text-muted-foreground mb-3" />
-                                                        <p className="text-muted-foreground">No apartment information found</p>
+                                                    <div>
+                                                        <p className="font-medium text-slate-900">{(pageProps.auth.user as ExtendedUser).tenant!.apartment.name}</p>
+                                                        <p className="text-sm text-slate-600">{(pageProps.auth.user as ExtendedUser).tenant!.apartment.building?.name || 'Building'}</p>
                                                     </div>
-                                                )}
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center p-6 text-center">
+                                                    <Home className="h-12 w-12 text-muted-foreground mb-3" />
+                                                    <p className="text-muted-foreground">No apartment information found</p>
+                                                </div>
+                                            )}
 
-                                                {/* Upcoming Appointments */}
-                                                <div>
-                                                    <h4 className="text-sm font-semibold mb-3">Upcoming Appointments</h4>
-                                                    {/* Filter appointments for current tenant */}
-                                                    {lists.upcomingAppointments && lists.upcomingAppointments.filter(
-                                                        appointment => appointment.ticket?.user?.email === (pageProps?.auth?.user as ExtendedUser)?.email
-                                                    ).length > 0 ? (
-                                                        <div className="space-y-2">
-                                                            {lists.upcomingAppointments
-                                                                .filter(appointment => appointment.ticket?.user?.email === (pageProps?.auth?.user as ExtendedUser)?.email)
-                                                                .slice(0, 2).map((appointment) => (
-                                                                <div 
-                                                                    key={appointment.id} 
+                                            {/* Upcoming Appointments */}
+                                            <div>
+                                                <h4 className="text-sm font-semibold mb-3">Upcoming Appointments</h4>
+                                                {/* Filter appointments for current tenant */}
+                                                {lists.upcomingAppointments && lists.upcomingAppointments.filter(
+                                                    appointment => appointment.ticket?.user?.email === (pageProps?.auth?.user as ExtendedUser)?.email
+                                                ).length > 0 ? (
+                                                    <div className="space-y-2">
+                                                        {lists.upcomingAppointments
+                                                            .filter(appointment => appointment.ticket?.user?.email === (pageProps?.auth?.user as ExtendedUser)?.email)
+                                                            .slice(0, 2).map((appointment) => (
+                                                                <div
+                                                                    key={appointment.id}
                                                                     className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                                                                     onClick={() => window.open(`/appointments/${appointment.id}`, '_blank')}
                                                                 >
@@ -3404,368 +3397,368 @@ export default function Dashboard({
                                                                     </Badge>
                                                                 </div>
                                                             ))}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="p-3 bg-slate-50 rounded-lg text-center">
-                                                            <p className="text-sm text-slate-600">No upcoming appointments</p>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-3 bg-slate-50 rounded-lg text-center">
+                                                        <p className="text-sm text-slate-600">No upcoming appointments</p>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-
-                                {/* Quick Actions */}
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Zap className="h-5 w-5 text-primary" />
-                                            Quick Actions
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <Button 
-                                                className="flex items-center gap-2 h-12"
-                                                onClick={() => window.open('/tickets/create', '_blank')}
-                                            >
-                                                <Plus className="w-4 h-4" />
-                                                Create Service Request
-                                            </Button>
-                                            <Button 
-                                                variant="outline"
-                                                className="flex items-center gap-2 h-12"
-                                                onClick={() => window.open('/tickets', '_blank')}
-                                            >
-                                                <Ticket className="w-4 h-4" />
-                                                View My Tickets
-                                            </Button>
-                                            <Button 
-                                                variant="outline"
-                                                className="flex items-center gap-2 h-12"
-                                                onClick={() => window.open('/profile', '_blank')}
-                                            >
-                                                <User className="w-4 h-4" />
-                                                Update Profile
-                                            </Button>
                                         </div>
                                     </CardContent>
                                 </Card>
                             </div>
-                        )}
 
-                        {/* SECTION 2: SYSTEM RESOURCES - Hidden for regular technicians */}
-                        {(isSuperAdmin || isDefaultTechnical) && metrics.resources.buildings > 0 && (
-                            <div className="space-y-8">
-                                <div className="text-center space-y-4">                                    <div className="flex items-center justify-center gap-4">                                        <h2 className="text-4xl font-bold text-foreground">
-                                    System Resources
-                                </h2>
-                                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-4 py-2 text-sm font-semibold">
-                                        Full Access - Admin
-                                    </Badge>
-                                </div>
-                                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                                        Comprehensive management of buildings, apartments, users and devices
-                                    </p>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {/* Buildings Card - Enhanced with carousel */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-1/10 via-background to-chart-1/5 overflow-hidden">
-                                        <CardContent className="p-6">
-                                            <div className="text-center space-y-4">
-                                                <div className="p-4 rounded-xl bg-violet-100 w-fit mx-auto">
-                                                    <Building className="h-8 w-8 text-violet-600" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-violet-600 uppercase tracking-wider">Buildings</p>
-                                                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.buildings}</p>
-                                                </div>
+                            {/* Quick Actions */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Zap className="h-5 w-5 text-primary" />
+                                        Quick Actions
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <Button
+                                            className="flex items-center gap-2 h-12"
+                                            onClick={() => window.open('/tickets/create', '_blank')}
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            Create Service Request
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="flex items-center gap-2 h-12"
+                                            onClick={() => window.open('/tickets', '_blank')}
+                                        >
+                                            <Ticket className="w-4 h-4" />
+                                            View My Tickets
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="flex items-center gap-2 h-12"
+                                            onClick={() => window.open('/profile', '_blank')}
+                                        >
+                                            <User className="w-4 h-4" />
+                                            Update Profile
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
 
-                                                {/* Buildings Carousel */}
-                                                {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
-                                                    <div className="space-y-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <h4 className="text-xs font-semibold text-violet-600">Buildings Overview</h4>
-                                                            {lists.buildingsWithTickets.length > 3 && (
-                                                                <div className="flex gap-1">
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="h-6 w-6 p-0"
-                                                                        onClick={() => {
-                                                                            const container = buildingsContainerRef.current;
-                                                                            if (container) {
-                                                                                container.scrollBy({ left: -200, behavior: 'smooth' });
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <ChevronLeft className="h-3 w-3" />
-                                                                    </Button>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="h-6 w-6 p-0"
-                                                                        onClick={() => {
-                                                                            const container = buildingsContainerRef.current;
-                                                                            if (container) {
-                                                                                container.scrollBy({ left: 200, behavior: 'smooth' });
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <ChevronRight className="h-3 w-3" />
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div
-                                                            ref={buildingsContainerRef}
-                                                            className="flex gap-2 overflow-x-auto scrollbar-hide"
-                                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                                        >
-                                                            {lists.buildingsWithTickets.map((building) => (
-                                                                <div
-                                                                    key={building.id}
-                                                                    className="flex-shrink-0 group/building cursor-pointer"
-                                                                    title={`${building.name} - ${building.apartments_count} apartments, ${building.tenants_count} tenants`}
-                                                                    onClick={() => window.open(`/buildings/${building.id}`, '_blank')}
-                                                                >
-                                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-200 to-violet-400 flex items-center justify-center transition-transform shadow-lg">
-                                                                        {building.image ? (
-                                                                            <img
-                                                                                src={`/storage/${building.image}`}
-                                                                                alt={building.name}
-                                                                                className="w-full h-full rounded-full object-cover"
-                                                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                                    e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
-                                                                                }}
-                                                                            />
-                                                                        ) : (
-                                                                            <Building className="h-6 w-6 text-white" />
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <ExternalLink className="h-3 w-3 text-violet-400" />
-                                                    <span className="text-xs text-slate-500">View management</span>
-                                                </div>
+                    {/* SECTION 2: SYSTEM RESOURCES - Hidden for regular technicians */}
+                    {(isSuperAdmin || isDefaultTechnical) && metrics.resources.buildings > 0 && (
+                        <div className="space-y-8">
+                            <div className="text-center space-y-4">                                    <div className="flex items-center justify-center gap-4">                                        <h2 className="text-4xl font-bold text-foreground">
+                                System Resources
+                            </h2>
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-4 py-2 text-sm font-semibold">
+                                    Full Access - Admin
+                                </Badge>
+                            </div>
+                                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                                    Comprehensive management of buildings, apartments, users and devices
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {/* Buildings Card - Enhanced with carousel */}
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-1/10 via-background to-chart-1/5 overflow-hidden">
+                                    <CardContent className="p-6">
+                                        <div className="text-center space-y-4">
+                                            <div className="p-4 rounded-xl bg-violet-100 w-fit mx-auto">
+                                                <Building className="h-8 w-8 text-violet-600" />
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                    {/* Apartments Card - Enhanced with building breakdown */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-2/10 via-background to-chart-2/5 overflow-hidden cursor-pointer"
-                                    >
-                                        <CardContent className="p-6">
-                                            <div className="text-center space-y-4">
-                                                <div className="p-4 rounded-xl bg-blue-100 w-fit mx-auto">
-                                                    <Home className="h-8 w-8 text-blue-600" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">Apartments</p>
-                                                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.apartments}</p>
-                                                </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-violet-600 uppercase tracking-wider">Buildings</p>
+                                                <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.buildings}</p>
+                                            </div>
 
-                                                {/* Buildings Circles for Apartments */}
-                                                {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
-                                                    <div className="space-y-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <h4 className="text-xs font-semibold text-blue-600">By Building</h4>
-                                                            {lists.buildingsWithTickets.length > 3 && (
-                                                                <div className="flex gap-1">
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="h-6 w-6 p-0"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            const container = document.getElementById('apartments-container');
-                                                                            if (container) {
-                                                                                container.scrollBy({ left: -200, behavior: 'smooth' });
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <ChevronLeft className="h-3 w-3" />
-                                                                    </Button>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="h-6 w-6 p-0"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            const container = document.getElementById('apartments-container');
-                                                                            if (container) {
-                                                                                container.scrollBy({ left: 200, behavior: 'smooth' });
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <ChevronRight className="h-3 w-3" />
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div
-                                                            id="apartments-container"
-                                                            className="flex gap-2 overflow-x-auto scrollbar-hide"
-                                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                                        >
-                                                            {lists.buildingsWithTickets.map((building) => (
-                                                                <div
-                                                                    key={`apt-${building.id}`}
-                                                                    className="flex-shrink-0 group/building cursor-pointer flex flex-col items-center gap-1"
-                                                                    title={`${building.name}: ${building.apartments_count} apartments`}
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        window.open(`/buildings/${building.id}/apartments`, '_blank');
+                                            {/* Buildings Carousel */}
+                                            {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <h4 className="text-xs font-semibold text-violet-600">Buildings Overview</h4>
+                                                        {lists.buildingsWithTickets.length > 3 && (
+                                                            <div className="flex gap-1">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="h-6 w-6 p-0"
+                                                                    onClick={() => {
+                                                                        const container = buildingsContainerRef.current;
+                                                                        if (container) {
+                                                                            container.scrollBy({ left: -200, behavior: 'smooth' });
+                                                                        }
                                                                     }}
                                                                 >
-                                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-200 to-blue-400 flex items-center justify-center  transition-transform shadow-lg">
-                                                                        {building.image ? (
-                                                                            <img
-                                                                                src={`/storage/${building.image}`}
-                                                                                alt={building.name}
-                                                                                className="w-full h-full rounded-full object-cover"
-                                                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                                    e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
-                                                                                }}
-
-                                                                            />
-                                                                        ) : (
-                                                                            <Building className="h-5 w-5 text-white" />
-                                                                        )}
-                                                                    </div>
-                                                                    <span className="text-xs font-bold text-blue-700 min-w-0 text-center">
-                                                                        {building.apartments_count}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
+                                                                    <ChevronLeft className="h-3 w-3" />
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="h-6 w-6 p-0"
+                                                                    onClick={() => {
+                                                                        const container = buildingsContainerRef.current;
+                                                                        if (container) {
+                                                                            container.scrollBy({ left: 200, behavior: 'smooth' });
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <ChevronRight className="h-3 w-3" />
+                                                                </Button>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
+                                                    <div
+                                                        ref={buildingsContainerRef}
+                                                        className="flex gap-2 overflow-x-auto scrollbar-hide"
+                                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                                    >
+                                                        {lists.buildingsWithTickets.map((building) => (
+                                                            <div
+                                                                key={building.id}
+                                                                className="flex-shrink-0 group/building cursor-pointer"
+                                                                title={`${building.name} - ${building.apartments_count} apartments, ${building.tenants_count} tenants`}
+                                                                onClick={() => window.open(`/buildings/${building.id}`, '_blank')}
+                                                            >
+                                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-200 to-violet-400 flex items-center justify-center transition-transform shadow-lg">
+                                                                    {building.image ? (
+                                                                        <img
+                                                                            src={`/storage/${building.image}`}
+                                                                            alt={building.name}
+                                                                            className="w-full h-full rounded-full object-cover"
+                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
+                                                                            }}
+                                                                        />
+                                                                    ) : (
+                                                                        <Building className="h-6 w-6 text-white" />
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
 
-                                                {/*  <div className="flex items-center justify-center gap-2">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <ExternalLink className="h-3 w-3 text-violet-400" />
+                                                <span className="text-xs text-slate-500">View management</span>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                {/* Apartments Card - Enhanced with building breakdown */}
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-2/10 via-background to-chart-2/5 overflow-hidden cursor-pointer"
+                                >
+                                    <CardContent className="p-6">
+                                        <div className="text-center space-y-4">
+                                            <div className="p-4 rounded-xl bg-blue-100 w-fit mx-auto">
+                                                <Home className="h-8 w-8 text-blue-600" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider">Apartments</p>
+                                                <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.apartments}</p>
+                                            </div>
+
+                                            {/* Buildings Circles for Apartments */}
+                                            {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <h4 className="text-xs font-semibold text-blue-600">By Building</h4>
+                                                        {lists.buildingsWithTickets.length > 3 && (
+                                                            <div className="flex gap-1">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="h-6 w-6 p-0"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const container = document.getElementById('apartments-container');
+                                                                        if (container) {
+                                                                            container.scrollBy({ left: -200, behavior: 'smooth' });
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <ChevronLeft className="h-3 w-3" />
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="h-6 w-6 p-0"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const container = document.getElementById('apartments-container');
+                                                                        if (container) {
+                                                                            container.scrollBy({ left: 200, behavior: 'smooth' });
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <ChevronRight className="h-3 w-3" />
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div
+                                                        id="apartments-container"
+                                                        className="flex gap-2 overflow-x-auto scrollbar-hide"
+                                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                                    >
+                                                        {lists.buildingsWithTickets.map((building) => (
+                                                            <div
+                                                                key={`apt-${building.id}`}
+                                                                className="flex-shrink-0 group/building cursor-pointer flex flex-col items-center gap-1"
+                                                                title={`${building.name}: ${building.apartments_count} apartments`}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    window.open(`/buildings/${building.id}/apartments`, '_blank');
+                                                                }}
+                                                            >
+                                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-200 to-blue-400 flex items-center justify-center  transition-transform shadow-lg">
+                                                                    {building.image ? (
+                                                                        <img
+                                                                            src={`/storage/${building.image}`}
+                                                                            alt={building.name}
+                                                                            className="w-full h-full rounded-full object-cover"
+                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
+                                                                            }}
+
+                                                                        />
+                                                                    ) : (
+                                                                        <Building className="h-5 w-5 text-white" />
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-xs font-bold text-blue-700 min-w-0 text-center">
+                                                                    {building.apartments_count}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/*  <div className="flex items-center justify-center gap-2">
                                                     <ExternalLink className="h-3 w-3 text-blue-400" />
                                                     <span className="text-xs text-slate-500">View management</span>
                                                 </div> */}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                {/* Tenants Card - Enhanced with building breakdown */}
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-3/10 via-background to-chart-3/5 overflow-hidden cursor-pointer"
+                                >
+                                    <CardContent className="p-6">
+                                        <div className="text-center space-y-4">
+                                            <div className="p-4 rounded-xl bg-emerald-100 w-fit mx-auto">
+                                                <Users className="h-8 w-8 text-emerald-600" />
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                    {/* Tenants Card - Enhanced with building breakdown */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-3/10 via-background to-chart-3/5 overflow-hidden cursor-pointer"
-                                    >
-                                        <CardContent className="p-6">
-                                            <div className="text-center space-y-4">
-                                                <div className="p-4 rounded-xl bg-emerald-100 w-fit mx-auto">
-                                                    <Users className="h-8 w-8 text-emerald-600" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Members</p>
-                                                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.tenants}</p>
-                                                </div>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Members</p>
+                                                <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.tenants}</p>
+                                            </div>
 
-                                                {/* Buildings Circles for Tenants */}
-                                                {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
-                                                    <div className="space-y-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <h4 className="text-xs font-semibold text-emerald-600">By Building</h4>
-                                                            {lists.buildingsWithTickets.length > 3 && (
-                                                                <div className="flex gap-1">
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="h-6 w-6 p-0"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            const container = document.getElementById('tenants-container');
-                                                                            if (container) {
-                                                                                container.scrollBy({ left: -200, behavior: 'smooth' });
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <ChevronLeft className="h-3 w-3" />
-                                                                    </Button>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="h-6 w-6 p-0"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            const container = document.getElementById('tenants-container');
-                                                                            if (container) {
-                                                                                container.scrollBy({ left: 200, behavior: 'smooth' });
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <ChevronRight className="h-3 w-3" />
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div
-                                                            id="tenants-container"
-                                                            className="flex gap-2 overflow-x-auto scrollbar-hide"
-                                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                                        >
-                                                            {lists.buildingsWithTickets.map((building) => (
-                                                                <div
-                                                                    key={`tenant-${building.id}`}
-                                                                    className="flex-shrink-0 group/building cursor-pointer flex flex-col items-center gap-1"
-                                                                    title={`${building.name}: ${building.tenants_count} tenants`}
+                                            {/* Buildings Circles for Tenants */}
+                                            {lists.buildingsWithTickets && lists.buildingsWithTickets.length > 0 && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <h4 className="text-xs font-semibold text-emerald-600">By Building</h4>
+                                                        {lists.buildingsWithTickets.length > 3 && (
+                                                            <div className="flex gap-1">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="h-6 w-6 p-0"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        window.open(`/buildings/${building.id}/tenants`, '_blank');
+                                                                        const container = document.getElementById('tenants-container');
+                                                                        if (container) {
+                                                                            container.scrollBy({ left: -200, behavior: 'smooth' });
+                                                                        }
                                                                     }}
                                                                 >
-                                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-200 to-emerald-400 flex items-center justify-center  transition-transform shadow-lg">
-                                                                        {building.image ? (
-                                                                            <img
-                                                                                src={`/storage/${building.image}`}
-                                                                                alt={building.name}
-                                                                                className="w-full h-full rounded-full object-cover"
-                                                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                                                    e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
-                                                                                }}
-                                                                            />
-                                                                        ) : (
-                                                                            <Building className="h-5 w-5 text-white" />
-                                                                        )}
-                                                                    </div>
-                                                                    <span className="text-xs font-bold text-emerald-700 min-w-0 text-center">
-                                                                        {building.tenants_count}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
+                                                                    <ChevronLeft className="h-3 w-3" />
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="h-6 w-6 p-0"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const container = document.getElementById('tenants-container');
+                                                                        if (container) {
+                                                                            container.scrollBy({ left: 200, behavior: 'smooth' });
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <ChevronRight className="h-3 w-3" />
+                                                                </Button>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
+                                                    <div
+                                                        id="tenants-container"
+                                                        className="flex gap-2 overflow-x-auto scrollbar-hide"
+                                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                                    >
+                                                        {lists.buildingsWithTickets.map((building) => (
+                                                            <div
+                                                                key={`tenant-${building.id}`}
+                                                                className="flex-shrink-0 group/building cursor-pointer flex flex-col items-center gap-1"
+                                                                title={`${building.name}: ${building.tenants_count} tenants`}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    window.open(`/buildings/${building.id}/tenants`, '_blank');
+                                                                }}
+                                                            >
+                                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-200 to-emerald-400 flex items-center justify-center  transition-transform shadow-lg">
+                                                                    {building.image ? (
+                                                                        <img
+                                                                            src={`/storage/${building.image}`}
+                                                                            alt={building.name}
+                                                                            className="w-full h-full rounded-full object-cover"
+                                                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                e.currentTarget.src = '/images/default-builder-square.png'; // Ruta de imagen por defecto
+                                                                            }}
+                                                                        />
+                                                                    ) : (
+                                                                        <Building className="h-5 w-5 text-white" />
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-xs font-bold text-emerald-700 min-w-0 text-center">
+                                                                    {building.tenants_count}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
 
-                                                {/* <div className="flex items-center justify-center gap-2">
+                                            {/* <div className="flex items-center justify-center gap-2">
                                                     <ExternalLink className="h-3 w-3 text-emerald-400" />
                                                     <span className="text-xs text-slate-500">Ver gestiÃ³n</span>
                                                 </div> */}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Devices Card - Enhanced with modal */}
+                                <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-4/10 via-background to-chart-4/5 overflow-hidden cursor-pointer"
+                                    onClick={() => setShowDevicesModal(true)}>
+                                    <CardContent className="p-6">
+                                        <div className="text-center space-y-4">
+                                            <div className="p-4 rounded-xl bg-amber-100 w-fit mx-auto">
+                                                <Smartphone className="h-8 w-8 text-amber-600" />
                                             </div>
-                                        </CardContent>
-                                    </Card>
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-amber-600 uppercase tracking-wider">Devices</p>
+                                                <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.devices}</p>
+                                            </div>
 
-                                    {/* Devices Card - Enhanced with modal */}
-                                    <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-0 bg-gradient-to-br from-chart-4/10 via-background to-chart-4/5 overflow-hidden cursor-pointer"
-                                        onClick={() => setShowDevicesModal(true)}>
-                                        <CardContent className="p-6">
-                                            <div className="text-center space-y-4">
-                                                <div className="p-4 rounded-xl bg-amber-100 w-fit mx-auto">
-                                                    <Smartphone className="h-8 w-8 text-amber-600" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <p className="text-sm font-semibold text-amber-600 uppercase tracking-wider">Devices</p>
-                                                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{metrics.resources.devices}</p>
-                                                </div>
-
-                                                {/* Device types preview */}
-                                                {/*charts.devicesByType && charts.devicesByType.length > 0 && (
+                                            {/* Device types preview */}
+                                            {/*charts.devicesByType && charts.devicesByType.length > 0 && (
                                                     <div className="space-y-2">
                                                         <h4 className="text-xs font-semibold text-amber-600">By Type</h4>
                                                         <div className="space-y-1">
@@ -3784,153 +3777,152 @@ export default function Dashboard({
                                                     </div>
                                                 )*/}
 
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <Monitor className="h-3 w-3 text-amber-400" />
-                                                    <span className="text-xs text-slate-500">Click to view details</span>
-                                                </div>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Monitor className="h-3 w-3 text-amber-400" />
+                                                <span className="text-xs text-slate-500">Click to view details</span>
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
 
-                                {/* Premium Technical Team Section */}
-                                {isSuperAdmin && lists.topTechnicals && lists.topTechnicals.length > 0 && (
-                                    <div className="mt-12">
-                                        <Card className="border-0 bg-gradient-to-br from-rose-50/50 via-background to-rose-100/50 shadow-2xl backdrop-blur-sm">
-                                            <CardHeader className="border-b border-rose-200/50 bg-gradient-to-r from-rose-50/70 to-background pb-6">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="p-3 rounded-xl bg-gradient-to-br from-rose-200 to-rose-300 shadow-lg">
-                                                            <Wrench className="h-6 w-6 text-rose-700" />
-                                                        </div>
-                                                        <div>
-                                                            <CardTitle className="text-2xl font-bold text-slate-800">Technical Team Directory</CardTitle>
-                                                            <p className="text-sm text-slate-600 mt-2 font-medium">{lists.topTechnicals.length} active technicians managing operations</p>
-                                                        </div>
+                            {/* Premium Technical Team Section */}
+                            {isSuperAdmin && lists.topTechnicals && lists.topTechnicals.length > 0 && (
+                                <div className="mt-12">
+                                    <Card className="border-0 bg-gradient-to-br from-rose-50/50 via-background to-rose-100/50 shadow-2xl backdrop-blur-sm">
+                                        <CardHeader className="border-b border-rose-200/50 bg-gradient-to-r from-rose-50/70 to-background pb-6">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="p-3 rounded-xl bg-gradient-to-br from-rose-200 to-rose-300 shadow-lg">
+                                                        <Wrench className="h-6 w-6 text-rose-700" />
                                                     </div>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="lg"
-                                                        className="bg-gradient-to-r from-rose-100 to-rose-200 border-rose-300 text-rose-700 hover:from-rose-200 hover:to-rose-300 font-semibold px-6"
-                                                        onClick={() => window.open('/technicals', '_blank')}
-                                                    >
-                                                        <ExternalLink className="h-4 w-4 mr-2" />
-                                                        Manage Team
-                                                    </Button>
+                                                    <div>
+                                                        <CardTitle className="text-2xl font-bold text-slate-800">Technical Team Directory</CardTitle>
+                                                        <p className="text-sm text-slate-600 mt-2 font-medium">{lists.topTechnicals.length} active technicians managing operations</p>
+                                                    </div>
                                                 </div>
-                                            </CardHeader>
-                                            <CardContent className="p-8">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                                    {lists.topTechnicals.map((technical) => (
-                                                        <div key={technical.id} className="group relative bg-gradient-to-br from-white to-rose-50/30 rounded-2xl p-6 shadow-lg border border-rose-200/50 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:border-rose-300/70">
-                                                            {/* Background overlay for hover effect */}
-                                                            <div className="absolute inset-0 bg-gradient-to-br from-rose-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
-                                                            
-                                                            <div className="relative space-y-4">
-                                                                {/* Profile Section */}
-                                                                <div className="flex items-start gap-4">
-                                                                    <div className="relative shrink-0">
-                                                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-300 to-rose-500 flex items-center justify-center overflow-hidden shadow-lg ring-2 ring-white">
-                                                                            {technical.photo ? (
-                                                                                <img
-                                                                                    src={`/storage/${technical.photo}`}
-                                                                                    alt={technical.name}
-                                                                                    className="w-full h-full object-cover"
-                                                                                />
-                                                                            ) : (
-                                                                                <User className="h-8 w-8 text-white" />
-                                                                            )}
-                                                                        </div>
-                                                                        {technical.is_default === true && (
-                                                                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full border-3 border-white flex items-center justify-center shadow-lg">
-                                                                                <span className="text-xs font-bold text-white">⭐</span>
-                                                                            </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="lg"
+                                                    className="bg-gradient-to-r from-rose-100 to-rose-200 border-rose-300 text-rose-700 hover:from-rose-200 hover:to-rose-300 font-semibold px-6"
+                                                    onClick={() => window.open('/technicals', '_blank')}
+                                                >
+                                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                                    Manage Team
+                                                </Button>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="p-8">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                                {lists.topTechnicals.map((technical) => (
+                                                    <div key={technical.id} className="group relative bg-gradient-to-br from-white to-rose-50/30 rounded-2xl p-6 shadow-lg border border-rose-200/50 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:border-rose-300/70">
+                                                        {/* Background overlay for hover effect */}
+                                                        <div className="absolute inset-0 bg-gradient-to-br from-rose-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+
+                                                        <div className="relative space-y-4">
+                                                            {/* Profile Section */}
+                                                            <div className="flex items-start gap-4">
+                                                                <div className="relative shrink-0">
+                                                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-300 to-rose-500 flex items-center justify-center overflow-hidden shadow-lg ring-2 ring-white">
+                                                                        {technical.photo ? (
+                                                                            <img
+                                                                                src={`/storage/${technical.photo}`}
+                                                                                alt={technical.name}
+                                                                                className="w-full h-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <User className="h-8 w-8 text-white" />
                                                                         )}
                                                                     </div>
-                                                                    
-                                                                    <div className="flex-1 min-w-0 space-y-2">
-                                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                                            <h4 className="font-bold text-slate-900 text-base truncate">{technical.name}</h4>
-                                                                            {technical.is_default === true && (
-                                                                                <Badge variant="secondary" className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 border-yellow-200 font-semibold">
-                                                                                    Default Tech
-                                                                                </Badge>
-                                                                            )}
+                                                                    {technical.is_default === true && (
+                                                                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full border-3 border-white flex items-center justify-center shadow-lg">
+                                                                            <span className="text-xs font-bold text-white">⭐</span>
                                                                         </div>
-                                                                        
-                                                                        {/* Contact Information */}
-                                                                        <div className="space-y-2">
-                                                                            {technical.email && (
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <Mail className="h-4 w-4 text-slate-500 shrink-0" />
-                                                                                    <span className="text-sm text-slate-700 truncate font-medium">{technical.email}</span>
-                                                                                </div>
-                                                                            )}
-                                                                            {technical.phone && (
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <Phone className="h-4 w-4 text-slate-500 shrink-0" />
-                                                                                    <span className="text-sm text-slate-700 font-medium">{technical.phone}</span>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
+                                                                    )}
                                                                 </div>
 
-                                                                {/* Performance Metrics */}
-                                                                <div className="space-y-3 pt-2 border-t border-rose-200/50">
-                                                                    <div className="flex items-center justify-between">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="p-1 rounded-lg bg-blue-100">
-                                                                                <Ticket className="h-4 w-4 text-blue-600" />
-                                                                            </div>
-                                                                            <span className="text-sm font-bold text-blue-700">
-                                                                                {technical.tickets_count || 0} Active Tickets
-                                                                            </span>
-                                                                        </div>
-                                                                        {technical.shift && (
-                                                                            <Badge variant="outline" className="text-xs px-2 py-1 bg-slate-100 text-slate-700 border-slate-300 capitalize font-medium">
-                                                                                {technical.shift} Shift
+                                                                <div className="flex-1 min-w-0 space-y-2">
+                                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                                        <h4 className="font-bold text-slate-900 text-base truncate">{technical.name}</h4>
+                                                                        {technical.is_default === true && (
+                                                                            <Badge variant="secondary" className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 border-yellow-200 font-semibold">
+                                                                                Default Tech
                                                                             </Badge>
                                                                         )}
                                                                     </div>
-                                                                    
-                                                                    {/* Workload indicator */}
-                                                                    <div className="space-y-1">
-                                                                        <div className="flex items-center justify-between text-xs">
-                                                                            <span className="text-slate-600 font-medium">Workload</span>
-                                                                            <span className="text-slate-700 font-bold">
-                                                                                {technical.tickets_count > 10 ? 'High' : 
-                                                                                 technical.tickets_count > 5 ? 'Medium' : 
-                                                                                 technical.tickets_count > 0 ? 'Low' : 'Available'}
-                                                                            </span>
+
+                                                                    {/* Contact Information */}
+                                                                    <div className="space-y-2">
+                                                                        {technical.email && (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Mail className="h-4 w-4 text-slate-500 shrink-0" />
+                                                                                <span className="text-sm text-slate-700 truncate font-medium">{technical.email}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {technical.phone && (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Phone className="h-4 w-4 text-slate-500 shrink-0" />
+                                                                                <span className="text-sm text-slate-700 font-medium">{technical.phone}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Performance Metrics */}
+                                                            <div className="space-y-3 pt-2 border-t border-rose-200/50">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="p-1 rounded-lg bg-blue-100">
+                                                                            <Ticket className="h-4 w-4 text-blue-600" />
                                                                         </div>
-                                                                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                                                                            <div 
-                                                                                className={`h-full transition-all duration-500 rounded-full ${
-                                                                                    technical.tickets_count > 10 ? 'bg-gradient-to-r from-red-400 to-red-500' :
+                                                                        <span className="text-sm font-bold text-blue-700">
+                                                                            {technical.tickets_count || 0} Active Tickets
+                                                                        </span>
+                                                                    </div>
+                                                                    {technical.shift && (
+                                                                        <Badge variant="outline" className="text-xs px-2 py-1 bg-slate-100 text-slate-700 border-slate-300 capitalize font-medium">
+                                                                            {technical.shift} Shift
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Workload indicator */}
+                                                                <div className="space-y-1">
+                                                                    <div className="flex items-center justify-between text-xs">
+                                                                        <span className="text-slate-600 font-medium">Workload</span>
+                                                                        <span className="text-slate-700 font-bold">
+                                                                            {technical.tickets_count > 10 ? 'High' :
+                                                                                technical.tickets_count > 5 ? 'Medium' :
+                                                                                    technical.tickets_count > 0 ? 'Low' : 'Available'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                                                                        <div
+                                                                            className={`h-full transition-all duration-500 rounded-full ${technical.tickets_count > 10 ? 'bg-gradient-to-r from-red-400 to-red-500' :
                                                                                     technical.tickets_count > 5 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
-                                                                                    technical.tickets_count > 0 ? 'bg-gradient-to-r from-green-400 to-green-500' :
-                                                                                    'bg-gradient-to-r from-blue-400 to-blue-500'
+                                                                                        technical.tickets_count > 0 ? 'bg-gradient-to-r from-green-400 to-green-500' :
+                                                                                            'bg-gradient-to-r from-blue-400 to-blue-500'
                                                                                 }`}
-                                                                                style={{ 
-                                                                                    width: `${Math.min(((technical.tickets_count || 0) / 15) * 100, 100)}%` 
-                                                                                }}
-                                                                            />
-                                                                        </div>
+                                                                            style={{
+                                                                                width: `${Math.min(((technical.tickets_count || 0) / 15) * 100, 100)}%`
+                                                                            }}
+                                                                        />
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        {/* SECTION 3: VISUAL ANALYSIS AND CHARTS - Hidden for regular technicians */}
-                        {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {/* SECTION 3: VISUAL ANALYSIS AND CHARTS - Hidden for regular technicians */}
+                    {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
                         <div className="space-y-16">                            <div className="text-center space-y-6">
                             <h2 className="text-5xl font-black text-foreground">
                                 Visual Analysis
@@ -4135,7 +4127,7 @@ export default function Dashboard({
                                 </div>
                             </div>
                         </div>
-                        )}
+                    )}
 
                     {/* SECTION: TECHNICAL PERFORMANCE ANALYSIS */}
                     {(isSuperAdmin || isDefaultTechnical) && charts.technicalAnalysis && charts.technicalAnalysis.length > 0 && (
@@ -4337,60 +4329,60 @@ export default function Dashboard({
 
                     {/* SECTION 3: ADVANCED CHARTS - Hidden for regular technicians */}
                     {(!isTechnical || isSuperAdmin || isDefaultTechnical) && (
-                    <div className="space-y-6 mt-4">
-                        <div className="text-center space-y-4">
-                            <h2 className="text-3xl font-bold text-foreground">
-                                Advanced Analytics
-                            </h2>
-                            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                                Interactive charts and visualizations
-                            </p>
+                        <div className="space-y-6 mt-4">
+                            <div className="text-center space-y-4">
+                                <h2 className="text-3xl font-bold text-foreground">
+                                    Advanced Analytics
+                                </h2>
+                                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                                    Interactive charts and visualizations
+                                </p>
+                            </div>
+                            <AdvancedCharts
+                                data={{
+                                    ticketsByStatus: Object.entries(charts.ticketsByStatus).map(([status, count]) => ({
+                                        status,
+                                        count: count as number,
+                                        color: status === 'open' ? '#ef4444' :
+                                            status === 'in_progress' ? '#f59e0b' :
+                                                status === 'resolved' ? '#10b981' : '#6b7280'
+                                    })),
+                                    ticketsByPriority: Object.entries(charts.ticketsByPriority).map(([priority, count]) => ({
+                                        priority,
+                                        count: count as number,
+                                        color: priority === 'high' ? '#dc2626' :
+                                            priority === 'medium' ? '#ea580c' :
+                                                priority === 'low' ? '#16a34a' : '#6b7280'
+                                    })),
+                                    ticketsByBuilding: lists.buildingsWithTickets.map(b => ({
+                                        building: b.name,
+                                        count: b.tickets_count
+                                    })),
+                                    ticketsOverTime: charts.ticketsLastWeek.map((item, index) => ({
+                                        month: `Day ${index + 1}`,
+                                        created: item.count,
+                                        resolved: Math.floor(item.count * 0.8)
+                                    })),
+                                    deviceIssues: lists.problematicDevices.map(d => ({
+                                        device: d.device_name,
+                                        count: d.tickets_count,
+                                        avgResolution: 24
+                                    })),
+                                    techniciansPerformance: lists.topTechnicals.map(t => ({
+                                        technician: t.name,
+                                        resolved: t.tickets_count,
+                                        avg_time: 18
+                                    }))
+                                }}
+                            />
                         </div>
-                        <AdvancedCharts
-                            data={{
-                                ticketsByStatus: Object.entries(charts.ticketsByStatus).map(([status, count]) => ({
-                                    status,
-                                    count: count as number,
-                                    color: status === 'open' ? '#ef4444' :
-                                        status === 'in_progress' ? '#f59e0b' :
-                                            status === 'resolved' ? '#10b981' : '#6b7280'
-                                })),
-                                ticketsByPriority: Object.entries(charts.ticketsByPriority).map(([priority, count]) => ({
-                                    priority,
-                                    count: count as number,
-                                    color: priority === 'high' ? '#dc2626' :
-                                        priority === 'medium' ? '#ea580c' :
-                                            priority === 'low' ? '#16a34a' : '#6b7280'
-                                })),
-                                ticketsByBuilding: lists.buildingsWithTickets.map(b => ({
-                                    building: b.name,
-                                    count: b.tickets_count
-                                })),
-                                ticketsOverTime: charts.ticketsLastWeek.map((item, index) => ({
-                                    month: `Day ${index + 1}`,
-                                    created: item.count,
-                                    resolved: Math.floor(item.count * 0.8)
-                                })),
-                                deviceIssues: lists.problematicDevices.map(d => ({
-                                    device: d.device_name,
-                                    count: d.tickets_count,
-                                    avgResolution: 24
-                                })),
-                                techniciansPerformance: lists.topTechnicals.map(t => ({
-                                    technician: t.name,
-                                    resolved: t.tickets_count,
-                                    avg_time: 18
-                                }))
-                            }}
-                        />
-                    </div>
-                )}
-
-                
+                    )}
 
 
-                      {/* FOOTER PREMIUM - Hidden for regular technicians */}
-                      {(isDefaultTechnical || isSuperAdmin) && (
+
+
+                    {/* FOOTER PREMIUM - Hidden for regular technicians */}
+                    {(isDefaultTechnical || isSuperAdmin) && (
                         <div className="mt-32">
                             <Card className="border-0 bg-chart-5 text-background shadow-2xl overflow-hidden relative dark:bg-white/10">
                                 <div className="absolute inset-0 bg-primary/10 dark:bg-transparent"></div>
@@ -4444,270 +4436,270 @@ export default function Dashboard({
                                 </CardContent>
                             </Card>
                         </div>
-                      )}
-                      
-                    </div>
-
-
+                    )}
 
                 </div>
-                
-                {/* Devices Modal con animaciones mejoradas */}
-                {showDevicesModal && (
+
+
+
+            </div>
+
+            {/* Devices Modal con animaciones mejoradas */}
+            {showDevicesModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-300"
+                    onClick={() => setShowDevicesModal(false)}
+                >
                     <div
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-300"
-                        onClick={() => setShowDevicesModal(false)}
+                        className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 slide-in-from-bottom-4 duration-500 ease-out"
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <div
-                            className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 slide-in-from-bottom-4 duration-500 ease-out"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-chart-4/10 to-chart-3/10 dark:from-chart-4/20 dark:to-chart-3/20">
-                                <div className="flex items-center gap-3 animate-in slide-in-from-left-4 duration-700 delay-200">
-                                    <div className="p-3 rounded-xl bg-chart-4/20 dark:bg-chart-4/30">
-                                        <Smartphone className="h-6 w-6 text-chart-4 dark:text-chart-4" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-foreground dark:text-white">Device Management</h2>
-                                        <p className="text-muted-foreground dark:text-gray-300">Complete overview of all devices in the system</p>
-                                    </div>
+                        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-chart-4/10 to-chart-3/10 dark:from-chart-4/20 dark:to-chart-3/20">
+                            <div className="flex items-center gap-3 animate-in slide-in-from-left-4 duration-700 delay-200">
+                                <div className="p-3 rounded-xl bg-chart-4/20 dark:bg-chart-4/30">
+                                    <Smartphone className="h-6 w-6 text-chart-4 dark:text-chart-4" />
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="lg"
-                                    onClick={() => setShowDevicesModal(false)}
-                                    className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 animate-in slide-in-from-right-4 duration-700 delay-200 transition-all hover:scale-105"
-                                >
-                                    <X className="h-6 w-6" />
-                                </Button>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-foreground dark:text-white">Device Management</h2>
+                                    <p className="text-muted-foreground dark:text-gray-300">Complete overview of all devices in the system</p>
+                                </div>
                             </div>
-                            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] bg-white dark:bg-gray-900 scroll-smooth custom-scrollbar">
-                                {lists.allDevices && lists.allDevices.length > 0 ? (
-                                    <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-700 delay-300">
-                                        {/* Device Summary Cards con animaciÃ³n escalonada */}
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border-primary/20 dark:border-primary/30 dark:bg-gray-800/50 animate-in slide-in-from-left-2 duration-500 delay-400 hover:scale-105 transition-transform">
-                                                <CardContent className="p-4 text-center">
-                                                    <Monitor className="h-8 w-8 text-primary dark:text-primary mx-auto mb-2" />
-                                                    <h3 className="font-semibold text-primary dark:text-primary">Total Devices</h3>
-                                                    <p className="text-2xl font-bold text-foreground dark:text-white">{lists.allDevices.length}</p>
-                                                </CardContent>
-                                            </Card>
+                            <Button
+                                variant="ghost"
+                                size="lg"
+                                onClick={() => setShowDevicesModal(false)}
+                                className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 animate-in slide-in-from-right-4 duration-700 delay-200 transition-all hover:scale-105"
+                            >
+                                <X className="h-6 w-6" />
+                            </Button>
+                        </div>
+                        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] bg-white dark:bg-gray-900 scroll-smooth custom-scrollbar">
+                            {lists.allDevices && lists.allDevices.length > 0 ? (
+                                <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-700 delay-300">
+                                    {/* Device Summary Cards con animaciÃ³n escalonada */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border-primary/20 dark:border-primary/30 dark:bg-gray-800/50 animate-in slide-in-from-left-2 duration-500 delay-400 hover:scale-105 transition-transform">
+                                            <CardContent className="p-4 text-center">
+                                                <Monitor className="h-8 w-8 text-primary dark:text-primary mx-auto mb-2" />
+                                                <h3 className="font-semibold text-primary dark:text-primary">Total Devices</h3>
+                                                <p className="text-2xl font-bold text-foreground dark:text-white">{lists.allDevices.length}</p>
+                                            </CardContent>
+                                        </Card>
 
-                                            <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 dark:from-secondary/20 dark:to-secondary/10 border-secondary/20 dark:border-secondary/30 dark:bg-gray-800/50 animate-in slide-in-from-bottom-2 duration-500 delay-500 hover:scale-105 transition-transform">
-                                                <CardContent className="p-4 text-center">
-                                                    <Users className="h-8 w-8 text-secondary dark:text-secondary mx-auto mb-2" />
-                                                    <h3 className="font-semibold text-secondary dark:text-secondary">Active Users</h3>
-                                                    <p className="text-2xl font-bold text-foreground dark:text-white">
-                                                        {lists.allDevices.reduce((sum, device) => sum + device.users_count, 0)}
-                                                    </p>
-                                                </CardContent>
-                                            </Card>
+                                        <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 dark:from-secondary/20 dark:to-secondary/10 border-secondary/20 dark:border-secondary/30 dark:bg-gray-800/50 animate-in slide-in-from-bottom-2 duration-500 delay-500 hover:scale-105 transition-transform">
+                                            <CardContent className="p-4 text-center">
+                                                <Users className="h-8 w-8 text-secondary dark:text-secondary mx-auto mb-2" />
+                                                <h3 className="font-semibold text-secondary dark:text-secondary">Active Users</h3>
+                                                <p className="text-2xl font-bold text-foreground dark:text-white">
+                                                    {lists.allDevices.reduce((sum, device) => sum + device.users_count, 0)}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
 
-                                            <Card className="bg-gradient-to-br from-accent/10 to-accent/5 dark:from-accent/20 dark:to-accent/10 border-accent/20 dark:border-accent/30 dark:bg-gray-800/50 animate-in slide-in-from-right-2 duration-500 delay-600 hover:scale-105 transition-transform">
-                                                <CardContent className="p-4 text-center">
-                                                    <BarChart3 className="h-8 w-8 text-accent dark:text-accent mx-auto mb-2" />
-                                                    <h3 className="font-semibold text-accent dark:text-accent">Device Types</h3>
-                                                    <p className="text-2xl font-bold text-foreground dark:text-white">
-                                                        {new Set(lists.allDevices.map(d => d.device_type)).size}
-                                                    </p>
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-
-                                        {/* Devices Table */}
-                                        <Card className="border-0 shadow-lg dark:bg-gray-800/50 dark:border-gray-700">
-                                            <CardHeader className="pb-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:!bg-transparent">
-                                                <div className="flex items-center justify-between dark:!bg-transparent">
-                                                    <CardTitle className="text-xl text-foreground dark:text-white">Device Inventory</CardTitle>                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => exportDevicesExcel(lists.allDevices)}
-                                                        className="gap-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 hover:text-gray-700 dark:text-gray-300 hover:scale-105 transition-all duration-300"
-                                                    >
-                                                        <Download className="h-4 w-4" />
-                                                        Export
-                                                    </Button>
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent className="p-0 bg-white dark:bg-gray-800/50">
-                                                <div className="overflow-x-auto">
-                                                    <table className="w-full">                                                        <thead>
-                                                        <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70">
-                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Device</th>
-
-                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Model</th>
-                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Brand</th>
-                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">System</th>
-                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Users</th>
-                                                            <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Status</th>
-                                                        </tr>
-                                                    </thead>
-                                                        <tbody>
-                                                            {lists.allDevices.map((device, index) => (<tr key={device.id} className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${index % 2 === 0 ? 'bg-white dark:bg-gray-800/30' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
-                                                                <td className="py-3 px-4">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-chart-4/20 to-chart-3/20 dark:from-chart-4/30 dark:to-chart-3/30 flex items-center justify-center">
-                                                                            <Laptop className="h-4 w-4 text-chart-4 dark:text-chart-4" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="font-semibold text-foreground dark:text-white text-sm">  {device.device_type || 'Unknown'}</p>
-
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-
-                                                                <td className="py-3 px-4">
-                                                                    <span className="text-sm font-medium text-foreground dark:text-white">
-                                                                        {device.device_type || 'N/A'}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="py-3 px-4">
-                                                                    <span className="text-sm font-medium text-foreground dark:text-white">{device.brand_name}</span>
-                                                                </td>
-                                                                <td className="py-3 px-4">
-                                                                    <span className="text-sm text-muted-foreground dark:text-gray-400">{device.system_name}</span>
-                                                                </td>
-                                                                <td className="py-3 px-4">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Users className="h-4 w-4 text-accent dark:text-accent" />
-                                                                        <span className="font-semibold text-accent dark:text-accent">{device.users_count}</span>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="py-3 px-4">
-                                                                    <Badge
-                                                                        variant="outline"
-                                                                        className={device.users_count > 0
-                                                                            ? "bg-accent/10 dark:bg-accent/20 text-accent dark:text-accent border-accent/20 dark:border-accent/30"
-                                                                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600"
-                                                                        }
-                                                                    >
-                                                                        {device.users_count > 0 ? 'Active' : 'Unused'}
-                                                                    </Badge>
-                                                                </td>
-                                                            </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
+                                        <Card className="bg-gradient-to-br from-accent/10 to-accent/5 dark:from-accent/20 dark:to-accent/10 border-accent/20 dark:border-accent/30 dark:bg-gray-800/50 animate-in slide-in-from-right-2 duration-500 delay-600 hover:scale-105 transition-transform">
+                                            <CardContent className="p-4 text-center">
+                                                <BarChart3 className="h-8 w-8 text-accent dark:text-accent mx-auto mb-2" />
+                                                <h3 className="font-semibold text-accent dark:text-accent">Device Types</h3>
+                                                <p className="text-2xl font-bold text-foreground dark:text-white">
+                                                    {new Set(lists.allDevices.map(d => d.device_type)).size}
+                                                </p>
                                             </CardContent>
                                         </Card>
                                     </div>
-                                ) : (
-                                    <div className="text-center py-12">
-                                        <Smartphone className="h-16 w-16 text-muted-foreground dark:text-gray-400 mx-auto mb-4" />
-                                        <h3 className="text-xl font-semibold text-muted-foreground dark:text-gray-300 mb-2">No Devices Found</h3>
-                                        <p className="text-muted-foreground dark:text-gray-400">No device data is available at the moment.</p>
-                                    </div>
-                                )}
-                            </div>
+
+                                    {/* Devices Table */}
+                                    <Card className="border-0 shadow-lg dark:bg-gray-800/50 dark:border-gray-700">
+                                        <CardHeader className="pb-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:!bg-transparent">
+                                            <div className="flex items-center justify-between dark:!bg-transparent">
+                                                <CardTitle className="text-xl text-foreground dark:text-white">Device Inventory</CardTitle>                                                    <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => exportDevicesExcel(lists.allDevices)}
+                                                    className="gap-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 hover:text-gray-700 dark:text-gray-300 hover:scale-105 transition-all duration-300"
+                                                >
+                                                    <Download className="h-4 w-4" />
+                                                    Export
+                                                </Button>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="p-0 bg-white dark:bg-gray-800/50">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full">                                                        <thead>
+                                                    <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70">
+                                                        <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Device</th>
+
+                                                        <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Model</th>
+                                                        <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Brand</th>
+                                                        <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">System</th>
+                                                        <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Users</th>
+                                                        <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300 text-sm">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                    <tbody>
+                                                        {lists.allDevices.map((device, index) => (<tr key={device.id} className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${index % 2 === 0 ? 'bg-white dark:bg-gray-800/30' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
+                                                            <td className="py-3 px-4">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-chart-4/20 to-chart-3/20 dark:from-chart-4/30 dark:to-chart-3/30 flex items-center justify-center">
+                                                                        <Laptop className="h-4 w-4 text-chart-4 dark:text-chart-4" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-semibold text-foreground dark:text-white text-sm">  {device.device_type || 'Unknown'}</p>
+
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+
+                                                            <td className="py-3 px-4">
+                                                                <span className="text-sm font-medium text-foreground dark:text-white">
+                                                                    {device.device_type || 'N/A'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-3 px-4">
+                                                                <span className="text-sm font-medium text-foreground dark:text-white">{device.brand_name}</span>
+                                                            </td>
+                                                            <td className="py-3 px-4">
+                                                                <span className="text-sm text-muted-foreground dark:text-gray-400">{device.system_name}</span>
+                                                            </td>
+                                                            <td className="py-3 px-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Users className="h-4 w-4 text-accent dark:text-accent" />
+                                                                    <span className="font-semibold text-accent dark:text-accent">{device.users_count}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-3 px-4">
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className={device.users_count > 0
+                                                                        ? "bg-accent/10 dark:bg-accent/20 text-accent dark:text-accent border-accent/20 dark:border-accent/30"
+                                                                        : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600"
+                                                                    }
+                                                                >
+                                                                    {device.users_count > 0 ? 'Active' : 'Unused'}
+                                                                </Badge>
+                                                            </td>
+                                                        </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <Smartphone className="h-16 w-16 text-muted-foreground dark:text-gray-400 mx-auto mb-4" />
+                                    <h3 className="text-xl font-semibold text-muted-foreground dark:text-gray-300 mb-2">No Devices Found</h3>
+                                    <p className="text-muted-foreground dark:text-gray-400">No device data is available at the moment.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* Location Modal */}
-                <Dialog 
-                    open={showLocationModal} 
-                    onOpenChange={(open) => {
-                        if (!open) closeLocationModal();
-                    }}
-                >
-                    <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <MapPin className="h-5 w-5 text-blue-600" />
-                                Appointment Location - {selectedAppointment ? getAppointmentLocation(selectedAppointment).buildingName : ''}
-                            </DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                            {/* Appointment Details */}
-                            <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 space-y-2">
-                                <h4 className="font-semibold text-slate-900 dark:text-slate-100">
-                                    {selectedAppointment?.title}
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                                        <Calendar className="h-4 w-4" />
-                                        <span>{selectedAppointment ? formatAppointmentDateTime(selectedAppointment.scheduled_for).date : ''}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                                        <Clock className="h-4 w-4" />
-                                        <span>{selectedAppointment ? formatAppointmentDateTime(selectedAppointment.scheduled_for).time : ''}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                                        <User className="h-4 w-4" />
-                                        <span>{selectedAppointment?.technical.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                                        <Ticket className="h-4 w-4" />
-                                        <span>#{selectedAppointment?.ticket.code}</span>
-                                    </div>
+            {/* Location Modal */}
+            <Dialog
+                open={showLocationModal}
+                onOpenChange={(open) => {
+                    if (!open) closeLocationModal();
+                }}
+            >
+                <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <MapPin className="h-5 w-5 text-blue-600" />
+                            Appointment Location - {selectedAppointment ? getAppointmentLocation(selectedAppointment).buildingName : ''}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        {/* Appointment Details */}
+                        <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 space-y-2">
+                            <h4 className="font-semibold text-slate-900 dark:text-slate-100">
+                                {selectedAppointment?.title}
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                    <Calendar className="h-4 w-4" />
+                                    <span>{selectedAppointment ? formatAppointmentDateTime(selectedAppointment.scheduled_for).date : ''}</span>
                                 </div>
-                                <div className="flex items-start gap-2 text-slate-600 dark:text-slate-300">
-                                    <Home className="h-4 w-4 mt-0.5" />
-                                    <div>
-                                        <div className="font-medium">{selectedAppointment ? getAppointmentLocation(selectedAppointment).buildingName : ''}</div>
-                                        <div className="text-xs text-slate-500">
-                                            Unit {selectedAppointment ? getAppointmentLocation(selectedAppointment).unitNumber : ''} â€¢ {selectedAppointment?.address}
-                                        </div>
-                                    </div>
+                                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                    <Clock className="h-4 w-4" />
+                                    <span>{selectedAppointment ? formatAppointmentDateTime(selectedAppointment.scheduled_for).time : ''}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                    <User className="h-4 w-4" />
+                                    <span>{selectedAppointment?.technical.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                    <Ticket className="h-4 w-4" />
+                                    <span>#{selectedAppointment?.ticket.code}</span>
                                 </div>
                             </div>
-
-                            {/* Map */}
-                            <div className="w-full aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                                <iframe
-                                    src={getEmbedUrl(selectedAppointment ? getAppointmentLocation(selectedAppointment).locationLink : '')}
-                                    width="100%"
-                                    height="100%"
-                                    style={{ border: 0 }}
-                                    allowFullScreen
-                                    loading="lazy"
-                                    referrerPolicy="no-referrer-when-downgrade"
-                                    className="w-full h-full"
-                                />
-                            </div>
-                            
-                            {/* Footer with Action Button */}
-                            <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                {selectedAppointment && getAppointmentLocation(selectedAppointment).locationLink && (
-                                    <Button
-                                        onClick={() => {
-                                            window.open(getAppointmentLocation(selectedAppointment).locationLink, '_blank');
-                                        }}
-                                        className="px-6"
-                                    >
-                                        <ExternalLink className="h-4 w-4 mr-2" />
-                                        Open in Google Maps
-                                    </Button>
-                                )}
+                            <div className="flex items-start gap-2 text-slate-600 dark:text-slate-300">
+                                <Home className="h-4 w-4 mt-0.5" />
+                                <div>
+                                    <div className="font-medium">{selectedAppointment ? getAppointmentLocation(selectedAppointment).buildingName : ''}</div>
+                                    <div className="text-xs text-slate-500">
+                                        Unit {selectedAppointment ? getAppointmentLocation(selectedAppointment).unitNumber : ''} â€¢ {selectedAppointment?.address}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </DialogContent>
-                </Dialog>
-                {/* Ticket Modals */}
-                <TicketsModal 
-                    isOpen={showOpenTicketsModal} 
-                    onClose={() => setShowOpenTicketsModal(false)} 
-                    tickets={modalTickets} 
-                    title="Open Tickets"
-                />
-                
-                <TicketsModal 
-                    isOpen={showInProgressTicketsModal} 
-                    onClose={() => setShowInProgressTicketsModal(false)} 
-                    tickets={modalTickets} 
-                    title="In Progress Tickets"
-                />
-                
-                <TicketsModal 
-                    isOpen={showResolvedTicketsModal} 
-                    onClose={() => setShowResolvedTicketsModal(false)} 
-                    tickets={modalTickets} 
-                    title="Resolved Tickets"
-                />
-            </AppLayout>
- 
+
+                        {/* Map */}
+                        <div className="w-full aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                            <iframe
+                                src={getEmbedUrl(selectedAppointment ? getAppointmentLocation(selectedAppointment).locationLink : '')}
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0 }}
+                                allowFullScreen
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                                className="w-full h-full"
+                            />
+                        </div>
+
+                        {/* Footer with Action Button */}
+                        <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                            {selectedAppointment && getAppointmentLocation(selectedAppointment).locationLink && (
+                                <Button
+                                    onClick={() => {
+                                        window.open(getAppointmentLocation(selectedAppointment).locationLink, '_blank');
+                                    }}
+                                    className="px-6"
+                                >
+                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                    Open in Google Maps
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+            {/* Ticket Modals */}
+            <TicketsModal
+                isOpen={showOpenTicketsModal}
+                onClose={() => setShowOpenTicketsModal(false)}
+                tickets={modalTickets}
+                title="Open Tickets"
+            />
+
+            <TicketsModal
+                isOpen={showInProgressTicketsModal}
+                onClose={() => setShowInProgressTicketsModal(false)}
+                tickets={modalTickets}
+                title="In Progress Tickets"
+            />
+
+            <TicketsModal
+                isOpen={showResolvedTicketsModal}
+                onClose={() => setShowResolvedTicketsModal(false)}
+                tickets={modalTickets}
+                title="Resolved Tickets"
+            />
+        </AppLayout>
+
     );
 }
 
