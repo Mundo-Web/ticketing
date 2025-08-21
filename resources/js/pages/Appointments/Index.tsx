@@ -1071,18 +1071,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                     {appointment.title}
                 </div>
                 
-                {/* Dirección/Ubicación */}
-                <div className="text-xs opacity-90 leading-tight flex-1 overflow-hidden">
-                    <MapPin className="w-2 h-2 inline mr-1" />
-                    {(() => {
-                        // Mostrar building y apartment si están disponibles
-                        const address = appointment.address;
-                        if (address && address.length > 20) {
-                            return address.substring(0, 20) + '...';
-                        }
-                        return address || 'No address';
-                    })()}
-                </div>
+                
                 
                 {/* Status indicator dot */}
                 <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-white opacity-75 rounded-full"></div>
