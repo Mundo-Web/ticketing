@@ -200,7 +200,7 @@ class AppointmentController extends Controller
         // Add history to ticket
         $ticket->addHistory(
             'appointment_scheduled',
-            "Cita presencial agendada para {$scheduledFor->format('d/m/Y H:i')} con {$technical->name}",
+            "In-person appointment scheduled for {$scheduledFor->format('d/m/Y H:i')} with {$technical->name}",
             ['appointment_id' => $appointment->id],
             $technical->id
         );
@@ -507,16 +507,50 @@ class AppointmentController extends Controller
             $appointment->marked_no_show_by = Auth::id();
             $appointment->save();
 
-            // Create a technical comment about the no-show
-            $appointment->technical_comments = $appointment->technical_comments 
-                ? $appointment->technical_comments . "\n\n[No Show] Reason: {$request->reason}"
-                : "[No Show] Reason: {$request->reason}";
-            
-            if ($request->description) {
-                $appointment->technical_comments .= "\nDescription: {$request->description}";
-            }
-            
             $appointment->save();
+
+            // Add to ticket timeline if there's a related ticket
+            if ($appointment->ticket_id) {
+                Log::info("Attempting to add timeline entry for appointment {$appointment->id} with ticket {$appointment->ticket_id}");
+                $ticket = $appointment->ticket;
+                if ($ticket) {
+                    Log::info("Ticket found: {$ticket->id}");
+                    $userName = Auth::user()->name;
+                    $description = "Appointment marked as No Show - Reason: {$request->reason}";
+                    if ($request->description) {
+                        $description .= " - Description: {$request->description}";
+                    }
+                    $description .= " by {$userName}";
+
+                    $historyData = [
+                        'action' => 'appointment_no_show',
+                        'description' => $description,
+                        'technical_id' => null, // Don't use technical_id, use meta for attribution
+                        'meta' => [
+                            'appointment_id' => $appointment->id,
+                            'no_show_reason' => $request->reason,
+                            'no_show_description' => $request->description,
+                            'actor_name' => $userName,
+                            'actor_id' => Auth::id(),
+                            'marked_at' => Carbon::now()->toISOString()
+                        ]
+                    ];
+                    
+                    Log::info("Creating timeline entry with data: " . json_encode($historyData));
+                    
+                    try {
+                        $historyEntry = $ticket->histories()->create($historyData);
+                        Log::info("Timeline entry created successfully with ID: {$historyEntry->id}");
+                    } catch (\Exception $e) {
+                        Log::error("Failed to create timeline entry: " . $e->getMessage());
+                        throw $e;
+                    }
+                } else {
+                    Log::error("Ticket not found for appointment {$appointment->id} with ticket_id {$appointment->ticket_id}");
+                }
+            } else {
+                Log::info("Appointment {$appointment->id} has no ticket_id");
+            }
 
             // Log the action
             Log::info("Appointment {$appointment->id} marked as no-show", [

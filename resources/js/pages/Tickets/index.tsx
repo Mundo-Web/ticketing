@@ -3268,7 +3268,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                         <div className="flex items-start justify-between mb-2">
                                                                                             <div className="flex items-center gap-2">
                                                                                                 <span className="text-sm font-semibold text-slate-900">
-                                                                                                    {entry.technical?.name || entry.user?.name || 'System'}
+                                                                                                    {entry.user_name || 'System'}
                                                                                                 </span>
                                                                                                 {entry.action === 'private_note' && (
                                                                                                     <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded-full font-medium border border-orange-200">
