@@ -366,7 +366,7 @@ class Appointment extends Model
         return $this;
     }
 
-    public function reschedule($newDateTime, $reason = null)
+    public function reschedule($newDateTime, $reason = null, $performedBy = null)
     {
         if (!$this->canReschedule()) {
             throw new \Exception('No se puede reagendar esta cita en su estado actual.');
@@ -398,17 +398,31 @@ class Appointment extends Model
             'notes' => $this->notes . ($reason ? "\n\nReagendada: {$reason}" : '')
         ]);
 
+        // Determinar quién realizó la acción
+        $currentUser = $performedBy ?: \Illuminate\Support\Facades\Auth::user();
+        $currentTechnical = null;
+        $actorId = null;
+        $actorName = 'System';
+        
+        if ($currentUser) {
+            // Verificar si el usuario actual es un técnico
+            $currentTechnical = \App\Models\Technical::where('email', $currentUser->email)->first();
+            $actorId = $currentTechnical ? $currentTechnical->id : null;
+            $actorName = $currentTechnical ? $currentTechnical->name : $currentUser->name;
+        }
+
         // Add history to ticket - format dates only for display
         $this->ticket->addHistory(
             'appointment_rescheduled',
-            "Cita reagendada de {$oldDateForHistory->format('d/m/Y H:i')} a {$newDateForHistory->format('d/m/Y H:i')}" . 
+            "Rescheduled appointment of {$oldDateForHistory->format('d/m/Y H:i')} to {$newDateForHistory->format('d/m/Y H:i')} by {$actorName}" . 
             ($reason ? " - {$reason}" : ''),
             [
                 'appointment_id' => $this->id, 
                 'old_date' => $oldDateString, 
-                'new_date' => $newDateString
+                'new_date' => $newDateString,
+                'actor_name' => $actorName
             ],
-            $this->technical_id
+            $actorId
         );
 
         // Disparar el evento AppointmentRescheduled para notificaciones

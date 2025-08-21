@@ -1,39 +1,11 @@
 <?php
 
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-
-class TicketHistory extends Model
-{
-    use HasFactory;
-
-    protected $fillable = [
-        'ticket_id',
-        'technical_id',
-        'action',
-        'description',
-        'meta',
-    ];
-
-    protected $casts = [
-        'meta' => 'array',
-    ];
-
-    public function ticket()
-    {
-        return $this->belongsTo(Ticket::class);
-    }
-
-    public function technical()
-    {
-        return $this->belongsTo(Technical::class);
-    }
-
-    /**
-     * Get the user name for this history entry
-     */
+// Simple test without Laravel
+class TestTicketHistory {
+    public $description;
+    public $meta;
+    public $technical = null;
+    
     public function getUserNameAttribute()
     {
         if ($this->technical) {
@@ -69,4 +41,26 @@ class TicketHistory extends Model
         
         return "System";
     }
+    
+    public function __get($name) {
+        if ($name === 'user_name') {
+            return $this->getUserNameAttribute();
+        }
+        return null;
+    }
 }
+
+// Test case
+$history = new TestTicketHistory();
+$history->description = "Cita reagendada de 20/08/2025 23:20 a 20/08/2025 23:24 por ADK ASSIST";
+$history->meta = ['actor_name' => 'ADK ASSIST'];
+
+echo "Test description: " . $history->description . "\n";
+echo "Extracted user_name: " . $history->user_name . "\n";
+
+// Test without meta
+$history2 = new TestTicketHistory();
+$history2->description = "Cita reagendada de 20/08/2025 23:20 a 20/08/2025 23:24 por ADK ASSIST";
+
+echo "\nTest 2 description: " . $history2->description . "\n";
+echo "Extracted user_name: " . $history2->user_name . "\n";

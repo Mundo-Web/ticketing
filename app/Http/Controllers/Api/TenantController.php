@@ -473,7 +473,8 @@ class TenantController extends Controller
             'technical',
             'histories' => function($query) {
                 $query->orderBy('created_at', 'desc');
-            }
+            },
+            'histories.technical'
         ])->where('user_id', $user->id)->find($ticketId);
 
         if (!$ticket) {

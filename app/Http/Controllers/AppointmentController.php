@@ -454,7 +454,7 @@ class AppointmentController extends Controller
         }
 
         try {
-            $appointment->reschedule($request->new_scheduled_for, $request->reason);
+            $appointment->reschedule($request->new_scheduled_for, $request->reason, Auth::user());
 
             if (request()->expectsJson()) {
                 return response()->json([
