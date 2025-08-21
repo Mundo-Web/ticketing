@@ -30,10 +30,12 @@ class AppointmentController extends Controller
             ->whereBetween('scheduled_for', [$startDate, $endDate]);
         
         if ($user->hasRole('technical')) {
-            // Technical sees only their appointments
+            // Check if technical user is default
             $technical = Technical::where('email', $user->email)->first();
             
-            if ($technical) {
+            if ($technical && !$technical->is_default) {
+                // Regular technical users see only their appointments
+                // Technical users with is_default = true see all appointments like super-admin
                 $appointmentsQuery->where('technical_id', $technical->id);
             }
         } elseif ($user->hasRole('member')) {
@@ -42,7 +44,7 @@ class AppointmentController extends Controller
                 $query->where('user_id', $user->id);
             });
         }
-        // Super admin and technical default see all appointments
+        // Super admin and technical users with is_default = true see all appointments
         
         $appointments = $appointmentsQuery->orderBy('scheduled_for')->get();
         //nuevo
@@ -68,12 +70,20 @@ class AppointmentController extends Controller
         // Get technicals for scheduling
         $technicals = Technical::where('status', true)->get();
         
+        // Check if technical user is default for frontend
+        $isTechnicalDefault = false;
+        if ($user->hasRole('technical')) {
+            $technical = Technical::where('email', $user->email)->first();
+            $isTechnicalDefault = $technical && $technical->is_default;
+        }
+        
         return Inertia::render('Appointments/Index', [
             'appointments' => $appointments,
             'calendarEvents' => $calendarEvents,
             'technicals' => $technicals,
             'currentDate' => Carbon::now()->toDateString(),
             'googleMapsApiKey' => env('GMAPS_API_KEY'),
+            'isTechnicalDefault' => $isTechnicalDefault,
         ]);
     }
 

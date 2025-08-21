@@ -371,8 +371,8 @@ class DashboardController extends Controller
 
         // Próximas citas - filtradas por rol de usuario
         $upcomingAppointments = collect();
-        if ($user->hasRole('technical')) {
-            // Técnicos ven solo sus citas
+        if ($user->hasRole('technical') && !$isDefaultTechnical) {
+            // Técnicos regulares (no default) ven solo sus citas
             $technical = Technical::where('email', $user->email)->first();
             if ($technical) {
                 Log::info('Loading appointments for technical', [
@@ -542,7 +542,7 @@ class DashboardController extends Controller
                 ->limit(10)
                 ->get();
         } elseif ($hasAdminPrivileges) {
-            // Super admin and default technical see all upcoming appointments
+            // Super admin and technical users with is_default = true see all upcoming appointments
             $upcomingAppointments = Appointment::with([
                 'ticket' => function($query) {
                     $query->select('id', 'title', 'code', 'user_id', 'device_id');
