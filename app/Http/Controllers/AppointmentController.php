@@ -26,7 +26,17 @@ class AppointmentController extends Controller
         $endDate = $request->get('end', Carbon::now()->endOfMonth());
         
         // Build query based on user role
-        $appointmentsQuery = Appointment::with(['ticket.user', 'ticket.device', 'technical'])
+        $appointmentsQuery = Appointment::with([
+            'ticket.user', 
+            'ticket.user.tenant',
+            'ticket.user.tenant.apartment',
+            'ticket.user.tenant.apartment.building',
+            'ticket.device',
+            'ticket.device.tenants',
+            'ticket.device.tenants.apartment',
+            'ticket.device.tenants.apartment.building',
+            'technical'
+        ])
             ->whereBetween('scheduled_for', [$startDate, $endDate]);
         
         if ($user->hasRole('technical')) {

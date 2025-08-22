@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Calendar as CalendarIcon, Clock, MapPin, User, CheckCircle, XCircle, PlayCircle, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -170,7 +170,7 @@ const calendarStyle = `
 /* Time Slots - Minimal and Clean */
 .rbc-time-slot {
     border-top: 1px solid #f8fafc;
-    min-height: 60px;
+    min-height: 80px;
     transition: background-color 0.15s ease;
     background: #ffffff;
 }
@@ -181,18 +181,18 @@ const calendarStyle = `
 
 .rbc-timeslot-group {
     border-bottom: 1px solid #f1f5f9;
-    min-height: 60px;
+    min-height: 80px;
 }
 
 /* Week View - Force single cells per hour */
 .rbc-time-view .rbc-timeslot-group {
-    min-height: 60px !important;
-    height: 60px !important;
+    min-height: 80px !important;
+    height: 80px !important;
 }
 
 .rbc-time-view .rbc-time-slot {
-    min-height: 60px !important;
-    height: 60px !important;
+    min-height: 80px !important;
+    height: 80px !important;
     border-top: none !important;
 }
 
@@ -228,7 +228,7 @@ const calendarStyle = `
     border-radius: 8px;
     margin: 1px 2px;
     padding: 0;
-    min-height: 60px !important;
+    min-height: 75px !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur(10px);
@@ -253,7 +253,8 @@ const calendarStyle = `
 .rbc-event:hover {
     transform: translateY(-2px) scale(1.01);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 3px 10px rgba(0, 0, 0, 0.08);
-    z-index: 100;
+    z-index: 999;
+    overflow: visible !important;
 }
 
 .rbc-event:focus {
@@ -342,7 +343,7 @@ const calendarStyle = `
     border-left: 3px solid #3b82f6 !important;
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
     position: relative;
-    overflow: hidden;
+    overflow: visible !important;
 }
 
 .rbc-agenda-view .rbc-event:hover {
@@ -372,6 +373,43 @@ const calendarStyle = `
 .rbc-agenda-event-cell {
     padding: 12px 16px;
     border-bottom: 1px solid #f1f5f9;
+    overflow: visible !important;
+}
+
+/* Agenda View - Fix overflow for tooltips */
+.rbc-agenda-view,
+.rbc-agenda-view table,
+.rbc-agenda-view tbody,
+.rbc-agenda-view tr,
+.rbc-agenda-view td {
+    overflow: visible !important;
+}
+
+.rbc-agenda-date-cell,
+.rbc-agenda-time-cell {
+    overflow: visible !important;
+}
+
+/* Special handling for agenda tooltips */
+.rbc-agenda-view .group:hover .absolute {
+    z-index: 10000 !important;
+    transform: translateX(8px) !important;
+}
+
+/* Ensure agenda table cells don't clip tooltips */
+.rbc-agenda-view table.rbc-agenda-table td {
+    position: relative;
+    overflow: visible !important;
+}
+
+.rbc-agenda-view .rbc-event .group {
+    position: relative;
+    z-index: 1;
+}
+
+.rbc-agenda-view .rbc-event:hover {
+    z-index: 100 !important;
+    overflow: visible !important;
 }
 
 /* Week/Time Views */
@@ -449,11 +487,46 @@ const calendarStyle = `
     background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
 }
 
+/* Tooltip positioning and overflow fix */
+.rbc-calendar,
+.rbc-time-view,
+.rbc-time-content {
+    overflow: visible !important;
+}
+
+.rbc-time-header,
+.rbc-time-slot,
+.rbc-timeslot-group {
+    overflow: visible !important;
+}
+
+/* Calendar container should allow tooltips to overflow */
+.rbc-calendar .rbc-time-view .rbc-time-content {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+}
+
+.rbc-calendar .rbc-day-slot,
+.rbc-calendar .rbc-time-slot {
+    overflow: visible !important;
+}
+
+/* Ensure tooltips are always on top */
+.group:hover .absolute {
+    z-index: 9999 !important;
+}
+
+/* Prevent tooltip clipping in calendar cells */
+.rbc-day-slot .rbc-event,
+.rbc-week-view .rbc-event {
+    overflow: visible !important;
+}
+
 /* Custom Event Content - Clean Typography */
 .custom-event-content {
     color: #ffffff !important;
     position: relative;
-    overflow: hidden;
+    overflow: visible !important;
 }
 
 .custom-event-content * {
@@ -554,6 +627,52 @@ const calendarStyle = `
 .rbc-addons-dnd-over {
     background: rgba(59, 130, 246, 0.2);
 }
+
+/* Custom Scrollbar for Modal */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.1);
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #64748b, #475569);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #475569, #334155);
+    background-clip: content-box;
+}
+
+/* Animation for modal elements */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-in-up {
+    animation: slideInUp 0.3s ease-out;
+}
+
+/* Glass effect for modal cards */
+.glass-effect {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
 `;
 
 interface Appointment {
@@ -644,26 +763,26 @@ const statusConfig = {
 export default function AppointmentsIndex({ appointments, technicals, auth, isTechnicalDefault, googleMapsApiKey }: AppointmentsProps) {
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [showAppointmentModal, setShowAppointmentModal] = useState(false);
-    
+
     // Usar la misma lógica de detección de roles que en el index de Tickets
     const { props } = usePage<any>();
     const isTechnical = (auth.user as any)?.roles?.includes("technical");
     const isSuperAdmin = (auth.user as any)?.roles?.includes("super-admin");
-    
+
     // Vista por defecto: Agenda para técnicos, Día para super admins
     const defaultView = (isTechnical || isTechnicalDefault) ? Views.AGENDA : Views.DAY;
     const [calendarView, setCalendarView] = useState<any>(defaultView);
-    
+
     const [calendarDate, setCalendarDate] = useState(new Date()); // Usar fecha actual del cliente
     const [notifications, setNotifications] = useState<string[]>([]);
     const [selectedAppointmentLoading, setSelectedAppointmentLoading] = useState(false);
-    
+
     // Estados del modal de detalles de cita - igual que en el index de Tickets
     const [showAppointmentDetailsModal, setShowAppointmentDetailsModal] = useState<{ open: boolean; appointment?: any }>({ open: false });
-    
+
     // Estado para el modal de ubicación (igual que en Tickets)
     const [showLocationModal, setShowLocationModal] = useState<{ open: boolean; building?: any }>({ open: false });
-    
+
     // No Show Modal States
     const [showNoShowModal, setShowNoShowModal] = useState<{ open: boolean; appointment?: any }>({ open: false });
     const [noShowForm, setNoShowForm] = useState({
@@ -673,7 +792,14 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
         rescheduleOffered: false
     });
     const [isSubmittingNoShow, setIsSubmittingNoShow] = useState(false);
-    
+
+    // User Info Modal States
+    const [showUserInfoModal, setShowUserInfoModal] = useState<{
+        open: boolean;
+        user?: any;
+        type?: 'technical' | 'member'
+    }>({ open: false });
+
     // No Show Reasons
     const noShowReasons = [
         { value: 'member_not_home', label: 'Member Not Home', description: 'Member was not present at the scheduled time' },
@@ -734,7 +860,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
     // Función para abrir modal de cita con datos completos (igual que en Tickets)
     const openAppointmentModal = async (appointment: any, action: string = 'view') => {
         console.log('openAppointmentModal called with:', { appointment, action });
-        
+
         // Si la cita ya tiene datos completos del ticket, usarlos directamente
         if (appointment?.ticket?.device?.tenants || appointment?.ticket?.user?.tenant) {
             console.log('Using existing appointment data - has relationships');
@@ -779,16 +905,16 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
         const checkUpcomingAppointments = () => {
             const now = new Date();
             const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000);
-            
+
             filteredAppointments.forEach(appointment => {
                 if (appointment.status === 'scheduled') {
                     const appointmentTime = new Date(appointment.scheduled_for);
                     if (appointmentTime <= thirtyMinutesFromNow && appointmentTime > now) {
                         const timeLeft = Math.floor((appointmentTime.getTime() - now.getTime()) / (1000 * 60));
-                        const message = isTechnical || isTechnicalDefault 
+                        const message = isTechnical || isTechnicalDefault
                             ? `🔔 You have an appointment in ${timeLeft} minutes with ${appointment.ticket.user.name}: ${appointment.title}`
                             : `Upcoming appointment in ${timeLeft} minutes: ${appointment.title}`;
-                        
+
                         setNotifications(prev => {
                             if (!prev.includes(message)) {
                                 return [...prev, message];
@@ -802,7 +928,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
 
         checkUpcomingAppointments();
         const interval = setInterval(checkUpcomingAppointments, 60000); // Verificar cada minuto
-        
+
         return () => clearInterval(interval);
     }, [filteredAppointments, isTechnical, isTechnicalDefault]);
 
@@ -816,15 +942,15 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
         const events = filteredAppointments.map(appointment => {
             // Crear fechas usando el timezone local para evitar problemas de offset
             const start = new Date(appointment.scheduled_for);
-            
+
             // Para eventos nocturnos (después de las 18:00), limitar la duración más agresivamente
             const hour = start.getHours();
             let durationMinutes = appointment.estimated_duration;
-            
+
             // Si es un evento nocturno, limitarlo para que NO se extienda al día siguiente
             if (hour >= 18) { // Desde las 6 PM
                 const minutesUntilMidnight = (24 - hour) * 60 - start.getMinutes();
-                
+
                 // Para eventos muy tardíos (después de las 22:00), usar duración muy corta
                 if (hour >= 22) {
                     durationMinutes = Math.min(30, minutesUntilMidnight - 30); // máximo 30 min, termina 30 min antes de medianoche
@@ -832,13 +958,13 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                     // Para eventos entre 18:00 y 22:00, limitar pero menos agresivamente
                     durationMinutes = Math.min(durationMinutes, minutesUntilMidnight - 60); // termina 1 hora antes de medianoche
                 }
-                
+
                 // Asegurar que siempre sea al menos 15 minutos
                 durationMinutes = Math.max(15, durationMinutes);
             }
-            
+
             const end = new Date(start.getTime() + durationMinutes * 60000);
-            
+
             // Debug para verificar fechas
             console.log('🗓️ Converting appointment:', {
                 id: appointment.id,
@@ -865,7 +991,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                 allDay: false
             };
         });
-        
+
         console.log('🗓️ Total calendar events created:', events.length);
         return events;
     }, [filteredAppointments]);
@@ -882,7 +1008,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
     // Funciones de navegación del calendario
     const navigateCalendar = (direction: 'prev' | 'next' | 'today') => {
         let newDate = new Date(calendarDate);
-        
+
         switch (direction) {
             case 'prev':
                 if (calendarView === Views.DAY) {
@@ -906,14 +1032,14 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                 newDate = new Date();
                 break;
         }
-        
+
         setCalendarDate(newDate);
     };
 
     // Formatear título de fecha según la vista
     const getCalendarTitle = () => {
         const date = moment(calendarDate);
-        
+
         switch (calendarView) {
             case Views.DAY:
                 return date.format('dddd, MMMM Do YYYY');
@@ -985,22 +1111,22 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
     const handleNoShow = async () => {
         try {
             if (!showNoShowModal.appointment) return;
-            
+
             setIsSubmittingNoShow(true);
-            
+
             // Call backend API to mark appointment as no-show
             await router.post(route('appointments.no-show', showNoShowModal.appointment.id), {
                 reason: noShowForm.reason,
                 description: noShowForm.description || null
             });
-            
+
             toast.success('Appointment marked as No Show successfully');
             setShowNoShowModal({ open: false });
             setNoShowForm({ reason: '', description: '', notifyMember: true, rescheduleOffered: false });
-            
+
             // Refresh appointments
             router.reload();
-            
+
         } catch (error) {
             console.error('Error marking appointment as no-show:', error);
             toast.error('Error marking appointment as no-show');
@@ -1037,10 +1163,43 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
             no_show: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)'
         };
 
+        // Datos del técnico
+        const technical = appointment.technical || {};
+        const technicalPhoto = technical.photo || technical.photo_url || technical.avatar_url || technical.avatar || null;
+        const technicalName = technical.name || '';
+        const technicalEmail = technical.email || '';
+        const technicalPhone = technical.phone || '';
+
+        // Datos del member (cliente)
+        const member = appointment.ticket?.user?.tenant || {};
+        const memberPhoto = member.photo || member.photo_url || member.avatar_url || member.avatar || null;
+        const memberName = member.name || '';
+        const memberEmail = member.email || '';
+        const memberPhone = member.phone || '';
+        
+        // Debug simplificado para verificar datos del member
+        console.log(`Member data for appointment ${appointment.id}:`, {
+            hasTicket: !!appointment.ticket,
+            hasUser: !!appointment.ticket?.user,
+            hasTenant: !!appointment.ticket?.user?.tenant,
+            memberName: memberName,
+            memberEmail: memberEmail,
+            memberData: member
+        });
+
+        const ticketNumber = appointment.ticket?.number || appointment.ticket?.id || '';
+
+        // Helper para iniciales
+        function getInitials(name: string): string {
+            if (!name) return '';
+            const parts = name.split(' ');
+            return parts.slice(0, 2).map((p: string) => p[0]).join('').toUpperCase();
+        }
+
         return (
-            <div 
-                className="w-full h-full text-white text-xs p-1.5 overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 relative"
-                style={{ 
+            <div
+                className="w-full h-full text-white text-xs p-2 overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 relative"
+                style={{
                     minHeight: '100%',
                     height: '100%',
                     borderRadius: '6px',
@@ -1051,28 +1210,101 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                     flexDirection: 'column',
                     justifyContent: 'flex-start'
                 }}
-                title={`${appointment.ticket.user.name} - ${appointment.title} at ${formatTime(appointment.scheduled_for)}`}
+               
             >
                 {/* Header con hora e icono */}
-                <div className="flex items-center gap-1.5 mb-1 flex-shrink-0">
+                <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
                     <IconComponent className="w-3 h-3 flex-shrink-0 opacity-90" />
                     <span className="font-bold text-xs leading-none">
                         {formatTime(appointment.scheduled_for)}
                     </span>
                 </div>
-                
-                {/* Nombre del cliente */}
-                <div className="font-semibold text-xs leading-tight mb-1 flex-shrink-0">
-                    {appointment.ticket.user.name}
+
+                {/* Avatares con tooltips */}
+                <div className="flex items-center gap-2 mb-2">
+                    {/* Avatar del técnico */}
+                    <div
+                        className="relative cursor-pointer"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowUserInfoModal({
+                                open: true,
+                                user: technical,
+                                type: 'technical'
+                            });
+                        }}
+                    >
+                        <div className="w-6 h-6 rounded-full border border-white/30 overflow-hidden bg-white/20 hover:scale-110 transition-transform duration-200 relative">
+                            {technicalPhoto ? (
+                                <img
+                                    src={technicalPhoto.startsWith('/storage/') ? technicalPhoto : 
+                                         technicalPhoto.startsWith('http') ? technicalPhoto : 
+                                         `/storage/${technicalPhoto}`}
+                                    alt={technicalName}
+                                    className="w-full h-full object-cover"
+                                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                        if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                />
+                            ) : null}
+                            <div
+                                className="absolute inset-0 w-full h-full bg-blue-500 flex items-center justify-center text-xs font-bold text-white"
+                                style={{ display: technicalPhoto ? 'none' : 'flex' }}
+                            >
+                                {getInitials(technicalName)}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Avatar del member */}
+                    <div
+                        className="relative cursor-pointer"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowUserInfoModal({
+                                open: true,
+                                user: member,
+                                type: 'member'
+                            });
+                        }}
+                    >
+                        <div className="w-6 h-6 rounded-full border border-white/30 overflow-hidden bg-white/20 hover:scale-110 transition-transform duration-200 relative">
+                            {memberPhoto ? (
+                                <img
+                                    src={memberPhoto.startsWith('/storage/') ? memberPhoto : 
+                                         memberPhoto.startsWith('http') ? memberPhoto : 
+                                         `/storage/${memberPhoto}`}
+                                    alt={memberName}
+                                    className="w-full h-full object-cover"
+                                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                        if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                />
+                            ) : null}
+                            <div
+                                className="absolute inset-0 w-full h-full bg-green-500 flex items-center justify-center text-xs font-bold text-white"
+                                style={{ display: memberPhoto ? 'none' : 'flex' }}
+                            >
+                                {getInitials(memberName)}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                
+
+                {/* Información del ticket */}
+                <div className="text-xs opacity-90 leading-tight mb-1 flex-shrink-0">
+                    Ticket: {ticketNumber}
+                </div>
+
                 {/* Título de la cita */}
-                <div className="text-xs opacity-95 leading-tight mb-1 overflow-hidden">
+                <div className="text-xs opacity-95 leading-tight overflow-hidden flex-1">
                     {appointment.title}
                 </div>
-                
-                
-                
+
                 {/* Status indicator dot */}
                 <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-white opacity-75 rounded-full"></div>
             </div>
@@ -1124,7 +1356,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
     const getStatusBadge = (status: string) => {
         const config = getStatusConfig(status);
         const IconComponent = config.icon;
-        
+
         return (
             <Badge className={`${config.color} border-0`}>
                 <IconComponent className="w-3 h-3 mr-1" />
@@ -1136,10 +1368,10 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
     return (
         <AppLayout breadcrumbs={[{ title: "Calendar", href: "/appointments" }]}>
             <Head title="Appointments Calendar" />
-            
+
             {/* Custom styles */}
             <style dangerouslySetInnerHTML={{ __html: calendarStyle }} />
-            
+
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
                 {/* Modern Header with Glass Effect */}
                 <div className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-200/60 shadow-sm">
@@ -1154,24 +1386,24 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                         {isTechnical || isTechnicalDefault ? 'My Schedule' : 'Calendar Management'}
                                     </h1>
                                     <p className="text-sm text-slate-600 font-medium">
-                                        {isTechnical || isTechnicalDefault 
-                                            ? `${auth.user.name}'s appointments and tasks` 
+                                        {isTechnical || isTechnicalDefault
+                                            ? `${auth.user.name}'s appointments and tasks`
                                             : 'Comprehensive appointment scheduling system'
                                         }
                                     </p>
                                 </div>
                             </div>
-                            
+
                             {/* Status Legend - Modern Pills */}
                             <div className="hidden lg:flex items-center gap-2">
                                 {Object.entries(statusConfig).map(([status, config]) => {
                                     const IconComponent = config.icon;
                                     return (
-                                        <div 
-                                            key={status} 
+                                        <div
+                                            key={status}
                                             className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/60 backdrop-blur-sm border border-white/40 shadow-sm hover:shadow-md transition-all duration-200"
                                         >
-                                            <div 
+                                            <div
                                                 className="w-2 h-2 rounded-full"
                                                 style={{ backgroundColor: config.bgColor }}
                                             />
@@ -1234,7 +1466,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                                 >
                                                     <ChevronLeft className="w-4 h-4" />
                                                 </Button>
-                                                
+
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -1243,7 +1475,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                                 >
                                                     Today
                                                 </Button>
-                                                
+
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -1253,7 +1485,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                                     <ChevronRight className="w-4 h-4" />
                                                 </Button>
                                             </div>
-                                            
+
                                             {/* Current Date Display - Large and Beautiful */}
                                             <div className="px-4">
                                                 <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
@@ -1261,7 +1493,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                                 </h2>
                                             </div>
                                         </div>
-                                        
+
                                         {/* View Toggle - Modern Pills */}
                                         <div className="flex items-center gap-1 bg-slate-100 rounded-2xl p-1">
                                             {[
@@ -1275,11 +1507,10 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                                     variant={calendarView === view ? "default" : "ghost"}
                                                     size="sm"
                                                     onClick={() => setCalendarView(view)}
-                                                    className={`h-10 px-6 rounded-xl font-medium transition-all duration-200 ${
-                                                        calendarView === view
+                                                    className={`h-10 px-6 rounded-xl font-medium transition-all duration-200 ${calendarView === view
                                                             ? 'bg-white shadow-sm text-slate-900 hover:bg-white'
                                                             : 'hover:bg-white/60 text-slate-600 hover:text-slate-900'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <Icon className="w-4 h-4 mr-2" />
                                                     {label}
@@ -1291,7 +1522,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
 
                                 {/* Calendar Content */}
                                 <div className="p-6">
-                                    <div className="h-[700px] bg-white rounded-2xl shadow-inner border border-slate-100 overflow-hidden">
+                                    <div className="h-[800px] bg-white rounded-2xl shadow-inner border border-slate-100 overflow-visible">
                                         <Calendar
                                             localizer={localizer}
                                             events={calendarEvents}
@@ -1370,13 +1601,13 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                     ) : (
                                         <div className="space-y-3">
                                             {upcomingAppointments.slice(0, 4).map((appointment) => (
-                                                <div 
-                                                    key={appointment.id} 
+                                                <div
+                                                    key={appointment.id}
                                                     className="group relative bg-gradient-to-r from-slate-50 to-white rounded-2xl p-4 border border-slate-100 hover:shadow-lg hover:border-blue-200 transition-all duration-300 cursor-pointer"
                                                     onClick={() => openAppointmentModal(appointment)}
                                                 >
                                                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                    
+
                                                     <div className="relative">
                                                         <div className="flex items-start justify-between mb-3">
                                                             <div className="flex-1">
@@ -1387,7 +1618,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                                                     {appointment.ticket.user.name}
                                                                 </p>
                                                             </div>
-                                                            
+
                                                             <div className="flex items-center gap-2">
                                                                 {(isTechnical || isTechnicalDefault) && appointment.status === 'scheduled' && (
                                                                     <Button
@@ -1404,7 +1635,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        
+
                                                         <div className="flex items-center gap-4 text-xs">
                                                             <div className="flex items-center gap-1 text-slate-500">
                                                                 <Clock className="w-3 h-3" />
@@ -1452,242 +1683,418 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                 </div>
                             </div>
 
-                            {/* Available Technicians - Modern Cards */}
-                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 overflow-hidden">
-                                <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-6 border-b border-purple-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-purple-100 rounded-xl">
-                                            <User className="w-5 h-5 text-purple-600" />
-                                        </div>
-                                        <h3 className="text-lg font-bold text-purple-900">Team</h3>
-                                    </div>
-                                </div>
-                                <div className="p-6">
-                                    <div className="space-y-3">
-                                        {technicals.map((technical: any) => (
-                                            <div key={technical.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-slate-50 to-white rounded-xl border border-slate-100 hover:shadow-md transition-all duration-200">
-                                                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
-                                                    {technical.name.charAt(0).toUpperCase()}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className="font-semibold text-slate-900 text-sm">{technical.name}</p>
-                                                    <p className="text-xs text-slate-500">{technical.email}</p>
-                                                </div>
-                                                <Badge 
-                                                    variant="outline" 
-                                                    className="text-xs bg-green-50 text-green-700 border-green-200 px-2 py-1 rounded-lg"
-                                                >
-                                                    Available
-                                                </Badge>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
+                          
                         </div>
                     </div>
                 </div>
 
-                {/* Appointment Details Modal - igual que en el index de Tickets */}
+                {/* Appointment Details Modal - Rediseñado Moderno */}
                 <Dialog
                     open={showAppointmentDetailsModal.open}
                     onOpenChange={(open) => setShowAppointmentDetailsModal({ open, appointment: showAppointmentDetailsModal.appointment })}
                 >
-                    <DialogContent className="sm:max-w-4xl max-h-[95vh] overflow-y-auto">
-                        <DialogHeader className="pb-6 border-b border-slate-200">
-                            <DialogTitle className="flex items-center gap-3 text-2xl font-bold">
-                                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
-                                    <CalendarIcon className="w-7 h-7 text-white" />
-                                </div>
-                                <div>
-                                    <div>Appointment Details</div>
-                                    <div className="text-sm font-normal text-slate-600 mt-1">
-                                        Manage and track appointment progress
-                                    </div>
-                                </div>
-                            </DialogTitle>
-                        </DialogHeader>
-
-                        <div className="max-h-[70vh] overflow-y-auto pr-2">
-                            {showAppointmentDetailsModal.appointment && (
-                                <div className="space-y-8">
-                                    {/* Main Appointment Info Card */}
-                                    <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                                        <div className="flex items-start justify-between mb-6">
-                                            <div className="flex-1">
-                                                <h3 className="text-xl font-bold text-slate-900 mb-2">
-                                                    {showAppointmentDetailsModal.appointment.title}
-                                                </h3>
-                                                <div className="flex items-center gap-2">
-                                                    {getStatusBadge(showAppointmentDetailsModal.appointment.status)}
-                                                </div>
+                    <DialogContent className="sm:max-w-5xl max-h-[95vh] overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50">
+                        {/* Header con gradiente y glassmorphism */}
+                        <div className="relative bg-gradient-to-r from-primary via-secondary to-primary -m-6 mb-8 p-8 text-white overflow-hidden">
+                            {/* Efectos de fondo */}
+                            <div className="absolute inset-0 bg-black/10"></div>
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
+                            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
+                            
+                            <DialogHeader className="relative z-10">
+                                <DialogTitle className="flex items-start justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border border-white/30">
+                                            <CalendarIcon className="w-8 h-8 text-white" />
+                                        </div>
+                                        <div>
+                                            <h1 className="text-3xl font-bold mb-2">
+                                                {showAppointmentDetailsModal.appointment?.title || 'Appointment Details'}
+                                            </h1>
+                                            <div className="flex items-center gap-3">
+                                                {showAppointmentDetailsModal.appointment && getStatusBadge(showAppointmentDetailsModal.appointment.status)}
+                                                <span className="text-white/80 text-sm">
+                                                    #{showAppointmentDetailsModal.appointment?.ticket?.code || 'N/A'}
+                                                </span>
                                             </div>
                                         </div>
+                                    </div>
+                                  
+                                </DialogTitle>
+                            </DialogHeader>
+                        </div>
 
-                                        {/* Details Grid */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
-                                                    <div className="p-2 bg-blue-100 rounded-lg">
-                                                        <CalendarIcon className="w-5 h-5 text-blue-600" />
+                        {/* Contenido principal con scroll personalizado */}
+                        <div className="max-h-[65vh] overflow-y-auto px-1 custom-scrollbar">
+                            {showAppointmentDetailsModal.appointment && (
+                                <div className="space-y-6">
+                                    {/* Hero Card - Información principal */}
+                                    <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-white/20 overflow-hidden">
+                                        {/* Decorative elements */}
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full -translate-y-16 translate-x-16 opacity-50"></div>
+                                        
+                                        <div className="relative z-10">
+                                            {/* Fecha y hora destacada */}
+                                            <div className="flex items-center justify-between mb-8">
+                                                <div className="flex items-center gap-6">
+                                                    <div className="text-center">
+                                                        <div className="text-3xl font-bold text-slate-900 mb-1">
+                                                            {new Date(showAppointmentDetailsModal.appointment.scheduled_for).getDate()}
+                                                        </div>
+                                                        <div className="text-sm font-medium text-slate-600 uppercase tracking-wider">
+                                                            {new Date(showAppointmentDetailsModal.appointment.scheduled_for).toLocaleDateString('es', { month: 'short' })}
+                                                        </div>
                                                     </div>
+                                                    <div className="h-16 w-px bg-gradient-to-b from-transparent via-slate-300 to-transparent"></div>
                                                     <div>
-                                                        <div className="text-sm font-medium text-slate-600">Scheduled Date & Time</div>
-                                                        <div className="text-base font-semibold text-slate-900">
-                                                            {formatDate(showAppointmentDetailsModal.appointment.scheduled_for)}
+                                                        <div className="text-xl font-bold text-slate-900 mb-1">
+                                                            {formatTime(showAppointmentDetailsModal.appointment.scheduled_for)}
                                                         </div>
                                                         <div className="text-sm text-slate-600">
-                                                            {formatTime(showAppointmentDetailsModal.appointment.scheduled_for)}
+                                                            {formatDate(showAppointmentDetailsModal.appointment.scheduled_for)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                              
+                                            </div>
+
+                                            {/* Grid de información mejorado */}
+                                            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                                                {/* Ubicación */}
+                                                <div className="lg:col-span-2 group">
+                                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100 hover:shadow-lg transition-all duration-300">
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex items-start gap-4 flex-1">
+                                                                <div className="p-3 bg-green-500 rounded-xl shadow-lg">
+                                                                    <MapPin className="w-6 h-6 text-white" />
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <h3 className="text-lg font-bold text-green-900 mb-2">Location</h3>
+                                                                    <p className="text-green-800 font-medium mb-1">
+                                                                        {(() => {
+                                                                            const appointment = showAppointmentDetailsModal.appointment;
+                                                                            
+                                                                            // Misma lógica que funcionaba antes - intenta device tenants primero, luego user tenant
+                                                                            const building = appointment?.ticket?.device?.tenants?.[0]?.apartment?.building?.name ||
+                                                                                appointment?.ticket?.user?.tenant?.apartment?.building?.name ||
+                                                                                'Building not specified';
+                                                                            const apartment = appointment?.ticket?.device?.tenants?.[0]?.apartment?.name ||
+                                                                                appointment?.ticket?.user?.tenant?.apartment?.name;
+
+                                                                            let location = building;
+                                                                            if (apartment) {
+                                                                                location += ` - ${apartment}`;
+                                                                            }
+                                                                            return location;
+                                                                        })()}
+                                                                    </p>
+                                                                    {showAppointmentDetailsModal.appointment.address && (
+                                                                        <p className="text-sm text-green-700 opacity-80">
+                                                                            {showAppointmentDetailsModal.appointment.address}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            {(() => {
+                                                                const appointment = showAppointmentDetailsModal.appointment;
+                                                                const building = appointment?.ticket?.device?.tenants?.[0]?.apartment?.building ||
+                                                                    appointment?.ticket?.user?.tenant?.apartment?.building;
+
+                                                                if (building?.location_link) {
+                                                                    return (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => setShowLocationModal({ open: true, building })}
+                                                                            className="ml-4 p-3 bg-white/60 hover:bg-white border border-green-200 hover:border-green-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+                                                                            title="Ver en Mapa"
+                                                                        >
+                                                                            <MapPin className="w-5 h-5 text-green-600" />
+                                                                        </Button>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            })()}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
-                                                    <div className="p-2 bg-green-100 rounded-lg">
-                                                        <MapPin className="w-5 h-5 text-green-600" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <div className="text-sm font-medium text-slate-600">Location</div>
-                                                        <div className="text-base font-semibold text-slate-900">
-                                                            {(() => {
-                                                                const appointment = showAppointmentDetailsModal.appointment;
-                                                                console.log('DEBUG - Full appointment object:', appointment);
-                                                                console.log('DEBUG - Ticket object:', appointment?.ticket);
-                                                                console.log('DEBUG - Device object:', appointment?.ticket?.device);
-                                                                console.log('DEBUG - Device tenants:', appointment?.ticket?.device?.tenants);
-                                                                console.log('DEBUG - User tenant:', appointment?.ticket?.user?.tenant);
-                                                                
-                                                                // Try to get building info from multiple sources
-                                                                const building = appointment?.ticket?.device?.tenants?.[0]?.apartment?.building?.name ||
-                                                                                appointment?.ticket?.user?.tenant?.apartment?.building?.name ||
-                                                                                'Building not specified';
-                                                                const apartment = appointment?.ticket?.device?.tenants?.[0]?.apartment?.name ||
-                                                                                appointment?.ticket?.user?.tenant?.apartment?.name;
-                                                                
-                                                                let location = building;
-                                                                if (apartment) {
-                                                                    location += ` - ${apartment}`;
-                                                                }
-                                                                return location;
-                                                            })()}
+                                                {/* Técnico asignado */}
+                                                <div className="group">
+                                                    <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl p-6 border border-purple-100 hover:shadow-lg transition-all duration-300 h-full">
+                                                        <div className="flex items-center gap-4 mb-4">
+                                                         
+                                                            <h3 className="text-lg font-bold text-purple-900">Technician</h3>
                                                         </div>
-                                                        {showAppointmentDetailsModal.appointment.address && (
-                                                            <div className="text-sm text-slate-600 mt-1">
-                                                                {showAppointmentDetailsModal.appointment.address}
+                                                        <div className="text-center">
+                                                            {showAppointmentDetailsModal.appointment.technical?.photo ? (
+                                                                <img 
+                                                                    src={`/storage/${showAppointmentDetailsModal.appointment.technical.photo}`} 
+                                                                    alt={showAppointmentDetailsModal.appointment.technical.name}
+                                                                    className="w-16 h-16 mx-auto mb-3 rounded-full object-cover shadow-lg border-2 border-purple-200"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                                                                    {showAppointmentDetailsModal.appointment.technical?.name?.charAt(0) || 'N'}
+                                                                </div>
+                                                            )}
+                                                            <p className="font-bold text-purple-900">
+                                                                {showAppointmentDetailsModal.appointment.technical?.name || 'Not assigned'}
+                                                            </p>
+                                                            {showAppointmentDetailsModal.appointment.technical?.email && (
+                                                                <p className="text-sm text-purple-700 mt-1">
+                                                                    {showAppointmentDetailsModal.appointment.technical.email}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Cliente/Member */}
+                                                <div className="group">
+                                                    <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 border border-orange-100 hover:shadow-lg transition-all duration-300 h-full">
+                                                        <div className="flex items-center gap-4 mb-4">
+                                                           
+                                                            <h3 className="text-lg font-bold text-orange-900">Client</h3>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            {showAppointmentDetailsModal.appointment.ticket?.user?.tenant?.photo ? (
+                                                                <img 
+                                                                    src={`/storage/${showAppointmentDetailsModal.appointment.ticket.user.tenant.photo}`} 
+                                                                    alt={showAppointmentDetailsModal.appointment.ticket.user.name}
+                                                                    className="w-16 h-16 mx-auto mb-3 rounded-full object-cover shadow-lg border-2 border-orange-200"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                                                                    {showAppointmentDetailsModal.appointment.ticket?.user?.name?.charAt(0) || 'C'}
+                                                                </div>
+                                                            )}
+                                                            <p className="font-bold text-orange-900">
+                                                                {showAppointmentDetailsModal.appointment.ticket?.user?.name || 'Client'}
+                                                            </p>
+                                                            {showAppointmentDetailsModal.appointment.ticket?.user?.email && (
+                                                                <p className="text-sm text-orange-700 mt-1 break-all">
+                                                                    {showAppointmentDetailsModal.appointment.ticket.user.email}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Segunda fila - Información adicional */}
+                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                                                {/* Ticket relacionado */}
+                                                <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-100 hover:shadow-lg transition-all duration-300">
+                                                    <div className="flex items-center gap-4 mb-4">
+                                                        <div className="p-3 bg-indigo-500 rounded-xl shadow-lg">
+                                                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                                            </svg>
+                                                        </div>
+                                                        <h3 className="text-lg font-bold text-indigo-900">Ticket</h3>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <p className="text-2xl font-bold text-indigo-900 mb-1">
+                                                            #{showAppointmentDetailsModal.appointment.ticket?.code || 'N/A'}
+                                                        </p>
+                                                        <p className="text-sm text-indigo-700">
+                                                            {showAppointmentDetailsModal.appointment.ticket?.title || 'Ticket relacionado'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Estado y notas adicionales */}
+                                                <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl p-6 border border-slate-100 hover:shadow-lg transition-all duration-300">
+                                                    <div className="flex items-center gap-4 mb-4">
+                                                        <div className="p-3 bg-slate-500 rounded-xl shadow-lg">
+                                                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                            </svg>
+                                                        </div>
+                                                        <h3 className="text-lg font-bold text-slate-900">Details</h3>
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <div className="text-center">
+                                                            <p className="text-sm text-slate-600 mb-1">Status</p>
+                                                            {getStatusBadge(showAppointmentDetailsModal.appointment.status)}
+                                                        </div>
+                                                        {showAppointmentDetailsModal.appointment.notes && (
+                                                            <div className="bg-white rounded-lg p-3 border border-slate-200">
+                                                                <p className="text-xs text-slate-500 mb-1">Notes</p>
+                                                                <p className="text-sm text-slate-700">{showAppointmentDetailsModal.appointment.notes}</p>
                                                             </div>
                                                         )}
                                                     </div>
-                                                    {(() => {
-                                                        const appointment = showAppointmentDetailsModal.appointment;
-                                                        const building = appointment?.ticket?.device?.tenants?.[0]?.apartment?.building ||
-                                                                        appointment?.ticket?.user?.tenant?.apartment?.building;
+                                                </div>
+
+                                                {/* Tiempos e información temporal */}
+                                                <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-6 border border-teal-100 hover:shadow-lg transition-all duration-300">
+                                                    <div className="flex items-center gap-4 mb-4">
+                                                        <div className="p-3 bg-teal-500 rounded-xl shadow-lg">
+                                                            <Clock className="w-6 h-6 text-white" />
+                                                        </div>
+                                                        <h3 className="text-lg font-bold text-teal-900">Times</h3>
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        {showAppointmentDetailsModal.appointment.started_at && (
+                                                            <div className="bg-white rounded-lg p-3 border border-teal-200">
+                                                                <p className="text-xs text-teal-600 mb-1">Started</p>
+                                                                <p className="text-sm font-medium text-teal-800">
+                                                                    {new Date(showAppointmentDetailsModal.appointment.started_at).toLocaleString()}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                        {showAppointmentDetailsModal.appointment.completed_at && (
+                                                            <div className="bg-white rounded-lg p-3 border border-teal-200">
+                                                                <p className="text-xs text-teal-600 mb-1">Completed</p>
+                                                                <p className="text-sm font-medium text-teal-800">
+                                                                    {new Date(showAppointmentDetailsModal.appointment.completed_at).toLocaleString()}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                        {showAppointmentDetailsModal.appointment.rating && (
+                                                            <div className="bg-white rounded-lg p-3 border border-teal-200">
+                                                                <p className="text-xs text-teal-600 mb-1">Rating</p>
+                                                                <div className="flex items-center gap-1">
+                                                                    {[...Array(5)].map((_, i) => (
+                                                                        <svg key={i} className={`w-4 h-4 ${i < showAppointmentDetailsModal.appointment.rating ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                                        </svg>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                         
-                                                        if (building?.location_link) {
-                                                            return (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={() => setShowLocationModal({ open: true, building })}
-                                                                    className="ml-2 p-2 h-8 w-8 rounded-full bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 transition-all duration-200"
-                                                                    title="View on Map"
-                                                                >
-                                                                    <MapPin className="w-4 h-4 text-red-600" />
-                                                                </Button>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })()}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
-                                                    <div className="p-2 bg-purple-100 rounded-lg">
-                                                        <User className="w-5 h-5 text-purple-600" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-sm font-medium text-slate-600">Assigned Technician</div>
-                                                        <div className="text-base font-semibold text-slate-900">
-                                                            {showAppointmentDetailsModal.appointment.technical?.name || 'Not assigned'}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100">
-                                                    <div className="p-2 bg-orange-100 rounded-lg">
-                                                        <CalendarIcon className="w-5 h-5 text-orange-600" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-sm font-medium text-slate-600">Related Ticket</div>
-                                                        <div className="text-base font-semibold text-slate-900">
-                                                            #{showAppointmentDetailsModal.appointment.ticket?.code || 'N/A'}
-                                                        </div>
+                                                        {/* Mostrar mensaje cuando no hay información de tiempos */}
+                                                        {!showAppointmentDetailsModal.appointment.started_at && 
+                                                         !showAppointmentDetailsModal.appointment.completed_at && 
+                                                         !showAppointmentDetailsModal.appointment.rating && (
+                                                            <div className="text-center py-4">
+                                                                <div className="p-3 bg-teal-100 rounded-full w-fit mx-auto mb-3">
+                                                                    <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                </div>
+                                                               
+                                                                <p className="text-xs text-teal-600 opacity-80">
+                                                                   The appointment has not started yet
+                                                                </p>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
 
-                                        {/* Description */}
+                                    {/* Secciones adicionales - Rediseñadas */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Descripción */}
                                         {showAppointmentDetailsModal.appointment.description && (
-                                            <div className="mt-6 p-4 bg-white rounded-xl border border-slate-100">
-                                                <h4 className="text-sm font-medium text-slate-600 mb-2">Description</h4>
-                                                <p className="text-slate-900">{showAppointmentDetailsModal.appointment.description}</p>
+                                            <div className="lg:col-span-2">
+                                                <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-slate-200/60">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className="p-2 bg-slate-100 rounded-xl">
+                                                            <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                            </svg>
+                                                        </div>
+                                                        <h3 className="text-lg font-bold text-slate-900">Description</h3>
+                                                    </div>
+                                                    <div className="bg-gradient-to-r from-slate-50 to-white rounded-xl p-4 border border-slate-100">
+                                                        <p className="text-slate-800 leading-relaxed">{showAppointmentDetailsModal.appointment.description}</p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
 
-                                        {/* Member Instructions */}
+                                        {/* Instrucciones para el miembro */}
                                         {showAppointmentDetailsModal.appointment.member_instructions && (
-                                            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                                                <h4 className="text-sm font-medium text-blue-600 mb-2">Instructions</h4>
-                                                <p className="text-blue-700">{showAppointmentDetailsModal.appointment.member_instructions}</p>
+                                            <div className={showAppointmentDetailsModal.appointment.completion_notes ? "lg:col-span-1" : "lg:col-span-2"}>
+                                                <div className="bg-gradient-to-br from-blue-50 via-blue-50 to-indigo-50 rounded-2xl p-6 shadow-lg border border-blue-200/60 h-full">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className="p-2 bg-blue-500 rounded-xl shadow-md">
+                                                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        </div>
+                                                        <h3 className="text-lg font-bold text-blue-900">Instructions</h3>
+                                                    </div>
+                                                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-blue-200/40">
+                                                        <p className="text-blue-800 leading-relaxed">{showAppointmentDetailsModal.appointment.member_instructions}</p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
 
-                                        {/* Completion Notes */}
+                                        {/* Notas de finalización */}
                                         {showAppointmentDetailsModal.appointment.completion_notes && (
-                                            <div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-100">
-                                                <h4 className="text-sm font-medium text-green-600 mb-2">Completion Notes</h4>
-                                                <p className="text-green-700">{showAppointmentDetailsModal.appointment.completion_notes}</p>
+                                            <div className="lg:col-span-1">
+                                                <div className="bg-gradient-to-br from-green-50 via-green-50 to-emerald-50 rounded-2xl p-6 shadow-lg border border-green-200/60 h-full">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className="p-2 bg-green-500 rounded-xl shadow-md">
+                                                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        </div>
+                                                        <h3 className="text-lg font-bold text-green-900">Completion Notes</h3>
+                                                    </div>
+                                                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-green-200/40">
+                                                        <p className="text-green-800 leading-relaxed">{showAppointmentDetailsModal.appointment.completion_notes}</p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
 
-                                    {/* Action Buttons for Technicians */}
+                                    {/* Botones de acción modernos */}
                                     {(isTechnical || isTechnicalDefault || isSuperAdmin) && showAppointmentDetailsModal.appointment.status === 'scheduled' && (
-                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
-                                            <div className="flex items-center gap-3 mb-6">
-                                                <div className="p-2 bg-blue-100 rounded-lg">
-                                                    <PlayCircle className="w-6 h-6 text-blue-600" />
+                                        <div className="relative bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl p-8 shadow-2xl overflow-hidden">
+                                            {/* Efectos visuales de fondo */}
+                                            <div className="absolute inset-0 bg-black/10"></div>
+                                            <div className="absolute top-0 left-0 w-40 h-40 bg-white/10 rounded-full -translate-y-20 -translate-x-20"></div>
+                                            <div className="absolute bottom-0 right-0 w-32 h-32 bg-white/5 rounded-full translate-y-16 translate-x-16"></div>
+                                            
+                                            <div className="relative z-10">
+                                                <div className="flex items-center gap-4 mb-6">
+                                                    <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg">
+                                                        <PlayCircle className="w-7 h-7 text-white" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-2xl font-bold text-white mb-1">Visit Actions</h3>
+                                                        <p className="text-white/80">Start your visit or mark as no show</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold text-blue-900">Visit Actions</h3>
-                                                    <p className="text-sm text-blue-700">Start your visit or mark as no show</p>
-                                                </div>
-                                            </div>
 
-                                            <div className="flex gap-4">
-                                                <Button
-                                                    onClick={() => {
-                                                        handleAppointmentAction('start', showAppointmentDetailsModal.appointment.id);
-                                                        setShowAppointmentDetailsModal({ open: false });
-                                                    }}
-                                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-xl font-semibold"
-                                                >
-                                                    <PlayCircle className="w-5 h-5 mr-2" />
-                                                    Start Visit
-                                                </Button>
-                                                
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        setShowNoShowModal({ open: true, appointment: showAppointmentDetailsModal.appointment });
-                                                        setShowAppointmentDetailsModal({ open: false });
-                                                    }}
-                                                    className="flex-1 border-orange-300 text-orange-600 hover:bg-orange-50 py-3 px-6 rounded-xl font-semibold"
-                                                >
-                                                    <User className="w-5 h-5 mr-2" />
-                                                    Mark as No Show
-                                                </Button>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <Button
+                                                        onClick={() => {
+                                                            handleAppointmentAction('start', showAppointmentDetailsModal.appointment.id);
+                                                            setShowAppointmentDetailsModal({ open: false });
+                                                        }}
+                                                        className="group relative bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-4 px-6 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 border-0"
+                                                    >
+                                                        <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                        <div className="relative flex items-center justify-center gap-3">
+                                                            <PlayCircle className="w-6 h-6" />
+                                                            Start Visit
+                                                        </div>
+                                                    </Button>
+
+                                                    <Button
+                                                        onClick={() => {
+                                                            setShowNoShowModal({ open: true, appointment: showAppointmentDetailsModal.appointment });
+                                                            setShowAppointmentDetailsModal({ open: false });
+                                                        }}
+                                                        className="group relative bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white py-4 px-6 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 border border-white/30 hover:border-white/50"
+                                                    >
+                                                        <div className="relative flex items-center justify-center gap-3">
+                                                            <User className="w-6 h-6" />
+                                                            Mark No Show
+                                                        </div>
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -1695,23 +2102,27 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                             )}
                         </div>
 
-                        <DialogFooter className="pt-6 border-t border-slate-200">
-                            <div className="flex gap-3 w-full">
+                        {/* Footer con acciones */}
+                        <div className="flex items-center justify-between pt-6 border-t border-slate-200/60 bg-gradient-to-r from-slate-50 to-white -mx-6 -mb-6 px-8 py-6 rounded-b-lg">
+                            <div className="text-sm text-slate-600">
+                                <span className="font-medium">Appointment created:</span> {new Date(showAppointmentDetailsModal.appointment?.created_at || '').toLocaleDateString()}
+                            </div>
+                            <div className="flex gap-3">
                                 <Button
                                     variant="outline"
                                     onClick={() => window.location.href = `/tickets?ticket=${showAppointmentDetailsModal.appointment?.ticket?.id}`}
-                                    className="flex-1"
+                                    className="px-6 py-2 border-slate-300 text-slate-700 hover:bg-slate-50"
                                 >
-                                    View Ticket
+                                    View Full Ticket
                                 </Button>
                                 <Button
                                     onClick={() => setShowAppointmentDetailsModal({ open: false })}
-                                    className="flex-1"
+                                    className="px-8 py-2 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white"
                                 >
                                     Close
                                 </Button>
                             </div>
-                        </DialogFooter>
+                        </div>
                     </DialogContent>
                 </Dialog>
 
@@ -1748,7 +2159,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                 Mark as No Show
                             </DialogTitle>
                         </DialogHeader>
-                        
+
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1768,7 +2179,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                     ))}
                                 </select>
                             </div>
-                            
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Additional Description (Optional)
@@ -1782,7 +2193,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                 />
                             </div>
                         </div>
-                        
+
                         <div className="flex gap-3 mt-6">
                             <Button
                                 variant="outline"
@@ -1801,6 +2212,185 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                 className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
                             >
                                 {isSubmittingNoShow ? 'Processing...' : 'Mark as No Show'}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* User Info Modal */}
+                <Dialog open={showUserInfoModal.open} onOpenChange={(open) => setShowUserInfoModal({ open })}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-3">
+                               
+                                <div>
+                                    <div className="text-lg font-bold">
+                                        {showUserInfoModal.type === 'technical' ? 'Technical' : 'Client'}
+                                    </div>
+                                    <div className="text-sm font-normal text-slate-600">
+                                        Contact Information
+                                    </div>
+                                </div>
+                            </DialogTitle>
+                        </DialogHeader>
+
+                        {showUserInfoModal.user && (
+                            <div className="space-y-4">
+                                {/* Avatar y nombre */}
+                                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-slate-50 to-white rounded-xl border border-slate-200">
+                                    <div className="relative w-16 h-16 rounded-full border-2 border-white shadow-md overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200">
+                                        {(() => {
+                                            // Determinar la fuente correcta de la foto
+                                            const photoSrc = showUserInfoModal.user.photo || 
+                                                           showUserInfoModal.user.photo_url || 
+                                                           showUserInfoModal.user.avatar_url || 
+                                                           showUserInfoModal.user.avatar || 
+                                                           null;
+                                            
+                                            const hasPhoto = !!photoSrc;
+                                            
+                                            if (hasPhoto) {
+                                                // Construir la URL correcta para la imagen
+                                                const imageUrl = photoSrc.startsWith('/storage/') 
+                                                    ? photoSrc 
+                                                    : photoSrc.startsWith('http') 
+                                                        ? photoSrc 
+                                                        : `/storage/${photoSrc}`;
+                                                
+                                                return (
+                                                    <img
+                                                        src={imageUrl}
+                                                        alt={showUserInfoModal.user.name || 'User photo'}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                            e.currentTarget.style.display = 'none';
+                                                            // Mostrar el fallback
+                                                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                                            if (fallback) fallback.style.display = 'flex';
+                                                        }}
+                                                    />
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+                                        
+                                        {/* Fallback avatar con iniciales */}
+                                        <div
+                                            className={`absolute inset-0 w-full h-full ${showUserInfoModal.type === 'technical' ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 'bg-gradient-to-br from-green-500 to-green-600'} flex items-center justify-center text-white font-bold text-lg`}
+                                            style={{ 
+                                                display: (() => {
+                                                    const hasPhoto = !!(showUserInfoModal.user.photo || 
+                                                                      showUserInfoModal.user.photo_url || 
+                                                                      showUserInfoModal.user.avatar_url || 
+                                                                      showUserInfoModal.user.avatar);
+                                                    return hasPhoto ? 'none' : 'flex';
+                                                })()
+                                            }}
+                                        >
+                                            {(() => {
+                                                const name = showUserInfoModal.user.name || '';
+                                                if (!name) return '?';
+                                                const parts = name.trim().split(' ');
+                                                if (parts.length === 1) return parts[0][0]?.toUpperCase() || '?';
+                                                return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+                                            })()}
+                                        </div>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="font-bold text-xl text-slate-900 mb-1">
+                                            {showUserInfoModal.user.name || 'Sin nombre'}
+                                        </h3>
+                                        <p className="text-sm text-slate-600 font-medium">
+                                            {showUserInfoModal.type === 'technical' ? 'Technical Support' : 'Client'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Información de contacto */}
+                                <div className="space-y-3">
+                                    {showUserInfoModal.user.email && (
+                                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-100 hover:shadow-md transition-shadow">
+                                            <div className="p-2 bg-blue-50 rounded-lg">
+                                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-sm font-medium text-slate-700">Correo Electrónico</div>
+                                                <div className="text-sm text-slate-900 break-all">{showUserInfoModal.user.email}</div>
+                                            </div>
+                                            <button
+                                                onClick={() => window.open(`mailto:${showUserInfoModal.user.email}`)}
+                                                className="p-1 hover:bg-blue-100 rounded text-blue-600 transition-colors"
+                                                title="Enviar email"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {showUserInfoModal.user.phone && (
+                                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-100 hover:shadow-md transition-shadow">
+                                            <div className="p-2 bg-green-50 rounded-lg">
+                                                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-sm font-medium text-slate-700">Teléfono</div>
+                                                <div className="text-sm text-slate-900">{showUserInfoModal.user.phone}</div>
+                                            </div>
+                                            <button
+                                                onClick={() => window.open(`tel:${showUserInfoModal.user.phone}`)}
+                                                className="p-1 hover:bg-green-100 rounded text-green-600 transition-colors"
+                                                title="Llamar"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {showUserInfoModal.type === 'technical' && showUserInfoModal.user.specialization && (
+                                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-100">
+                                            <div className="p-2 bg-purple-50 rounded-lg">
+                                                <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-sm font-medium text-slate-700">Especialización</div>
+                                                <div className="text-sm text-slate-900">{showUserInfoModal.user.specialization}</div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Mostrar información adicional si no hay datos de contacto */}
+                                    {!showUserInfoModal.user.email && !showUserInfoModal.user.phone && (
+                                        <div className="text-center py-6">
+                                            <div className="p-3 bg-slate-100 rounded-full w-fit mx-auto mb-2">
+                                                <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-sm text-slate-500 font-medium">
+                                                No hay información de contacto disponible
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end mt-6">
+                            <Button
+                                onClick={() => setShowUserInfoModal({ open: false })}
+                                className="px-6"
+                            >
+                                Cerrar
                             </Button>
                         </div>
                     </DialogContent>
