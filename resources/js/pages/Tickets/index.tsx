@@ -64,6 +64,7 @@ import {
     Plus,
     ChevronDown,
     Download,
+    Send,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -338,11 +339,11 @@ export default function TicketsIndex({
             { title: statusFilter === 'closed,cancelled' ? "Closed & Cancelled" : statusFilter, href: "#" }
         ]
         : [{ title: "Tickets", href: "/tickets" }];
-        
+
     // Get auth user info at component level
     const { props } = usePage();
     const authUser = (props as any)?.auth?.user;
-        
+
     // Refresca el ticket seleccionado desde el backend
     const refreshSelectedTicket = async (ticketId?: number) => {
         if (!ticketId) return;
@@ -428,6 +429,15 @@ export default function TicketsIndex({
     const [showAppointmentDetailsModal, setShowAppointmentDetailsModal] = useState<{ open: boolean; appointment?: any; action?: string }>({ open: false });
     const [showLocationModal, setShowLocationModal] = useState<{ open: boolean; building?: any }>({ open: false });
 
+    // Estado para el modal de mensaje al técnico
+    const [showMessageTechnicalModal, setShowMessageTechnicalModal] = useState<{
+        open: boolean;
+        ticketId?: number;
+        technicalName?: string
+    }>({ open: false });
+    const [messageToTechnical, setMessageToTechnical] = useState("");
+    const [sendingMessage, setSendingMessage] = useState(false);
+
     // Function to fetch full appointment data with relationships
     const fetchFullAppointmentData = async (appointmentId: number) => {
         console.log('fetchFullAppointmentData called with ID:', appointmentId);
@@ -450,7 +460,7 @@ export default function TicketsIndex({
     // Function to open appointment modal with full data
     const openAppointmentModal = async (appointment: any, action: string) => {
         console.log('openAppointmentModal called with:', { appointment, action });
-        
+
         // If the appointment already has full ticket data, use it directly
         if (appointment?.ticket?.device?.tenants || appointment?.ticket?.user?.tenant) {
             console.log('Using existing appointment data - has relationships');
@@ -490,7 +500,7 @@ export default function TicketsIndex({
     const [showNinjaOneNotifications, setShowNinjaOneNotifications] = useState(false);
     const [creatingTicketFromAlert, setCreatingTicketFromAlert] = useState<number | null>(null);
     const [allTenants, setAllTenants] = useState<any[]>([]);
-    
+
     // Evidence and Private Notes states
     const [showEvidenceModal, setShowEvidenceModal] = useState<{ open: boolean; ticketId: number | null }>({ open: false, ticketId: null });
     const [showPrivateNoteModal, setShowPrivateNoteModal] = useState<{ open: boolean; ticketId?: number }>({ open: false });
@@ -499,7 +509,7 @@ export default function TicketsIndex({
     const [privateNote, setPrivateNote] = useState("");
     const [uploadingEvidence, setUploadingEvidence] = useState(false);
     const [addingPrivateNote, setAddingPrivateNote] = useState(false);
-    
+
     const { auth, isTechnicalDefault, googleMapsApiKey } = usePage<SharedData & { isTechnicalDefault?: boolean; googleMapsApiKey?: string }>().props;
     const isMember = (auth.user as any)?.roles?.includes("member");
     const isSuperAdmin = (auth.user as any)?.roles?.includes("super-admin");
@@ -507,7 +517,7 @@ export default function TicketsIndex({
     const isDoorman = (auth.user as any)?.roles?.includes("doorman");
     const isOwner = (auth.user as any)?.roles?.includes("owner");
     // isTechnicalDefault ahora viene del backend correctamente
-    
+
     // Debug roles
     console.log('User roles debug:', {
         userRoles: (auth.user as any)?.roles,
@@ -667,15 +677,15 @@ export default function TicketsIndex({
             // Validate file type
             const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov'];
-            
+
             if (validImageTypes.includes(file.type) || validVideoTypes.includes(file.type)) {
                 // Validate file size (max 10MB)
                 if (file.size <= 10 * 1024 * 1024) {
                     newAttachments.push(file);
-                    
+
                     const url = URL.createObjectURL(file);
                     const type = validImageTypes.includes(file.type) ? 'image' : 'video';
-                    
+
                     newPreviews.push({ file, url, type });
                 } else {
                     toast.error(`File ${file.name} is too large. Maximum size is 10MB.`);
@@ -694,10 +704,10 @@ export default function TicketsIndex({
     const removeAttachment = (index: number) => {
         const newAttachments = data.attachments.filter((_, i) => i !== index);
         const newPreviews = attachmentPreviews.filter((_, i) => i !== index);
-        
+
         // Revoke URL to free memory
         URL.revokeObjectURL(attachmentPreviews[index].url);
-        
+
         setData('attachments', newAttachments);
         setAttachmentPreviews(newPreviews);
     };
@@ -705,7 +715,7 @@ export default function TicketsIndex({
     // Manejar envío del formulario
     const handleSubmitTicket = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Create FormData for file upload
         const formData = new FormData();
         formData.append('device_id', data.device_id);
@@ -713,7 +723,7 @@ export default function TicketsIndex({
         formData.append('title', data.title);
         formData.append('description', data.description);
         formData.append('tenant_id', data.tenant_id);
-        
+
         // Append files
         data.attachments.forEach((file, index) => {
             formData.append(`attachments[${index}]`, file);
@@ -1299,12 +1309,12 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
     const submitEvidence = async (e: React.FormEvent) => {
         e.preventDefault();
         console.log('submitEvidence called - current modal state:', showEvidenceModal);
-        
+
         if (!evidenceFile) {
             console.log('No evidence file selected');
             return;
         }
-        
+
         if (!showEvidenceModal.ticketId) {
             console.log('No ticketId in modal state:', showEvidenceModal);
             alert('Error: No ticket ID found. Please close and reopen the modal.');
@@ -1320,17 +1330,17 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
             console.log('Evidence file name:', evidenceFile?.name);
             console.log('Evidence file size:', evidenceFile?.size);
             console.log('Evidence file type:', evidenceFile?.type);
-            
+
             // Check authentication status from props
             console.log('Auth user:', authUser);
             console.log('User ID:', authUser?.id);
             console.log('User email:', authUser?.email);
             console.log('User roles:', authUser?.roles);
-            
+
             const formData = new FormData();
             formData.append('evidence', evidenceFile);
             formData.append('description', evidenceDescription);
-            
+
             console.log('FormData created with:');
             console.log('- evidence file:', formData.get('evidence'));
             console.log('- description:', formData.get('description'));
@@ -1338,7 +1348,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
             // Back to original URL since test-upload works
             const url = `/tickets/${showEvidenceModal.ticketId}/upload-evidence`;
             console.log('Final URL being used:', url);
-            
+
             // Get CSRF token
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             console.log('CSRF Token present:', !!csrfToken);
@@ -1363,20 +1373,20 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     setShowEvidenceModal(prev => ({ ...prev, open: false }));
                     setEvidenceFile(null);
                     setEvidenceDescription("");
-                    
+
                     // Refresh kanban
                     setRefreshKey(prev => prev + 1);
-                    
+
                     // Refresh selected ticket if open
                     if (selectedTicket?.id === showEvidenceModal.ticketId) {
                         refreshSelectedTicket(showEvidenceModal.ticketId);
                     }
-                    
+
                     console.log('Evidence uploaded successfully');
                 } else {
                     console.error('Error uploading evidence:', data.message || data);
@@ -1387,7 +1397,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 const text = await response.text();
                 console.error('Server returned HTML instead of JSON. Status:', response.status);
                 console.error('Response text (first 500 chars):', text.substring(0, 500));
-                
+
                 if (response.status === 404) {
                     alert('Error: Upload endpoint not found. Please contact support.');
                 } else if (response.status === 403) {
@@ -1428,10 +1438,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                     setShowPrivateNoteModal({ open: false });
                     setPrivateNote("");
                     toast.success('Private note added successfully');
-                    
+
                     // Refresh kanban
                     setRefreshKey(prev => prev + 1);
-                    
+
                     // Refresh selected ticket if open
                     if (selectedTicket?.id === showPrivateNoteModal.ticketId) {
                         refreshSelectedTicket(showPrivateNoteModal.ticketId);
@@ -1449,6 +1459,53 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
             console.error('Error adding private note:', error);
             toast.error('Error adding private note. Please try again.');
             setAddingPrivateNote(false);
+        }
+    };
+
+    // Función para enviar mensaje al técnico
+    const handleSendMessageToTechnical = async () => {
+        if (!messageToTechnical.trim() || !showMessageTechnicalModal.ticketId) {
+            toast.error("Please enter a message");
+            return;
+        }
+
+        setSendingMessage(true);
+
+        try {
+            const response = await fetch(`/api/tickets/${showMessageTechnicalModal.ticketId}/send-message-to-technical`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    message: messageToTechnical.trim()
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                toast.success("Message sent to technician successfully!");
+                setMessageToTechnical("");
+                setShowMessageTechnicalModal({ open: false });
+
+                // Refresh kanban
+                setRefreshKey(prev => prev + 1);
+
+                // Refresh selected ticket if open
+                if (selectedTicket?.id === showMessageTechnicalModal.ticketId) {
+                    refreshSelectedTicket(showMessageTechnicalModal.ticketId);
+                }
+            } else {
+                toast.error(data.message || "Failed to send message");
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+            toast.error("An error occurred while sending the message");
+        } finally {
+            setSendingMessage(false);
         }
     };
 
@@ -1600,7 +1657,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Ticket Management" />
-            
+
             {/* Custom Styles for Dropdowns */}
             <style>{`
                 .custom-scrollbar::-webkit-scrollbar {
@@ -1689,8 +1746,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             size="sm"
                                             onClick={() => setShowNinjaOneNotifications(!showNinjaOneNotifications)}
                                             className={`relative ${userDeviceAlerts.length > 0
-                                                    ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800'
-                                                    : 'bg-muted/50 hover:bg-muted text-muted-foreground border-muted dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
+                                                ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800'
+                                                : 'bg-muted/50 hover:bg-muted text-muted-foreground border-muted dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
                                                 }`}
                                         >
                                             <Bell className="w-4 h-4" />
@@ -1725,8 +1782,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                             <div key={index} className="p-4 border-b border-border hover:bg-muted/50">
                                                                 <div className="flex items-start gap-3">
                                                                     <div className={`w-3 h-3 rounded-full mt-1 ${alert.health_status === 'critical' ? 'bg-red-500' :
-                                                                            alert.health_status === 'offline' ? 'bg-gray-500' :
-                                                                                alert.health_status === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+                                                                        alert.health_status === 'offline' ? 'bg-gray-500' :
+                                                                            alert.health_status === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
                                                                         }`}></div>
                                                                     <div className="flex-1">
                                                                         <div className="flex items-center justify-between">
@@ -1784,7 +1841,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 {/* Devices Section - Ultra Professional Design */}
                 {isMember && (
                     <div className="space-y-8">
-                     
+
 
                         {/* Premium Devices Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -1799,18 +1856,16 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                 return (
                                     <div key={device.id} className="group relative">
                                         {/* Premium Device Card */}
-                                        <div className={`relative overflow-hidden rounded-2xl border-2 transition-all    ${
-                                            hasActiveIssues
+                                        <div className={`relative overflow-hidden rounded-2xl border-2 transition-all    ${hasActiveIssues
                                                 ? 'border-amber-200 bg-gradient-to-br from-white via-amber-50/20 to-orange-50/30 shadow-amber-100/50'
                                                 : 'border-slate-200/60 bg-gradient-to-br from-white via-blue-50/20 to-primary/5 shadow-blue-100/30'
-                                        } shadow-xl  backdrop-blur-sm`}>
-                                            
+                                            } shadow-xl  backdrop-blur-sm`}>
+
                                             {/* Status Badge */}
-                                            <div className={`absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg ${
-                                                hasActiveIssues 
-                                                    ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white' 
+                                            <div className={`absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg ${hasActiveIssues
+                                                    ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white'
                                                     : 'bg-gradient-to-r from-emerald-400 to-green-400 text-white'
-                                            }`}>
+                                                }`}>
                                                 <div className={`w-2 h-2 rounded-full ${hasActiveIssues ? 'bg-white animate-pulse' : 'bg-white'}`}></div>
                                                 {hasActiveIssues ? `${activeTickets.length} Issue${activeTickets.length !== 1 ? 's' : ''}` : 'Healthy'}
                                             </div>
@@ -1825,11 +1880,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             >
                                                 {/* Device Header */}
                                                 <div className="flex items-start gap-4 mb-6">
-                                                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300  ${
-                                                        hasActiveIssues
+                                                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300  ${hasActiveIssues
                                                             ? 'bg-gradient-to-br from-amber-100 via-orange-100 to-amber-200 text-amber-700'
                                                             : 'bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 text-primary'
-                                                    }`}>
+                                                        }`}>
                                                         {device.icon_id ? (
                                                             <DeviceIcon deviceIconId={device.icon_id} size={32} />
                                                         ) : (
@@ -1840,7 +1894,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         <h3 className="font-bold text-slate-800 text-base truncate leading-tight mb-2">
                                                             {device.name_device?.name || device.name || `Device #${device.id}`}
                                                         </h3>
-                                                        
+
                                                         {/* Device Specifications */}
                                                         <div className="space-y-2">
                                                             <div className="flex flex-wrap gap-2">
@@ -1904,7 +1958,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                 </Tooltip>
                                                             </TooltipProvider>
                                                         )}
-                                                        
+
                                                         {/* Shared Users */}
                                                         {Array.isArray(device.shared_with) && device.shared_with.length > 0 && device.shared_with.slice(0, 3).map((tenant: any) => (
                                                             <TooltipProvider key={tenant.id}>
@@ -1925,7 +1979,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                 </Tooltip>
                                                             </TooltipProvider>
                                                         ))}
-                                                        
+
                                                         {/* More users indicator */}
                                                         {Array.isArray(device.shared_with) && device.shared_with.length > 3 && (
                                                             <div className="w-8 h-8 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full border-3 border-slate-400 flex items-center justify-center hover:scale-125 transition-transform shadow-lg">
@@ -1939,11 +1993,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                                                 {/* Action Button */}
                                                 <div className="relative">
-                                                    <div className={`w-full py-3 px-4 rounded-xl font-semibold text-center transition-all duration-300 group-hover:scale-105 ${
-                                                        hasActiveIssues
+                                                    <div className={`w-full py-3 px-4 rounded-xl font-semibold text-center transition-all duration-300 group-hover:scale-105 ${hasActiveIssues
                                                             ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg group-hover:shadow-amber-500/25'
                                                             : 'bg-gradient-to-r from-primary to-secondary text-white shadow-lg group-hover:shadow-primary/25'
-                                                    }`}>
+                                                        }`}>
                                                         <div className="flex items-center justify-center gap-2">
                                                             <span>Create Ticket</span>
                                                             <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">
@@ -1954,7 +2007,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 </div>
                                             </button>
 
-                                          
+
                                         </div>
 
                                         {/* Enhanced NinjaOne Integration */}
@@ -2244,7 +2297,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 <h3 className="text-xl font-bold text-slate-800 mb-2">Ticket Overview</h3>
                                                 <p className="text-slate-600 text-sm">Monitor and manage your support requests</p>
                                             </div>
-                                            
+
                                             {/* Tabs Content */}
                                             <div className="p-8">
                                                 <Tabs value={memberTab} onValueChange={setMemberTab} className="w-full">
@@ -2253,7 +2306,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                             const count = tabItem.value === "all"
                                                                 ? memberTickets.length
                                                                 : memberTickets.filter((t: any) => t.status === tabItem.value).length;
-                                                            
+
                                                             // Enhanced color scheme
                                                             let tabColors = {
                                                                 bg: "bg-slate-200/50",
@@ -2266,7 +2319,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                 activeIcon: "data-[state=active]:text-slate-700",
                                                                 border: "data-[state=active]:border-slate-200"
                                                             };
-                                                            
+
                                                             switch (tabItem.value) {
                                                                 case "all":
                                                                     tabColors = {
@@ -2319,7 +2372,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                     };
                                                                     break;
                                                             }
-                                                            
+
                                                             return (
                                                                 <TabsTrigger
                                                                     key={tabItem.value}
@@ -2359,7 +2412,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                             </span>
                                                                         </div>
                                                                     </div>
-                                                                    
+
                                                                     {/* Label */}
                                                                     <div className="flex flex-col items-center gap-2">
                                                                         <tabItem.icon className={`
@@ -2428,7 +2481,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             {/* Ultra-Premium Tickets Grid */}
                             {isMember && (
                                 <div className="space-y-8">
-                                    
+
 
                                     {/* Ultra-Premium Tickets Grid */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -2441,7 +2494,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         <div className="absolute bottom-8 right-8 w-32 h-32 bg-secondary rounded-full"></div>
                                                         <div className="absolute top-1/2 left-1/3 w-16 h-16 bg-accent rounded-full"></div>
                                                     </div>
-                                                    
+
                                                     <div className="relative z-10">
                                                         <div className="w-24 h-24 bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
                                                             <AlertCircle className="w-12 h-12 text-slate-400" />
@@ -2461,17 +2514,16 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             memberFilteredTickets.map((ticket: any, index: number) => (
                                                 <div
                                                     key={ticket.id}
-                                                    className={`group relative cursor-pointer transition-all duration-500 transform hover:-translate-y-2 ${
-                                                        selectedTicket?.id === ticket.id
+                                                    className={`group relative cursor-pointer transition-all duration-500 transform hover:-translate-y-2 ${selectedTicket?.id === ticket.id
                                                             ? 'scale-[1.03] z-10'
                                                             : 'hover:scale-[1.02]'
-                                                    }`}
+                                                        }`}
                                                     style={{ animationDelay: `${index * 100}ms` }}
                                                     onClick={() => handleSelectTicket(ticket)}
                                                 >
                                                     {/* Advanced Shadow Effects */}
                                                     <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500 transform scale-110"></div>
-                                                    
+
                                                     {/* Main Ultra Card */}
                                                     <div className={`
                                                         relative bg-white/95 backdrop-blur-sm rounded-3xl border-2 transition-all duration-500 
@@ -2482,7 +2534,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         }
                                                         hover:bg-gradient-to-br hover:from-white hover:to-slate-50/50
                                                     `}>
-                                                        
+
 
                                                         {/* Card Content */}
                                                         <div className="p-8 relative">
@@ -2499,7 +2551,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
                                                                         <span className="text-slate-500 font-medium">{new Date(ticket.created_at).toLocaleDateString()}</span>
                                                                         <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
-                                                                        <span className="text-slate-500 font-medium">{new Date(ticket.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                                                        <span className="text-slate-500 font-medium">{new Date(ticket.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex-shrink-0  absolute right-4 top-3">
@@ -2535,9 +2587,20 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                 <div className="relative overflow-hidden">
                                                                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 via-green-400/5 to-emerald-400/10 rounded-2xl"></div>
                                                                     <div className="relative flex items-center gap-4 p-4 bg-gradient-to-r from-emerald-50/80 to-green-50/80 backdrop-blur-sm rounded-2xl border border-emerald-200/50 shadow-lg">
-                                                                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl flex items-center justify-center shadow-lg">
-                                                                            <UserIcon className="w-6 h-6 text-white" />
-                                                                        </div>
+
+                                                                        {ticket.technical.photo ? (
+                                                                            <img
+                                                                                src={`/storage/${ticket.technical.photo}`}
+                                                                                alt={ticket.technical.name}
+                                                                                className="w-12 h-12 object-cover"
+                                                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                                                    e.currentTarget.src = '/images/default-user.png';
+                                                                                }}
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl flex items-center justify-center shadow-lg">
+                                                                                <UserIcon className="w-6 h-6 text-white" />
+                                                                            </div>)}
                                                                         <div className="flex-1">
                                                                             <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1">
                                                                                 Assigned Technician
@@ -2579,9 +2642,9 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                                                         {/* Ultra Hover Effects */}
                                                         <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-transparent to-secondary/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none"></div>
-                                                        
-                                                        
-                                                        
+
+
+
                                                         {/* Floating Action Hint */}
                                                         <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
                                                             <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-lg">
@@ -2722,7 +2785,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                     <FileText className="w-8 h-8 text-slate-400" />
                                                                                 </div>
                                                                             )}
-                                                                            
+
                                                                             {/* File Type Icon */}
                                                                             <div className="absolute top-2 left-2 w-6 h-6 bg-black/60 rounded-lg flex items-center justify-center">
                                                                                 {attachment.mime_type?.startsWith('image/') ? (
@@ -2733,7 +2796,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                     <FileText className="w-3 h-3 text-white" />
                                                                                 )}
                                                                             </div>
-                                                                            
+
                                                                             {/* Download Button */}
                                                                             <a
                                                                                 href={`/storage/${attachment.file_path}`}
@@ -2743,7 +2806,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                 <Download className="w-3 h-3 text-white" />
                                                                             </a>
                                                                         </div>
-                                                                        
+
                                                                         {/* File Info */}
                                                                         <div className="mt-2 px-1">
                                                                             <p className="text-xs font-medium text-slate-700 truncate" title={attachment.original_name}>
@@ -2760,82 +2823,82 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     )}
 
                                                     {/* �💻 Device Information - Modern Card */}
-                                                   {!isDoorman && 
-                                                     selectedTicket.device && (
-                                                        <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-blue-200">
-                                                            <div className="flex items-center gap-3 mb-4">
-                                                                <div className="w-10 h-10 bg-gradient-to-br from-primary to-card rounded-xl flex items-center justify-center shadow-lg">
-                                                                    {selectedTicket.device.icon_id ? (
-                                                                        <DeviceIcon deviceIconId={selectedTicket.device.icon_id} size={20} />
-                                                                    ) : (
-                                                                        <Monitor className="w-5 h-5 text-white" />
+                                                    {!isDoorman &&
+                                                        selectedTicket.device && (
+                                                            <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-blue-200">
+                                                                <div className="flex items-center gap-3 mb-4">
+                                                                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-card rounded-xl flex items-center justify-center shadow-lg">
+                                                                        {selectedTicket.device.icon_id ? (
+                                                                            <DeviceIcon deviceIconId={selectedTicket.device.icon_id} size={20} />
+                                                                        ) : (
+                                                                            <Monitor className="w-5 h-5 text-white" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div>
+                                                                        <h4 className="text-lg font-bold text-slate-900">Device Information</h4>
+                                                                        <p className="text-sm text-slate-600">Technical specifications and details</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* 🏷️ Enhanced Device Badges Grid */}
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
+                                                                        {selectedTicket.device?.icon_id ? (
+                                                                            <DeviceIcon deviceIconId={selectedTicket.device.icon_id} size={16} />
+                                                                        ) : (
+                                                                            <Cpu className="w-4 h-4 text-blue-600" />
+                                                                        )}
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Device</p>
+                                                                            <p className="font-semibold text-slate-900 truncate">
+                                                                                {selectedTicket.device.name_device?.name || selectedTicket.device.name || 'Unknown Device'}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {selectedTicket.device.brand && (
+                                                                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
+                                                                            <Tag className="w-4 h-4 text-emerald-600" />
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Brand</p>
+                                                                                <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.brand.name}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {selectedTicket.device.model && (
+                                                                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
+                                                                            <Smartphone className="w-4 h-4 text-purple-600" />
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Model</p>
+                                                                                <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.model.name}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {selectedTicket.device.system && (
+                                                                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
+                                                                            <Settings className="w-4 h-4 text-orange-600" />
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">System</p>
+                                                                                <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.system.name}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {selectedTicket.device.ubicacion && (
+                                                                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
+                                                                            <Home className="w-4 h-4 text-indigo-600" />
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Location</p>
+                                                                                <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.ubicacion}</p>
+                                                                            </div>
+                                                                        </div>
                                                                     )}
                                                                 </div>
-                                                                <div>
-                                                                    <h4 className="text-lg font-bold text-slate-900">Device Information</h4>
-                                                                    <p className="text-sm text-slate-600">Technical specifications and details</p>
-                                                                </div>
                                                             </div>
-
-                                                            {/* 🏷️ Enhanced Device Badges Grid */}
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                                <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
-                                                                    {selectedTicket.device?.icon_id ? (
-                                                                        <DeviceIcon deviceIconId={selectedTicket.device.icon_id} size={16} />
-                                                                    ) : (
-                                                                        <Cpu className="w-4 h-4 text-blue-600" />
-                                                                    )}
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Device</p>
-                                                                        <p className="font-semibold text-slate-900 truncate">
-                                                                            {selectedTicket.device.name_device?.name || selectedTicket.device.name || 'Unknown Device'}
-                                                                        </p>
-                                                                    </div>
-                                                                </div>
-
-                                                                {selectedTicket.device.brand && (
-                                                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
-                                                                        <Tag className="w-4 h-4 text-emerald-600" />
-                                                                        <div className="min-w-0 flex-1">
-                                                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Brand</p>
-                                                                            <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.brand.name}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-
-                                                                {selectedTicket.device.model && (
-                                                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
-                                                                        <Smartphone className="w-4 h-4 text-purple-600" />
-                                                                        <div className="min-w-0 flex-1">
-                                                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Model</p>
-                                                                            <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.model.name}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-
-                                                                {selectedTicket.device.system && (
-                                                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
-                                                                        <Settings className="w-4 h-4 text-orange-600" />
-                                                                        <div className="min-w-0 flex-1">
-                                                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">System</p>
-                                                                            <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.system.name}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-
-                                                                {selectedTicket.device.ubicacion && (
-                                                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-blue-200 shadow-sm">
-                                                                        <Home className="w-4 h-4 text-indigo-600" />
-                                                                        <div className="min-w-0 flex-1">
-                                                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Location</p>
-                                                                            <p className="font-semibold text-slate-900 truncate">{selectedTicket.device.ubicacion}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                   }
+                                                        )
+                                                    }
 
                                                     {/* Creator Information */}
                                                     {selectedTicket.user?.tenant && (
@@ -3010,12 +3073,12 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         </span>
                                                                     </div>
                                                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${selectedTicket.active_appointment.status === 'scheduled'
-                                                                            ? 'bg-blue-100 text-blue-800'
-                                                                            : selectedTicket.active_appointment.status === 'in_progress'
-                                                                                ? 'bg-yellow-100 text-yellow-800'
-                                                                                : selectedTicket.active_appointment.status === 'awaiting_feedback'
-                                                                                    ? 'bg-purple-100 text-purple-800'
-                                                                                    : 'bg-green-100 text-green-800'
+                                                                        ? 'bg-blue-100 text-blue-800'
+                                                                        : selectedTicket.active_appointment.status === 'in_progress'
+                                                                            ? 'bg-yellow-100 text-yellow-800'
+                                                                            : selectedTicket.active_appointment.status === 'awaiting_feedback'
+                                                                                ? 'bg-purple-100 text-purple-800'
+                                                                                : 'bg-green-100 text-green-800'
                                                                         }`}>
                                                                         {selectedTicket.active_appointment.status === 'scheduled'
                                                                             ? 'Scheduled'
@@ -3092,7 +3155,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     )}
 
                                                     {/* Quick Actions */}
-                                                    {(isTechnical||isTechnicalDefault || isSuperAdmin || selectedTicket.technical_id === auth.user?.id) && (
+                                                    {(isTechnical || isTechnicalDefault || isSuperAdmin || selectedTicket.technical_id === auth.user?.id) && (
                                                         <div className="px-6">
                                                             <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                                                                 <Zap className="w-4 h-4 text-primary" />
@@ -3124,7 +3187,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                         console.log('Button clicked - selectedTicket:', selectedTicket);
                                                                         console.log('Button clicked - selectedTicket.id:', selectedTicket.id);
                                                                         console.log('Button clicked - typeof selectedTicket.id:', typeof selectedTicket.id);
-                                                                        
+
                                                                         // Verificar que el ID es válido antes de llamar la función
                                                                         if (selectedTicket?.id && typeof selectedTicket.id === 'number') {
                                                                             handleUploadEvidence(selectedTicket.id);
@@ -3189,6 +3252,32 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         </div>
                                                     )}
 
+                                                    {/* Acciones para Members - Enviar Mensaje al Técnico */}
+                                                    {isMember && selectedTicket.technical && selectedTicket.status !== 'closed' && (
+                                                        <div className="px-6 mb-6">
+                                                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                                                <h4 className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                                                                    <Send className="w-4 h-4" />
+                                                                    Communication with Technician
+                                                                </h4>
+                                                                <p className="text-sm text-blue-600 mb-4">
+                                                                    Send a message to the assigned technician: <span className="font-medium">{selectedTicket.technical.name}</span>
+                                                                </p>
+                                                                <button
+                                                                    onClick={() => setShowMessageTechnicalModal({
+                                                                        open: true,
+                                                                        ticketId: selectedTicket.id,
+                                                                        technicalName: selectedTicket.technical.name
+                                                                    })}
+                                                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                                                >
+                                                                    <Send className="w-4 h-4" />
+                                                                    Send Message
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
                                                     {/* Acciones Rápidas para Members */}
                                                     {isMember && selectedTicket.status === 'resolved' && !selectedTicket.histories?.some((h: any) => h.action === 'member_feedback') && (
                                                         <div className="px-6 mb-6">
@@ -3221,7 +3310,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                             <div className="relative">
                                                                 {/* Vertical Timeline Line */}
                                                                 <div className="absolute left-6 top-4 bottom-0 w-0.5 bg-gradient-to-b from-blue-200 via-purple-200 to-slate-200"></div>
-                                                                
+
                                                                 <div className="space-y-6">
                                                                     {[...selectedTicket.histories].reverse().map((entry: any, index: number) => {
                                                                         // Filtrar notas privadas si no es técnico o admin
@@ -3244,6 +3333,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                 case 'comment':
                                                                                 case 'member_feedback':
                                                                                     return { icon: <MessageSquare className="w-4 h-4 text-white" />, bgColor: 'bg-teal-500', borderColor: 'border-teal-200' };
+                                                                                case 'member_message':
+                                                                                    return { icon: <Send className="w-4 h-4 text-white" />, bgColor: 'bg-blue-500', borderColor: 'border-blue-200' };
                                                                                 default:
                                                                                     if (action.includes('in_progress')) return { icon: <Clock className="w-4 h-4 text-white" />, bgColor: 'bg-amber-500', borderColor: 'border-amber-200' };
                                                                                     if (action.includes('resolved')) return { icon: <CheckCircle className="w-4 h-4 text-white" />, bgColor: 'bg-emerald-500', borderColor: 'border-emerald-200' };
@@ -3261,7 +3352,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                 <div className={`relative z-10 flex-shrink-0 w-12 h-12 rounded-full ${config.bgColor} border-4 border-white shadow-lg flex items-center justify-center ${isRecent ? 'ring-4 ring-blue-100 animate-pulse' : ''}`}>
                                                                                     {config.icon}
                                                                                 </div>
-                                                                                
+
                                                                                 {/* Timeline Content Card */}
                                                                                 <div className="ml-6 flex-1 pb-8">
                                                                                     <div className={`bg-white rounded-xl border ${config.borderColor} shadow-sm hover:shadow-md transition-shadow duration-200 p-4 ${isRecent ? 'ring-1 ring-blue-200' : ''}`}>
@@ -3280,11 +3371,11 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                                                 {formatHistoryDateTime(entry.created_at).date} • {formatHistoryDateTime(entry.created_at).time}
                                                                                             </span>
                                                                                         </div>
-                                                                                        
+
                                                                                         <p className="text-sm text-slate-700 leading-relaxed mb-3">
                                                                                             {entry.description}
                                                                                         </p>
-                                                                                        
+
                                                                                         {/* Enhanced Evidence Display */}
                                                                                         {entry.action === 'evidence_uploaded' && entry.meta?.file_path && (
                                                                                             <div className="mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
@@ -3479,7 +3570,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             e.preventDefault()
                             if (!assignTechnicalId) return;
                             setAssigning(true);
-                            
+
                             try {
                                 // Use fetch instead of router.post to avoid Inertia headers
                                 const response = await fetch(`/tickets/${showAssignModal.ticketId}/assign-technical`, {
@@ -3647,7 +3738,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             </DialogDescription>
                         </div>
                     </DialogHeader>
-                    
+
                     <form onSubmit={handleSubmitTicket} className="space-y-8">
                         <div className="space-y-6">
                             {/* Ultra-Custom Member Dropdown */}
@@ -3659,7 +3750,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         </div>
                                         Select Member
                                     </label>
-                                    
+
                                     <div className="relative dropdown-container">
                                         <div className="absolute inset-0 bg-gradient-to-r from-blue-100/50 to-indigo-100/50 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                                         <button
@@ -3695,7 +3786,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${showMemberDropdown ? 'rotate-180' : ''}`} />
                                             </div>
                                         </button>
-                                        
+
                                         {/* Custom Dropdown Menu */}
                                         {showMemberDropdown && (
                                             <div className="absolute top-full mt-2 w-full bg-white rounded-2xl shadow-2xl border border-slate-200/60 z-50 max-h-64 overflow-hidden">
@@ -3746,7 +3837,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     </div>
                                     Device Selection
                                 </label>
-                                
+
                                 <div className="relative dropdown-container">
                                     <div className="absolute inset-0 bg-gradient-to-r from-purple-100/50 to-violet-100/50 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                                     <button
@@ -3758,12 +3849,12 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             <div className="flex items-center gap-3">
                                                 {data.device_id ? (
                                                     <>
-                                                       
+
                                                         <div>
                                                             <span className="font-semibold text-slate-800">
-                                                                {deviceOptions.find((d: any) => d.id.toString() === data.device_id)?.name_device?.name || 
-                                                                 deviceOptions.find((d: any) => d.id.toString() === data.device_id)?.name || 
-                                                                 `Device #${data.device_id}`}
+                                                                {deviceOptions.find((d: any) => d.id.toString() === data.device_id)?.name_device?.name ||
+                                                                    deviceOptions.find((d: any) => d.id.toString() === data.device_id)?.name ||
+                                                                    `Device #${data.device_id}`}
                                                             </span>
                                                             {(isSuperAdmin || isTechnicalDefault) && (
                                                                 <div className="text-xs text-slate-500">
@@ -3784,7 +3875,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${showDeviceDropdown ? 'rotate-180' : ''}`} />
                                         </div>
                                     </button>
-                                    
+
                                     {/* Custom Device Dropdown Menu */}
                                     {showDeviceDropdown && (
                                         <div className="absolute top-full mt-2 w-full bg-white rounded-2xl shadow-2xl border border-slate-200/60 z-50 max-h-64 overflow-hidden">
@@ -3799,7 +3890,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                             }}
                                                             className="flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 cursor-pointer transition-all duration-200 group"
                                                         >
-                                                         
+
                                                             <div className="flex-1">
                                                                 <div className="font-semibold text-slate-800 group-hover:text-purple-700">
                                                                     {device.name_device?.name || device.name || `Device #${device.id}`}
@@ -3841,7 +3932,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     </div>
                                     Issue Category
                                 </label>
-                                
+
                                 <div className="relative dropdown-container">
                                     <div className="absolute inset-0 bg-gradient-to-r from-orange-100/50 to-red-100/50 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                                     <button
@@ -3853,7 +3944,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             <div className="flex items-center gap-3">
                                                 {data.category ? (
                                                     <>
-                                                       
+
                                                         <span className="font-semibold text-slate-800">{data.category}</span>
                                                     </>
                                                 ) : (
@@ -3868,7 +3959,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${showCategoryDropdown ? 'rotate-180' : ''}`} />
                                         </div>
                                     </button>
-                                    
+
                                     {/* Custom Category Dropdown Menu */}
                                     {showCategoryDropdown && (
                                         <div className="absolute top-full mt-2 w-full bg-white rounded-2xl shadow-2xl border border-slate-200/60 z-50 max-h-64 overflow-hidden">
@@ -3882,7 +3973,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                         }}
                                                         className="flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 cursor-pointer transition-all duration-200 group"
                                                     >
-                                                       
+
                                                         <div className="flex-1">
                                                             <div className="font-semibold text-slate-800 group-hover:text-orange-700">
                                                                 {category}
@@ -3984,12 +4075,12 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     Photos & Videos
                                     <span className="text-xs text-slate-500 font-normal">(Optional)</span>
                                 </label>
-                                
+
                                 <div className="relative group">
                                     <div className="absolute inset-0 bg-gradient-to-r from-pink-100/50 to-rose-100/50 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-                                    
+
                                     {/* File Upload Area */}
-                                    <div 
+                                    <div
                                         className="relative border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center bg-gradient-to-r from-white to-slate-50/50 hover:from-pink-50/30 hover:to-rose-50/30 hover:border-pink-400 transition-all duration-300 cursor-pointer group"
                                         onClick={() => document.getElementById('file-upload')?.click()}
                                         onDragOver={(e) => {
@@ -4014,7 +4105,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             onChange={(e) => handleFileAttachment(e.target.files)}
                                             className="hidden"
                                         />
-                                        
+
                                         <div className="space-y-4">
                                             <div className="flex justify-center space-x-2">
                                                 <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -4024,7 +4115,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     <Video className="w-6 h-6 text-white" />
                                                 </div>
                                             </div>
-                                            
+
                                             <div>
                                                 <p className="text-base font-semibold text-slate-700 group-hover:text-pink-700 transition-colors duration-300">
                                                     Drop files here or click to browse
@@ -4036,7 +4127,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     Maximum file size: 10MB per file
                                                 </p>
                                             </div>
-                                            
+
                                             <Button
                                                 type="button"
                                                 variant="outline"
@@ -4048,7 +4139,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             </Button>
                                         </div>
                                     </div>
-                                    
+
                                     {/* File Previews */}
                                     {attachmentPreviews.length > 0 && (
                                         <div className="mt-6 space-y-4">
@@ -4071,7 +4162,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                     muted
                                                                 />
                                                             )}
-                                                            
+
                                                             {/* File Type Icon */}
                                                             <div className="absolute top-2 left-2 w-6 h-6 bg-black/60 rounded-lg flex items-center justify-center">
                                                                 {preview.type === 'image' ? (
@@ -4080,7 +4171,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                     <Video className="w-3 h-3 text-white" />
                                                                 )}
                                                             </div>
-                                                            
+
                                                             {/* Remove Button */}
                                                             <button
                                                                 type="button"
@@ -4089,7 +4180,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                             >
                                                                 <X className="w-3 h-3 text-white" />
                                                             </button>
-                                                            
+
                                                             {/* File Name */}
                                                             <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 text-white">
                                                                 <p className="text-xs truncate">{preview.file.name}</p>
@@ -4103,7 +4194,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             </div>
                                         </div>
                                     )}
-                                    
+
                                     {errors.attachments && <div className="text-red-500 text-sm mt-3 flex items-center gap-2 bg-red-50 px-4 py-2 rounded-xl border border-red-200">
                                         <AlertCircle className="w-4 h-4" />
                                         {errors.attachments}
@@ -4209,7 +4300,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                     refreshSelectedTicket(showStatusChangeModal.ticketId);
                                                     // Forzar re-render del kanban
                                                     setRefreshKey(prev => prev + 1);
-                                                    
+
                                                     // El evento será emitido desde el backend
                                                     // y escuchado por el hook useNotifications
                                                 },
@@ -4962,12 +5053,11 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 <DialogContent className="sm:max-w-4xl max-h-[95vh] overflow-y-auto">
                     <DialogHeader className="pb-6 border-b border-slate-200">
                         <DialogTitle className="flex items-center gap-3 text-2xl font-bold">
-                            <div className={`p-3 rounded-xl shadow-lg ${
-                                showAppointmentDetailsModal.action === 'complete' ? 'bg-gradient-to-br from-green-500 to-green-600' :
-                                showAppointmentDetailsModal.action === 'feedback' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
-                                showAppointmentDetailsModal.action === 'reschedule' ? 'bg-gradient-to-br from-amber-500 to-amber-600' :
-                                'bg-gradient-to-br from-blue-500 to-blue-600'
-                            }`}>
+                            <div className={`p-3 rounded-xl shadow-lg ${showAppointmentDetailsModal.action === 'complete' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                                    showAppointmentDetailsModal.action === 'feedback' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                                        showAppointmentDetailsModal.action === 'reschedule' ? 'bg-gradient-to-br from-amber-500 to-amber-600' :
+                                            'bg-gradient-to-br from-blue-500 to-blue-600'
+                                }`}>
                                 {showAppointmentDetailsModal.action === 'complete' && <CheckCircle className="w-7 h-7 text-white" />}
                                 {showAppointmentDetailsModal.action === 'feedback' && <Star className="w-7 h-7 text-white" />}
                                 {showAppointmentDetailsModal.action === 'reschedule' && <Calendar className="w-7 h-7 text-white" />}
@@ -5002,12 +5092,12 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             </h3>
                                             <div className="flex items-center gap-2">
                                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${showAppointmentDetailsModal.appointment.status === 'scheduled'
-                                                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                                        : showAppointmentDetailsModal.appointment.status === 'in_progress'
-                                                            ? 'bg-yellow-100 text-yellow-700 border border-yellow-200'
-                                                            : showAppointmentDetailsModal.appointment.status === 'completed'
-                                                                ? 'bg-green-100 text-green-700 border border-green-200'
-                                                                : 'bg-red-100 text-red-700 border border-red-200'
+                                                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                                    : showAppointmentDetailsModal.appointment.status === 'in_progress'
+                                                        ? 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                                                        : showAppointmentDetailsModal.appointment.status === 'completed'
+                                                            ? 'bg-green-100 text-green-700 border border-green-200'
+                                                            : 'bg-red-100 text-red-700 border border-red-200'
                                                     }`}>
                                                     {showAppointmentDetailsModal.appointment.status === 'scheduled' && <Clock className="w-4 h-4" />}
                                                     {showAppointmentDetailsModal.appointment.status === 'in_progress' && <AlertCircle className="w-4 h-4" />}
@@ -5051,14 +5141,14 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                             console.log('DEBUG - Device object:', appointment?.ticket?.device);
                                                             console.log('DEBUG - Device tenants:', appointment?.ticket?.device?.tenants);
                                                             console.log('DEBUG - User tenant:', appointment?.ticket?.user?.tenant);
-                                                            
+
                                                             // Try to get building info from multiple sources
                                                             const building = appointment?.ticket?.device?.tenants?.[0]?.apartment?.building?.name ||
-                                                                            appointment?.ticket?.user?.tenant?.apartment?.building?.name ||
-                                                                            'Building not specified';
+                                                                appointment?.ticket?.user?.tenant?.apartment?.building?.name ||
+                                                                'Building not specified';
                                                             const apartment = appointment?.ticket?.device?.tenants?.[0]?.apartment?.name ||
-                                                                            appointment?.ticket?.user?.tenant?.apartment?.name;
-                                                            
+                                                                appointment?.ticket?.user?.tenant?.apartment?.name;
+
                                                             let location = building;
                                                             if (apartment) {
                                                                 location += ` - ${apartment}`;
@@ -5075,8 +5165,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 {(() => {
                                                     const appointment = showAppointmentDetailsModal.appointment;
                                                     const building = appointment?.ticket?.device?.tenants?.[0]?.apartment?.building ||
-                                                                    appointment?.ticket?.user?.tenant?.apartment?.building;
-                                                    
+                                                        appointment?.ticket?.user?.tenant?.apartment?.building;
+
                                                     if (building?.location_link) {
                                                         return (
                                                             <Button
@@ -5150,11 +5240,11 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
 
                                         <form onSubmit={async (e) => {
                                             e.preventDefault();
-                                            
+
                                             console.log('Form submitted - completion_notes:', appointmentActionForm.completion_notes);
                                             console.log('Trimmed notes:', appointmentActionForm.completion_notes.trim());
                                             console.log('Is empty?', !appointmentActionForm.completion_notes.trim());
-                                            
+
                                             // Validate completion notes
                                             if (!appointmentActionForm.completion_notes.trim()) {
                                                 console.log('Setting completion notes error to true');
@@ -5164,7 +5254,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                 console.log('Toast should be visible now');
                                                 return;
                                             }
-                                            
+
                                             console.log('Validation passed, proceeding with submission');
                                             await handleAppointmentAction('complete', showAppointmentDetailsModal.appointment.id, {
                                                 completion_notes: appointmentActionForm.completion_notes
@@ -5186,11 +5276,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                             setCompletionNotesError(false);
                                                         }
                                                     }}
-                                                    className={`w-full border-2 rounded-xl px-4 py-3 text-base focus:ring-2 transition-all duration-200 min-h-[120px] resize-none bg-white ${
-                                                        completionNotesError && !appointmentActionForm.completion_notes.trim()
-                                                            ? 'border-red-200 focus:border-red-400 focus:ring-red-100' 
+                                                    className={`w-full border-2 rounded-xl px-4 py-3 text-base focus:ring-2 transition-all duration-200 min-h-[120px] resize-none bg-white ${completionNotesError && !appointmentActionForm.completion_notes.trim()
+                                                            ? 'border-red-200 focus:border-red-400 focus:ring-red-100'
                                                             : 'border-green-200 focus:border-green-400 focus:ring-green-100'
-                                                    }`}
+                                                        }`}
                                                     placeholder="Describe what was performed during the visit and the outcome..."
                                                 />
                                                 {completionNotesError && !appointmentActionForm.completion_notes.trim() && (
@@ -5217,7 +5306,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                             <button
                                                 type="submit"
                                                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 px-6 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
-                                               // disabled={!appointmentActionForm.completion_notes.trim()}
+                                            // disabled={!appointmentActionForm.completion_notes.trim()}
                                             >
                                                 <CheckCircle className="w-5 h-5" />
                                                 Complete Visit
@@ -5226,7 +5315,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     </div>
                                 )}
 
-                             
+
 
                                 {/* Member Feedback Form - Only for Members */}
                                 {showAppointmentDetailsModal.appointment && showAppointmentDetailsModal.appointment.status === 'awaiting_feedback' && isMember && (
@@ -5272,8 +5361,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                             type="button"
                                                             onClick={() => setAppointmentActionForm(prev => ({ ...prev, service_rating: rating }))}
                                                             className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 ${appointmentActionForm.service_rating >= rating
-                                                                    ? 'text-yellow-500 bg-yellow-50'
-                                                                    : 'text-gray-300 hover:text-yellow-400 hover:bg-yellow-50'
+                                                                ? 'text-yellow-500 bg-yellow-50'
+                                                                : 'text-gray-300 hover:text-yellow-400 hover:bg-yellow-50'
                                                                 }`}
                                                         >
                                                             <Star className="w-8 h-8 fill-current" />
@@ -5295,31 +5384,31 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                 )}
 
                                 {/* Show Completion Notes for Technical Staff when status is awaiting_feedback */}
-                                {showAppointmentDetailsModal.appointment && 
-                                 showAppointmentDetailsModal.appointment.status === 'awaiting_feedback' && 
-                                 !isMember && 
-                                 showAppointmentDetailsModal.appointment.completion_notes && (
-                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
-                                        <div className="flex items-center gap-3 mb-4">
-                                            <div className="p-2 bg-green-100 rounded-lg">
-                                                <CheckCircle className="w-6 h-6 text-green-600" />
+                                {showAppointmentDetailsModal.appointment &&
+                                    showAppointmentDetailsModal.appointment.status === 'awaiting_feedback' &&
+                                    !isMember &&
+                                    showAppointmentDetailsModal.appointment.completion_notes && (
+                                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="p-2 bg-green-100 rounded-lg">
+                                                    <CheckCircle className="w-6 h-6 text-green-600" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-green-900">Work Completed - Awaiting User Feedback</h3>
+                                                    <p className="text-sm text-green-700">Your completion notes are visible</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h3 className="text-lg font-bold text-green-900">Work Completed - Awaiting User Feedback</h3>
-                                                <p className="text-sm text-green-700">Your completion notes are visible</p>
+                                            <div className="p-4 bg-white rounded-xl border border-green-200">
+                                                <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
+                                                    <FileText className="w-4 h-4" />
+                                                    Your Completion Notes
+                                                </h4>
+                                                <p className="text-green-800 leading-relaxed">
+                                                    {showAppointmentDetailsModal.appointment.completion_notes}
+                                                </p>
                                             </div>
                                         </div>
-                                        <div className="p-4 bg-white rounded-xl border border-green-200">
-                                            <h4 className="text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
-                                                <FileText className="w-4 h-4" />
-                                                Your Completion Notes
-                                            </h4>
-                                            <p className="text-green-800 leading-relaxed">
-                                                {showAppointmentDetailsModal.appointment.completion_notes}
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
+                                    )}
 
                                 {/* Cancel/Reschedule Appointment Forms */}
                                 {showAppointmentDetailsModal.appointment.status === 'scheduled' && (
@@ -5525,8 +5614,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                                                 <Star
                                                                     key={star}
                                                                     className={`w-6 h-6 ${star <= showAppointmentDetailsModal.appointment.rating
-                                                                            ? 'text-yellow-500 fill-current'
-                                                                            : 'text-gray-300'
+                                                                        ? 'text-yellow-500 fill-current'
+                                                                        : 'text-gray-300'
                                                                         }`}
                                                                 />
                                                             ))}
@@ -5610,8 +5699,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     >
                                         <Star
                                             className={`w-8 h-8 ${star <= memberFeedback.rating
-                                                    ? 'text-yellow-500 fill-current'
-                                                    : 'text-gray-300 hover:text-yellow-400'
+                                                ? 'text-yellow-500 fill-current'
+                                                : 'text-gray-300 hover:text-yellow-400'
                                                 }`}
                                         />
                                     </button>
@@ -5796,6 +5885,76 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             referrerPolicy="no-referrer-when-downgrade"
                             title="Building Location"
                         />
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Message to Technician Modal */}
+            <Dialog open={showMessageTechnicalModal.open} onOpenChange={(open) => setShowMessageTechnicalModal({ open })}>
+                <DialogContent className="max-w-md mx-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                            <Send className="w-5 h-5 text-blue-500" />
+                            Send Message to Technician
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-600">
+                            Send a message to <span className="font-medium text-blue-600">{showMessageTechnicalModal.technicalName}</span> about this ticket
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6">
+                        {/* Message Input */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Your Message
+                            </label>
+                            <textarea
+                                value={messageToTechnical}
+                                onChange={(e) => setMessageToTechnical(e.target.value)}
+                                className="w-full p-3 border border-slate-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                rows={4}
+                                placeholder="Type your message to the technician here..."
+                                maxLength={500}
+                                required
+                            />
+                            <p className="text-xs text-slate-500 mt-1">
+                                {messageToTechnical.length}/500 characters • This message will be added to the ticket history and the technician will be notified
+                            </p>
+                        </div>
+
+                        {/* Submit Buttons */}
+                        <div className="flex gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setShowMessageTechnicalModal({ open: false });
+                                    setMessageToTechnical("");
+                                }}
+                                className="flex-1"
+                                disabled={sendingMessage}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={handleSendMessageToTechnical}
+                                disabled={!messageToTechnical.trim() || sendingMessage}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                {sendingMessage ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Sending...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send className="w-4 h-4 mr-2" />
+                                        Send Message
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

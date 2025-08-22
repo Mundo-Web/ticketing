@@ -12,6 +12,7 @@ class TicketHistory extends Model
     protected $fillable = [
         'ticket_id',
         'technical_id',
+        'user_id',
         'action',
         'description',
         'meta',
@@ -31,11 +32,21 @@ class TicketHistory extends Model
         return $this->belongsTo(Technical::class);
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
     /**
      * Get the user name for this history entry
      */
     public function getUserNameAttribute()
     {
+        // For member messages, use the user relationship
+        if ($this->action === 'member_message' && $this->user) {
+            return $this->user->tenant ? $this->user->tenant->name : $this->user->name;
+        }
+        
         if ($this->technical) {
             return $this->technical->name;
         }

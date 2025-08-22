@@ -202,6 +202,7 @@ Route::get('/test-send-notification-simple', function () {
     Route::post('tickets/{ticket}/update-status', [TicketController::class, 'updateStatus'])->name('tickets.updateStatus');
     Route::post('tickets/{ticket}/upload-evidence', [TicketController::class, 'uploadEvidence'])->name('tickets.uploadEvidence');
     Route::post('tickets/{ticket}/add-private-note', [TicketController::class, 'addPrivateNote'])->name('tickets.addPrivateNote');
+    Route::post('tickets/{ticket}/send-message-to-technical', [TicketController::class, 'sendMessageToTechnical'])->name('tickets.sendMessageToTechnical');
     Route::get('tickets/assign-unassigned', [TicketController::class, 'assignUnassigned'])->name('tickets.assign-unassigned');
 
     // Appointment Routes

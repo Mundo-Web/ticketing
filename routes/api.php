@@ -31,6 +31,9 @@ Route::middleware(['web', 'auth'])->get('/tickets', [\App\Http\Controllers\Ticke
 // Technical-specific tickets API
 Route::middleware(['web', 'auth'])->get('/technical-tickets', [\App\Http\Controllers\TicketController::class, 'apiTechnicalTickets']);
 
+// Send message to technician API
+Route::middleware(['web', 'auth'])->post('/tickets/{ticket}/send-message-to-technical', [\App\Http\Controllers\TicketController::class, 'sendMessageToTechnical']);
+
 // Tenant Authentication Routes (Public)
 Route::prefix('tenant')->group(function () {
     Route::post('/login', [TenantController::class, 'login']);

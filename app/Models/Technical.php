@@ -26,6 +26,11 @@ class Technical extends Model
     ];
 
     // Relaciones
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'email', 'email');
+    }
+
     public function tickets()
     {
         return $this->hasMany(Ticket::class);

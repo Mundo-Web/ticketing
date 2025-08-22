@@ -13,6 +13,7 @@ use App\Models\Owner;
 use App\Events\TicketCreated;
 use App\Events\TicketAssigned;
 use App\Events\TicketStatusChanged;
+use App\Events\NotificationCreated;
 use App\Notifications\TicketCreatedNotification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -1454,6 +1455,114 @@ class TicketController extends Controller
             Log::error('API Technical Tickets Error: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Internal server error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Send message to assigned technician
+     */
+    public function sendMessageToTechnical(Request $request, Ticket $ticket)
+    {
+        try {
+            $request->validate([
+                'message' => 'required|string|max:500'
+            ]);
+
+            $user = Auth::user();
+            
+            // Cargar relaciones necesarias
+            $user->load('tenant.apartment.building');
+            
+            // Verificar que el usuario es miembro y es el propietario del ticket
+            if (!$user || !$user->hasRole('member') || $ticket->user_id !== $user->id) {
+                return response()->json([
+                    'message' => 'Unauthorized to send message for this ticket'
+                ], 403);
+            }
+
+            // Verificar que el ticket tiene un técnico asignado
+            if (!$ticket->technical_id) {
+                Log::warning("No technician assigned to ticket", [
+                    'ticket_id' => $ticket->id,
+                    'user_id' => $user->id
+                ]);
+                return response()->json([
+                    'message' => 'No technician assigned to this ticket'
+                ], 400);
+            }
+
+            // Crear entrada en el historial del ticket
+            $ticket->histories()->create([
+                'action' => 'member_message',
+                'description' => $request->message,
+                'user_id' => $user->id,
+                'technical_id' => null, // El mensaje viene del member
+                'created_at' => now(),
+            ]);
+
+            // Obtener el técnico asignado para la notificación
+            $technical = $ticket->technical;
+            
+            if ($technical) {
+                // Buscar el usuario del técnico usando el mismo patrón que assignTechnical
+                $technicalUser = User::where('email', $technical->email)->first();
+                
+                if ($technicalUser) {
+                    // Crear notificación para el técnico
+                    $technicalUser->notify(new \App\Notifications\MemberMessageNotification(
+                        $ticket,
+                        $user->tenant,
+                        $request->message
+                    ));
+                    
+                    // Emit real-time notification event (igual que en assign)
+                    $databaseNotification = $technicalUser->notifications()->latest()->first();
+                    if ($databaseNotification) {
+                        event(new \App\Events\NotificationCreated($databaseNotification, $technicalUser->id));
+                    }
+                    
+                    Log::info("Member message notification sent to technical", [
+                        'technical_id' => $technical->id,
+                        'technical_email' => $technical->email,
+                        'technical_user_id' => $technicalUser->id,
+                        'technical_user_email' => $technicalUser->email,
+                        'ticket_id' => $ticket->id,
+                        'member_id' => $user->id,
+                        'member_name' => $user->name
+                    ]);
+                } else {
+                    Log::warning("Technical user not found by email", [
+                        'technical_id' => $technical->id,
+                        'technical_email' => $technical->email,
+                        'ticket_id' => $ticket->id
+                    ]);
+                }
+            } else {
+                Log::warning("Technical not found for ticket", [
+                    'ticket_id' => $ticket->id,
+                    'technical_id' => $ticket->technical_id
+                ]);
+            }
+
+            // Log the action
+            Log::info("Member message sent", [
+                'ticket_id' => $ticket->id,
+                'member_id' => $user->id,
+                'technical_id' => $ticket->technical_id,
+                'message_length' => strlen($request->message)
+            ]);
+
+            return response()->json([
+                'message' => 'Message sent successfully',
+                'ticket_id' => $ticket->id
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Send Message to Technical Error: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to send message',
                 'message' => $e->getMessage()
             ], 500);
         }
