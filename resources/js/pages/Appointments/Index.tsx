@@ -1147,7 +1147,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
             }
         };
     };
-
+{/*CUSTOM EVENT */}
     const CustomEvent = ({ event }: { event: any }) => {
         const appointment = event.resource;
         const statusConf = getStatusConfig(appointment.status);
@@ -1173,9 +1173,9 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
         // Datos del member (cliente)
         const member = appointment.ticket?.user?.tenant || {};
         const memberPhoto = member.photo || member.photo_url || member.avatar_url || member.avatar || null;
-        const memberName = member.name || '';
-        const memberEmail = member.email || '';
-        const memberPhone = member.phone || '';
+        const memberName = member.name || member.name;
+        const memberEmail = member.email ||  member.emai;
+        const memberPhone = member.phone || member.phone;
         
         // Debug simplificado para verificar datos del member
         console.log(`Member data for appointment ${appointment.id}:`, {
@@ -1187,7 +1187,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
             memberData: member
         });
 
-        const ticketNumber = appointment.ticket?.number || appointment.ticket?.id || '';
+        const ticketNumber = appointment.ticket?.code || appointment.ticket?.number || appointment.ticket?.id || '';
 
         // Helper para iniciales
         function getInitials(name: string): string {
@@ -1198,7 +1198,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
 
         return (
             <div
-                className="w-full h-full text-white text-xs p-2 overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 relative"
+                className="w-full h-full text-white cursor-pointer hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 relative"
                 style={{
                     minHeight: '100%',
                     height: '100%',
@@ -1207,22 +1207,74 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                     border: 'none',
                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
                     display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'flex-start'
+                    flexDirection: 'row',
+                    padding: '6px',
+                    gap: '6px'
                 }}
-               
             >
-                {/* Header con hora e icono */}
-                <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
-                    <IconComponent className="w-3 h-3 flex-shrink-0 opacity-90" />
-                    <span className="font-bold text-xs leading-none">
-                        {formatTime(appointment.scheduled_for)}
-                    </span>
+                {/* Sección izquierda - Member info y ticket */}
+                <div className="flex-1 flex flex-col justify-between min-w-0">
+                    {/* Fila superior: Foto del Member + Nombre */}
+                    <div className="flex items-center gap-2 mb-1">
+                        {/* Foto del Member */}
+                        <div
+                            className="relative cursor-pointer flex-shrink-0"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowUserInfoModal({
+                                    open: true,
+                                    user: member,
+                                    type: 'member'
+                                });
+                            }}
+                        >
+                            <div className="w-6 h-6 rounded-full border border-white/30 overflow-hidden bg-white/20 hover:scale-110 transition-transform duration-200 relative">
+                                {memberPhoto ? (
+                                    <img
+                                        src={memberPhoto.startsWith('/storage/') ? memberPhoto : 
+                                             memberPhoto.startsWith('http') ? memberPhoto : 
+                                             `/storage/${memberPhoto}`}
+                                        alt={memberName}
+                                        className="w-full h-full object-cover"
+                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                            e.currentTarget.style.display = 'none';
+                                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                            if (fallback) fallback.style.display = 'flex';
+                                        }}
+                                    />
+                                ) : null}
+                                <div
+                                    className="absolute inset-0 w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-xs font-bold text-white"
+                                    style={{ display: memberPhoto ? 'none' : 'flex' }}
+                                >
+                                    {getInitials(memberName)}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Nombre del Member */}
+                        <div className="text-xs font-semibold leading-tight text-white/95 truncate flex-1">
+                            {memberName || 'N/A'}
+                        </div>
+                    </div>
+                    
+                    {/* Fila inferior: Ticket Code */}
+                    <div className="text-xs font-medium bg-white/20 px-2 py-1 rounded text-white/90 backdrop-blur-sm self-start">
+                        #{ticketNumber}
+                    </div>
                 </div>
 
-                {/* Avatares con tooltips */}
-                <div className="flex items-center gap-2 mb-2">
-                    {/* Avatar del técnico */}
+                {/* Sección derecha - Technical info */}
+                <div className="flex flex-col justify-center items-center gap-1">
+                    {/* Header con hora e icono */}
+                    <div className="flex items-center gap-1">
+                        <IconComponent className="w-3 h-3 flex-shrink-0 opacity-90" />
+                        <span className="font-bold text-xs leading-none text-white/95">
+                            {formatTime(appointment.scheduled_for)}
+                        </span>
+                    </div>
+                    
+                    {/* Foto del Technical */}
                     <div
                         className="relative cursor-pointer"
                         onClick={(e) => {
@@ -1250,63 +1302,17 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                                 />
                             ) : null}
                             <div
-                                className="absolute inset-0 w-full h-full bg-blue-500 flex items-center justify-center text-xs font-bold text-white"
+                                className="absolute inset-0 w-full h-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-xs font-bold text-white"
                                 style={{ display: technicalPhoto ? 'none' : 'flex' }}
                             >
                                 {getInitials(technicalName)}
                             </div>
                         </div>
                     </div>
-
-                    {/* Avatar del member */}
-                    <div
-                        className="relative cursor-pointer"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setShowUserInfoModal({
-                                open: true,
-                                user: member,
-                                type: 'member'
-                            });
-                        }}
-                    >
-                        <div className="w-6 h-6 rounded-full border border-white/30 overflow-hidden bg-white/20 hover:scale-110 transition-transform duration-200 relative">
-                            {memberPhoto ? (
-                                <img
-                                    src={memberPhoto.startsWith('/storage/') ? memberPhoto : 
-                                         memberPhoto.startsWith('http') ? memberPhoto : 
-                                         `/storage/${memberPhoto}`}
-                                    alt={memberName}
-                                    className="w-full h-full object-cover"
-                                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                        e.currentTarget.style.display = 'none';
-                                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                        if (fallback) fallback.style.display = 'flex';
-                                    }}
-                                />
-                            ) : null}
-                            <div
-                                className="absolute inset-0 w-full h-full bg-green-500 flex items-center justify-center text-xs font-bold text-white"
-                                style={{ display: memberPhoto ? 'none' : 'flex' }}
-                            >
-                                {getInitials(memberName)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Información del ticket */}
-                <div className="text-xs opacity-90 leading-tight mb-1 flex-shrink-0">
-                    Ticket: {ticketNumber}
-                </div>
-
-                {/* Título de la cita */}
-                <div className="text-xs opacity-95 leading-tight overflow-hidden flex-1">
-                    {appointment.title}
                 </div>
 
                 {/* Status indicator dot */}
-                <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-white opacity-75 rounded-full"></div>
+                <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-white/75 rounded-full"></div>
             </div>
         );
     };
