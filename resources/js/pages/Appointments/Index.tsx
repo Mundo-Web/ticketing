@@ -1234,7 +1234,7 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                 <div className="flex flex-col justify-center items-center gap-1">
                     {/* Header con hora e icono */}
                     <div className="flex items-center gap-1">
-                        <IconComponent className="w-3 h-3 flex-shrink-0 opacity-90" />
+                   
                         <span className="font-bold text-xs leading-none text-white/95">
                             {formatTime(appointment.scheduled_for)}
                         </span>
