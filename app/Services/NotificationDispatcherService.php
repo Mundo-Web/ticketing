@@ -281,7 +281,7 @@ class NotificationDispatcherService
                 'updated_at' => now(),
             ]);
 
-            // Emitir evento socket para notificación en tiempo real
+            // Emitir evento socket para notificación en tiempo real (web)
             Log::info('Broadcasting NotificationCreated event', [
                 'user_id' => $user->id,
                 'notification_id' => $notification->id,
@@ -289,9 +289,20 @@ class NotificationDispatcherService
             ]);
             event(new NotificationCreated($notification, $user->id));
 
+            // Si el usuario es member, también emitir evento para móvil
+            if ($user->hasRole('member')) {
+                Log::info('Broadcasting MobileNotificationCreated event for member', [
+                    'user_id' => $user->id,
+                    'notification_id' => $notification->id,
+                    'type' => $data['type'] ?? 'unknown'
+                ]);
+                event(new \App\Events\MobileNotificationCreated($notification, $user->id));
+            }
+
             Log::info('Database notification created', [
                 'user_id' => $user->id,
-                'type' => $data['type'] ?? 'unknown'
+                'type' => $data['type'] ?? 'unknown',
+                'is_member' => $user->hasRole('member')
             ]);
         } catch (\Exception $e) {
             Log::error('Error creating database notification', [

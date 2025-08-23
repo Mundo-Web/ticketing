@@ -601,4 +601,202 @@ class TenantController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get notifications for mobile app
+     */
+    public function notifications(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado',
+                    'notifications' => [],
+                    'unread_count' => 0
+                ], 401);
+            }
+
+            // Verificar que el usuario tiene rol de member
+            if (!$user->hasRole('member')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Acceso denegado. Solo para members.',
+                    'notifications' => [],
+                    'unread_count' => 0
+                ], 403);
+            }
+
+            // Obtener notificaciones del usuario
+            $notifications = $user->notifications()
+                ->orderBy('created_at', 'desc')
+                ->limit(50)
+                ->get();
+
+            // Transformar para la app móvil
+            $transformedNotifications = $notifications->map(function($notification) {
+                $data = $notification->data;
+                
+                return [
+                    'id' => $notification->id,
+                    'type' => $notification->type,
+                    'title' => $data['title'] ?? 'Notificación',
+                    'message' => $data['message'] ?? 'Nueva notificación',
+                    'ticket_id' => $data['ticket_id'] ?? null,
+                    'ticket_code' => $data['ticket_code'] ?? null,
+                    'action_url' => $data['action_url'] ?? null,
+                    'icon' => $data['icon'] ?? 'bell',
+                    'color' => $data['color'] ?? 'blue',
+                    'is_read' => !is_null($notification->read_at),
+                    'read_at' => $notification->read_at,
+                    'created_at' => $notification->created_at->toISOString(),
+                    'updated_at' => $notification->updated_at->toISOString(),
+                ];
+            });
+
+            $unreadCount = $user->unreadNotifications()->count();
+
+            Log::info('Mobile notifications fetched', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'total_notifications' => $notifications->count(),
+                'unread_count' => $unreadCount
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'notifications' => $transformedNotifications,
+                'unread_count' => $unreadCount,
+                'total_count' => $notifications->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching mobile notifications', [
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()?->id
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener notificaciones',
+                'notifications' => [],
+                'unread_count' => 0
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark notification as read for mobile app
+     */
+    public function markNotificationAsRead(Request $request, $notificationId)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado'
+                ], 401);
+            }
+
+            // Verificar que el usuario tiene rol de member
+            if (!$user->hasRole('member')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Acceso denegado. Solo para members.'
+                ], 403);
+            }
+
+            // Buscar la notificación del usuario
+            $notification = $user->notifications()->where('id', $notificationId)->first();
+            
+            if (!$notification) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Notificación no encontrada'
+                ], 404);
+            }
+
+            // Marcar como leída si no lo está ya
+            if (is_null($notification->read_at)) {
+                $notification->markAsRead();
+                
+                Log::info('Mobile notification marked as read', [
+                    'user_id' => $user->id,
+                    'notification_id' => $notificationId
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notificación marcada como leída'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error marking mobile notification as read', [
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()?->id,
+                'notification_id' => $notificationId
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al marcar notificación como leída'
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark all notifications as read for mobile app
+     */
+    public function markAllNotificationsAsRead(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado'
+                ], 401);
+            }
+
+            // Verificar que el usuario tiene rol de member
+            if (!$user->hasRole('member')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Acceso denegado. Solo para members.'
+                ], 403);
+            }
+
+            // Marcar todas las notificaciones no leídas como leídas
+            $unreadCount = $user->unreadNotifications()->count();
+            $user->unreadNotifications()->update(['read_at' => now()]);
+
+            Log::info('All mobile notifications marked as read', [
+                'user_id' => $user->id,
+                'marked_count' => $unreadCount
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Todas las notificaciones marcadas como leídas',
+                'marked_count' => $unreadCount
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error marking all mobile notifications as read', [
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()?->id
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al marcar todas las notificaciones como leídas'
+            ], 500);
+        }
+    }
 }

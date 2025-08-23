@@ -55,6 +55,11 @@ Route::middleware(['auth:sanctum', 'tenant'])->prefix('tenant')->group(function 
     // Password management routes
     Route::post('/change-password', [TenantController::class, 'changePassword']);
     Route::post('/reset-password-request', [TenantController::class, 'resetPasswordRequest']);
+    
+    // Mobile notifications routes
+    Route::get('/notifications', [TenantController::class, 'notifications']);
+    Route::post('/notifications/{notification}/read', [TenantController::class, 'markNotificationAsRead']);
+    Route::post('/notifications/mark-all-read', [TenantController::class, 'markAllNotificationsAsRead']);
 });
 
 // Notification routes
