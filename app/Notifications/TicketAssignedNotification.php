@@ -59,13 +59,13 @@ class TicketAssignedNotification extends Notification
 
         // Fallback si no hay template
         return (new MailMessage)
-            ->subject('Ticket Asignado - ' . $this->ticket->code)
+            ->subject('Ticket Assigned - ' . $this->ticket->code)
             ->greeting('¡Hola ' . $notifiable->name . '!')
-            ->line('Se te ha asignado el ticket: ' . $this->ticket->code)
-            ->line('Título: ' . $this->ticket->title)
-            ->line('Asignado por: ' . $this->assignedBy->name)
-            ->action('Ver Ticket', url('/tickets/' . $this->ticket->id))
-            ->line('¡Por favor revisa los detalles y comienza a trabajar en él!');
+            ->line('You have been assigned the ticket: ' . $this->ticket->code)
+            ->line('Title: ' . $this->ticket->title)
+            ->line('Assigned by: ' . $this->assignedBy->name)
+            ->action('View Ticket', url('/tickets/' . $this->ticket->id))
+            ->line('Please check the details and start working on it!');
     }
 
     /**
@@ -96,9 +96,9 @@ class TicketAssignedNotification extends Notification
         
         if ($isAssignedTechnical) {
             // Mensaje para el técnico asignado
-            $title = '🎯 Te han asignado un ticket';
+            $title = '🎯 Ticket assigned to you';
             $message = sprintf(
-                'Se te ha asignado el ticket %s por %s. %s',
+                'You have been assigned the ticket %s by %s. %s',
                 $this->ticket->code,
                 $this->assignedBy->name,
                 $this->ticket->title ? '- ' . $this->ticket->title : ''
@@ -107,9 +107,9 @@ class TicketAssignedNotification extends Notification
             $color = 'blue';
         } elseif ($notifiable->id === $this->ticket->user_id) {
             // Mensaje para el usuario que creó el ticket
-            $title = '👤 Técnico asignado a tu ticket';
+            $title = '👤 Technician assigned to your ticket';
             $message = sprintf(
-                'Tu ticket %s ha sido asignado al técnico %s por %s',
+                'Your ticket %s has been assigned to the technician %s by %s',
                 $this->ticket->code,
                 $this->technical->name,
                 $this->assignedBy->name
@@ -118,9 +118,9 @@ class TicketAssignedNotification extends Notification
             $color = 'green';
         } else {
             // Mensaje para administradores u otros usuarios
-            $title = '📋 Ticket asignado';
+            $title = '📋 Ticket assigned';
             $message = sprintf(
-                'El ticket %s ha sido asignado al técnico %s por %s',
+                'The ticket %s has been assigned to the technician %s by %s',
                 $this->ticket->code,
                 $this->technical->name,
                 $this->assignedBy->name

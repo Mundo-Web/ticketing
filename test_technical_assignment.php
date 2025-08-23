@@ -121,8 +121,8 @@ try {
         'type' => 'ticket_assigned',
         'ticket_id' => $ticketData['id'],
         'ticket_code' => $ticketData['code'],
-        'title' => '👤 Técnico asignado a tu ticket',
-        'message' => '👤 Tu ticket ' . $ticketData['code'] . ' ha sido asignado al técnico ' . $technicalData['name'],
+        'title' => '👤 Technician assigned to your ticket',
+        'message' => '👤 Your ticket ' . $ticketData['code'] . ' has been assigned to the technician ' . $technicalData['name'],
         'action_url' => '/tickets/' . $ticketData['id'],
         'icon' => 'user-check',
         'color' => 'green',
@@ -162,4 +162,4 @@ try {
 
 echo "\n🔍 Check the browser console for real-time notifications!\n";
 echo "🎯 Expected events on channel: notifications-public.183\n";
-echo "📱 Look for: '🎯 Te han asignado un ticket' and '👤 Técnico asignado a tu ticket'\n";
+echo "📱 Look for: '🎯 Ticket assigned to your ticket' and '👤 Technician assigned to your ticket'\n";
