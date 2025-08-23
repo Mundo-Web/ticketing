@@ -1212,55 +1212,21 @@ export default function AppointmentsIndex({ appointments, technicals, auth, isTe
                     gap: '6px'
                 }}
             >
-                {/* Sección izquierda - Member info y ticket */}
-                <div className="flex-1 flex flex-col justify-between min-w-0">
-                    {/* Fila superior: Foto del Member + Nombre */}
-                    <div className="flex items-center gap-2 mb-1">
-                        {/* Foto del Member */}
-                        <div
-                            className="relative cursor-pointer flex-shrink-0"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowUserInfoModal({
-                                    open: true,
-                                    user: member,
-                                    type: 'member'
-                                });
-                            }}
-                        >
-                            <div className="w-6 h-6 rounded-full border border-white/30 overflow-hidden bg-white/20 hover:scale-110 transition-transform duration-200 relative">
-                                {memberPhoto ? (
-                                    <img
-                                        src={memberPhoto.startsWith('/storage/') ? memberPhoto : 
-                                             memberPhoto.startsWith('http') ? memberPhoto : 
-                                             `/storage/${memberPhoto}`}
-                                        alt={memberName}
-                                        className="w-full h-full object-cover"
-                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                            e.currentTarget.style.display = 'none';
-                                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                            if (fallback) fallback.style.display = 'flex';
-                                        }}
-                                    />
-                                ) : null}
-                                <div
-                                    className="absolute inset-0 w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-xs font-bold text-white"
-                                    style={{ display: memberPhoto ? 'none' : 'flex' }}
-                                >
-                                    {getInitials(memberName)}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        {/* Nombre del Member */}
-                        <div className="text-xs font-semibold leading-tight text-white/95 truncate flex-1">
-                            {memberName || 'N/A'}
-                        </div>
-                    </div>
-                    
-                    {/* Fila inferior: Ticket Code */}
-                    <div className="text-xs font-medium bg-white/20 px-2 py-1 rounded text-white/90 backdrop-blur-sm self-start">
-                        #{ticketNumber}
+                {/* Sección izquierda - Solo nombre del Member */}
+                <div className="flex-1 flex items-center justify-center min-w-0">
+                    {/* Nombre del Member centrado */}
+                    <div 
+                        className="text-sm line-clamp-3 font-semibold leading-tight text-white/95 cursor-pointer hover:text-white transition-colors duration-200"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowUserInfoModal({
+                                open: true,
+                                user: member,
+                                type: 'member'
+                            });
+                        }}
+                    >
+                        {memberName || 'N/A'}
                     </div>
                 </div>
 
