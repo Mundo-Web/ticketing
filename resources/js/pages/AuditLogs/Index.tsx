@@ -206,33 +206,33 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
     };
 
     const getModelIcon = (modelType: string | null) => {
-        if (!modelType) return <Package className="h-4 w-4 text-slate-400" />;
-        
+        if (!modelType) return <Package className=" min-h-4 min-w-4 max-h-4 max-w-4 text-slate-400" />;
+
         switch (modelType.toLowerCase()) {
             case 'building':
-                return <Building className="h-4 w-4 text-blue-600" />;
+                return <Building className="min-h-4 min-w-4 max-h-4 max-w-4 text-blue-600" />;
             case 'ticket':
-                return <Ticket className="h-4 w-4 text-green-600" />;
+                return <Ticket className="min-h-4 min-w-4 max-h-4 max-w-4 text-green-600" />;
             case 'technical':
-                return <Wrench className="h-4 w-4 text-orange-600" />;
+                return <Wrench className="min-h-4 min-w-4 max-h-4 max-w-4 text-orange-600" />;
             case 'device':
-                return <Smartphone className="h-4 w-4 text-purple-600" />;
+                return <Smartphone className="min-h-4 min-w-4 max-h-4 max-w-4 text-purple-600" />;
             case 'appointment':
-                return <CalendarDays className="h-4 w-4 text-indigo-600" />;
+                return <CalendarDays className="min-h-4 min-w-4 max-h-4 max-w-4 text-indigo-600" />;
             case 'tenant':
-                return <UserCheck className="h-4 w-4 text-teal-600" />;
+                return <UserCheck className="min-h-4 min-w-4 max-h-4 max-w-4 text-teal-600" />;
             case 'user':
-                return <User className="h-4 w-4 text-pink-600" />;
+                return <User className="min-h-4 min-w-4 max-h-4 max-w-4 text-pink-600" />;
             case 'apartment':
-                return <Home className="h-4 w-4 text-amber-600" />;
+                return <Home className="min-h-4 min-w-4 max-h-4 max-w-4 text-amber-600" />;
             default:
-                return <Package className="h-4 w-4 text-slate-500" />;
+                return <Package className="min-h-4 min-w-4 max-h-4 max-w-4 text-slate-500" />;
         }
     };
 
     const getModelBadgeColor = (modelType: string | null) => {
         if (!modelType) return 'bg-slate-100 text-slate-600 border-slate-200';
-        
+
         switch (modelType.toLowerCase()) {
             case 'building':
                 return 'bg-blue-50 text-blue-700 border-blue-200';
@@ -324,7 +324,7 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                         <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                                         Refresh Data
                                     </Button>
-                                  
+
                                 </div>
                             </div>
                         </div>
@@ -566,15 +566,15 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                 </div>
 
                                 <div className="flex items-end space-x-2">
-                                    <Button 
-                                        onClick={handleSearch} 
+                                    <Button
+                                        onClick={handleSearch}
                                         className="flex-1 bg-gradient-to-r from-primary to-secondary hover:from-primary hover:to-primary transition-all duration-200"
                                     >
                                         <Search className="h-4 w-4 mr-2" />
                                         Apply Filters
                                     </Button>
-                                    <Button 
-                                        variant="outline" 
+                                    <Button
+                                        variant="outline"
                                         onClick={handleClearFilters}
                                         className="bg-white hover:text-primary hover:bg-slate-50 border-slate-200"
                                     >
@@ -608,73 +608,65 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                         <Database className="h-4 w-4 mr-2" />
                                         {auditLogs.total.toLocaleString()} Total Records
                                     </Badge>
-                                    <Button
-                                        variant="outline"
-                                        size="lg"
-                                        onClick={handleExport}
-                                        className="bg-white/70 hover:bg-white/90 border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold"
-                                    >
-                                        <Download className="h-5 w-5 mr-2" />
-                                        Export Data
-                                    </Button>
+
                                 </div>
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
                             <div className="overflow-x-auto">
-                                <Table>
+                                <Table className="min-w-full">
                                     <TableHeader>
                                         <TableRow className="bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-700 hover:from-slate-200 hover:to-slate-100 dark:hover:from-slate-700 dark:hover:to-slate-600 border-b-2 border-slate-200 dark:border-slate-600 transition-all duration-300">
-                                            <TableHead className="font-bold text-slate-900 dark:text-white py-6 px-6 text-sm uppercase tracking-wide">
-                                                <div className="flex items-center space-x-3">
+                                            <TableHead className="font-bold text-slate-900 dark:text-white py-4 px-4 text-sm uppercase tracking-wide min-w-[180px]">
+                                                <div className="flex items-center space-x-2">
                                                     <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                                                         <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                                     </div>
                                                     <span>User</span>
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-bold text-slate-900 dark:text-white py-6 px-6 text-sm uppercase tracking-wide">
-                                                <div className="flex items-center space-x-3">
+                                            <TableHead className="font-bold text-slate-900 dark:text-white py-4 px-4 text-sm uppercase tracking-wide min-w-[140px]">
+                                                <div className="flex items-center space-x-2">
                                                     <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
                                                         <Activity className="h-4 w-4 text-green-600 dark:text-green-400" />
                                                     </div>
                                                     <span>Action</span>
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-bold text-slate-900 dark:text-white py-6 px-6 text-sm uppercase tracking-wide">
-                                                <div className="flex items-center space-x-3">
+                                            <TableHead className="font-bold text-slate-900 dark:text-white py-4 px-4 text-sm uppercase tracking-wide min-w-[160px]">
+                                                <div className="flex items-center space-x-2">
                                                     <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
                                                         <Database className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                                     </div>
                                                     <span>Model</span>
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-bold text-slate-900 dark:text-white py-6 px-6 text-sm uppercase tracking-wide">
-                                                <div className="flex items-center space-x-3">
+                                            <TableHead className="font-bold text-slate-900 dark:text-white py-4 px-4 text-sm uppercase tracking-wide min-w-[220px]">
+                                                <div className="flex items-center space-x-2">
                                                     <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
                                                         <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                                                     </div>
                                                     <span>Description</span>
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-bold text-slate-900 dark:text-white py-6 px-6 text-sm uppercase tracking-wide">
-                                                <div className="flex items-center space-x-3">
+                                            <TableHead className="font-bold text-slate-900 dark:text-white py-4 px-4 text-sm uppercase tracking-wide min-w-[140px]">
+                                                <div className="flex items-center space-x-2">
                                                     <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                                                         <Globe className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                                                     </div>
                                                     <span>IP Address</span>
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-bold text-slate-900 dark:text-white py-6 px-6 text-sm uppercase tracking-wide">
-                                                <div className="flex items-center space-x-3">
+                                            <TableHead className="font-bold text-slate-900 dark:text-white py-4 px-4 text-sm uppercase tracking-wide min-w-[160px]">
+                                                <div className="flex items-center space-x-2">
                                                     <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
                                                         <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                                                     </div>
                                                     <span>Timestamp</span>
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-bold text-slate-900 dark:text-white py-6 px-6 text-sm uppercase tracking-wide text-center">
-                                                <div className="flex items-center justify-center space-x-3">
+                                            <TableHead className="font-bold text-slate-900 dark:text-white py-4 px-4 text-sm uppercase tracking-wide text-center min-w-[120px]">
+                                                <div className="flex items-center justify-center space-x-2">
                                                     <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
                                                         <Settings className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                                                     </div>
@@ -702,98 +694,92 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                             </TableRow>
                                         ) : (
                                             auditLogs.data.map((log, index) => (
-                                                <TableRow 
-                                                    key={log.id} 
-                                                    className={`hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 dark:hover:from-slate-800/50 dark:hover:to-slate-700/50 transition-all duration-300 border-b border-slate-100 dark:border-slate-800 group ${
-                                                        index % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/30 dark:bg-slate-800/30'
-                                                    }`}
+                                                <TableRow
+                                                    key={log.id}
+                                                    className={`hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 dark:hover:from-slate-800/50 dark:hover:to-slate-700/50 transition-all duration-300 border-b border-slate-100 dark:border-slate-800 group ${index % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/30 dark:bg-slate-800/30'
+                                                        }`}
                                                 >
-                                                    <TableCell className="py-6 px-6">
-                                                        <div className="flex items-center space-x-4">
-                                                            <div className="p-3 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl shadow-sm group-hover:shadow-md transition-all duration-300">
-                                                                <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                                    <TableCell className="py-4 px-4">
+                                                        <div className="min-w-0">
+                                                            <div className="font-bold text-slate-900 dark:text-white text-sm truncate">
+                                                                {log.user?.name || 'System'}
                                                             </div>
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className="font-bold text-slate-900 dark:text-white text-base truncate">
-                                                                    {log.user?.name || 'System'}
+                                                            {log.user?.email && (
+                                                                <div className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate mt-1">
+                                                                    {log.user.email}
                                                                 </div>
-                                                                {log.user?.email && (
-                                                                    <div className="text-sm text-slate-600 dark:text-slate-400 font-medium truncate mt-1">
-                                                                        {log.user.email}
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                                            )}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="py-6 px-6">
+                                                    <TableCell className="py-4 px-4">
                                                         <Badge
                                                             variant={getActionBadgeVariant(log.action_type)}
-                                                            className="flex items-center space-x-2 w-fit px-4 py-2 font-semibold text-sm shadow-sm group-hover:shadow-md transition-all duration-300"
+                                                            className="flex items-center justify-center space-x-1 w-fit px-2 py-2 font-semibold text-xs shadow-sm group-hover:shadow-md transition-all duration-300 whitespace-nowrap"
                                                         >
                                                             {getActionIcon(log.action_type)}
-                                                            <span>{log.readable_action}</span>
+                                                       
                                                         </Badge>
                                                     </TableCell>
-                                                    <TableCell className="py-6 px-6">
-                                        {log.model_type ? (
-                                            <div className="flex items-center space-x-4">
-                                                <div className="p-3 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 rounded-xl shadow-sm group-hover:shadow-md transition-all duration-300">
-                                                    {getModelIcon(log.model_type)}
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="font-bold text-slate-900 dark:text-white text-base truncate">
-                                                        {log.readable_model}
-                                                    </div>
-                                                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border shadow-sm mt-1 ${getModelBadgeColor(log.model_type)}`}>
-                                                        {log.model_type}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center space-x-4">
-                                                <div className="p-3 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-xl shadow-sm group-hover:shadow-md transition-all duration-300">
-                                                    {getModelIcon(null)}
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="font-bold text-slate-500 dark:text-slate-400 italic text-base truncate">
-                                                        System Action
-                                                    </div>
-                                                    <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border bg-slate-100 text-slate-600 border-slate-200 shadow-sm mt-1">
-                                                        No Model
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </TableCell>
-                                                    <TableCell className="py-6 px-6">
-                                                        <div className="max-w-sm">
-                                                            <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 font-medium leading-relaxed" title={log.description || ''}>
+                                                    <TableCell className="py-4 px-4">
+                                                        {log.model_type ? (
+                                                            <div className="flex items-center space-x-2">
+                                                                <div className="p-2 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 rounded-lg shadow-sm group-hover:shadow-md transition-all duration-300 flex-shrink-0">
+                                                                    {getModelIcon(log.model_type)}
+                                                                </div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="font-bold text-slate-900 dark:text-white text-sm truncate">
+                                                                        {log.readable_model}
+                                                                    </div>
+                                                                    <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border shadow-sm mt-1 whitespace-nowrap ${getModelBadgeColor(log.model_type)}`}>
+                                                                        {log.model_type}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center space-x-2">
+                                                                <div className="p-2 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-lg shadow-sm group-hover:shadow-md transition-all duration-300 flex-shrink-0">
+                                                                    {getModelIcon(null)}
+                                                                </div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="font-bold text-slate-500 dark:text-slate-400 italic text-sm truncate">
+                                                                        System Action
+                                                                    </div>
+                                                                    <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border bg-slate-100 text-slate-600 border-slate-200 shadow-sm mt-1 whitespace-nowrap">
+                                                                        No Model
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="py-4 px-4">
+                                                        <div className="max-w-[200px]">
+                                                            <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2 font-medium leading-relaxed" title={log.description || ''}>
                                                                 {log.description || 'No description available'}
                                                             </p>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="py-6 px-6">
-                                                        <div className="flex items-center space-x-3">
-                                                            <div className="p-2 bg-gradient-to-br from-purple-100 to-violet-100 dark:from-purple-900/30 dark:to-violet-900/30 rounded-lg shadow-sm group-hover:shadow-md transition-all duration-300">
-                                                                <Globe className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                    <TableCell className="py-4 px-4">
+                                                        <div className="flex items-center space-x-2">
+                                                            <div className="p-2 bg-gradient-to-br from-purple-100 to-violet-100 dark:from-purple-900/30 dark:to-violet-900/30 rounded-lg shadow-sm group-hover:shadow-md transition-all duration-300 flex-shrink-0">
+                                                                <Globe className="h-3 w-3 text-purple-600 dark:text-purple-400" />
                                                             </div>
-                                                            <span className="text-sm font-mono font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-md">
+                                                            <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-md truncate">
                                                                 {log.ip_address || 'Unknown'}
                                                             </span>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="py-6 px-6">
-                                                        <div className="flex items-center space-x-3">
-                                                            <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg shadow-sm group-hover:shadow-md transition-all duration-300">
-                                                                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                                    <TableCell className="py-4 px-4">
+                                                        <div className="flex items-center space-x-2">
+                                                            <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg shadow-sm group-hover:shadow-md transition-all duration-300 flex-shrink-0">
+                                                                <Clock className="h-3 w-3 text-amber-600 dark:text-amber-400" />
                                                             </div>
-                                                            <div>
-                                                                <div className="text-sm font-bold text-slate-900 dark:text-white">
+                                                            <div className="min-w-0">
+                                                                <div className="text-xs font-bold text-slate-900 dark:text-white whitespace-nowrap">
                                                                     {format(new Date(log.created_at), 'MMM dd, yyyy', {
                                                                         locale: enUS,
                                                                     })}
                                                                 </div>
-                                                                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
                                                                     {format(new Date(log.created_at), 'HH:mm:ss', {
                                                                         locale: enUS,
                                                                     })}
@@ -801,20 +787,19 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                                             </div>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="py-6 px-6 text-center">
+                                                    <TableCell className="py-4 px-4 text-center">
                                                         <Dialog>
                                                             <DialogTrigger asChild>
                                                                 <Button
                                                                     variant="ghost"
-                                                                    size="lg"
+                                                                    size="sm"
                                                                     onClick={() => setSelectedLog(log)}
-                                                                    className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-600 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 dark:hover:text-blue-400 transition-all duration-300 shadow-sm hover:shadow-md px-4 py-2 font-semibold"
+                                                                    className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-600 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 dark:hover:text-blue-400 transition-all duration-300 shadow-sm hover:shadow-md px-2 py-1 font-semibold h-8 w-8 p-0"
                                                                 >
-                                                                    <Eye className="h-5 w-5 mr-2" />
-                                                                    <span>View Details</span>
+                                                                    <Eye className="h-4 w-4" />
                                                                 </Button>
                                                             </DialogTrigger>
-                                                            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-2 border-slate-200 dark:border-slate-700 shadow-2xl">
+                                                            <DialogContent className="max-w-7xl min-w-[55vw] max-h-[95vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-2 border-slate-200 dark:border-slate-700 shadow-2xl">
                                                                 <DialogHeader className="pb-8 border-b border-slate-200 dark:border-slate-700">
                                                                     <DialogTitle className="text-3xl font-bold text-slate-900 dark:text-white flex items-center space-x-4">
                                                                         <div className="p-3 bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 rounded-xl shadow-lg animate-pulse">
@@ -834,7 +819,7 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                                                         {/* Primary Information */}
                                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                                             <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                                                                                <CardHeader className="pb-4 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-t-lg">
+                                                                                <CardHeader className="pb-4  rounded-t-lg">
                                                                                     <CardTitle className="text-xl font-bold text-blue-900 dark:text-blue-100 flex items-center space-x-3">
                                                                                         <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
                                                                                             <User className="h-6 w-6 text-white" />
@@ -869,7 +854,7 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                                                             </Card>
 
                                                                             <Card className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-900/20 dark:via-emerald-900/20 dark:to-teal-900/20 border-green-200 dark:border-green-800 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                                                                                <CardHeader className="pb-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-t-lg">
+                                                                                <CardHeader className="pb-4  rounded-t-lg">
                                                                                     <CardTitle className="text-xl font-bold text-green-900 dark:text-green-100 flex items-center space-x-3">
                                                                                         <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-md">
                                                                                             <Activity className="h-6 w-6 text-white" />
@@ -909,7 +894,7 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
 
                                                                         {/* Technical Details */}
                                                                         <Card className="bg-gradient-to-br from-purple-50 via-violet-50 to-indigo-50 dark:from-purple-900/20 dark:via-violet-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                                                                            <CardHeader className="pb-4 bg-gradient-to-r from-purple-500/10 to-violet-500/10 rounded-t-lg">
+                                                                            <CardHeader className="pb-4  rounded-t-lg">
                                                                                 <CardTitle className="text-xl font-bold text-purple-900 dark:text-purple-100 flex items-center space-x-3">
                                                                                     <div className="p-2 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg shadow-md">
                                                                                         <Settings className="h-6 w-6 text-white" />
@@ -918,7 +903,7 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                                                                 </CardTitle>
                                                                             </CardHeader>
                                                                             <CardContent>
-                                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                                                                     <div>
                                                                                         <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Model Type (Class)</Label>
                                                                                         <p className="text-sm font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded mt-1">
@@ -955,6 +940,18 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                                                                             {selectedLog.method || 'N/A'}
                                                                                         </p>
                                                                                     </div>
+                                                                                    <div>
+                                                                                        <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Session ID</Label>
+                                                                                        <p className="text-sm font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded mt-1 truncate">
+                                                                                            {selectedLog.session_id || 'N/A'}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                    <div className="col-span-2">
+                                                                                        <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">User Agent</Label>
+                                                                                        <p className="text-sm font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded mt-1 break-all">
+                                                                                            {selectedLog.user_agent || 'N/A'}
+                                                                                        </p>
+                                                                                    </div>
                                                                                 </div>
                                                                             </CardContent>
                                                                         </Card>
@@ -976,6 +973,25 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                                                             </Card>
                                                                         )}
 
+                                                                        {/* Request Data */}
+                                                                        {selectedLog.request_data && (
+                                                                            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
+                                                                                <CardHeader className="pb-3">
+                                                                                    <CardTitle className="text-lg font-semibold text-blue-900 dark:text-blue-100 flex items-center space-x-2">
+                                                                                        <Globe className="h-5 w-5" />
+                                                                                        <span>Request Information</span>
+                                                                                    </CardTitle>
+                                                                                </CardHeader>
+                                                                                <CardContent>
+                                                                                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                                                                                        <pre className="text-sm font-mono text-blue-800 dark:text-blue-200 overflow-auto max-h-60 whitespace-pre-wrap break-words">
+                                                                                            {JSON.stringify(selectedLog.request_data, null, 2)}
+                                                                                        </pre>
+                                                                                    </div>
+                                                                                </CardContent>
+                                                                            </Card>
+                                                                        )}
+
                                                                         {/* Data Changes */}
                                                                         {(selectedLog.old_values || selectedLog.new_values) && (
                                                                             <Card className="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-800/50 dark:to-gray-800/50 border-slate-200 dark:border-slate-700">
@@ -986,21 +1002,31 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                                                                     </CardTitle>
                                                                                 </CardHeader>
                                                                                 <CardContent>
-                                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                                                                                         {selectedLog.old_values && (
-                                                                                            <div>
-                                                                                                <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">Previous Values</Label>
-                                                                                                <pre className="text-xs bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-3 overflow-auto max-h-40">
-                                                                                                    {JSON.stringify(selectedLog.old_values, null, 2)}
-                                                                                                </pre>
+                                                                                            <div className="space-y-2">
+                                                                                                <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block flex items-center space-x-2">
+                                                                                                    <XCircle className="h-4 w-4 text-red-500" />
+                                                                                                    <span>Previous Values</span>
+                                                                                                </Label>
+                                                                                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                                                                                                    <pre className="text-sm font-mono text-red-800 dark:text-red-200 overflow-auto max-h-60 whitespace-pre-wrap break-words">
+                                                                                                        {JSON.stringify(selectedLog.old_values, null, 2)}
+                                                                                                    </pre>
+                                                                                                </div>
                                                                                             </div>
                                                                                         )}
                                                                                         {selectedLog.new_values && (
-                                                                                            <div>
-                                                                                                <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">New Values</Label>
-                                                                                                <pre className="text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded p-3 overflow-auto max-h-40">
-                                                                                                    {JSON.stringify(selectedLog.new_values, null, 2)}
-                                                                                                </pre>
+                                                                                            <div className="space-y-2">
+                                                                                                <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block flex items-center space-x-2">
+                                                                                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                                                                                    <span>New Values</span>
+                                                                                                </Label>
+                                                                                                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                                                                                                    <pre className="text-sm font-mono text-green-800 dark:text-green-200 overflow-auto max-h-60 whitespace-pre-wrap break-words">
+                                                                                                        {JSON.stringify(selectedLog.new_values, null, 2)}
+                                                                                                    </pre>
+                                                                                                </div>
                                                                                             </div>
                                                                                         )}
                                                                                     </div>
