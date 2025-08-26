@@ -3,6 +3,7 @@
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\CheckAppointmentReminders;
+use App\Http\Middleware\AuditMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             CheckAppointmentReminders::class, // Verificar recordatorios en cada request
+            AuditMiddleware::class, // Auditoría de todas las acciones
         ]);
 
         // Registrar middlewares de Spatie Laravel Permission

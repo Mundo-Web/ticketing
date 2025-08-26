@@ -1,4 +1,4 @@
-﻿import AppLayout from '@/layouts/app-layout';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type PageProps, type User as UserType } from '@/types';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
@@ -4888,7 +4888,7 @@ function UnassignedTicketRow({ ticket, index, technicals }: UnassignedTicketRowP
                                     </SelectItem>
                                 ))
                             ) : (
-                                <SelectItem value="" disabled>
+                                <SelectItem value="none" disabled>
                                     No technicians available
                                 </SelectItem>
                             )}

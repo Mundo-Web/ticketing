@@ -11,6 +11,7 @@ use App\Http\Controllers\TechnicalController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\NinjaOneController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\AuditLogController;
 use App\Models\Support;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -30,6 +31,16 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/notifications/api', [NotificationController::class, 'apiNotifications']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    
+    // Audit Logs routes (Super Admin only)
+    Route::prefix('audit-logs')->name('audit-logs.')->middleware('role:super-admin')->group(function () {
+        Route::get('/', [AuditLogController::class, 'index'])->name('index');
+        Route::get('/{auditLog}', [AuditLogController::class, 'show'])->name('show');
+        Route::get('/api/logs', [AuditLogController::class, 'api'])->name('api');
+        Route::get('/export/csv', [AuditLogController::class, 'export'])->name('export');
+        Route::get('/stats/dashboard', [AuditLogController::class, 'stats'])->name('stats');
+        Route::delete('/cleanup/old', [AuditLogController::class, 'cleanup'])->name('cleanup');
+    });
     
     // Debug route - quitar en producción
     Route::get('/debug-user', function() {

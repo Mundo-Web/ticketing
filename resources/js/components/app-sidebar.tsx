@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { SharedData, type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, FileText, Building, CheckCircle, XCircle, Laptop, Users, Shield, Calendar } from 'lucide-react';
+import { LayoutGrid, FileText, Building, CheckCircle, XCircle, Laptop, Users, Shield, Calendar, Activity } from 'lucide-react';
 import AppLogo from './app-logo';
 
 
@@ -123,6 +123,12 @@ export function AppSidebar() {
           isActive: route().current('ninjaone-alerts.*'),
         }
       ]
+    },
+    {
+      title: 'Audit Logs',
+      href: '/audit-logs',
+      icon: Activity,
+      isActive: route().current('audit-logs.*'),
     },
     /*
        title: 'Support',
