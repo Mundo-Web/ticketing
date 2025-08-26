@@ -88,8 +88,11 @@ class AuditMiddleware
         // Filtrar datos sensibles de la petición
         $requestData = $this->filterSensitiveData($request->all());
         
+        // Obtener el usuario autenticado
+        $userId = Auth::id();
+        
         AuditLog::create([
-            'user_id' => Auth::id(),
+            'user_id' => $userId,
             'action_type' => $actionType,
             'model_type' => null, // Se llenará por el trait Auditable para operaciones CRUD
             'model_id' => null,
@@ -121,10 +124,7 @@ class AuditMiddleware
         $routeName = $request->route()?->getName();
 
         // Acciones específicas de autenticación
-        if (str_contains($path, 'login') || $routeName === 'login') {
-            return 'login';
-        }
-        
+        // Nota: 'login' se maneja exclusivamente por LoginAuditListener
         if (str_contains($path, 'logout') || $routeName === 'logout') {
             return 'logout';
         }
@@ -350,6 +350,12 @@ class AuditMiddleware
     protected function shouldAuditRoute(Request $request): bool
     {
         $path = $request->path();
+        $routeName = $request->route()?->getName();
+        
+        // Excluir rutas de login ya que son manejadas por el event listener
+        if (str_contains($path, 'login') || $routeName === 'login') {
+            return false;
+        }
         
         foreach ($this->excludedRoutes as $excludedRoute) {
             if (str_contains($excludedRoute, '*')) {
@@ -378,8 +384,9 @@ class AuditMiddleware
         }
         
         // También auditar GET para rutas importantes (navegación principal)
+        // Nota: 'login' se excluye ya que es manejado por el LoginAuditListener
         $importantRoutes = [
-            'login', 'logout', 'dashboard',
+            'logout', 'dashboard',
             'tickets.index', 'tickets.show', 'tickets.create', 'tickets.edit',
             'buildings.index', 'buildings.show', 'buildings.create', 'buildings.edit',
             'technicals.index', 'technicals.show', 'technicals.create', 'technicals.edit',

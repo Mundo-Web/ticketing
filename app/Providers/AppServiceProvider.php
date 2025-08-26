@@ -3,6 +3,11 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
+use App\Listeners\LoginAuditListener;
+use App\Listeners\LogoutAuditListener;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,7 +24,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Las notificaciones de reagendamiento se manejan directamente 
-        // en el método reschedule() del modelo Appointment para evitar duplicaciones
+        // Limpiar todos los listeners existentes para Login y Logout
+        Event::forget(Login::class);
+        Event::forget(Logout::class);
+        
+        // Registrar solo nuestros listeners
+        Event::listen(Login::class, LoginAuditListener::class);
+        Event::listen(Logout::class, LogoutAuditListener::class);
     }
 }
