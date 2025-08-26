@@ -1054,8 +1054,16 @@ export default function AuditLogsIndex({ auditLogs, filters, filterData, stats }
                                 <CardContent className="p-4">
                                     <Pagination
                                         currentPage={auditLogs.current_page}
-                                        lastPage={auditLogs.last_page}
-                                        links={[]}
+                                        totalPages={auditLogs.last_page}
+                                        onPageChange={(page) => {
+                                            router.get(route('audit-logs.index'), {
+                                                ...filters,
+                                                page: page
+                                            }, {
+                                                preserveState: true,
+                                                preserveScroll: true
+                                            });
+                                        }}
                                     />
                                 </CardContent>
                             </Card>

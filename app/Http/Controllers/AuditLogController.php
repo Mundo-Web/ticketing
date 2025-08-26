@@ -45,7 +45,7 @@ class AuditLogController extends Controller
         // Aplicar filtros
         $this->applyFilters($query, $filters);
 
-        $perPage = $request->get('per_page', 25);
+        $perPage = $request->get('per_page', 20);
         $auditLogs = $query->paginate($perPage)->withQueryString();
 
         // Obtener datos para los filtros
@@ -92,7 +92,7 @@ class AuditLogController extends Controller
 
         $this->applyFilters($query, $filters);
 
-        $perPage = $request->get('per_page', 25);
+        $perPage = $request->get('per_page', 20);
         $auditLogs = $query->paginate($perPage);
 
         return response()->json($auditLogs);
