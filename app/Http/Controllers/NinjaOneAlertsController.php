@@ -74,29 +74,48 @@ class NinjaOneAlertsController extends Controller
     {
         $user = Auth::user();
         
-        // Get user's devices (owned and shared) - SAME LOGIC AS userDeviceAlerts
-        $userDeviceIds = collect();
+        // Check if user is super admin (can see all alerts)
+        $isSuperAdmin = $user->hasRole('super_admin') || 
+                       $user->email === 'superadmin@adk.com' || 
+                       $user->id === 1;
         
-        // Get tenant (either user is a tenant or has a tenant relationship)
-        $tenant = $user->tenant ?? $user;
-        
-        // Get devices owned by this tenant/user
-        if ($tenant && method_exists($tenant, 'devices')) {
-            $ownedDevices = $tenant->devices()->get();
-            $userDeviceIds = $userDeviceIds->merge($ownedDevices->pluck('id'));
-        }
-        
-        Log::info('NinjaOne Alerts Index - User device access', [
+        Log::info('NinjaOne Alerts Index - User access check', [
             'user_id' => $user->id,
             'user_email' => $user->email,
-            'tenant_id' => $tenant ? $tenant->id : null,
-            'device_ids' => $userDeviceIds->toArray(),
-            'total_devices' => $userDeviceIds->count()
+            'is_super_admin' => $isSuperAdmin,
+            'user_roles' => $user->roles ? $user->roles->pluck('name') : []
         ]);
         
-        // Filter alerts by user's devices ONLY
-        $alertsQuery = NinjaOneAlert::with(['device'])
-            ->whereIn('device_id', $userDeviceIds->unique()) // ONLY user's devices
+        if ($isSuperAdmin) {
+            // Super admin can see ALL alerts
+            $alertsQuery = NinjaOneAlert::with(['device']);
+            Log::info('Super admin viewing all alerts');
+        } else {
+            // Regular users - filter by their devices
+            $userDeviceIds = collect();
+            
+            // Get tenant (either user is a tenant or has a tenant relationship)
+            $tenant = $user->tenant ?? $user;
+            
+            // Get devices owned by this tenant/user
+            if ($tenant && method_exists($tenant, 'devices')) {
+                $ownedDevices = $tenant->devices()->get();
+                $userDeviceIds = $userDeviceIds->merge($ownedDevices->pluck('id'));
+            }
+            
+            Log::info('Regular user device access', [
+                'tenant_id' => $tenant ? $tenant->id : null,
+                'device_ids' => $userDeviceIds->toArray(),
+                'total_devices' => $userDeviceIds->count()
+            ]);
+            
+            // Filter alerts by user's devices ONLY
+            $alertsQuery = NinjaOneAlert::with(['device'])
+                ->whereIn('device_id', $userDeviceIds->unique()); // ONLY user's devices
+        }
+        
+        // Apply search and filter conditions
+        $alertsQuery = $alertsQuery
             ->when($request->search, function($query, $search) {
                 return $query->where(function($q) use ($search) {
                     $q->where('title', 'LIKE', "%{$search}%")

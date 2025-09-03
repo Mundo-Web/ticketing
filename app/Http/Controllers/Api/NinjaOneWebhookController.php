@@ -12,35 +12,42 @@ class NinjaOneWebhookController extends Controller
 {
     public function handle(Request $request)
     {
-        Log::info("=== NINJAONE WEBHOOK RECIBIDO ===", [
-            "timestamp" => now(),
+        $timestamp = now()->format('Y-m-d H:i:s');
+        
+        Log::info("=== NINJAONE WEBHOOK RECIBIDO [{$timestamp}] ===", [
+            "timestamp" => $timestamp,
             "method" => $request->method(),
+            "ip" => $request->ip(),
+            "user_agent" => $request->userAgent(),
             "headers" => $request->headers->all(),
             "body" => $request->all(),
             "raw_body" => $request->getContent()
         ]);
 
         try {
-            // NOTA: Validación de firma HMAC deshabilitada temporalmente
-            // debido a incompatibilidad con la configuración de NinjaOne
-            
             $payload = $request->all();
             
             if (empty($payload)) {
-                Log::warning("Webhook payload vacío");
+                Log::warning("❌ WEBHOOK: Payload vacío recibido");
                 return response()->json(["error" => "Empty payload"], 400);
             }
+
+            Log::info("🔄 WEBHOOK: Iniciando procesamiento de alerta...", [
+                'payload_keys' => array_keys($payload)
+            ]);
 
             // Procesar alerta
             $result = $this->handleAlertEvent($payload);
             
-            Log::info("Resultado del procesamiento:", $result);
+            Log::info("✅ WEBHOOK: Resultado del procesamiento:", $result);
             
             return response()->json($result, 200);
 
         } catch (\Exception $e) {
-            Log::error("Error en webhook NinjaOne: " . $e->getMessage(), [
-                "exception" => $e,
+            Log::error("❌ WEBHOOK: Error en procesamiento: " . $e->getMessage(), [
+                "exception" => $e->getMessage(),
+                "file" => $e->getFile(),
+                "line" => $e->getLine(),
                 "trace" => $e->getTraceAsString()
             ]);
             
@@ -112,19 +119,31 @@ class NinjaOneWebhookController extends Controller
             ];
         }
 
-        // Crear alerta en la base de datos - extraer datos del formato correcto
+        // Crear/actualizar alerta en la base de datos - extraer datos del formato correcto
         $alertData = $data["data"]["alert"] ?? $data; // NinjaOne format vs test format
         
-        $alert = NinjaOneAlert::create([
-            "ninjaone_alert_id" => $alertData["id"] ?? "alert_" . time() . "_" . $device->id,
-            "device_id" => $device->id,
-            "alert_type" => $alertData["type"] ?? $alertData["alert_type"] ?? "unknown",
-            "severity" => $alertData["severity"] ?? "warning", 
-            "title" => $alertData["title"] ?? ($alertData["message"] ?? "Alert from NinjaOne"),
-            "description" => $alertData["description"] ?? ($alertData["message"] ?? "Alert from NinjaOne device: " . $deviceName),
-            "raw_data" => $data, // Store the full original payload
-            "status" => "open"
+        $ninjaoneAlertId = $alertData["id"] ?? "webhook_alert_" . time() . "_" . $device->id;
+        
+        Log::info("🔄 Creando/actualizando alerta:", [
+            'ninjaone_alert_id' => $ninjaoneAlertId,
+            'device_id' => $device->id,
+            'title' => $alertData["title"] ?? ($alertData["message"] ?? "Alert from NinjaOne")
         ]);
+        
+        $alert = NinjaOneAlert::updateOrCreate(
+            [
+                'ninjaone_alert_id' => $ninjaoneAlertId,
+                'device_id' => $device->id,
+            ],
+            [
+                "alert_type" => $alertData["type"] ?? $alertData["alert_type"] ?? "unknown",
+                "severity" => $alertData["severity"] ?? "warning", 
+                "title" => $alertData["title"] ?? ($alertData["message"] ?? "Alert from NinjaOne"),
+                "description" => $alertData["description"] ?? ($alertData["message"] ?? "Alert from NinjaOne device: " . $deviceName),
+                "raw_data" => $data, // Store the full original payload
+                "status" => "open"
+            ]
+        );
 
         Log::info("✅ Alerta creada exitosamente:", [
             "alert_id" => $alert->id,
