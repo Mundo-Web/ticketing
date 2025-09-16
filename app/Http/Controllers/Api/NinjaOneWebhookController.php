@@ -152,11 +152,194 @@ class NinjaOneWebhookController extends Controller
             "description" => $alert->description
         ]);
 
+        // 🚀 NUEVO: Enviar notificaciones móviles automáticamente
+        $this->sendMobileNotifications($alert, $device);
+
         return [
             "status" => "success",
             "message" => "Alert processed successfully",
             "alert_id" => $alert->id,
             "device_id" => $device->id
         ];
+    }
+
+    /**
+     * Send mobile notifications for NinjaOne alert
+     */
+    private function sendMobileNotifications($alert, $device)
+    {
+        try {
+            Log::info("📱 Enviando notificaciones móviles para alerta:", [
+                'alert_id' => $alert->id,
+                'device_id' => $device->id,
+                'severity' => $alert->severity
+            ]);
+
+            // Obtener usuarios que deben recibir la notificación
+            $users = $this->getDeviceUsers($device);
+            
+            if ($users->isEmpty()) {
+                Log::warning("No se encontraron usuarios para el dispositivo", [
+                    'device_id' => $device->id
+                ]);
+                return;
+            }
+
+            // Crear notificación para cada usuario
+            foreach ($users as $user) {
+                $this->createMobileNotification($user, $alert, $device);
+            }
+
+            Log::info("✅ Notificaciones móviles enviadas", [
+                'alert_id' => $alert->id,
+                'users_count' => $users->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("❌ Error enviando notificaciones móviles:", [
+                'alert_id' => $alert->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get users that should receive notifications for this device
+     */
+    private function getDeviceUsers($device)
+    {
+        // Obtener usuarios relacionados con el dispositivo a través de tenants
+        $users = collect();
+
+        // Método 1: A través de tenants del dispositivo
+        if (method_exists($device, 'tenants')) {
+            $tenants = $device->tenants()->get();
+            foreach ($tenants as $tenant) {
+                if ($tenant->user) {
+                    $users->push($tenant->user);
+                }
+            }
+        }
+
+        // Método 2: Si no hay tenants, usar usuarios con rol member
+        if ($users->isEmpty()) {
+            $users = \App\Models\User::whereHas('roles', function($query) {
+                $query->where('name', 'member');
+            })->get();
+        }
+
+        return $users->unique('id');
+    }
+
+    /**
+     * Create mobile notification for user
+     */
+    private function createMobileNotification($user, $alert, $device)
+    {
+        try {
+            // Determinar el tipo de alerta y configurar colores/iconos
+            $config = $this->getAlertConfig($alert->severity, $alert->alert_type);
+
+            // Crear notificación en base de datos
+            $notification = $user->notifications()->create([
+                'id' => \Illuminate\Support\Str::uuid(),
+                'type' => 'App\\Notifications\\NinjaOneAlertNotification',
+                'data' => [
+                    'title' => "🚨 {$config['title']} - {$device->name}",
+                    'message' => $alert->title,
+                    'description' => $alert->description,
+                    'alert_id' => $alert->id,
+                    'device_id' => $device->id,
+                    'device_name' => $device->name,
+                    'severity' => $alert->severity,
+                    'alert_type' => $alert->alert_type,
+                    'icon' => $config['icon'],
+                    'color' => $config['color'],
+                    'action_url' => "/ninjaone-alerts/{$alert->id}",
+                    'created_at' => now()->toISOString()
+                ]
+            ]);
+
+            // Enviar push notification en tiempo real usando Pusher
+            $this->sendPushNotification($user->id, $notification);
+
+            Log::info("✅ Notificación móvil creada", [
+                'user_id' => $user->id,
+                'alert_id' => $alert->id,
+                'notification_id' => $notification->id
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("❌ Error creando notificación móvil", [
+                'user_id' => $user->id,
+                'alert_id' => $alert->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get alert configuration (colors, icons, titles)
+     */
+    private function getAlertConfig($severity, $alertType)
+    {
+        $configs = [
+            'critical' => [
+                'title' => 'ALERTA CRÍTICA',
+                'icon' => 'alert-triangle',
+                'color' => 'red'
+            ],
+            'warning' => [
+                'title' => 'Advertencia',
+                'icon' => 'alert-circle',
+                'color' => 'yellow'
+            ],
+            'info' => [
+                'title' => 'Información',
+                'icon' => 'info',
+                'color' => 'blue'
+            ]
+        ];
+
+        return $configs[$severity] ?? $configs['warning'];
+    }
+
+    /**
+     * Send push notification via Pusher
+     */
+    private function sendPushNotification($userId, $notification)
+    {
+        try {
+            $pusher = new \Pusher\Pusher(
+                config('broadcasting.connections.pusher.key'),
+                config('broadcasting.connections.pusher.secret'),
+                config('broadcasting.connections.pusher.app_id'),
+                config('broadcasting.connections.pusher.options')
+            );
+
+            $result = $pusher->trigger(
+                'notifications-public.' . $userId,
+                'notification.created',
+                [
+                    'notification' => $notification->data,
+                    'notification_id' => $notification->id,
+                    'user_id' => $userId,
+                    'timestamp' => now()->toISOString(),
+                    'type' => 'ninjaone_alert'
+                ]
+            );
+
+            Log::info("✅ Push notification enviada via Pusher", [
+                'user_id' => $userId,
+                'notification_id' => $notification->id,
+                'pusher_result' => $result
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("❌ Error enviando push notification", [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }

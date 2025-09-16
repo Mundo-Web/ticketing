@@ -199,15 +199,15 @@ class NinjaOneAlertsController extends Controller
         $ticket = Ticket::create([
             'title' => $request->title ?: $alert->title,
             'description' => $request->description ?: $this->generateTicketDescription($alert),
-            'priority' => $request->priority,
+            'category' => $this->mapSeverityToCategory($alert->severity),
             'status' => 'open',
-            'tenant_id' => Auth::user()->id,
+            'user_id' => Auth::user()->id,
             'device_id' => $alert->device_id,
-            'source' => 'ninjaone_alert',
-            'metadata' => [
+            'attachments' => json_encode([
                 'ninjaone_alert_id' => $alert->id,
-                'ninjaone_alert_data' => $alert->metadata
-            ]
+                'ninjaone_alert_data' => $alert->metadata,
+                'created_via' => 'web_interface'
+            ])
         ]);
 
         // Link alert to ticket
@@ -228,7 +228,14 @@ class NinjaOneAlertsController extends Controller
         $description .= "**Device:** {$deviceName}\n";
         $description .= "**Alert Type:** {$alert->alert_type}\n";
         $description .= "**Severity:** " . ucfirst($alert->severity) . "\n";
-        $description .= "**Created:** {$alert->ninjaone_created_at->format('Y-m-d H:i:s')}\n\n";
+        
+        // Handle null ninjaone_created_at
+        if ($alert->ninjaone_created_at) {
+            $description .= "**Created:** {$alert->ninjaone_created_at->format('Y-m-d H:i:s')}\n\n";
+        } else {
+            $description .= "**Created:** {$alert->created_at->format('Y-m-d H:i:s')}\n\n";
+        }
+        
         $description .= "**Description:**\n{$alert->description}\n\n";
         
         if ($alert->metadata) {
@@ -241,6 +248,21 @@ class NinjaOneAlertsController extends Controller
         }
 
         return $description;
+    }
+
+    /**
+     * Map alert severity to ticket category
+     */
+    private function mapSeverityToCategory(string $severity): string
+    {
+        $mapping = [
+            'critical' => 'Hardware',
+            'warning' => 'System',
+            'info' => 'Maintenance',
+            'low' => 'General'
+        ];
+
+        return $mapping[$severity] ?? 'General';
     }
 
     /**
@@ -261,5 +283,303 @@ class NinjaOneAlertsController extends Controller
             ->count();
 
         return response()->json(['count' => $count]);
+    }
+
+    /**
+     * Get NinjaOne alerts for mobile app
+     */
+    public function mobileAlerts(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado',
+                    'alerts' => []
+                ], 401);
+            }
+
+            // Verificar rol de member para móvil
+            if (!$user->hasRole('member')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Acceso denegado. Solo para members.',
+                    'alerts' => []
+                ], 403);
+            }
+
+            // Obtener tenant del usuario
+            $tenant = $user->tenant;
+            if (!$tenant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Perfil de tenant no encontrado',
+                    'alerts' => []
+                ], 404);
+            }
+
+            // Obtener dispositivos del tenant
+            $deviceIds = collect();
+            if (method_exists($tenant, 'devices')) {
+                $devices = $tenant->devices()->get();
+                $deviceIds = $devices->pluck('id');
+            }
+
+            if ($deviceIds->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'alerts' => [],
+                    'total_count' => 0,
+                    'critical_count' => 0,
+                    'warning_count' => 0
+                ]);
+            }
+
+            // Obtener alertas activas de los dispositivos del usuario
+            $alertsQuery = NinjaOneAlert::with(['device'])
+                ->whereIn('device_id', $deviceIds)
+                ->whereIn('status', ['open', 'acknowledged']) // Solo alertas activas
+                ->orderBy('severity', 'desc') // Críticas primero
+                ->orderBy('created_at', 'desc');
+
+            // Aplicar filtros si se proporcionan
+            if ($request->has('severity')) {
+                $alertsQuery->where('severity', $request->severity);
+            }
+
+            if ($request->has('status')) {
+                $alertsQuery->where('status', $request->status);
+            }
+
+            $alerts = $alertsQuery->limit(50)->get();
+
+            // Transformar para móvil
+            $transformedAlerts = $alerts->map(function($alert) {
+                return [
+                    'id' => $alert->id,
+                    'title' => $alert->title,
+                    'description' => $alert->description,
+                    'severity' => $alert->severity,
+                    'status' => $alert->status,
+                    'alert_type' => $alert->alert_type,
+                    'device' => [
+                        'id' => $alert->device->id,
+                        'name' => $alert->device->name,
+                        'ninjaone_device_id' => $alert->device->ninjaone_device_id
+                    ],
+                    'created_at' => $alert->created_at->toISOString(),
+                    'can_create_ticket' => !$alert->ticket_created,
+                    'can_acknowledge' => $alert->status === 'open'
+                ];
+            });
+
+            // Contar por severidad
+            $criticalCount = $alerts->where('severity', 'critical')->count();
+            $warningCount = $alerts->where('severity', 'warning')->count();
+
+            Log::info('Mobile NinjaOne alerts fetched', [
+                'user_id' => $user->id,
+                'tenant_id' => $tenant->id,
+                'device_count' => $deviceIds->count(),
+                'alerts_count' => $alerts->count(),
+                'critical_count' => $criticalCount,
+                'warning_count' => $warningCount
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'alerts' => $transformedAlerts,
+                'total_count' => $alerts->count(),
+                'critical_count' => $criticalCount,
+                'warning_count' => $warningCount,
+                'device_count' => $deviceIds->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching mobile NinjaOne alerts', [
+                'user_id' => $request->user()?->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener alertas',
+                'alerts' => []
+            ], 500);
+        }
+    }
+
+    /**
+     * Acknowledge alert via mobile API
+     */
+    public function mobileAcknowledge(Request $request, NinjaOneAlert $alert)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user->hasRole('member')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Acceso denegado'
+                ], 403);
+            }
+
+            // Verificar que el dispositivo pertenece al tenant del usuario
+            $tenant = $user->tenant;
+            if (!$tenant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Perfil de tenant no encontrado'
+                ], 404);
+            }
+
+            $deviceIds = collect();
+            if (method_exists($tenant, 'devices')) {
+                $devices = $tenant->devices()->get();
+                $deviceIds = $devices->pluck('id');
+            }
+
+            if (!$deviceIds->contains($alert->device_id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos para esta alerta'
+                ], 403);
+            }
+
+            if ($alert->status === 'open') {
+                $alert->update([
+                    'status' => 'acknowledged',
+                    'acknowledged_at' => now(),
+                ]);
+
+                Log::info('Mobile alert acknowledged', [
+                    'alert_id' => $alert->id,
+                    'user_id' => $user->id
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Alerta confirmada exitosamente'
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta alerta no puede ser confirmada'
+            ], 400);
+
+        } catch (\Exception $e) {
+            Log::error('Error acknowledging mobile alert', [
+                'alert_id' => $alert->id,
+                'user_id' => $request->user()?->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al confirmar alerta'
+            ], 500);
+        }
+    }
+
+    /**
+     * Create ticket from alert via mobile API
+     */
+    public function mobileCreateTicket(Request $request, NinjaOneAlert $alert)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user->hasRole('member')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Acceso denegado'
+                ], 403);
+            }
+
+            // Verificar que el dispositivo pertenece al tenant del usuario
+            $tenant = $user->tenant;
+            if (!$tenant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Perfil de tenant no encontrado'
+                ], 404);
+            }
+
+            $deviceIds = collect();
+            if (method_exists($tenant, 'devices')) {
+                $devices = $tenant->devices()->get();
+                $deviceIds = $devices->pluck('id');
+            }
+
+            if (!$deviceIds->contains($alert->device_id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos para esta alerta'
+                ], 403);
+            }
+
+            // Check if ticket already exists
+            if ($alert->ticket_created) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya existe un ticket para esta alerta'
+                ], 400);
+            }
+
+            $request->validate([
+                'title' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'priority' => 'nullable|in:low,normal,high,urgent'
+            ]);
+
+        // Create ticket
+        $ticket = Ticket::create([
+            'title' => $request->title ?: $alert->title,
+            'description' => $request->description ?: $this->generateTicketDescription($alert),
+            'category' => $this->mapSeverityToCategory($alert->severity),
+            'status' => 'open',
+            'user_id' => $user->id,
+            'device_id' => $alert->device_id,
+            'attachments' => json_encode([
+                'ninjaone_alert_id' => $alert->id,
+                'ninjaone_alert_data' => $alert->metadata,
+                'created_via' => 'mobile_app'
+            ])
+        ]);            // Link alert to ticket
+            $alert->update(['ticket_id' => $ticket->id]);
+
+            Log::info('Mobile ticket created from alert', [
+                'alert_id' => $alert->id,
+                'ticket_id' => $ticket->id,
+                'user_id' => $user->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ticket creado exitosamente',
+                'ticket_id' => $ticket->id,
+                'ticket' => [
+                    'id' => $ticket->id,
+                    'title' => $ticket->title,
+                    'priority' => $ticket->priority,
+                    'status' => $ticket->status
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error creating mobile ticket from alert', [
+                'alert_id' => $alert->id,
+                'user_id' => $request->user()?->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear ticket'
+            ], 500);
+        }
     }
 }

@@ -168,6 +168,13 @@ Route::middleware(['web', 'auth'])->prefix('ninjaone')->group(function () {
     Route::post('/devices/refresh', [App\Http\Controllers\NinjaOneDevicesController::class, 'refresh']);
 });
 
+// NinjaOne Mobile API routes (for mobile app with Sanctum auth)
+Route::middleware(['auth:sanctum'])->prefix('ninjaone')->group(function () {
+    Route::get('/mobile-alerts', [\App\Http\Controllers\NinjaOneAlertsController::class, 'mobileAlerts']);
+    Route::post('/alerts/{alert}/acknowledge', [\App\Http\Controllers\NinjaOneAlertsController::class, 'mobileAcknowledge']);
+    Route::post('/alerts/{alert}/create-ticket', [\App\Http\Controllers\NinjaOneAlertsController::class, 'mobileCreateTicket']);
+});
+
 // NinjaOne Demo API routes (public for demonstration)
 Route::prefix('ninjaone')->group(function () {
     Route::get('/test-connection', [App\Http\Controllers\NinjaOneDevicesController::class, 'testConnection']);
