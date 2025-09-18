@@ -838,4 +838,17 @@ class TenantController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Generate unique ticket code
+     */
+    private function generateTicketCode()
+    {
+        do {
+            // Generate code format: TCK-YYYYMMDD-XXXXX
+            $code = 'TCK-' . date('Ymd') . '-' . str_pad(mt_rand(1, 99999), 5, '0', STR_PAD_LEFT);
+        } while (\App\Models\Ticket::where('code', $code)->exists());
+        
+        return $code;
+    }
 }
