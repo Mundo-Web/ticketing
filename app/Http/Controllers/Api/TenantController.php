@@ -147,13 +147,13 @@ class TenantController extends Controller
             'model',
             'system',
             'name_device',
-            'owner' => function($query) {
+            'owner' => function ($query) {
                 $query->select('tenants.id', 'tenants.name', 'tenants.email');
             }
         ])->get();
 
         return response()->json([
-            'own_devices' => $ownDevices->map(function($device) {
+            'own_devices' => $ownDevices->map(function ($device) {
                 return [
                     'id' => $device->id,
                     'name' => $device->name,
@@ -171,7 +171,7 @@ class TenantController extends Controller
                     ] : null,
                 ];
             }),
-            'shared_devices' => $sharedDevices->map(function($device) {
+            'shared_devices' => $sharedDevices->map(function ($device) {
                 return [
                     'id' => $device->id,
                     'name' => $device->name,
@@ -228,7 +228,7 @@ class TenantController extends Controller
         $tickets = $ticketsQuery->orderBy('created_at', 'desc')->get();
 
         return response()->json([
-            'tickets' => $tickets->map(function($ticket) {
+            'tickets' => $tickets->map(function ($ticket) {
                 return [
                     'id' => $ticket->id,
                     'title' => $ticket->title,
@@ -272,7 +272,7 @@ class TenantController extends Controller
 
         $tenant->load([
             'apartment.building.owner',
-            'apartment.tenants' => function($query) use ($tenant) {
+            'apartment.tenants' => function ($query) use ($tenant) {
                 $query->where('id', '!=', $tenant->id);
             }
         ]);
@@ -287,7 +287,7 @@ class TenantController extends Controller
                 'name' => $tenant->apartment->name,
                 'ubicacion' => $tenant->apartment->ubicacion,
                 'status' => $tenant->apartment->status,
-                'other_tenants' => $tenant->apartment->tenants->map(function($t) {
+                'other_tenants' => $tenant->apartment->tenants->map(function ($t) {
                     return [
                         'id' => $t->id,
                         'name' => $t->name,
@@ -360,7 +360,7 @@ class TenantController extends Controller
             ->get();
 
         return response()->json([
-            'doormen' => $doormen->map(function($doorman) {
+            'doormen' => $doormen->map(function ($doorman) {
                 return [
                     'id' => $doorman->id,
                     'name' => $doorman->name,
@@ -425,7 +425,7 @@ class TenantController extends Controller
 
         // Verify device belongs to tenant
         $deviceBelongsToTenant = $tenant->devices()->where('devices.id', $validated['device_id'])->exists() ||
-                                $tenant->sharedDevices()->where('devices.id', $validated['device_id'])->exists();
+            $tenant->sharedDevices()->where('devices.id', $validated['device_id'])->exists();
 
         if (!$deviceBelongsToTenant) {
             return response()->json(['error' => 'Device not found or does not belong to tenant'], 403);
@@ -438,21 +438,22 @@ class TenantController extends Controller
                 $originalName = $file->getClientOriginalName();
                 $extension = $file->getClientOriginalExtension();
                 $fileName = uniqid() . '_' . time() . '.' . $extension;
-                
+
                 // Store file in public/storage/tickets (SAME FOLDER AS WEB)
                 $path = $file->storeAs('tickets', $fileName, 'public');
-                
+
                 $attachments[] = [
                     'original_name' => $originalName,
-                    'stored_name' => $fileName,
-                    'path' => $path,
-                    'url' => asset('storage/' . $path),
+                    'file_name'  => $fileName,
+                    'file_path' => $path,
+
                     'mime_type' => $file->getMimeType(),
-                    'size' => $file->getSize(),
+                    'file_size' => $file->getSize(),
+                    'uploaded_at' => now()->toISOString(),
                 ];
             }
         }
-        
+
         // Create the ticket with attachments
         $ticket = \App\Models\Ticket::create([
             'user_id' => $user->id,
@@ -503,11 +504,11 @@ class TenantController extends Controller
         // Buscar el ticket que pertenece al usuario autenticado
         $ticket = \App\Models\Ticket::with([
             'device.brand',
-            'device.model', 
+            'device.model',
             'device.system',
             'device.name_device',
             'technical',
-            'histories' => function($query) {
+            'histories' => function ($query) {
                 $query->orderBy('created_at', 'desc');
             },
             'histories.technical'
@@ -543,7 +544,7 @@ class TenantController extends Controller
                     'email' => $ticket->technical->email,
                     'phone' => $ticket->technical->phone,
                 ] : null,
-                'histories' => $ticket->histories->map(function($history) {
+                'histories' => $ticket->histories->map(function ($history) {
                     return [
                         'id' => $history->id,
                         'action' => $history->action,
@@ -591,23 +592,22 @@ class TenantController extends Controller
     public function resetPasswordRequest(Request $request)
     {
         $user = $request->user();
-        
+
         // Generate temporary password using user's email
         $temporaryPassword = $user->email;
-        
+
         try {
             // Update user's password
             $user->update([
                 'password' => Hash::make($temporaryPassword)
             ]);
-            
+
             // Send email notification
             $user->notify(new \App\Notifications\PasswordResetNotification($temporaryPassword));
-            
+
             return response()->json([
                 'message' => 'Password has been reset. Check your email for the temporary password.'
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to reset password'
@@ -634,7 +634,7 @@ class TenantController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching tenants: ' . $e->getMessage());
-            
+
             return response()->json([
                 'error' => 'Error fetching tenants'
             ], 500);
@@ -648,7 +648,7 @@ class TenantController extends Controller
     {
         try {
             $user = $request->user();
-            
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -675,9 +675,9 @@ class TenantController extends Controller
                 ->get();
 
             // Transformar para la app móvil
-            $transformedNotifications = $notifications->map(function($notification) {
+            $transformedNotifications = $notifications->map(function ($notification) {
                 $data = $notification->data;
-                
+
                 return [
                     'id' => $notification->id,
                     'type' => $notification->type,
@@ -710,13 +710,12 @@ class TenantController extends Controller
                 'unread_count' => $unreadCount,
                 'total_count' => $notifications->count()
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error fetching mobile notifications', [
                 'error' => $e->getMessage(),
                 'user_id' => $request->user()?->id
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener notificaciones',
@@ -733,7 +732,7 @@ class TenantController extends Controller
     {
         try {
             $user = $request->user();
-            
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -751,7 +750,7 @@ class TenantController extends Controller
 
             // Buscar la notificación del usuario
             $notification = $user->notifications()->where('id', $notificationId)->first();
-            
+
             if (!$notification) {
                 return response()->json([
                     'success' => false,
@@ -762,7 +761,7 @@ class TenantController extends Controller
             // Marcar como leída si no lo está ya
             if (is_null($notification->read_at)) {
                 $notification->markAsRead();
-                
+
                 Log::info('Mobile notification marked as read', [
                     'user_id' => $user->id,
                     'notification_id' => $notificationId
@@ -773,14 +772,13 @@ class TenantController extends Controller
                 'success' => true,
                 'message' => 'Notificación marcada como leída'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error marking mobile notification as read', [
                 'error' => $e->getMessage(),
                 'user_id' => $request->user()?->id,
                 'notification_id' => $notificationId
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al marcar notificación como leída'
@@ -795,7 +793,7 @@ class TenantController extends Controller
     {
         try {
             $user = $request->user();
-            
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -825,13 +823,12 @@ class TenantController extends Controller
                 'message' => 'Todas las notificaciones marcadas como leídas',
                 'marked_count' => $unreadCount
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error marking all mobile notifications as read', [
                 'error' => $e->getMessage(),
                 'user_id' => $request->user()?->id
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al marcar todas las notificaciones como leídas'
@@ -848,7 +845,7 @@ class TenantController extends Controller
             // Generate code format: TCK-YYYYMMDD-XXXXX
             $code = 'TCK-' . date('Ymd') . '-' . str_pad(mt_rand(1, 99999), 5, '0', STR_PAD_LEFT);
         } while (\App\Models\Ticket::where('code', $code)->exists());
-        
+
         return $code;
     }
 }
