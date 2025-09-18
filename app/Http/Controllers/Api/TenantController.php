@@ -431,7 +431,29 @@ class TenantController extends Controller
             return response()->json(['error' => 'Device not found or does not belong to tenant'], 403);
         }
 
-        // Create the ticket
+        // Handle file attachments - SAME AS WEB VERSION
+        $attachments = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $originalName = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension();
+                $fileName = uniqid() . '_' . time() . '.' . $extension;
+                
+                // Store file in public/storage/tickets (SAME FOLDER AS WEB)
+                $path = $file->storeAs('tickets', $fileName, 'public');
+                
+                $attachments[] = [
+                    'original_name' => $originalName,
+                    'stored_name' => $fileName,
+                    'path' => $path,
+                    'url' => asset('storage/' . $path),
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                ];
+            }
+        }
+        
+        // Create the ticket with attachments
         $ticket = \App\Models\Ticket::create([
             'user_id' => $user->id,
             'device_id' => $validated['device_id'],
@@ -439,36 +461,14 @@ class TenantController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'],
             'status' => 'open',
-            'code' => $this->generateTicketCode()
+            'code' => $this->generateTicketCode(),
+            'attachments' => $attachments
         ]);
-
-        // Process attachments if any
-        $attachmentUrls = [];
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $index => $file) {
-                $fileName = time() . '_' . $index . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('ticket_attachments', $fileName, 'public');
-                $attachmentUrls[] = [
-                    'filename' => $file->getClientOriginalName(),
-                    'path' => $filePath,
-                    'url' => asset('storage/' . $filePath),
-                    'mime_type' => $file->getMimeType(),
-                    'size' => $file->getSize()
-                ];
-            }
-            
-            // Store attachments info in ticket metadata
-            if (!empty($attachmentUrls)) {
-                $ticket->update([
-                    'attachments' => json_encode($attachmentUrls)
-                ]);
-            }
-        }
 
         // Create history entry
         $ticket->histories()->create([
             'action' => 'created',
-            'description' => 'Ticket created by tenant via mobile app' . (!empty($attachmentUrls) ? ' with ' . count($attachmentUrls) . ' attachment(s)' : ''),
+            'description' => 'Ticket created by tenant via mobile app' . (!empty($attachments) ? ' with ' . count($attachments) . ' attachment(s)' : ''),
             'user_id' => $user->id,
             'user_name' => $user->name,
         ]);
@@ -482,9 +482,9 @@ class TenantController extends Controller
                 'status' => $ticket->status,
                 'priority' => 'medium', // Default
                 'created_at' => $ticket->created_at,
-                'attachments' => $attachmentUrls
+                'attachments' => $attachments
             ],
-            'message' => 'Ticket created successfully' . (!empty($attachmentUrls) ? ' with attachments' : '')
+            'message' => 'Ticket created successfully' . (!empty($attachments) ? ' with attachments' : '')
         ], 201);
     }
 
