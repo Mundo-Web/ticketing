@@ -164,6 +164,11 @@ class TenantController extends Controller
                     'system' => $device->system?->name,
                     'device_type' => $device->name_device?->name,
                     'icon_id' => $device->icon_id,
+                    'name_device' => $device->name_device ? [
+                        'id' => $device->name_device->id,
+                        'name' => $device->name_device->name,
+                        'status' => $device->name_device->status
+                    ] : null,
                 ];
             }),
             'shared_devices' => $sharedDevices->map(function($device) {
@@ -177,6 +182,11 @@ class TenantController extends Controller
                     'system' => $device->system?->name,
                     'device_type' => $device->name_device?->name,
                     'icon_id' => $device->icon_id,
+                    'name_device' => $device->name_device ? [
+                        'id' => $device->name_device->id,
+                        'name' => $device->name_device->name,
+                        'status' => $device->name_device->status
+                    ] : null,
                     'owner' => $device->owner->first() ? [
                         'id' => $device->owner->first()->id,
                         'name' => $device->owner->first()->name,
@@ -396,14 +406,6 @@ class TenantController extends Controller
      */
     public function createTicket(Request $request)
     {
-        $request->validate([
-            'device_id' => 'required|exists:devices,id',
-            'category' => 'required|string',
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'priority' => 'nullable|string|in:low,medium,high,urgent',
-        ]);
-
         $user = $request->user();
         $tenant = $user->tenant;
 
@@ -411,31 +413,64 @@ class TenantController extends Controller
             return response()->json(['error' => 'Tenant profile not found'], 404);
         }
 
-        // Verificar que el device pertenece al tenant o está compartido con él
-        $device = $tenant->devices()->find($request->device_id) ?: 
-                  $tenant->sharedDevices()->find($request->device_id);
-
-        if (!$device) {
-            return response()->json([
-                'error' => 'Device not found or not accessible'
-            ], 403);
-        }
-
-        $ticket = \App\Models\Ticket::create([
-            'user_id' => $user->id,
-            'device_id' => $request->device_id,
-            'category' => $request->category,
-            'title' => $request->title,
-            'description' => $request->description,
-            'priority' => $request->priority ?? 'medium',
-            'status' => 'open',
+        $validated = $request->validate([
+            'device_id' => 'required|integer|exists:devices,id',
+            'category' => 'required|string|max:255',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'priority' => 'sometimes|string|in:low,medium,high,urgent',
+            'attachments' => 'sometimes|array|max:5',
+            'attachments.*' => 'file|mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv|max:20480' // 20MB max
         ]);
 
-        // Agregar entrada al historial
+        // Verify device belongs to tenant
+        $deviceBelongsToTenant = $tenant->devices()->where('devices.id', $validated['device_id'])->exists() ||
+                                $tenant->sharedDevices()->where('devices.id', $validated['device_id'])->exists();
+
+        if (!$deviceBelongsToTenant) {
+            return response()->json(['error' => 'Device not found or does not belong to tenant'], 403);
+        }
+
+        // Create the ticket
+        $ticket = \App\Models\Ticket::create([
+            'user_id' => $user->id,
+            'device_id' => $validated['device_id'],
+            'category' => $validated['category'],
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'status' => 'open',
+            'code' => $this->generateTicketCode()
+        ]);
+
+        // Process attachments if any
+        $attachmentUrls = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $index => $file) {
+                $fileName = time() . '_' . $index . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('ticket_attachments', $fileName, 'public');
+                $attachmentUrls[] = [
+                    'filename' => $file->getClientOriginalName(),
+                    'path' => $filePath,
+                    'url' => asset('storage/' . $filePath),
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize()
+                ];
+            }
+            
+            // Store attachments info in ticket metadata
+            if (!empty($attachmentUrls)) {
+                $ticket->update([
+                    'attachments' => json_encode($attachmentUrls)
+                ]);
+            }
+        }
+
+        // Create history entry
         $ticket->histories()->create([
             'action' => 'created',
-            'description' => "Ticket created by {$tenant->name}",
-            'user_name' => $tenant->name,
+            'description' => 'Ticket created by tenant via mobile app' . (!empty($attachmentUrls) ? ' with ' . count($attachmentUrls) . ' attachment(s)' : ''),
+            'user_id' => $user->id,
+            'user_name' => $user->name,
         ]);
 
         return response()->json([
@@ -445,10 +480,11 @@ class TenantController extends Controller
                 'description' => $ticket->description,
                 'category' => $ticket->category,
                 'status' => $ticket->status,
-                'priority' => $ticket->priority,
+                'priority' => 'medium', // Default
                 'created_at' => $ticket->created_at,
+                'attachments' => $attachmentUrls
             ],
-            'message' => 'Ticket created successfully'
+            'message' => 'Ticket created successfully' . (!empty($attachmentUrls) ? ' with attachments' : '')
         ], 201);
     }
 
@@ -550,35 +586,38 @@ class TenantController extends Controller
     }
 
     /**
-     * Request password reset (for authenticated users)
+     * Reset password request - generates temporary password
      */
     public function resetPasswordRequest(Request $request)
     {
         $user = $request->user();
-
-        // Generar nueva contraseña temporal (su email)
-        $tempPassword = $user->email;
-
-        // Actualizar contraseña en base de datos
-        $user->update([
-            'password' => Hash::make($tempPassword)
-        ]);
-
-        // Enviar email de notificación
+        
+        // Generate temporary password using user's email
+        $temporaryPassword = $user->email;
+        
         try {
-            Mail::to($user->email)->send(new \App\Mail\PasswordResetNotification($user, $tempPassword));
+            // Update user's password
+            $user->update([
+                'password' => Hash::make($temporaryPassword)
+            ]);
+            
+            // Send email notification
+            $user->notify(new \App\Notifications\PasswordResetNotification($temporaryPassword));
             
             return response()->json([
                 'message' => 'Password has been reset. Check your email for the temporary password.'
             ]);
-        } catch (\Exception $e) {
-            Log::error('Error sending password reset email: ' . $e->getMessage());
             
+        } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Password has been reset but there was an error sending the email notification.'
-            ]);
+                'error' => 'Failed to reset password'
+            ], 500);
         }
     }
+
+
+
+
 
     /**
      * Get all tenants for admin/technical to create tickets
