@@ -6,8 +6,20 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { initializeTheme } from './hooks/use-appearance';
 import { Toaster } from "@/components/ui/sonner"
-import { setupCSRFAutoRefresh, setupCSRFErrorHandler } from './utils/csrf';
+import { setupGlobalCSRFHandling } from './utils/csrf-helper';
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+// Configurar token CSRF global
+const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+if (token) {
+    // Para Axios si está disponible
+    if ((window as any).axios) {
+        (window as any).axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+    }
+    
+    // Para fetch requests
+    (window as any).csrfToken = token;
+}
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
@@ -26,5 +38,4 @@ createInertiaApp({
 initializeTheme();
 
 // Configurar manejo automático de CSRF tokens
-// setupCSRFAutoRefresh();
-// setupCSRFErrorHandler();
+setupGlobalCSRFHandling();

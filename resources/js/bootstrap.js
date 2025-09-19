@@ -5,6 +5,13 @@ console.log('🔧 [Bootstrap] Starting Echo initialization...');
 console.log('🔧 [Bootstrap] Pusher available:', !!Pusher);
 console.log('🔧 [Bootstrap] Echo available:', !!Echo);
 
+// Configurar token CSRF para Axios si está disponible
+const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+if (token && window.axios) {
+    window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+    console.log('🔧 [Bootstrap] CSRF token configured for axios');
+}
+
 window.Pusher = Pusher;
 
 // Enable Pusher logging for debugging
