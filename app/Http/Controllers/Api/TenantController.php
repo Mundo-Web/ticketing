@@ -495,6 +495,180 @@ class TenantController extends Controller
     }
 
     /**
+     * Create a new ticket for Android with base64 attachments
+     */
+    public function createTicketAndroid(Request $request)
+    {
+        $user = $request->user();
+        $tenant = $user->tenant;
+
+        if (!$tenant) {
+            return response()->json(['error' => 'Tenant profile not found'], 404);
+        }
+
+        $validated = $request->validate([
+            'device_id' => 'required|integer|exists:devices,id',
+            'category' => 'required|string|max:255',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'priority' => 'sometimes|string|in:low,medium,high,urgent',
+            'attachments_base64' => 'sometimes|array|max:5',
+            'attachments_base64.*.name' => 'required_with:attachments_base64|string|max:255',
+            'attachments_base64.*.type' => 'required_with:attachments_base64|string|in:image/jpeg,image/png,image/jpg,image/gif,image/webp,video/mp4,video/mov,video/avi,video/wmv',
+            'attachments_base64.*.data' => 'required_with:attachments_base64|string',
+            'attachments_base64.*.size' => 'required_with:attachments_base64|integer|max:20971520' // 20MB max
+        ]);
+
+        // Verify device belongs to tenant
+        $deviceBelongsToTenant = $tenant->devices()->where('devices.id', $validated['device_id'])->exists() ||
+            $tenant->sharedDevices()->where('devices.id', $validated['device_id'])->exists();
+
+        if (!$deviceBelongsToTenant) {
+            return response()->json(['error' => 'Device not found or does not belong to tenant'], 403);
+        }
+
+        // Handle base64 attachments for Android
+        $attachments = [];
+        if (!empty($validated['attachments_base64'])) {
+            foreach ($validated['attachments_base64'] as $attachment) {
+                try {
+                    // Validate base64 data format
+                    if (!preg_match('/^data:([a-zA-Z0-9][a-zA-Z0-9\/+]*);base64,(.+)$/', $attachment['data'], $matches)) {
+                        return response()->json(['error' => 'Invalid base64 format for attachment: ' . $attachment['name']], 400);
+                    }
+
+                    $mimeType = $matches[1];
+                    $base64Data = $matches[2];
+
+                    // Verify mime type matches the provided type
+                    if ($mimeType !== $attachment['type']) {
+                        return response()->json(['error' => 'Mime type mismatch for attachment: ' . $attachment['name']], 400);
+                    }
+
+                    // Decode base64
+                    $fileData = base64_decode($base64Data);
+                    if ($fileData === false) {
+                        return response()->json(['error' => 'Failed to decode base64 for attachment: ' . $attachment['name']], 400);
+                    }
+
+                    // Verify file size
+                    if (strlen($fileData) !== $attachment['size']) {
+                        return response()->json(['error' => 'File size mismatch for attachment: ' . $attachment['name']], 400);
+                    }
+
+                    // Generate unique filename
+                    $extension = pathinfo($attachment['name'], PATHINFO_EXTENSION);
+                    if (empty($extension)) {
+                        // Determine extension from mime type
+                        $extensionMap = [
+                            'image/jpeg' => 'jpg',
+                            'image/png' => 'png',
+                            'image/jpg' => 'jpg',
+                            'image/gif' => 'gif',
+                            'image/webp' => 'webp',
+                            'video/mp4' => 'mp4',
+                            'video/mov' => 'mov',
+                            'video/avi' => 'avi',
+                            'video/wmv' => 'wmv'
+                        ];
+                        $extension = $extensionMap[$mimeType] ?? 'bin';
+                    }
+
+                    $fileName = uniqid() . '_' . time() . '.' . $extension;
+                    $filePath = 'tickets/' . $fileName;
+
+                    // Store file in public/storage/tickets (SAME FOLDER AS WEB)
+                    $fullPath = storage_path('app/public/' . $filePath);
+                    
+                    // Create directory if it doesn't exist
+                    $directory = dirname($fullPath);
+                    if (!is_dir($directory)) {
+                        mkdir($directory, 0755, true);
+                    }
+
+                    // Save file
+                    if (file_put_contents($fullPath, $fileData) === false) {
+                        return response()->json(['error' => 'Failed to save attachment: ' . $attachment['name']], 500);
+                    }
+
+                    $attachments[] = [
+                        'original_name' => $attachment['name'],
+                        'file_name' => $fileName,
+                        'file_path' => $filePath,
+                        'mime_type' => $mimeType,
+                        'file_size' => $attachment['size'],
+                        'uploaded_at' => now()->toISOString(),
+                    ];
+                } catch (\Exception $e) {
+                    Log::error('Error processing base64 attachment', [
+                        'attachment_name' => $attachment['name'],
+                        'error' => $e->getMessage()
+                    ]);
+                    return response()->json(['error' => 'Failed to process attachment: ' . $attachment['name']], 500);
+                }
+            }
+        }
+
+        // Create the ticket with attachments
+        $ticket = \App\Models\Ticket::create([
+            'user_id' => $user->id,
+            'device_id' => $validated['device_id'],
+            'category' => $validated['category'],
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'status' => 'open',
+            'priority' => $validated['priority'] ?? 'medium',
+            'code' => $this->generateTicketCode(),
+            'attachments' => $attachments
+        ]);
+
+        // Create history entry
+        $ticket->histories()->create([
+            'action' => 'created',
+            'description' => 'Ticket created by tenant via Android app' . (!empty($attachments) ? ' with ' . count($attachments) . ' attachment(s)' : ''),
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+        ]);
+
+        // Load device relations for response
+        $ticket->load([
+            'device.brand',
+            'device.model', 
+            'device.system',
+            'device.name_device'
+        ]);
+
+        return response()->json([
+            'ticket' => [
+                'id' => $ticket->id,
+                'code' => $ticket->code,
+                'title' => $ticket->title,
+                'description' => $ticket->description,
+                'category' => $ticket->category,
+                'status' => $ticket->status,
+                'priority' => $ticket->priority,
+                'created_at' => $ticket->created_at,
+                'device' => $ticket->device ? [
+                    'id' => $ticket->device->id,
+                    'name' => $ticket->device->name,
+                    'brand' => $ticket->device->brand?->name,
+                    'model' => $ticket->device->model?->name,
+                    'system' => $ticket->device->system?->name,
+                    'device_type' => $ticket->device->name_device?->name,
+                    'icon_id' => $ticket->device->icon_id,
+                    'name_device' => $ticket->device->name_device ? [
+                        'id' => $ticket->device->name_device->id,
+                        'name' => $ticket->device->name_device->name,
+                        'status' => $ticket->device->name_device->status
+                    ] : null,
+                ] : null,
+                'attachments' => $attachments
+            ],
+            'message' => 'Ticket created successfully via Android app' . (!empty($attachments) ? ' with ' . count($attachments) . ' attachment(s)' : '')
+        ], 201);
+    }
+
+    /**
      * Get ticket detail
      */
     public function ticketDetail(Request $request, $ticketId)
@@ -542,6 +716,11 @@ class TenantController extends Controller
                     'device_type' => $ticket->device->name_device?->name,
                     'ubicacion' => $ticket->device->ubicacion,
                     'icon_id' => $ticket->device->icon_id,
+                    'name_device' => $ticket->device->name_device ? [
+                        'id' => $ticket->device->name_device->id,
+                        'name' => $ticket->device->name_device->name,
+                        'status' => $ticket->device->name_device->status
+                    ] : null,
                 ] : null,
                 'technical' => $ticket->technical ? [
                     'id' => $ticket->technical->id,
