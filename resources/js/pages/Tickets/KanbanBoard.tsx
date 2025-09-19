@@ -2,6 +2,7 @@ import React, { useState, useEffect, Fragment, useCallback, useMemo } from "reac
 import { Share2, MessageSquare, CalendarIcon, Clock, AlertCircle, CheckCircle, XCircle, Filter, Search, MoreVertical, Tag, Monitor, User, Building, Home, Trash2, Camera, FileText, Eye } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { router } from "@inertiajs/react";
+import { createCSRFHeaders } from '@/utils/csrf-helper';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@radix-ui/react-tooltip";
 import DeviceIcon from '@/components/DeviceIcon';
 
@@ -325,6 +326,9 @@ export default function KanbanBoard(props: any) {
                 { status: newStatus },
                 {
                     preserveScroll: true,
+                    headers: {
+                        ...createCSRFHeaders()
+                    },
                     onSuccess: () => {
                         if (onStatusChange) {
                             onStatusChange(ticket.id);
@@ -739,7 +743,12 @@ export default function KanbanBoard(props: any) {
                                                                                             onClick={e => {
                                                                                                 e.stopPropagation();
                                                                                                 setMenuOpen(null);
-                                                                                                router.post(`/tickets/${ticket.id}/update-status`, { status: 'in_progress' }, { preserveScroll: true });
+                                                                                                router.post(`/tickets/${ticket.id}/update-status`, { status: 'in_progress' }, { 
+                                                                                                    preserveScroll: true,
+                                                                                                    headers: {
+                                                                                                        ...createCSRFHeaders()
+                                                                                                    }
+                                                                                                });
                                                                                             }}
                                                                                         >
                                                                                             <Clock size={14} className="text-blue-500" />

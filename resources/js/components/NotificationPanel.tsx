@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Check, X } from 'lucide-react';
+import { createCSRFHeaders } from '@/utils/csrf-helper';
 
 interface Notification {
     id: string;
@@ -42,7 +43,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ className = '' })
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                    ...createCSRFHeaders(),
                 },
                 credentials: 'same-origin',
             });
@@ -82,7 +83,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ className = '' })
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                    ...createCSRFHeaders(),
                 },
                 credentials: 'same-origin',
             });
@@ -110,7 +111,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ className = '' })
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                    ...createCSRFHeaders(),
                 },
                 credentials: 'same-origin',
             });

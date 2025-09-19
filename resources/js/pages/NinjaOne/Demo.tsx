@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
+import { createCSRFHeaders } from '@/utils/csrf-helper';
 import { 
     Monitor, 
     Wifi, 

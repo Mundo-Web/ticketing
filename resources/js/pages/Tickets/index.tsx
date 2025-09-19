@@ -6,6 +6,7 @@ import { Head, router, usePage, useForm } from "@inertiajs/react"
 import { toast } from 'sonner';
 import { useEffect, useMemo } from "react"
 import { useState } from "react"
+import { getCSRFToken, createCSRFHeaders } from '@/utils/csrf-helper';
 
 import {
     CheckCircle,
@@ -759,7 +760,7 @@ export default function TicketsIndex({
         router.delete(`/tickets/${showDeleteModal.ticket.id}`, {
             preserveScroll: true,
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                ...createCSRFHeaders()
             },
             onSuccess: () => {
                 // Clear selected ticket if it was the one deleted
@@ -944,7 +945,7 @@ export default function TicketsIndex({
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    ...createCSRFHeaders()
                 },
             });
             if (response.ok) {
@@ -963,7 +964,7 @@ export default function TicketsIndex({
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    ...createCSRFHeaders()
                 },
             });
             if (response.ok) {
@@ -1260,8 +1261,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    ...createCSRFHeaders()
                 },
                 body: JSON.stringify({
                     comment: memberFeedback.comment,
@@ -1349,20 +1350,14 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
             const url = `/tickets/${showEvidenceModal.ticketId}/upload-evidence`;
             console.log('Final URL being used:', url);
 
-            // Get CSRF token
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            console.log('CSRF Token present:', !!csrfToken);
-            console.log('CSRF Token (first 10 chars):', csrfToken?.substring(0, 10));
-            console.log('CSRF Token full (for debug):', csrfToken);
-
             console.log('About to make fetch request...');
             const response = await fetch(url, {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-CSRF-TOKEN': csrfToken || '',
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    ...createCSRFHeaders()
                 },
             });
             console.log('Fetch request completed!');
@@ -1477,7 +1472,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    ...createCSRFHeaders()
                 },
                 body: JSON.stringify({
                     message: messageToTechnical.trim()
@@ -3578,8 +3573,8 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                     headers: {
                                         'Content-Type': 'application/json',
                                         'Accept': 'application/json',
-                                        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
                                         'X-Requested-With': 'XMLHttpRequest', // Important for Laravel to detect AJAX
+                                        ...createCSRFHeaders()
                                     },
                                     credentials: 'same-origin',
                                     body: JSON.stringify({

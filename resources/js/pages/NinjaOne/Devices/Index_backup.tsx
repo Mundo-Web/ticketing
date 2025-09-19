@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
+import { createCSRFHeaders } from '@/utils/csrf-helper';
 import { 
     Monitor, 
     Wifi, 
@@ -638,7 +639,7 @@ export default function NinjaOneDevicesIndex({ devices, stats, connection_status
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    ...createCSRFHeaders(),
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
@@ -666,7 +667,7 @@ export default function NinjaOneDevicesIndex({ devices, stats, connection_status
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    ...createCSRFHeaders(),
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
@@ -711,7 +712,7 @@ export default function NinjaOneDevicesIndex({ devices, stats, connection_status
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    ...createCSRFHeaders(),
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },

@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Search as SearchIcon, Plus, CalendarPlus } from 'lucide-react';
+import { createCSRFHeaders } from '@/utils/csrf-helper';
 
 // Extended User interface for dashboard
 interface ExtendedUser extends UserType {
@@ -1291,7 +1292,7 @@ export default function Dashboard({
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    ...createCSRFHeaders(),
                 },
                 body: JSON.stringify({ instruction_index: instructionIndex }),
             });
@@ -4758,7 +4759,7 @@ function UnassignedTicketRow({ ticket, index, technicals }: UnassignedTicketRowP
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    ...createCSRFHeaders(),
                 },
                 body: JSON.stringify({ technical_id: selectedTech })
             });

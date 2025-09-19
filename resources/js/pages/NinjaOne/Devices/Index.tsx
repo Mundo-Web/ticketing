@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
+import { createCSRFHeaders } from '@/utils/csrf-helper';
 import { 
     Monitor, 
     Wifi, 
@@ -1277,9 +1278,9 @@ export default function NinjaOneDevicesIndex({ devices, stats, connection_status
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                     'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...createCSRFHeaders()
                 },
                 credentials: 'same-origin'
             });
@@ -1301,21 +1302,13 @@ export default function NinjaOneDevicesIndex({ devices, stats, connection_status
         try {
             toast.loading('Refreshing devices from NinjaOne...', { id: 'refresh-devices' });
             
-            // Get CSRF token
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            
-            if (!csrfToken) {
-                toast.error('CSRF token not found. Please refresh the page.', { id: 'refresh-devices' });
-                return;
-            }
-            
             const response = await fetch('/api/ninjaone/devices/refresh', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...createCSRFHeaders()
                 },
                 credentials: 'same-origin'
             });
@@ -1364,9 +1357,9 @@ export default function NinjaOneDevicesIndex({ devices, stats, connection_status
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                     'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...createCSRFHeaders()
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify({

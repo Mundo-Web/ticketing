@@ -7,11 +7,12 @@ import {
     Plus, Edit, Trash2, ChevronRight, Laptop, UploadCloud,
     ChevronDown, ChevronLeft, Search, Filter, FileSpreadsheet,
     Download, Users, Mail, Phone, Crown, Shield, MapPinIcon, Ticket, KeyRound,
-    ShieldPlus, MapPin,
+    ShieldPlus,
     DownloadCloud
 } from 'lucide-react';
 import * as XLSX from 'exceljs';
 import { saveAs } from 'file-saver';
+import { createCSRFHeaders } from '@/utils/csrf-helper';
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -466,10 +467,10 @@ export default function Index({ apartments, brands, models, systems, name_device
         e.preventDefault();
         const formData = new FormData();
 
-        // Add CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (csrfToken) {
-            formData.append('_token', csrfToken);
+        // Add CSRF token automatically
+        const csrfHeaders = createCSRFHeaders();
+        if (csrfHeaders['X-CSRF-TOKEN']) {
+            formData.append('_token', csrfHeaders['X-CSRF-TOKEN']);
         }
 
         formData.append('name', data.name);
@@ -532,10 +533,10 @@ export default function Index({ apartments, brands, models, systems, name_device
 
         const formData = new FormData();
 
-        // Add CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (csrfToken) {
-            formData.append('_token', csrfToken);
+        // Add CSRF token automatically
+        const csrfHeaders = createCSRFHeaders();
+        if (csrfHeaders['X-CSRF-TOKEN']) {
+            formData.append('_token', csrfHeaders['X-CSRF-TOKEN']);
         }
 
         formData.append('_method', 'PUT');
@@ -839,10 +840,10 @@ export default function Index({ apartments, brands, models, systems, name_device
 
         const formData = new FormData();
 
-        // Add CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (csrfToken) {
-            formData.append('_token', csrfToken);
+        // Add CSRF token automatically
+        const csrfHeaders = createCSRFHeaders();
+        if (csrfHeaders['X-CSRF-TOKEN']) {
+            formData.append('_token', csrfHeaders['X-CSRF-TOKEN']);
         }
 
         formData.append('file', bulkFile);
@@ -1457,10 +1458,10 @@ export default function Index({ apartments, brands, models, systems, name_device
         e.preventDefault();
         const formData = new FormData();
 
-        // Add CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (csrfToken) {
-            formData.append('_token', csrfToken);
+        // Add CSRF token automatically
+        const csrfHeaders = createCSRFHeaders();
+        if (csrfHeaders['X-CSRF-TOKEN']) {
+            formData.append('_token', csrfHeaders['X-CSRF-TOKEN']);
         }
 
         formData.append('_method', 'PUT');
