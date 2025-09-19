@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client';
 import { initializeTheme } from './hooks/use-appearance';
 import { Toaster } from "@/components/ui/sonner"
 import { setupGlobalCSRFHandling } from './utils/csrf-helper';
+import './utils/auth-csrf-handler'; // Auto-inicializa el handler de login
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 // Configurar token CSRF global

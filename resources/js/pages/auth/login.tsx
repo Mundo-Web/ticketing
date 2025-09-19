@@ -32,6 +32,17 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         e.preventDefault();
         post(route('login'), {
             onFinish: () => reset('password'),
+            onSuccess: (page) => {
+                console.log('✅ Login exitoso - Preparando recarga para actualizar CSRF tokens...');
+                
+                // Marcar en sessionStorage que acabamos de hacer login
+                sessionStorage.setItem('just-logged-in', 'true');
+                sessionStorage.setItem('login-timestamp', Date.now().toString());
+                
+                // Si la respuesta redirige a dashboard u otra página, 
+                // la recarga automática ocurrirá
+                console.log('🔄 Redirigiendo y recargando para tokens frescos...');
+            },
         });
     };
 

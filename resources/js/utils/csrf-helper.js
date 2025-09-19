@@ -101,14 +101,68 @@ function showCSRFErrorNotification() {
 }
 
 /**
+ * Detectar y manejar cambios de autenticación
+ */
+function setupAuthenticationWatcher() {
+    let lastAuthState = document.querySelector('meta[name="user-authenticated"]')?.getAttribute('content');
+    
+    // Detectar cambios en el estado de autenticación
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.target.name === 'user-authenticated') {
+                const currentAuthState = mutation.target.getAttribute('content');
+                
+                if (lastAuthState !== currentAuthState && currentAuthState === 'true') {
+                    console.log('[CSRF] Login detectado, recargando página para actualizar tokens...');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                }
+                
+                lastAuthState = currentAuthState;
+            }
+        });
+    });
+
+    // Observar cambios en meta tags
+    const metaTags = document.querySelectorAll('meta');
+    metaTags.forEach(meta => {
+        observer.observe(meta, { attributes: true });
+    });
+}
+
+/**
  * Configurar interceptores globales para Inertia
  */
 export function setupGlobalCSRFHandling() {
     // Solo ejecutar en el navegador
     if (typeof window === 'undefined') return;
 
-    // Interceptar errores de Inertia
+    // Configurar watcher de autenticación
+    setupAuthenticationWatcher();
+
+    // Detectar navegación exitosa después de login
     if (window.router) {
+        window.router.on('success', (event) => {
+            const url = event.detail?.page?.url || window.location.pathname;
+            
+            // Si venimos de login y ahora estamos en dashboard u otra página
+            if (document.referrer.includes('/login') && !url.includes('/login')) {
+                console.log('[CSRF] Login exitoso detectado, actualizando tokens...');
+                
+                // Mostrar notificación de éxito
+                if (typeof window !== 'undefined' && window.toast) {
+                    window.toast.success('Login successful! Updating session...');
+                }
+                
+                // Pequeño delay y recarga para asegurar tokens frescos
+                setTimeout(() => {
+                    window.location.reload();
+                }, 800);
+            }
+        });
+
+        // Interceptar errores de Inertia
         window.router.on('error', (event) => {
             const errors = event.detail?.errors;
             
