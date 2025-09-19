@@ -27,6 +27,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance']);
 
+        // Configurar CSRF Token con excepciones
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+            'ninjaone/webhook',
+            'webhook/*',
+            'pusher/auth',
+            'broadcasting/auth',
+        ]);
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,

@@ -94,6 +94,7 @@ class HandleInertiaRequests extends Middleware
                     $extra
                 ) : null,
             ],
+            'csrf_token' => csrf_token(), // Agregar token CSRF fresco
             'ziggy' => fn (): array => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),

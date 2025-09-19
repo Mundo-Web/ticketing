@@ -23,6 +23,11 @@ use Inertia\Inertia;
 // Broadcasting authentication routes (must be outside auth middleware group)
 Broadcast::routes(['middleware' => ['web', 'auth']]);
 
+// CSRF Token refresh route (público)
+Route::get('/csrf-token', function () {
+    return response()->json(['csrf_token' => csrf_token()]);
+});
+
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('dashboard/mark-instruction-read', [DashboardController::class, 'markInstructionAsRead'])->name('dashboard.mark-instruction-read');
