@@ -423,7 +423,6 @@ class TenantController extends Controller
             'category' => 'required|string|max:255',
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'priority' => 'sometimes|string|in:low,medium,high,urgent',
             'attachments' => 'sometimes|array|max:5',
             'attachments.*' => 'file|mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv|max:20480' // 20MB max
         ]);
@@ -511,7 +510,6 @@ class TenantController extends Controller
             'category' => 'required|string|max:255',
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'priority' => 'sometimes|string|in:low,medium,high,urgent',
             'attachments_base64' => 'sometimes|array|max:5',
             'attachments_base64.*.name' => 'required_with:attachments_base64|string|max:255',
             'attachments_base64.*.type' => 'required_with:attachments_base64|string|in:image/jpeg,image/png,image/jpg,image/gif,image/webp,video/mp4,video/mov,video/avi,video/wmv',
@@ -532,6 +530,7 @@ class TenantController extends Controller
         if (!empty($validated['attachments_base64'])) {
             foreach ($validated['attachments_base64'] as $attachment) {
                 try {
+                
                     // Validate base64 data format
                     if (!preg_match('/^data:([a-zA-Z0-9][a-zA-Z0-9\/+]*);base64,(.+)$/', $attachment['data'], $matches)) {
                         return response()->json(['error' => 'Invalid base64 format for attachment: ' . $attachment['name']], 400);
@@ -617,7 +616,7 @@ class TenantController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'],
             'status' => 'open',
-            'priority' => $validated['priority'] ?? 'medium',
+            'priority' => 'medium',
             'code' => $this->generateTicketCode(),
             'attachments' => $attachments
         ]);
