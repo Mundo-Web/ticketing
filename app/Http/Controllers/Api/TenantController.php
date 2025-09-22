@@ -1021,6 +1021,225 @@ class TenantController extends Controller
     }
 
     /**
+     * Send message to assigned technician
+     */
+    public function sendMessageToTechnical(Request $request, $ticketId)
+    {
+        try {
+            $request->validate([
+                'message' => 'required|string|max:500'
+            ]);
+
+            $user = $request->user();
+            
+            // Verify user is tenant and owns the ticket
+            if (!$user || !$user->hasRole('member')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Member role required.'
+                ], 403);
+            }
+
+            $ticket = \App\Models\Ticket::with(['technical', 'user.tenant'])
+                ->where('user_id', $user->id)
+                ->find($ticketId);
+
+            if (!$ticket) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ticket not found or not owned by user'
+                ], 404);
+            }
+
+            // Verify ticket has assigned technician
+            if (!$ticket->technical_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No technician assigned to this ticket'
+                ], 400);
+            }
+
+            // Create history entry
+            $ticket->histories()->create([
+                'action' => 'member_message',
+                'description' => $request->message,
+                'user_id' => $user->id,
+                'technical_id' => null, // Message from member
+                'created_at' => now(),
+            ]);
+
+            // Send notification to technician
+            $technical = $ticket->technical;
+            if ($technical) {
+                $technicalUser = \App\Models\User::where('email', $technical->email)->first();
+                
+                if ($technicalUser) {
+                    $technicalUser->notify(new \App\Notifications\MemberMessageNotification(
+                        $ticket,
+                        $user->tenant,
+                        $request->message
+                    ));
+                    
+                    // Emit real-time notification
+                    $databaseNotification = $technicalUser->notifications()->latest()->first();
+                    if ($databaseNotification) {
+                        event(new \App\Events\NotificationCreated($databaseNotification, $technicalUser->id));
+                    }
+                }
+            }
+
+            Log::info("Member message sent via mobile", [
+                'ticket_id' => $ticket->id,
+                'member_id' => $user->id,
+                'technical_id' => $ticket->technical_id,
+                'message_length' => strlen($request->message)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Message sent successfully',
+                'ticket_id' => $ticket->id
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Mobile send message error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send message'
+            ], 500);
+        }
+    }
+
+    /**
+     * Add member feedback/rating to ticket
+     */
+    public function addMemberFeedback(Request $request, $ticketId)
+    {
+        try {
+            $validated = $request->validate([
+                'comment' => 'nullable|string|max:1000',
+                'rating' => 'required|integer|min:1|max:5',
+                'is_feedback' => 'boolean',
+            ]);
+
+            $user = $request->user();
+            
+            // Verify user is tenant
+            if (!$user || !$user->hasRole('member')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Member role required.'
+                ], 403);
+            }
+
+            $ticket = \App\Models\Ticket::where('user_id', $user->id)->find($ticketId);
+
+            if (!$ticket) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ticket not found or not owned by user'
+                ], 404);
+            }
+
+            // Prepare feedback data
+            $feedbackData = [
+                'comment' => $validated['comment'] ?? '',
+                'rating' => $validated['rating'],
+                'from_member' => true
+            ];
+
+            // Add feedback as history entry
+            $ticket->histories()->create([
+                'action' => $validated['is_feedback'] ? 'member_feedback' : 'member_comment',
+                'description' => $validated['comment'] ? $validated['comment'] : "Rating: {$validated['rating']} stars",
+                'user_id' => $user->id,
+                'technical_id' => null,
+                'meta' => $feedbackData,
+                'created_at' => now(),
+            ]);
+
+            Log::info("Member feedback submitted via mobile", [
+                'ticket_id' => $ticket->id,
+                'member_id' => $user->id,
+                'rating' => $validated['rating'],
+                'has_comment' => !empty($validated['comment'])
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Feedback submitted successfully',
+                'ticket_id' => $ticket->id,
+                'rating' => $validated['rating']
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Mobile feedback error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit feedback'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get ticket attachments with proper URLs for mobile app
+     */
+    public function getTicketAttachments(Request $request, $ticketId)
+    {
+        try {
+            $user = $request->user();
+            
+            // Verify user is tenant
+            if (!$user || !$user->hasRole('member')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Member role required.'
+                ], 403);
+            }
+
+            $ticket = \App\Models\Ticket::where('user_id', $user->id)->find($ticketId);
+
+            if (!$ticket) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ticket not found or not owned by user'
+                ], 404);
+            }
+
+            $attachments = $ticket->attachments ?? [];
+            $baseUrl = config('app.url');
+
+            // Add full URLs for mobile app
+            $attachmentsWithUrls = array_map(function($attachment) use ($baseUrl) {
+                return [
+                    'original_name' => $attachment['original_name'],
+                    'file_name' => $attachment['file_name'],
+                    'file_path' => $attachment['file_path'],
+                    'full_url' => $baseUrl . '/storage/' . $attachment['file_path'],
+                    'mime_type' => $attachment['mime_type'],
+                    'file_size' => $attachment['file_size'],
+                    'uploaded_at' => $attachment['uploaded_at'],
+                    'is_image' => strpos($attachment['mime_type'], 'image/') === 0,
+                    'is_video' => strpos($attachment['mime_type'], 'video/') === 0,
+                ];
+            }, $attachments);
+
+            return response()->json([
+                'success' => true,
+                'attachments' => $attachmentsWithUrls,
+                'count' => count($attachmentsWithUrls)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Mobile get attachments error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get attachments'
+            ], 500);
+        }
+    }
+
+    /**
      * Generate unique ticket code
      */
     private function generateTicketCode()
