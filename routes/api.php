@@ -49,8 +49,9 @@ Route::middleware(['auth:sanctum', 'tenant'])->prefix('tenant')->group(function 
     Route::post('/tickets', [TenantController::class, 'createTicket']);
     Route::post('/tickets/android', [TenantController::class, 'createTicketAndroid']);
     Route::post('/tickets/{ticket}/send-message-to-technical', [TenantController::class, 'sendMessageToTechnical']);
-    Route::post('/tickets/{ticket}/member-feedback', [TenantController::class, 'addMemberFeedback']);
     Route::get('/tickets/{ticket}/attachments', [TenantController::class, 'getTicketAttachments']);
+    Route::get('/tickets/{ticket}/appointments', [TenantController::class, 'getTicketAppointments']);
+    Route::post('/appointments/{appointment}/member-feedback', [TenantController::class, 'addAppointmentFeedback']);
     Route::get('/apartment', [TenantController::class, 'apartment']);
     Route::get('/building', [TenantController::class, 'building']);
     Route::get('/doormen', [TenantController::class, 'doormen']);

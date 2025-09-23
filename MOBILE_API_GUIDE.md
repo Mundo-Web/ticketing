@@ -119,17 +119,16 @@ const response = await fetch(`/api/tenant/tickets/${ticketId}/send-message-to-te
 
 ## ⭐ Feedback & Rating System
 
-### 6. Add Member Feedback
-**Endpoint:** `POST /api/tenant/tickets/{ticketId}/member-feedback`
+### 6. Add Member Feedback to Appointment
+**Endpoint:** `POST /api/tenant/appointments/{appointmentId}/member-feedback`
 
 ```javascript
 const feedbackData = {
-  comment: "Great service, very professional technician!",
-  rating: 5, // 1-5 stars
-  is_feedback: true
+  member_feedback: "Great service, very professional technician!",
+  service_rating: 5 // 1-5 stars (required)
 };
 
-const response = await fetch(`/api/tenant/tickets/${ticketId}/member-feedback`, {
+const response = await fetch(`/api/tenant/appointments/${appointmentId}/member-feedback`, {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${token}`,
@@ -142,12 +141,28 @@ const response = await fetch(`/api/tenant/tickets/${ticketId}/member-feedback`, 
 {
   "success": true,
   "message": "Feedback submitted successfully",
-  "ticket_id": 123,
+  "appointment_id": 45,
   "rating": 5
 }
 ```
 
-**✅ IMPLEMENTADO**: Esta API está disponible en TenantController para uso móvil.
+**✅ IMPLEMENTADO**: Esta API funciona con appointments, no tickets. Solo disponible cuando appointment está en `awaiting_feedback`.
+
+**📋 IMPORTANTE - Lógica REAL del Feedback:**
+El feedback aparece cuando:
+1. El usuario es **member** (tenant)
+2. Existe un **appointment** en estado **'awaiting_feedback'**
+3. El member NO ha dado feedback aún para ese appointment
+
+**🔄 Flujo REAL con Appointments:**
+1. **Técnico programa cita** → appointment `status: 'scheduled'`
+2. **Técnico inicia la cita** → appointment `status: 'in_progress'` 
+3. **Técnico completa la cita** → appointment `status: 'awaiting_feedback'` + `completed_at` + `completion_notes`
+4. **⭐ APARECE FEEDBACK PARA MEMBER** → cuando appointment está en `awaiting_feedback`
+5. **Member da feedback** → appointment `status: 'completed'` + `member_feedback` + `service_rating`
+6. **Feedback desaparece** → appointment completado, ya no necesita feedback
+
+**✅ CORRECCIÓN**: El feedback SÍ depende directamente del appointment, específicamente cuando el appointment está en estado `'awaiting_feedback'`. NO depende del estado del ticket.
 
 ### 7. Get Ticket Attachments
 **Endpoint:** `GET /api/tenant/tickets/{ticketId}/attachments`
@@ -179,9 +194,105 @@ const response = await fetch(`/api/tenant/tickets/${ticketId}/attachments`, {
 
 **✅ IMPLEMENTADO**: Esta API proporciona URLs completas para acceso directo desde móvil.
 
+### 8. Get Ticket Appointments
+**Endpoint:** `GET /api/tenant/tickets/{ticketId}/appointments`
+
+```javascript
+const response = await fetch(`/api/tenant/tickets/${ticketId}/appointments`, {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+
+// Response
+{
+  "success": true,
+  "ticket_id": 123,
+  "ticket_status": "in_progress",
+  "appointments": [
+    {
+      "id": 45,
+      "title": "Device repair visit",
+      "description": "Technical visit to fix the laptop",
+      "scheduled_for": "2025-09-22T14:00:00Z",
+      "status": "awaiting_feedback",
+      "started_at": "2025-09-22T14:05:00Z",
+      "completed_at": "2025-09-22T15:30:00Z",
+      "completion_notes": "Laptop fixed successfully. Replaced hard drive.",
+      "technical": {
+        "id": 5,
+        "name": "John Doe",
+        "email": "john@tech.com",
+        "phone": "+1234567890"
+      }
+    }
+  ],
+  "active_appointment": {
+    "id": 45,
+    "title": "Device repair visit",
+    "scheduled_for": "2025-09-22T14:00:00Z",
+    "status": "awaiting_feedback",
+    "technical": {
+      "id": 5,
+      "name": "John Doe",
+      "email": "john@tech.com",
+      "phone": "+1234567890"
+    }
+  },
+  "appointment_awaiting_feedback": {
+    "id": 45,
+    "title": "Device repair visit",
+    "scheduled_for": "2025-09-22T14:00:00Z",
+    "completed_at": "2025-09-22T15:30:00Z",
+    "completion_notes": "Laptop fixed successfully. Replaced hard drive.",
+    "status": "awaiting_feedback",
+    "technical": {
+      "id": 5,
+      "name": "John Doe",
+      "email": "john@tech.com",
+      "phone": "+1234567890"
+    }
+  },
+  "feedback_available": true,
+  "feedback_reason": "Appointment is awaiting feedback from member"
+}
+```
+
+**✅ IMPLEMENTADO**: Esta API permite entender cuándo mostrar el feedback y el estado de las citas.
+
+**🔑 CLAVE: Obtener el ID del Appointment para Feedback**
+
+Para saber qué appointment enviar el feedback, usa esta lógica:
+
+```javascript
+// 1. Llamar a la API de appointments
+const appointmentData = await fetch(`/api/tenant/tickets/${ticketId}/appointments`);
+const data = await appointmentData.json();
+
+// 2. Verificar si hay feedback disponible
+if (data.feedback_available) {
+  // 3. Obtener el ID del appointment que está esperando feedback
+  const appointmentId = data.appointment_awaiting_feedback.id;
+  
+  // 4. Mostrar el prompt de feedback al usuario
+  showFeedbackPrompt(appointmentId);
+  
+  // 5. Cuando el usuario envíe feedback, usar este ID:
+  await fetch(`/api/tenant/appointments/${appointmentId}/member-feedback`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      service_rating: 5,
+      member_feedback: "Excellent service!"
+    })
+  });
+}
+```
+
 ## 📱 Device Management
 
-### 8. Get User Devices
+### 9. Get User Devices
 **Endpoint:** `GET /api/tenant/devices`
 
 ```javascript
@@ -194,7 +305,7 @@ const response = await fetch('/api/tenant/devices', {
 
 ## 🔔 Notifications
 
-### 9. Get Notifications
+### 10. Get Notifications
 **Endpoint:** `GET /api/tenant/notifications`
 
 ```javascript
@@ -203,24 +314,24 @@ const response = await fetch('/api/tenant/notifications', {
 });
 ```
 
-### 10. Mark Notification as Read
+### 11. Mark Notification as Read
 **Endpoint:** `POST /api/tenant/notifications/{notificationId}/read`
 
-### 11. Mark All Notifications as Read
+### 12. Mark All Notifications as Read
 **Endpoint:** `POST /api/tenant/notifications/mark-all-read`
 
 ## 🏠 Building & Apartment Info
 
-### 12. Get Apartment Info
+### 13. Get Apartment Info
 **Endpoint:** `GET /api/tenant/apartment`
 
-### 13. Get Building Info
+### 14. Get Building Info
 **Endpoint:** `GET /api/tenant/building`
 
-### 14. Get Doormen
+### 15. Get Doormen
 **Endpoint:** `GET /api/tenant/doormen`
 
-### 15. Get Owner
+### 16. Get Owner
 **Endpoint:** `GET /api/tenant/owner`
 
 ---
@@ -543,11 +654,26 @@ const TicketDetailScreen = ({ route, navigation }) => {
   const fetchTicketDetail = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      const response = await fetch(`/api/tenant/tickets/${ticketId}`, {
+      
+      // Fetch ticket details
+      const ticketResponse = await fetch(`/api/tenant/tickets/${ticketId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const data = await response.json();
-      setTicket(data.ticket);
+      const ticketData = await ticketResponse.json();
+      
+      // Fetch appointment details to check for feedback availability
+      const appointmentResponse = await fetch(`/api/tenant/tickets/${ticketId}/appointments`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const appointmentData = await appointmentResponse.json();
+      
+      // Combine data
+      setTicket({
+        ...ticketData.ticket,
+        // Add appointment info for feedback logic
+        feedback_available: appointmentData.feedback_available,
+        appointment_awaiting_feedback: appointmentData.appointment_awaiting_feedback
+      });
     } catch (error) {
       Alert.alert('Error', 'Failed to load ticket details');
     } finally {
@@ -584,16 +710,23 @@ const TicketDetailScreen = ({ route, navigation }) => {
   const submitFeedback = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      const response = await fetch(`/api/tenant/tickets/${ticketId}/member-feedback`, {
+      
+      // Get the appointment ID that's awaiting feedback
+      const appointmentId = ticket.appointment_awaiting_feedback?.id;
+      if (!appointmentId) {
+        Alert.alert('Error', 'No appointment found for feedback');
+        return;
+      }
+
+      const response = await fetch(`/api/tenant/appointments/${appointmentId}/member-feedback`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          rating,
-          comment,
-          is_feedback: true
+          service_rating: rating,
+          member_feedback: comment
         })
       });
       
@@ -603,7 +736,7 @@ const TicketDetailScreen = ({ route, navigation }) => {
         setShowFeedbackModal(false);
         setRating(0);
         setComment('');
-        fetchTicketDetail();
+        fetchTicketDetail(); // This will update the feedback availability
       } else {
         Alert.alert('Error', data.message);
       }
@@ -663,6 +796,25 @@ const TicketDetailScreen = ({ route, navigation }) => {
       {/* Timeline */}
       <TimelineSection histories={ticket.histories} />
 
+      {/* Feedback Prompt (¿Cómo fue tu experiencia?) - CORRECT LOGIC */}
+      {ticket.feedback_available && ticket.appointment_awaiting_feedback && (
+        <View style={styles.feedbackPrompt}>
+          <View style={styles.feedbackCard}>
+            <Text style={styles.feedbackTitle}>¿Cómo fue tu experiencia?</Text>
+            <Text style={styles.feedbackSubtitle}>
+              El técnico ha completado la visita. Nos gustaría conocer tu opinión sobre el servicio recibido.
+            </Text>
+            <TouchableOpacity 
+              style={styles.feedbackButton}
+              onPress={() => setShowFeedbackModal(true)}
+            >
+              <Icon name="star" size={16} color="white" />
+              <Text style={styles.feedbackButtonText}>Dar Feedback</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Action Buttons */}
       <View style={styles.actionContainer}>
         {ticket.technical && (
@@ -672,16 +824,6 @@ const TicketDetailScreen = ({ route, navigation }) => {
           >
             <Icon name="message-circle" size={20} color="white" />
             <Text style={styles.buttonText}>Message Technician</Text>
-          </TouchableOpacity>
-        )}
-        
-        {['resolved', 'closed'].includes(ticket.status) && (
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.secondaryButton]}
-            onPress={() => setShowFeedbackModal(true)}
-          >
-            <Icon name="star" size={20} color="#3B82F6" />
-            <Text style={[styles.buttonText, { color: '#3B82F6' }]}>Rate Service</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -925,6 +1067,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
   },
+  feedbackPrompt: {
+    padding: 16,
+  },
+  feedbackCard: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+  },
+  feedbackTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#166534',
+    marginBottom: 8,
+  },
+  feedbackSubtitle: {
+    fontSize: 14,
+    color: '#15803D',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  feedbackButton: {
+    backgroundColor: '#16A34A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  feedbackButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
 
 export default TicketDetailScreen;
@@ -1001,17 +1180,16 @@ class TicketService {
     }
   }
 
-  // Submit feedback
-  static async submitFeedback(ticketId, rating, comment = '') {
+  // Submit feedback for appointment (CORRECT)
+  static async submitAppointmentFeedback(appointmentId, rating, comment = '') {
     try {
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${BASE_URL}/tenant/tickets/${ticketId}/member-feedback`, {
+      const response = await fetch(`${BASE_URL}/tenant/appointments/${appointmentId}/member-feedback`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          rating,
-          comment,
-          is_feedback: true
+          service_rating: rating,
+          member_feedback: comment
         })
       });
       return await response.json();
@@ -1030,6 +1208,26 @@ class TicketService {
       throw new Error('Failed to get attachments');
     }
   }
+
+  // Get ticket appointments (to understand feedback availability and get appointment ID)
+  static async getTicketAppointments(ticketId) {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${BASE_URL}/tenant/tickets/${ticketId}/appointments`, { headers });
+      const data = await response.json();
+      
+      // Return data with easy access to appointment ID for feedback
+      return {
+        ...data,
+        // Helper method to get appointment ID for feedback
+        getAppointmentIdForFeedback: () => {
+          return data.feedback_available ? data.appointment_awaiting_feedback?.id : null;
+        }
+      };
+    } catch (error) {
+      throw new Error('Failed to get appointments');
+    }
+  }
 }
 
 export default TicketService;
@@ -1041,15 +1239,71 @@ export default TicketService;
 1. ✅ **Send Message to Technician** - Comunicación directa con técnico asignado
 2. ✅ **Add Member Feedback** - Sistema de calificaciones y comentarios
 3. ✅ **Get Ticket Attachments** - URLs completas para archivos adjuntos
-4. ✅ **Create Ticket Android** - Soporte para attachments base64
-5. ✅ **All Tenant APIs** - Dispositivos, notificaciones, edificio, etc.
+4. ✅ **Get Ticket Appointments** - Estado de citas y disponibilidad de feedback
+5. ✅ **Create Ticket Android** - Soporte para attachments base64
+6. ✅ **All Tenant APIs** - Dispositivos, notificaciones, edificio, etc.
 
 **Rutas Disponibles:**
 - `POST /api/tenant/tickets/{ticket}/send-message-to-technical`
 - `POST /api/tenant/tickets/{ticket}/member-feedback`  
 - `GET /api/tenant/tickets/{ticket}/attachments`
+- `GET /api/tenant/tickets/{ticket}/appointments`
 - `POST /api/tenant/tickets/android`
+
+### 🎯 Flujo Completo del Feedback System
+
+**📋 Flujo Correcto (con Appointments):**
+1. **Member crea ticket** → `status: 'open'`
+2. **Technical es asignado** → ticket `technical_id` asignado
+3. **Technical programa cita** → appointment `status: 'scheduled'`
+4. **Technical llega y inicia cita** → appointment `status: 'in_progress'`
+5. **Technical completa cita** → appointment `status: 'completed'` + `completed_at`
+6. **Technical marca ticket como resolved** → ticket `status: 'resolved'`
+7. **¡APARECE EL FEEDBACK!** → "¿Cómo fue tu experiencia?" visible para member
+8. **Member da feedback** → history `member_feedback` creado → Feedback desaparece
+
+**📱 Implementación CORRECTA en Mobile:**
+```javascript
+// 1. Obtener información de appointments del ticket
+const appointmentData = await TicketService.getTicketAppointments(ticketId);
+
+// 2. Verificar si hay feedback disponible
+const shouldShowFeedback = appointmentData.feedback_available;
+
+// 3. Si hay feedback disponible, obtener el ID del appointment
+if (shouldShowFeedback) {
+  const appointmentId = appointmentData.appointment_awaiting_feedback.id;
+  
+  // 4. Mostrar el prompt de feedback
+  showFeedbackPrompt(appointmentId);
+}
+
+// 5. Al enviar feedback, usar el ID correcto
+const submitFeedback = async (rating, comment) => {
+  // Obtener el ID del appointment que está esperando feedback
+  const appointmentId = appointmentData.getAppointmentIdForFeedback();
+  
+  if (appointmentId) {
+    const result = await TicketService.submitAppointmentFeedback(appointmentId, rating, comment);
+    if (result.success) {
+      // Feedback enviado → appointment cambia a 'completed'
+      // El prompt de feedback desaparece automáticamente
+      console.log('Feedback submitted successfully!');
+    }
+  }
+};
+
+// EJEMPLO COMPLETO de verificación:
+const checkFeedbackAvailability = (appointmentData) => {
+  return {
+    showFeedback: appointmentData.feedback_available,
+    appointmentId: appointmentData.appointment_awaiting_feedback?.id,
+    technicalName: appointmentData.appointment_awaiting_feedback?.technical?.name,
+    completionNotes: appointmentData.appointment_awaiting_feedback?.completion_notes
+  };
+};
+```
 
 ### 🎯 Ready for Mobile Implementation
 
-Todas las APIs necesarias para replicar la experiencia web en React Native están implementadas y documentadas. La app móvil puede ofrecer la misma funcionalidad completa que está disponible para members en la versión web.
+Todas las APIs necesarias para replicar la experiencia web en React Native están implementadas y documentadas. La app móvil puede ofrecer la misma funcionalidad completa que está disponible para members en la versión web, incluyendo el flujo correcto de feedback basado en appointments completados.

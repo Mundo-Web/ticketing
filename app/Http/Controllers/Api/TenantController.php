@@ -1113,15 +1113,14 @@ class TenantController extends Controller
     }
 
     /**
-     * Add member feedback/rating to ticket
+     * Add member feedback to appointment (CORRECT implementation)
      */
-    public function addMemberFeedback(Request $request, $ticketId)
+    public function addAppointmentFeedback(Request $request, $appointmentId)
     {
         try {
             $validated = $request->validate([
-                'comment' => 'nullable|string|max:1000',
-                'rating' => 'required|integer|min:1|max:5',
-                'is_feedback' => 'boolean',
+                'member_feedback' => 'nullable|string|max:1000',
+                'service_rating' => 'required|integer|min:1|max:5',
             ]);
 
             $user = $request->user();
@@ -1134,48 +1133,64 @@ class TenantController extends Controller
                 ], 403);
             }
 
-            $ticket = \App\Models\Ticket::where('user_id', $user->id)->find($ticketId);
+            // Find appointment and verify it belongs to user's ticket
+            $appointment = \App\Models\Appointment::with(['ticket'])
+                ->whereHas('ticket', function($query) use ($user) {
+                    $query->where('user_id', $user->id);
+                })
+                ->find($appointmentId);
 
-            if (!$ticket) {
+            if (!$appointment) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Ticket not found or not owned by user'
+                    'message' => 'Appointment not found or not owned by user'
                 ], 404);
             }
 
-            // Prepare feedback data
-            $feedbackData = [
-                'comment' => $validated['comment'] ?? '',
-                'rating' => $validated['rating'],
-                'from_member' => true
-            ];
+            // Verify appointment is awaiting feedback
+            if ($appointment->status !== 'awaiting_feedback') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Appointment is not awaiting feedback'
+                ], 400);
+            }
 
-            // Add feedback as history entry
-            $ticket->histories()->create([
-                'action' => $validated['is_feedback'] ? 'member_feedback' : 'member_comment',
-                'description' => $validated['comment'] ? $validated['comment'] : "Rating: {$validated['rating']} stars",
-                'user_id' => $user->id,
-                'technical_id' => null,
-                'meta' => $feedbackData,
-                'created_at' => now(),
+            // Update appointment with feedback and mark as completed
+            $appointment->update([
+                'status' => 'completed',
+                'member_feedback' => $validated['member_feedback'],
+                'service_rating' => $validated['service_rating'],
             ]);
 
-            Log::info("Member feedback submitted via mobile", [
-                'ticket_id' => $ticket->id,
+            // Add to appointment history via ticket (same as web version)
+            $appointment->ticket->addHistory(
+                'member_feedback',
+                'Member provided feedback via mobile app',
+                [
+                    'member_feedback' => $validated['member_feedback'],
+                    'service_rating' => $validated['service_rating'],
+                    'feedback_by' => $user->name,
+                    'action' => 'member_feedback'
+                ]
+            );
+
+            Log::info("Member appointment feedback submitted via mobile", [
+                'appointment_id' => $appointment->id,
+                'ticket_id' => $appointment->ticket_id,
                 'member_id' => $user->id,
-                'rating' => $validated['rating'],
-                'has_comment' => !empty($validated['comment'])
+                'rating' => $validated['service_rating'],
+                'has_comment' => !empty($validated['member_feedback'])
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Feedback submitted successfully',
-                'ticket_id' => $ticket->id,
-                'rating' => $validated['rating']
+                'appointment_id' => $appointment->id,
+                'rating' => $validated['service_rating']
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Mobile feedback error: ' . $e->getMessage());
+            Log::error('Mobile appointment feedback error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to submit feedback'
@@ -1237,6 +1252,133 @@ class TenantController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get attachments'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get ticket appointments for member (to understand feedback availability)
+     */
+    public function getTicketAppointments(Request $request, $ticketId)
+    {
+        try {
+            $user = $request->user();
+            
+            // Verify user is tenant
+            if (!$user || !$user->hasRole('member')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Member role required.'
+                ], 403);
+            }
+
+            $ticket = \App\Models\Ticket::where('user_id', $user->id)->find($ticketId);
+
+            if (!$ticket) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ticket not found or not owned by user'
+                ], 404);
+            }
+
+            // Load appointments with technical info
+            $appointments = $ticket->appointments()
+                ->with(['technical'])
+                ->orderBy('scheduled_for', 'desc')
+                ->get();
+
+            // Get active appointment (including awaiting_feedback)
+            $activeAppointment = $ticket->appointments()
+                ->whereIn('status', ['scheduled', 'in_progress', 'awaiting_feedback'])
+                ->with(['technical'])
+                ->first();
+
+            // Get appointment awaiting feedback specifically
+            $appointmentAwaitingFeedback = $ticket->appointments()
+                ->where('status', 'awaiting_feedback')
+                ->with(['technical'])
+                ->first();
+
+            $lastCompletedAppointment = $ticket->appointments()
+                ->where('status', 'completed')
+                ->with(['technical'])
+                ->orderBy('completed_at', 'desc')
+                ->first();
+
+            // Check if feedback is available (CORRECT: based on appointment status)
+            $feedbackAvailable = $appointmentAwaitingFeedback !== null;
+
+            return response()->json([
+                'success' => true,
+                'ticket_id' => $ticket->id,
+                'ticket_status' => $ticket->status,
+                'appointments' => $appointments->map(function($appointment) {
+                    return [
+                        'id' => $appointment->id,
+                        'title' => $appointment->title,
+                        'description' => $appointment->description,
+                        'scheduled_for' => $appointment->scheduled_for,
+                        'status' => $appointment->status,
+                        'started_at' => $appointment->started_at,
+                        'completed_at' => $appointment->completed_at,
+                        'completion_notes' => $appointment->completion_notes,
+                        'member_feedback' => $appointment->member_feedback,
+                        'service_rating' => $appointment->service_rating,
+                        'technical' => $appointment->technical ? [
+                            'id' => $appointment->technical->id,
+                            'name' => $appointment->technical->name,
+                            'email' => $appointment->technical->email,
+                            'phone' => $appointment->technical->phone,
+                        ] : null,
+                    ];
+                }),
+                'active_appointment' => $activeAppointment ? [
+                    'id' => $activeAppointment->id,
+                    'title' => $activeAppointment->title,
+                    'scheduled_for' => $activeAppointment->scheduled_for,
+                    'status' => $activeAppointment->status,
+                    'technical' => $activeAppointment->technical ? [
+                        'id' => $activeAppointment->technical->id,
+                        'name' => $activeAppointment->technical->name,
+                        'email' => $activeAppointment->technical->email,
+                        'phone' => $activeAppointment->technical->phone,
+                    ] : null,
+                ] : null,
+                'last_completed_appointment' => $lastCompletedAppointment ? [
+                    'id' => $lastCompletedAppointment->id,
+                    'title' => $lastCompletedAppointment->title,
+                    'completed_at' => $lastCompletedAppointment->completed_at,
+                    'completion_notes' => $lastCompletedAppointment->completion_notes,
+                    'technical' => $lastCompletedAppointment->technical ? [
+                        'id' => $lastCompletedAppointment->technical->id,
+                        'name' => $lastCompletedAppointment->technical->name,
+                    ] : null,
+                ] : null,
+                'appointment_awaiting_feedback' => $appointmentAwaitingFeedback ? [
+                    'id' => $appointmentAwaitingFeedback->id,
+                    'title' => $appointmentAwaitingFeedback->title,
+                    'scheduled_for' => $appointmentAwaitingFeedback->scheduled_for,
+                    'completed_at' => $appointmentAwaitingFeedback->completed_at,
+                    'completion_notes' => $appointmentAwaitingFeedback->completion_notes,
+                    'status' => $appointmentAwaitingFeedback->status,
+                    'technical' => $appointmentAwaitingFeedback->technical ? [
+                        'id' => $appointmentAwaitingFeedback->technical->id,
+                        'name' => $appointmentAwaitingFeedback->technical->name,
+                        'email' => $appointmentAwaitingFeedback->technical->email,
+                        'phone' => $appointmentAwaitingFeedback->technical->phone,
+                    ] : null,
+                ] : null,
+                'feedback_available' => $feedbackAvailable,
+                'feedback_reason' => $feedbackAvailable ? 
+                    'Appointment is awaiting feedback from member' : 
+                    ($activeAppointment ? 'Appointment is not awaiting feedback' : 'No active appointment requiring feedback'),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Mobile get appointments error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get appointments'
             ], 500);
         }
     }
