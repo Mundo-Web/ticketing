@@ -727,6 +727,8 @@ class TenantController extends Controller
                     'name' => $ticket->technical->name,
                     'email' => $ticket->technical->email,
                     'phone' => $ticket->technical->phone,
+                    'photo' => $ticket->technical->photo,
+                    'shift' => $ticket->technical->shift,
                 ] : null,
                 'histories' => $ticket->histories->map(function ($history) {
                     return [
