@@ -1027,6 +1027,14 @@ class TenantController extends Controller
      */
     public function sendMessageToTechnical(Request $request, $ticketId)
     {
+        Log::info("=== SEND MESSAGE TO TECHNICAL START ===", [
+            'ticket_id' => $ticketId,
+            'user_id' => $request->user()?->id,
+            'message_length' => strlen($request->input('message', '')),
+            'request_headers' => $request->headers->all(),
+            'request_data' => $request->all()
+        ]);
+
         try {
             $request->validate([
                 'message' => 'required|string|max:500'
@@ -1034,8 +1042,19 @@ class TenantController extends Controller
 
             $user = $request->user();
             
+            Log::info("User validation check", [
+                'user_exists' => !!$user,
+                'user_id' => $user?->id,
+                'has_member_role' => $user?->hasRole('member') ?? false
+            ]);
+            
             // Verify user is tenant and owns the ticket
             if (!$user || !$user->hasRole('member')) {
+                Log::warning("Unauthorized access attempt", [
+                    'user_id' => $user?->id,
+                    'has_member_role' => $user?->hasRole('member') ?? false
+                ]);
+                
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized. Member role required.'
@@ -1045,6 +1064,13 @@ class TenantController extends Controller
             $ticket = \App\Models\Ticket::with(['technical', 'user.tenant'])
                 ->where('user_id', $user->id)
                 ->find($ticketId);
+
+            Log::info("Ticket lookup result", [
+                'ticket_found' => !!$ticket,
+                'ticket_id' => $ticket?->id,
+                'technical_assigned' => !!$ticket?->technical_id,
+                'technical_id' => $ticket?->technical_id
+            ]);
 
             if (!$ticket) {
                 return response()->json([
@@ -1062,35 +1088,62 @@ class TenantController extends Controller
             }
 
             // Create history entry
-            $ticket->histories()->create([
+            Log::info("Creating history entry");
+            $historyEntry = $ticket->histories()->create([
                 'action' => 'member_message',
                 'description' => $request->message,
                 'user_id' => $user->id,
                 'technical_id' => null, // Message from member
                 'created_at' => now(),
             ]);
+            
+            Log::info("History entry created", ['history_id' => $historyEntry->id]);
 
-            // Send notification to technician
+            // Send notification to technician - WRAP IN TRY-CATCH
             $technical = $ticket->technical;
             if ($technical) {
-                $technicalUser = \App\Models\User::where('email', $technical->email)->first();
-                
-                if ($technicalUser) {
-                    $technicalUser->notify(new \App\Notifications\MemberMessageNotification(
-                        $ticket,
-                        $user->tenant,
-                        $request->message
-                    ));
+                try {
+                    Log::info("Sending notification to technical", [
+                        'technical_id' => $technical->id,
+                        'technical_email' => $technical->email
+                    ]);
                     
-                    // Emit real-time notification
-                    $databaseNotification = $technicalUser->notifications()->latest()->first();
-                    if ($databaseNotification) {
-                        event(new \App\Events\NotificationCreated($databaseNotification, $technicalUser->id));
+                    $technicalUser = \App\Models\User::where('email', $technical->email)->first();
+                    
+                    if ($technicalUser) {
+                        Log::info("Technical user found, sending notification", [
+                            'technical_user_id' => $technicalUser->id
+                        ]);
+                        
+                        $technicalUser->notify(new \App\Notifications\MemberMessageNotification(
+                            $ticket,
+                            $user->tenant,
+                            $request->message
+                        ));
+                        
+                        Log::info("Notification sent successfully");
+                        
+                        // Emit real-time notification - ALSO WRAP IN TRY-CATCH
+                        try {
+                            $databaseNotification = $technicalUser->notifications()->latest()->first();
+                            if ($databaseNotification) {
+                                event(new \App\Events\NotificationCreated($databaseNotification, $technicalUser->id));
+                                Log::info("Real-time event emitted successfully");
+                            }
+                        } catch (\Exception $eventError) {
+                            Log::error("Failed to emit real-time event (non-critical): " . $eventError->getMessage());
+                            // Don't fail the entire request for event errors
+                        }
+                    } else {
+                        Log::warning("Technical user not found", ['technical_email' => $technical->email]);
                     }
+                } catch (\Exception $notificationError) {
+                    Log::error("Failed to send notification (non-critical): " . $notificationError->getMessage());
+                    // Don't fail the entire request for notification errors
                 }
             }
 
-            Log::info("Member message sent via mobile", [
+            Log::info("Message sent successfully", [
                 'ticket_id' => $ticket->id,
                 'member_id' => $user->id,
                 'technical_id' => $ticket->technical_id,
@@ -1103,12 +1156,31 @@ class TenantController extends Controller
                 'ticket_id' => $ticket->id
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation error in send message: ' . $e->getMessage(), [
+                'errors' => $e->errors()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+            
         } catch (\Exception $e) {
-            Log::error('Mobile send message error: ' . $e->getMessage());
+            Log::error('Mobile send message error: ' . $e->getMessage(), [
+                'exception_class' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send message'
             ], 500);
+        } finally {
+            Log::info("=== SEND MESSAGE TO TECHNICAL END ===");
         }
     }
 
