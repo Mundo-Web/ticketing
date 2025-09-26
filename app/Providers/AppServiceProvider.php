@@ -8,6 +8,8 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use App\Listeners\LoginAuditListener;
 use App\Listeners\LogoutAuditListener;
+use App\Events\NotificationCreated;
+use App\Listeners\SendPushNotificationListener;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,5 +33,8 @@ class AppServiceProvider extends ServiceProvider
         // Registrar solo nuestros listeners
         Event::listen(Login::class, LoginAuditListener::class);
         Event::listen(Logout::class, LogoutAuditListener::class);
+        
+        // Registrar listener para push notifications
+        Event::listen(NotificationCreated::class, SendPushNotificationListener::class);
     }
 }

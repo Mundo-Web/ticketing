@@ -486,18 +486,6 @@ class TenantController extends Controller
             'user_name' => $user->name,
         ]);
 
-        // Send push notification for ticket creation
-        try {
-            $this->pushService->sendTicketNotification($tenant->id, $ticket, 'created');
-        } catch (\Exception $e) {
-            Log::error('Failed to send push notification for ticket creation', [
-                'ticket_id' => $ticket->id,
-                'tenant_id' => $tenant->id,
-                'error' => $e->getMessage()
-            ]);
-            // Don't fail ticket creation if push notification fails
-        }
-
         return response()->json([
             'ticket' => [
                 'id' => $ticket->id,
@@ -656,18 +644,6 @@ class TenantController extends Controller
             'device.system',
             'device.name_device'
         ]);
-
-        // Send push notification for Android ticket creation
-        try {
-            $this->pushService->sendTicketNotification($tenant->id, $ticket, 'created');
-        } catch (\Exception $e) {
-            Log::error('Failed to send push notification for Android ticket creation', [
-                'ticket_id' => $ticket->id,
-                'tenant_id' => $tenant->id,
-                'error' => $e->getMessage()
-            ]);
-            // Don't fail ticket creation if push notification fails
-        }
 
         return response()->json([
             'ticket' => [
