@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\TechnicalController;
 use App\Http\Controllers\Api\TenantController;
+use App\Http\Controllers\Api\PushNotificationController;
 use App\Http\Controllers\Api\NinjaOneWebhookController;
 use App\Http\Controllers\Api\WebhookTestController;
 use App\Http\Controllers\BuildingController;
@@ -65,6 +66,12 @@ Route::middleware(['auth:sanctum', 'tenant'])->prefix('tenant')->group(function 
     Route::get('/notifications', [TenantController::class, 'notifications']);
     Route::post('/notifications/{notification}/read', [TenantController::class, 'markNotificationAsRead']);
     Route::post('/notifications/mark-all-read', [TenantController::class, 'markAllNotificationsAsRead']);
+    
+    // Push notifications routes
+    Route::post('/register-push-token', [PushNotificationController::class, 'registerToken']);
+    Route::post('/remove-push-token', [PushNotificationController::class, 'removeToken']);
+    Route::post('/send-push-notification', [PushNotificationController::class, 'sendPushNotification']);
+    Route::get('/push-tokens', [PushNotificationController::class, 'getTokens']);
 });
 
 // Notification routes
