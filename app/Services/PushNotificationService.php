@@ -236,7 +236,7 @@ class PushNotificationService
     private function sendToFirebase($token, $title, $body, $data)
     {
         try {
-                        // Check if credentials file exists
+            // Check if credentials file exists
             $credentialsPath = config('services.firebase.credentials');
             $fullPath = null;
             
@@ -253,7 +253,7 @@ class PushNotificationService
                 throw new \Exception('Firebase credentials file not found. Tried: ' . $credentialsPath . ', ' . base_path($credentialsPath) . ', ' . storage_path('app/firebase/firebase-adminsdk.json'));
             }
 
-            Log::info('Using Firebase credentials file: ' . $fullPath);
+            Log::info('FCM - Using Firebase credentials file: ' . $fullPath);
 
             // Initialize Firebase
             $factory = (new \Kreait\Firebase\Factory)
@@ -262,18 +262,37 @@ class PushNotificationService
                 
             $messaging = $factory->createMessaging();
 
+            // 🔍 LOG: Datos antes de procesar para FCM
+            Log::info('🔥 FCM - Raw data before processing', [
+                'token' => substr($token, 0, 20) . '...',
+                'title' => $title,
+                'body' => $body,
+                'raw_data' => $data,
+                'data_type' => gettype($data)
+            ]);
+
+            // Convert all array values to JSON strings for FCM compatibility
+            $fcmData = $this->convertDataForFCM($data);
+
+            // 🔍 LOG: Datos procesados para FCM
+            Log::info('🔥 FCM - Processed data for FCM', [
+                'token' => substr($token, 0, 20) . '...',
+                'fcm_data' => $fcmData,
+                'data_keys' => array_keys($fcmData)
+            ]);
+
             // Create notification
             $notification = Notification::create($title, $body);
 
             // Create message
             $message = CloudMessage::withTarget('token', $token)
                 ->withNotification($notification)
-                ->withData($data);
+                ->withData($fcmData);
 
             // Send
             $result = $messaging->send($message);
             
-            Log::info('FCM notification sent successfully', [
+            Log::info('✅ FCM - Notification sent successfully', [
                 'token' => substr($token, 0, 20) . '...',
                 'title' => $title,
                 'result' => $result,
@@ -286,10 +305,15 @@ class PushNotificationService
             ];
             
         } catch (\Exception $e) {
-            Log::error('FCM send error', [
+            Log::error('❌ FCM - Send error', [
                 'error' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
                 'token' => substr($token, 0, 20) . '...',
                 'title' => $title,
+                'body_preview' => substr($body, 0, 100) . '...',
+                'data_keys' => array_keys($data ?? []),
+                'stack_trace' => $e->getTraceAsString()
             ]);
             
             throw new \Exception('FCM Error: ' . $e->getMessage());
@@ -302,11 +326,20 @@ class PushNotificationService
     private function sendToExpo($token, $title, $body, $data)
     {
         try {
+            // 🔍 LOG: Datos para Expo (puede manejar arrays)
+            Log::info('📱 EXPO - Sending notification', [
+                'token' => substr($token, 0, 20) . '...',
+                'title' => $title,
+                'body' => $body,
+                'data' => $data,
+                'data_type' => gettype($data)
+            ]);
+
             $payload = [
                 'to' => $token,
                 'title' => $title,
                 'body' => $body,
-                'data' => $data,
+                'data' => $data, // Expo can handle arrays directly
                 'sound' => 'default',
                 'priority' => 'high',
                 'channelId' => 'default',
@@ -315,7 +348,7 @@ class PushNotificationService
             $response = Http::timeout(30)->post('https://exp.host/--/api/v2/push/send', $payload);
 
             if ($response->successful()) {
-                Log::info('Expo notification sent successfully', [
+                Log::info('✅ EXPO - Notification sent successfully', [
                     'token' => substr($token, 0, 20) . '...',
                     'title' => $title,
                     'response' => $response->json(),
@@ -331,10 +364,12 @@ class PushNotificationService
             }
             
         } catch (\Exception $e) {
-            Log::error('Expo send error', [
+            Log::error('❌ EXPO - Send error', [
                 'error' => $e->getMessage(),
                 'token' => substr($token, 0, 20) . '...',
                 'title' => $title,
+                'body_preview' => substr($body, 0, 100) . '...',
+                'data_keys' => array_keys($data ?? [])
             ]);
             
             throw new \Exception('Expo Error: ' . $e->getMessage());
@@ -475,5 +510,38 @@ class PushNotificationService
         $message = $messages[$type] ?? $messages['status_updated'];
         
         return $this->sendPushToTenant($tenantId, $message);
+    }
+
+    /**
+     * Convert data array for FCM compatibility
+     * FCM requires all data values to be strings, not arrays
+     */
+    private function convertDataForFCM(array $data): array
+    {
+        $fcmData = [];
+        
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                // Convert arrays to JSON strings
+                $fcmData[$key] = json_encode($value);
+                
+                Log::debug('FCM - Converted array to JSON', [
+                    'key' => $key,
+                    'original_type' => 'array',
+                    'converted_value' => $fcmData[$key]
+                ]);
+            } else {
+                // Keep non-array values as strings
+                $fcmData[$key] = (string) $value;
+            }
+        }
+        
+        Log::info('🔄 FCM - Data conversion completed', [
+            'original_keys' => array_keys($data),
+            'converted_keys' => array_keys($fcmData),
+            'arrays_converted' => count(array_filter($data, 'is_array'))
+        ]);
+        
+        return $fcmData;
     }
 }
