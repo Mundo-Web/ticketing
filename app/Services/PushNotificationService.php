@@ -12,6 +12,26 @@ use Kreait\Firebase\Messaging\Notification;
 class PushNotificationService
 {
     /**
+     * Detect token type based on token format
+     */
+    private function detectTokenType($token)
+    {
+        // Expo tokens start with "ExponentPushToken["
+        if (strpos($token, 'ExponentPushToken[') === 0) {
+            return 'expo';
+        }
+        
+        // FCM tokens are typically longer and don't have the Expo prefix
+        // They can be various formats but usually don't contain "ExponentPushToken"
+        if (strlen($token) > 100 && strpos($token, 'ExponentPushToken') === false) {
+            return 'fcm';
+        }
+        
+        // Default to expo for safety (Expo is more forgiving)
+        return 'expo';
+    }
+
+    /**
      * Send push notification to all devices of a tenant
      */
     public function sendPushToTenant($tenantId, $message)
@@ -35,7 +55,29 @@ class PushNotificationService
             // Send to each token based on its type
             foreach ($tokenRecords as $tokenRecord) {
                 try {
-                    if ($tokenRecord->isFcm()) {
+                    // Auto-detect token type based on token format (override DB value if wrong)
+                    $actualTokenType = $this->detectTokenType($tokenRecord->push_token);
+                    
+                    Log::info("Token type detection", [
+                        'tenant_id' => $tenantId,
+                        'token_preview' => substr($tokenRecord->push_token, 0, 20) . '...',
+                        'db_token_type' => $tokenRecord->token_type,
+                        'detected_type' => $actualTokenType
+                    ]);
+                    
+                    if ($actualTokenType !== $tokenRecord->token_type) {
+                        // Update token type in database if wrong
+                        Log::info("Correcting token type in database", [
+                            'tenant_id' => $tenantId,
+                            'token_id' => $tokenRecord->id,
+                            'old_type' => $tokenRecord->token_type,
+                            'new_type' => $actualTokenType
+                        ]);
+                        
+                        $tokenRecord->update(['token_type' => $actualTokenType]);
+                    }
+                    
+                    if ($actualTokenType === 'fcm') {
                         // Try FCM first, fallback to Expo if Firebase not available
                         try {
                             $result = $this->sendToFirebase(
@@ -61,6 +103,7 @@ class PushNotificationService
                             $result['fallback'] = 'expo';
                         }
                     } else {
+                        // Send to Expo (includes ExponentPushToken)
                         $result = $this->sendToExpo(
                             $tokenRecord->push_token,
                             $message['title'],
@@ -124,28 +167,33 @@ class PushNotificationService
      */
     public function sendSingleNotification($token, $tokenType, $title, $body, $data = [])
     {
+        // Auto-detect actual token type (override provided type if wrong)
+        $actualTokenType = $this->detectTokenType($token);
+        
         Log::info('Sending single push notification', [
-            'token_type' => $tokenType,
+            'provided_token_type' => $tokenType,
+            'detected_token_type' => $actualTokenType,
             'token' => substr($token, 0, 20) . '...',
             'title' => $title,
         ]);
 
         try {
-            if ($tokenType === 'fcm') {
+            if ($actualTokenType === 'fcm') {
                 return $this->sendToFirebase($token, $title, $body, $data);
             } else {
                 return $this->sendToExpo($token, $title, $body, $data);
             }
         } catch (\Exception $e) {
             Log::error('Error sending single push notification', [
-                'token_type' => $tokenType,
+                'provided_token_type' => $tokenType,
+                'detected_token_type' => $actualTokenType,
                 'error' => $e->getMessage(),
             ]);
             
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
-                'token_type' => $tokenType,
+                'token_type' => $actualTokenType,
             ];
         }
     }
