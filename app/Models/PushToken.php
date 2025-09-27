@@ -16,10 +16,15 @@ class PushToken extends Model
         'device_name',
         'device_type',
         'is_active',
+        'token_type',        // 'expo' o 'fcm'
+        'app_ownership',     // 'expo' o 'standalone'
+        'is_standalone',     // boolean
+        'execution_environment',  // string
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_standalone' => 'boolean',
     ];
 
     /**
@@ -44,5 +49,37 @@ class PushToken extends Model
     public function scopeForTenant($query, $tenantId)
     {
         return $query->where('tenant_id', $tenantId);
+    }
+
+    /**
+     * Scope to get only Expo tokens
+     */
+    public function scopeExpo($query)
+    {
+        return $query->where('token_type', 'expo');
+    }
+
+    /**
+     * Scope to get only FCM tokens
+     */
+    public function scopeFcm($query)
+    {
+        return $query->where('token_type', 'fcm');
+    }
+
+    /**
+     * Check if token is FCM type
+     */
+    public function isFcm(): bool
+    {
+        return $this->token_type === 'fcm';
+    }
+
+    /**
+     * Check if token is Expo type
+     */
+    public function isExpo(): bool
+    {
+        return $this->token_type === 'expo';
     }
 }

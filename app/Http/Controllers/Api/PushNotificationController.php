@@ -27,6 +27,11 @@ class PushNotificationController extends Controller
                 'platform' => 'required|in:ios,android',
                 'device_name' => 'nullable|string|max:255',
                 'device_type' => 'required|string|max:50',
+                // NEW FCM FIELDS
+                'token_type' => 'required|string|in:expo,fcm',
+                'app_ownership' => 'nullable|string',
+                'is_standalone' => 'nullable|boolean',
+                'execution_environment' => 'nullable|string',
             ]);
 
             $user = $request->user();
@@ -53,6 +58,8 @@ class PushNotificationController extends Controller
                 'tenant_id' => $tenant->id,
                 'platform' => $validated['platform'],
                 'device_type' => $validated['device_type'],
+                'token_type' => $validated['token_type'],
+                'is_standalone' => $validated['is_standalone'] ?? false,
                 'success' => $result['success']
             ]);
 
@@ -138,6 +145,10 @@ class PushNotificationController extends Controller
                 'title' => 'required|string|max:255',
                 'body' => 'required|string|max:500',
                 'data' => 'nullable|array',
+                // NEW FIELDS FOR SINGLE TOKEN TESTING
+                'token_type' => 'nullable|string|in:expo,fcm',
+                'push_token' => 'nullable|string',
+                'is_standalone' => 'nullable|boolean',
             ]);
 
             $user = $request->user();
@@ -158,6 +169,27 @@ class PushNotificationController extends Controller
                 ], 404);
             }
 
+            // If specific token provided (for testing)
+            if (!empty($validated['push_token']) && !empty($validated['token_type'])) {
+                $result = $this->pushService->sendSingleNotification(
+                    $validated['push_token'],
+                    $validated['token_type'],
+                    $validated['title'],
+                    $validated['body'],
+                    $validated['data'] ?? []
+                );
+
+                Log::info("Single push notification test sent", [
+                    'tenant_id' => $tenant->id,
+                    'token_type' => $validated['token_type'],
+                    'title' => $validated['title'],
+                    'success' => $result['success']
+                ]);
+
+                return response()->json($result, $result['success'] ? 200 : 500);
+            }
+
+            // Mass send to all tenant's devices
             $message = [
                 'title' => $validated['title'],
                 'body' => $validated['body'],
@@ -221,13 +253,15 @@ class PushNotificationController extends Controller
 
             $tokens = \App\Models\PushToken::forTenant($tenant->id)
                 ->active()
-                ->select('id', 'platform', 'device_name', 'device_type', 'created_at')
+                ->select('id', 'platform', 'device_name', 'device_type', 'token_type', 'app_ownership', 'is_standalone', 'created_at')
                 ->get();
 
             return response()->json([
                 'success' => true,
                 'tokens' => $tokens,
-                'total_devices' => $tokens->count()
+                'total_devices' => $tokens->count(),
+                'expo_tokens' => $tokens->where('token_type', 'expo')->count(),
+                'fcm_tokens' => $tokens->where('token_type', 'fcm')->count(),
             ]);
 
         } catch (\Exception $e) {

@@ -1,6 +1,16 @@
-# 📱 Guía Completa de Implementación Push Notifications - Mobile
+# 📱 Guía Completa de Implementación Push Notifications - Mobile (FCM + Expo)
 
-## 🎯 **Para el Equipo Móvil - Implementación Requerida**
+## 🎯 **IMPORTANTE: Soporte Dual para Expo Go y APK Standalone**
+
+El sistema backend ahora soporta:
+- **Expo Go**: Usa Expo Push Service ✅
+- **APK Standalone**: Usa Firebase Cloud Messaging (FCM) ✅
+
+**La app debe detectar el tipo y enviar el `token_type` correcto al backend.**
+
+---
+
+## 🎯 **Para el Equipo Móvil - Implementación Requerida:**
 
 ### 📋 **Checklist de Implementación:**
 
@@ -10,7 +20,18 @@
 - [ ] 4. **Manejar notificaciones recibidas**
 - [ ] 5. **Navegación por notificaciones**
 
-## 🔧 **1. Configuración Inicial (Expo)**
+## 🔧 **1. Configuración Inicial (Expo + FCM)**
+
+### **Para APK Standalone (FCM):**
+Instalar Firebase:
+```bash
+expo install @react-native-firebase/app @react-native-firebase/messaging
+```
+
+### **Para Expo Go (Expo Push Service):**
+```bash
+expo install expo-notifications expo-device expo-constants
+```
 
 ### En tu `app.json` o `app.config.js`:
 ```json
@@ -35,7 +56,7 @@
 npx expo install expo-notifications expo-device expo-constants
 ```
 
-## 🚀 **2. Servicio de Push Notifications**
+## 🚀 **2. Servicio de Push Notifications (Dual Support)**
 
 Crea `services/PushNotificationService.js`:
 
@@ -43,6 +64,7 @@ Crea `services/PushNotificationService.js`:
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { api } from './api'; // Tu servicio de API
 
 class PushNotificationService {
@@ -58,25 +80,113 @@ class PushNotificationService {
   }
 
   /**
+   * Detectar el tipo de aplicación y obtener el token apropiado
+   */
+  async getTokenInfo() {
+    try {
+      const appOwnership = Constants.appOwnership;
+      const executionEnvironment = Constants.executionEnvironment;
+      
+      // Determinar si es Expo Go o APK Standalone
+      const isExpoGo = appOwnership === 'expo';
+      const isStandalone = appOwnership === 'standalone';
+      
+      let token;
+      let tokenType;
+      
+      if (isExpoGo || executionEnvironment === 'expo') {
+        // EXPO GO - Usar Expo Push Token
+        tokenType = 'expo';
+        token = (await Notifications.getExpoPushTokenAsync({
+          projectId: Constants.expoConfig?.extra?.eas?.projectId,
+        })).data;
+      } else {
+        // APK STANDALONE - Usar FCM
+        tokenType = 'fcm';
+        
+        // Para APK standalone, necesitamos Firebase
+        try {
+          const messaging = require('@react-native-firebase/messaging').default;
+          await messaging().requestPermission();
+          token = await messaging().getToken();
+        } catch (fcmError) {
+          console.log('❌ FCM not available, fallback to Expo token');
+          tokenType = 'expo';
+          token = (await Notifications.getExpoPushTokenAsync()).data;
+        }
+      }
+
+      return {
+        token,
+        tokenType,
+        appOwnership,
+        isStandalone,
+        executionEnvironment,
+        platform: Platform.OS,
+        deviceType: Device.deviceType === Device.DeviceType.PHONE ? 'phone' : 'tablet',
+        deviceName: Device.deviceName || `${Platform.OS} Device`,
+      };
+
+    } catch (error) {
+      console.error('Error getting token info:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Registrar token de push notification
    */
   async registerForPushNotifications() {
     try {
-      let token;
+      if (!Device.isDevice) {
+        console.log('❌ Push notifications only work on physical devices');
+        return null;
+      }
 
-      if (Device.isDevice) {
-        // Solicitar permisos
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
+      // Solicitar permisos
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
 
-        if (existingStatus !== 'granted') {
-          const { status } = await Notifications.requestPermissionsAsync();
-          finalStatus = status;
-        }
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
 
-        if (finalStatus !== 'granted') {
-          console.log('❌ Push notification permissions denied');
-          return null;
+      if (finalStatus !== 'granted') {
+        console.log('❌ Push notification permissions denied');
+        return null;
+      }
+
+      // Obtener información del token
+      const tokenInfo = await this.getTokenInfo();
+      console.log('📱 Token Info:', tokenInfo);
+
+      // Registrar en el backend
+      const response = await api.post('/tenant/register-push-token', {
+        push_token: tokenInfo.token,
+        token_type: tokenInfo.tokenType, // 'expo' o 'fcm'
+        platform: tokenInfo.platform,
+        device_type: tokenInfo.deviceType,
+        device_name: tokenInfo.deviceName,
+        app_ownership: tokenInfo.appOwnership,
+        is_standalone: tokenInfo.isStandalone,
+        execution_environment: tokenInfo.executionEnvironment,
+      });
+
+      if (response.data.success) {
+        console.log('✅ Push token registered successfully');
+        console.log(`📱 Type: ${tokenInfo.tokenType.toUpperCase()}`);
+        return tokenInfo;
+      } else {
+        console.error('❌ Failed to register push token:', response.data.message);
+        return null;
+      }
+
+    } catch (error) {
+      console.error('❌ Error registering push token:', error);
+      return null;
+    }
+  }
         }
 
         // Obtener token

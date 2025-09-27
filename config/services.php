@@ -44,4 +44,9 @@ return [
         'webhook_secret' => env('NINJAONE_WEBHOOK_SECRET'),
     ],
 
+    'firebase' => [
+        'credentials' => env('FIREBASE_CREDENTIALS'),
+        'project_id' => env('FIREBASE_PROJECT_ID', 'adkassist-255ec'),
+    ],
+
 ];
