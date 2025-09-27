@@ -698,53 +698,15 @@ class TicketController extends Controller
             // Dispatch ticket assigned event (commented out to avoid duplicate notifications)
             // event(new TicketAssigned($ticket, $newTechnical, $user));
             
-            // Send real-time notifications for ticket assignment
+            // Send notifications using NotificationDispatcherService (single point of notification)
             try {
-                // 1. Notificar al técnico asignado
-                $technicalUser = User::where('email', $newTechnical->email)->first();
-                if ($technicalUser) {
-                    $notification = $technicalUser->notify(new \App\Notifications\TicketAssignedNotification($ticket, $newTechnical, $user));
-                    
-                    // Emit real-time notification event
-                    $databaseNotification = $technicalUser->notifications()->latest()->first();
-                    if ($databaseNotification) {
-                        event(new \App\Events\NotificationCreated($databaseNotification, $technicalUser->id));
-                    }
-                    
-                    Log::info('Assignment notification sent to technical', [
-                        'technical_id' => $technicalUser->id,
-                        'technical_name' => $newTechnical->name,
-                        'ticket_id' => $ticket->id,
-                        'ticket_code' => $ticket->code,
-                        'assigned_by' => $user->name
-                    ]);
-                }
-
-                // 2. Notificar al usuario que creó el ticket
-                $ticketOwner = $ticket->user;
-                if ($ticketOwner && $ticketOwner->id !== $technicalUser?->id) {
-                    $notification = $ticketOwner->notify(new \App\Notifications\TicketAssignedNotification($ticket, $newTechnical, $user));
-                    
-                    // Emit real-time notification event
-                    $databaseNotification = $ticketOwner->notifications()->latest()->first();
-                    if ($databaseNotification) {
-                        event(new \App\Events\NotificationCreated($databaseNotification, $ticketOwner->id));
-                    }
-                    
-                    Log::info('Assignment notification sent to ticket owner', [
-                        'owner_id' => $ticketOwner->id,
-                        'owner_name' => $ticketOwner->name,
-                        'ticket_id' => $ticket->id,
-                        'ticket_code' => $ticket->code,
-                        'technical_assigned' => $newTechnical->name
-                    ]);
-                }
-
-                Log::info('All ticket assignment notifications sent successfully', [
+                $notificationService = new \App\Services\NotificationDispatcherService();
+                $notificationService->dispatchTicketAssigned($ticket, $newTechnical, $user);
+                
+                Log::info('Ticket assignment notification dispatched via NotificationDispatcherService', [
                     'ticket_id' => $ticket->id,
                     'ticket_code' => $ticket->code,
-                    'technical_notified' => $technicalUser ? 1 : 0,
-                    'owner_notified' => ($ticketOwner && $ticketOwner->id !== $technicalUser?->id) ? 1 : 0,
+                    'technical_assigned' => $newTechnical->name,
                     'assigned_by' => $user->name
                 ]);
 
@@ -1040,47 +1002,17 @@ class TicketController extends Controller
             $user->hasRole('technical') ? Technical::where('email', $user->email)->first()?->id : null
         );
         
-        // Send real-time notifications for ticket assignment
+        // Send notifications using NotificationDispatcherService (single point of notification)
         try {
-            // 1. Notificar al técnico asignado
-            $technicalUser = User::where('email', $technical->email)->first();
-            if ($technicalUser) {
-                $notification = $technicalUser->notify(new \App\Notifications\TicketAssignedNotification($ticket, $technical, $user));
-                
-                // Emit real-time notification event
-                $databaseNotification = $technicalUser->notifications()->latest()->first();
-                if ($databaseNotification) {
-                    event(new \App\Events\NotificationCreated($databaseNotification, $technicalUser->id));
-                }
-                
-                Log::info('Assignment notification sent to technical (assignToTechnical)', [
-                    'technical_id' => $technicalUser->id,
-                    'technical_name' => $technical->name,
-                    'ticket_id' => $ticket->id,
-                    'ticket_code' => $ticket->code,
-                    'assigned_by' => $user->name
-                ]);
-            }
-
-            // 2. Notificar al usuario que creó el ticket
-            $ticketOwner = $ticket->user;
-            if ($ticketOwner && $ticketOwner->id !== $technicalUser?->id) {
-                $notification = $ticketOwner->notify(new \App\Notifications\TicketAssignedNotification($ticket, $technical, $user));
-                
-                // Emit real-time notification event
-                $databaseNotification = $ticketOwner->notifications()->latest()->first();
-                if ($databaseNotification) {
-                    event(new \App\Events\NotificationCreated($databaseNotification, $ticketOwner->id));
-                }
-                
-                Log::info('Assignment notification sent to ticket owner (assignToTechnical)', [
-                    'owner_id' => $ticketOwner->id,
-                    'owner_name' => $ticketOwner->name,
-                    'ticket_id' => $ticket->id,
-                    'ticket_code' => $ticket->code,
-                    'technical_assigned' => $technical->name
-                ]);
-            }
+            $notificationService = new \App\Services\NotificationDispatcherService();
+            $notificationService->dispatchTicketAssigned($ticket, $technical, $user);
+            
+            Log::info('Ticket assignment notification dispatched via NotificationDispatcherService (assignToTechnical)', [
+                'ticket_id' => $ticket->id,
+                'ticket_code' => $ticket->code,
+                'technical_assigned' => $technical->name,
+                'assigned_by' => $user->name
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Error sending ticket assignment notifications (assignToTechnical)', [

@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class SendPushNotificationListener implements ShouldQueue
 {
@@ -51,6 +52,15 @@ class SendPushNotificationListener implements ShouldQueue
                 Log::info('⏭️ Push notification skipped: User is not a member', [
                     'user_id' => $event->userId,
                     'user_roles' => $user->roles->pluck('name')
+                ]);
+                return;
+            }
+
+            // Check for duplicate notifications (deduplication)
+            if ($this->isDuplicateNotification($event)) {
+                Log::info('⏭️ Push notification skipped: Duplicate detected within time window', [
+                    'user_id' => $event->userId,
+                    'notification_id' => $event->notification->id ?? 'N/A'
                 ]);
                 return;
             }
@@ -514,5 +524,49 @@ class SendPushNotificationListener implements ShouldQueue
         ];
 
         return $statusMap[$status] ?? ucfirst(str_replace('_', ' ', $status));
+    }
+
+    /**
+     * Check if this notification is a duplicate within the deduplication window
+     */
+    private function isDuplicateNotification(NotificationCreated $event): bool
+    {
+        try {
+            $cacheKey = 'push_notification_' . $event->userId . '_' . ($event->notification->id ?? 'unknown');
+            $deduplicationWindow = 30; // seconds
+            
+            // Check if we already processed this notification recently
+            if (Cache::has($cacheKey)) {
+                Log::info('🔄 DEDUPLICATION - Duplicate notification blocked', [
+                    'user_id' => $event->userId,
+                    'notification_id' => $event->notification->id ?? 'N/A',
+                    'cache_key' => $cacheKey,
+                    'window_seconds' => $deduplicationWindow
+                ]);
+                return true;
+            }
+            
+            // Mark this notification as processed
+            Cache::put($cacheKey, true, $deduplicationWindow);
+            
+            Log::info('✅ DEDUPLICATION - Notification allowed (first occurrence)', [
+                'user_id' => $event->userId,
+                'notification_id' => $event->notification->id ?? 'N/A',
+                'cache_key' => $cacheKey,
+                'ttl_seconds' => $deduplicationWindow
+            ]);
+            
+            return false;
+            
+        } catch (\Exception $e) {
+            Log::error('❌ DEDUPLICATION - Error checking for duplicates', [
+                'error' => $e->getMessage(),
+                'user_id' => $event->userId,
+                'notification_id' => $event->notification->id ?? 'N/A'
+            ]);
+            
+            // If deduplication fails, allow the notification to prevent blocking legitimate ones
+            return false;
+        }
     }
 }

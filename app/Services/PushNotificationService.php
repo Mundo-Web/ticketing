@@ -304,6 +304,32 @@ class PushNotificationService
                 'token_type' => 'fcm',
             ];
             
+        } catch (\Kreait\Firebase\Exception\Messaging\NotFound $e) {
+            // Token is invalid or expired - mark as inactive and clean up
+            Log::warning('⚠️ FCM - Invalid/expired token detected', [
+                'token' => substr($token, 0, 20) . '...',
+                'error' => 'Token not found (expired/invalid)',
+                'title' => $title
+            ]);
+            
+            // Mark token as inactive in database
+            $this->markTokenAsInvalid($token);
+            
+            throw new \Exception('FCM Error: Token is invalid or expired and has been marked as inactive');
+            
+        } catch (\Kreait\Firebase\Exception\Messaging\InvalidArgument $e) {
+            // Invalid token format
+            Log::warning('⚠️ FCM - Invalid token format', [
+                'token' => substr($token, 0, 20) . '...',
+                'error' => $e->getMessage(),
+                'title' => $title
+            ]);
+            
+            // Mark token as inactive
+            $this->markTokenAsInvalid($token);
+            
+            throw new \Exception('FCM Error: Invalid token format');
+            
         } catch (\Exception $e) {
             Log::error('❌ FCM - Send error', [
                 'error' => $e->getMessage(),
@@ -364,6 +390,22 @@ class PushNotificationService
             }
             
         } catch (\Exception $e) {
+            // Check if it's a token-related error (DeviceNotRegistered, etc.)
+            if (strpos($e->getMessage(), 'DeviceNotRegistered') !== false || 
+                strpos($e->getMessage(), 'not a valid Expo push token') !== false) {
+                
+                Log::warning('⚠️ EXPO - Invalid/expired token detected', [
+                    'token' => substr($token, 0, 20) . '...',
+                    'error' => 'Token invalid or device not registered',
+                    'title' => $title
+                ]);
+                
+                // Mark token as inactive
+                $this->markTokenAsInvalid($token);
+                
+                throw new \Exception('Expo Error: Token is invalid or expired and has been marked as inactive');
+            }
+            
             Log::error('❌ EXPO - Send error', [
                 'error' => $e->getMessage(),
                 'token' => substr($token, 0, 20) . '...',
@@ -512,36 +554,65 @@ class PushNotificationService
         return $this->sendPushToTenant($tenantId, $message);
     }
 
-    /**
-     * Convert data array for FCM compatibility
-     * FCM requires all data values to be strings, not arrays
+        /**
+     * Convert nested arrays to JSON strings for FCM compatibility
      */
-    private function convertDataForFCM(array $data): array
+    private function convertDataForFCM($data)
     {
-        $fcmData = [];
-        
+        if (!is_array($data)) {
+            return $data;
+        }
+
+        $converted = [];
         foreach ($data as $key => $value) {
             if (is_array($value)) {
-                // Convert arrays to JSON strings
-                $fcmData[$key] = json_encode($value);
-                
                 Log::debug('FCM - Converted array to JSON', [
                     'key' => $key,
-                    'original_type' => 'array',
-                    'converted_value' => $fcmData[$key]
+                    'original_type' => gettype($value),
+                    'converted_value' => json_encode($value)
                 ]);
+                $converted[$key] = json_encode($value);
             } else {
-                // Keep non-array values as strings
-                $fcmData[$key] = (string) $value;
+                $converted[$key] = (string) $value;
             }
         }
-        
+
         Log::info('🔄 FCM - Data conversion completed', [
             'original_keys' => array_keys($data),
-            'converted_keys' => array_keys($fcmData),
+            'converted_keys' => array_keys($converted),
             'arrays_converted' => count(array_filter($data, 'is_array'))
         ]);
-        
-        return $fcmData;
+
+        return $converted;
+    }
+
+    /**
+     * Mark a token as invalid/expired in the database
+     */
+    private function markTokenAsInvalid($token)
+    {
+        try {
+            $pushToken = \App\Models\PushToken::where('push_token', $token)->first();
+            
+            if ($pushToken) {
+                $pushToken->update(['is_active' => false]);
+                
+                Log::info('🗑️ FCM - Token marked as inactive', [
+                    'token_id' => $pushToken->id,
+                    'tenant_id' => $pushToken->tenant_id,
+                    'token_preview' => substr($token, 0, 20) . '...',
+                    'platform' => $pushToken->platform
+                ]);
+            } else {
+                Log::warning('⚠️ FCM - Token not found in database for cleanup', [
+                    'token_preview' => substr($token, 0, 20) . '...'
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('❌ FCM - Error marking token as invalid', [
+                'token_preview' => substr($token, 0, 20) . '...',
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }
