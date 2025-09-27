@@ -65,7 +65,7 @@ class SendPushNotificationListener implements ShouldQueue
             // Improve push notification message with better formatting
             $improvedMessage = $this->improvePushMessage($notificationData);
 
-            // Prepare push notification message
+            // Prepare push notification message with enhanced data (using real model fields)
             $pushMessage = [
                 'title' => $improvedMessage['title'],
                 'body' => $improvedMessage['body'],
@@ -75,6 +75,59 @@ class SendPushNotificationListener implements ShouldQueue
                     'entityId' => $notificationData['ticket_id'] ?? $notificationData['appointment_id'] ?? null,
                     'notification_id' => $event->notification->id ?? null,
                     'timestamp' => now()->toISOString(),
+                    
+                    // Enhanced ticket data if available (using real fields)
+                    'ticket_data' => isset($notificationData['ticket_id']) ? [
+                        'id' => $notificationData['ticket_id'],
+                        'code' => $notificationData['ticket_code'] ?? null,
+                        'title' => $notificationData['ticket_title'] ?? null,
+                        'category' => $notificationData['ticket_category'] ?? null,
+                        'description' => $notificationData['ticket_description'] ?? null,
+                        'status' => $notificationData['new_status'] ?? $notificationData['ticket_status'] ?? null,
+                        'priority' => $notificationData['ticket_priority'] ?? $notificationData['priority'] ?? null,
+                    ] : null,
+                    
+                    // Enhanced technical data if available (using real fields)
+                    'technical_data' => isset($notificationData['technical_id']) ? [
+                        'id' => $notificationData['technical_id'],
+                        'name' => $notificationData['technical_name'] ?? null,
+                        'phone' => $notificationData['technical_phone'] ?? null,
+                        'email' => $notificationData['technical_email'] ?? null,
+                        'shift' => $notificationData['technical_shift'] ?? null,
+                    ] : null,
+                    
+                    // Enhanced device data if available (using real fields from Device model)
+                    'device_data' => isset($notificationData['device_id']) ? [
+                        'id' => $notificationData['device_id'],
+                        'name' => $notificationData['device_name'] ?? null,
+                        'brand' => $notificationData['device_brand'] ?? null,
+                        'model' => $notificationData['device_model'] ?? null,
+                        'ubicacion' => $notificationData['device_ubicacion'] ?? null,
+                    ] : null,
+                    
+                    // Enhanced appointment data if available (using real fields)
+                    'appointment_data' => isset($notificationData['appointment_id']) ? [
+                        'id' => $notificationData['appointment_id'],
+                        'title' => $notificationData['appointment_title'] ?? null,
+                        'description' => $notificationData['appointment_description'] ?? null,
+                        'address' => $notificationData['appointment_address'] ?? null,
+                        'scheduled_for' => $notificationData['scheduled_for'] ?? null,
+                        'status' => $notificationData['appointment_status'] ?? null,
+                        'estimated_duration' => $notificationData['estimated_duration'] ?? null,
+                    ] : null,
+                    
+                    // Client/Location data if available (using real fields)
+                    'location_data' => [
+                        'client_name' => $notificationData['client_name'] ?? null,
+                        'client_phone' => $notificationData['client_phone'] ?? null,
+                        'client_email' => $notificationData['client_email'] ?? null,
+                        'tenant_name' => $notificationData['tenant_name'] ?? null,
+                        'tenant_phone' => $notificationData['tenant_phone'] ?? null,
+                        'apartment_name' => $notificationData['apartment_name'] ?? null,
+                        'apartment_ubicacion' => $notificationData['apartment_ubicacion'] ?? null,
+                        'building_name' => $notificationData['building_name'] ?? null,
+                        'building_address' => $notificationData['building_address'] ?? null,
+                    ]
                 ]
             ];
 
@@ -143,59 +196,225 @@ class SendPushNotificationListener implements ShouldQueue
     }
 
     /**
-     * Improve push notification message with better formatting
+     * Improve push notification message with better formatting using real model fields
      */
     private function improvePushMessage($data): array
     {
         $title = $data['title'] ?? '🔔 New Notification';
         $body = $data['message'] ?? 'You have a new notification';
 
-        // Improve ticket-related messages
+        // Improve ticket-related messages with complete information using real fields
         if (isset($data['ticket_id'])) {
-            // Use ticket title instead of code if available
+            // Get complete ticket information (using real fields from models)
             $ticketTitle = $data['ticket_title'] ?? null;
             $ticketCode = $data['ticket_code'] ?? "Ticket #{$data['ticket_id']}";
+            $deviceName = $data['device_name'] ?? 'Unknown Device';
+            $deviceBrand = $data['device_brand'] ?? null;
+            $deviceModel = $data['device_model'] ?? null;
+            $technicalName = $data['technical_name'] ?? null;
+            $clientName = $data['client_name'] ?? $data['tenant_name'] ?? 'Unknown Client';
+            $buildingName = $data['building_name'] ?? null;
+            $apartmentName = $data['apartment_name'] ?? null;
             
-            // For status changes, improve the message format
+            // For status changes, provide detailed information
             if (isset($data['type']) && $data['type'] === 'ticket_status_changed') {
+                $oldStatus = $this->formatStatusName($data['old_status'] ?? 'unknown');
                 $newStatus = $this->formatStatusName($data['new_status'] ?? 'updated');
                 
                 if ($ticketTitle) {
-                    $title = "📋 Ticket Updated";
-                    $body = "'{$ticketTitle}' is now {$newStatus}";
+                    $title = "🔄 Ticket Status Changed";
+                    $body = "The ticket '{$ticketTitle}' has changed from {$oldStatus} to {$newStatus}";
                 } else {
-                    $title = "📋 Ticket Updated";
-                    $body = "{$ticketCode} is now {$newStatus}";
+                    $title = "🔄 Ticket Status Changed";
+                    $body = "{$ticketCode} has changed from {$oldStatus} to {$newStatus}";
+                }
+                
+                // Add device information if available (using real fields)
+                $deviceInfo = $deviceName;
+                if ($deviceBrand && $deviceName !== 'Unknown Device') $deviceInfo = "{$deviceBrand} {$deviceInfo}";
+                if ($deviceModel && $deviceName !== 'Unknown Device') $deviceInfo .= " ({$deviceModel})";
+                if ($deviceName !== 'Unknown Device') {
+                    $body .= " - Device: {$deviceInfo}";
+                }
+                
+                // Add technical information if assigned
+                if ($technicalName) {
+                    $body .= " - Assigned to: {$technicalName}";
+                }
+                
+                // Add location information if available
+                if ($apartmentName && $buildingName) {
+                    $body .= " - Location: {$apartmentName}, {$buildingName}";
+                } elseif ($apartmentName) {
+                    $body .= " - Location: {$apartmentName}";
                 }
             }
+            
             // For assignment notifications
             elseif (isset($data['type']) && $data['type'] === 'ticket_assigned') {
-                $technicalName = $data['technical_name'] ?? 'a technician';
+                $assignedTechnical = $data['technical_name'] ?? 'a technician';
+                $technicalPhone = $data['technical_phone'] ?? null;
                 
                 if ($ticketTitle) {
-                    $title = "👷 Ticket Assigned";
-                    $body = "'{$ticketTitle}' has been assigned to {$technicalName}";
+                    $title = "👨‍🔧 Ticket Assigned";
+                    $body = "The ticket '{$ticketTitle}' has been assigned to {$assignedTechnical}";
                 } else {
-                    $title = "👷 Ticket Assigned";
-                    $body = "{$ticketCode} has been assigned to {$technicalName}";
+                    $title = "👨‍🔧 Ticket Assigned";
+                    $body = "{$ticketCode} has been assigned to {$assignedTechnical}";
+                }
+                
+                // Add technical phone if available
+                if ($technicalPhone) {
+                    $body .= " (Phone: {$technicalPhone})";
+                }
+                
+                // Add device information (using real fields)
+                $deviceInfo = $deviceName;
+                if ($deviceBrand && $deviceName !== 'Unknown Device') $deviceInfo = "{$deviceBrand} {$deviceInfo}";
+                if ($deviceModel && $deviceName !== 'Unknown Device') $deviceInfo .= " ({$deviceModel})";
+                if ($deviceName !== 'Unknown Device') {
+                    $body .= " - Device: {$deviceInfo}";
+                }
+                
+                // Add location if available
+                if ($apartmentName && $buildingName) {
+                    $body .= " at {$apartmentName}, {$buildingName}";
                 }
             }
+            
+            // For ticket unassigned notifications
+            elseif (isset($data['type']) && $data['type'] === 'ticket_unassigned') {
+                $previousTechnical = $data['previous_technical_name'] ?? $data['technical_name'] ?? 'the technician';
+                
+                if ($ticketTitle) {
+                    $title = "❌ Technician Unassigned";
+                    $body = "The technician {$previousTechnical} has been unassigned from ticket '{$ticketTitle}'";
+                } else {
+                    $title = "❌ Technician Unassigned";
+                    $body = "The technician {$previousTechnical} has been unassigned from {$ticketCode}";
+                }
+                
+                // Add device information
+                $deviceInfo = $deviceName;
+                if ($deviceBrand && $deviceName !== 'Unknown Device') $deviceInfo = "{$deviceBrand} {$deviceInfo}";
+                if ($deviceModel && $deviceName !== 'Unknown Device') $deviceInfo .= " ({$deviceModel})";
+                if ($deviceName !== 'Unknown Device') {
+                    $body .= " - Device: {$deviceInfo}";
+                }
+            }
+            
             // For new tickets
             elseif (isset($data['type']) && $data['type'] === 'ticket_created') {
+                $createdBy = $data['created_by'] ?? $clientName;
+                
                 if ($ticketTitle) {
                     $title = "🎫 New Ticket Created";
-                    $body = "'{$ticketTitle}' has been created";
+                    $body = "New ticket '{$ticketTitle}' has been created by {$createdBy}";
                 } else {
                     $title = "🎫 New Ticket Created";
-                    $body = "{$ticketCode} has been created";
+                    $body = "New {$ticketCode} has been created by {$createdBy}";
+                }
+                
+                // Add device information
+                $deviceInfo = $deviceName;
+                if ($deviceBrand && $deviceName !== 'Unknown Device') $deviceInfo = "{$deviceBrand} {$deviceInfo}";
+                if ($deviceModel && $deviceName !== 'Unknown Device') $deviceInfo .= " ({$deviceModel})";
+                if ($deviceName !== 'Unknown Device') {
+                    $body .= " - Device: {$deviceInfo}";
+                }
+                
+                // Add location if available
+                if ($apartmentName && $buildingName) {
+                    $body .= " at {$apartmentName}, {$buildingName}";
                 }
             }
         }
         
-        // Improve appointment-related messages
+        // Improve appointment-related messages with complete information (using real fields)
         elseif (isset($data['appointment_id'])) {
-            if (isset($data['type']) && strpos($data['type'], 'appointment') !== false) {
-                $title = "📅 " . ucfirst(str_replace(['appointment_', '_'], ['', ' '], $data['type']));
+            $appointmentTitle = $data['appointment_title'] ?? 'Appointment';
+            $appointmentAddress = $data['appointment_address'] ?? '';
+            $technicalName = $data['technical_name'] ?? 'a technician';
+            $clientName = $data['client_name'] ?? 'client';
+            $scheduledFor = $data['scheduled_for'] ?? null;
+            
+            // Format appointment date if available
+            $appointmentDateFormatted = '';
+            if ($scheduledFor) {
+                try {
+                    $appointmentDateFormatted = \Carbon\Carbon::parse($scheduledFor)->format('M d, Y \a\t g:i A');
+                } catch (\Exception $e) {
+                    $appointmentDateFormatted = $scheduledFor;
+                }
+            }
+            
+            if (isset($data['type'])) {
+                switch ($data['type']) {
+                    case 'appointment_created':
+                        $title = "📅 New Appointment Created";
+                        $body = "A new appointment '{$appointmentTitle}' has been created";
+                        if ($appointmentDateFormatted) {
+                            $body .= " for {$appointmentDateFormatted}";
+                        }
+                        if ($technicalName !== 'a technician') {
+                            $body .= " with {$technicalName}";
+                        }
+                        if ($appointmentAddress) {
+                            $body .= " at {$appointmentAddress}";
+                        }
+                        break;
+                        
+                    case 'appointment_rescheduled':
+                        $oldDate = $data['old_datetime_formatted'] ?? 'previous date';
+                        $newDate = $data['new_datetime_formatted'] ?? 'new date';
+                        $title = "🔄 Appointment Rescheduled";
+                        $body = "The appointment '{$appointmentTitle}' has been rescheduled from {$oldDate} to {$newDate}";
+                        break;
+                        
+                    case 'appointment_reminder':
+                        $minutesBefore = $data['minutes_before'] ?? 30;
+                        $title = "⏰ Appointment Reminder";
+                        $body = "Your appointment '{$appointmentTitle}' starts in {$minutesBefore} minutes";
+                        if ($appointmentAddress) {
+                            $body .= " at {$appointmentAddress}";
+                        }
+                        if ($technicalName !== 'a technician') {
+                            $body .= " with {$technicalName}";
+                        }
+                        break;
+                        
+                    case 'appointment_started':
+                        $title = "🚀 Appointment Started";
+                        $body = "The appointment '{$appointmentTitle}' has started";
+                        if ($technicalName !== 'a technician') {
+                            $body .= " with {$technicalName}";
+                        }
+                        break;
+                        
+                    case 'appointment_completed':
+                        $title = "✅ Appointment Completed";
+                        $body = "The appointment '{$appointmentTitle}' has been completed";
+                        if ($technicalName !== 'a technician') {
+                            $body .= " by {$technicalName}";
+                        }
+                        break;
+                        
+                    case 'appointment_cancelled':
+                        $title = "❌ Appointment Cancelled";
+                        $body = "The appointment '{$appointmentTitle}' has been cancelled";
+                        if ($appointmentDateFormatted) {
+                            $body .= " (was scheduled for {$appointmentDateFormatted})";
+                        }
+                        $reason = $data['cancellation_reason'] ?? null;
+                        if ($reason) {
+                            $body .= " - Reason: {$reason}";
+                        }
+                        break;
+                        
+                    default:
+                        $title = "📅 " . ucfirst(str_replace(['appointment_', '_'], ['', ' '], $data['type']));
+                        break;
+                }
             }
         }
 
