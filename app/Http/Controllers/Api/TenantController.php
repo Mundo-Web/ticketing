@@ -486,31 +486,8 @@ class TenantController extends Controller
             'user_name' => $user->name,
         ]);
 
-        // Send push notification for ticket creation
-        try {
-            Log::info("Sending push notification for ticket creation", [
-                'tenant_id' => $tenant->id,
-                'ticket_id' => $ticket->id
-            ]);
-            
-            $pushResult = $this->pushService->sendPushToTenant($tenant->id, [
-                'title' => '🎫 Ticket Creado',
-                'body' => "Tu ticket #{$ticket->id} fue creado exitosamente",
-                'data' => [
-                    'type' => 'ticket',
-                    'screen' => '/tickets',
-                    'entityId' => $ticket->id,
-                    'action' => 'ticket_created'
-                ]
-            ]);
-            
-            Log::info("Push notification result for ticket creation", [
-                'success' => $pushResult['success'],
-                'sent_to_devices' => $pushResult['sent_to_devices'] ?? 0
-            ]);
-        } catch (\Exception $pushError) {
-            Log::error("Failed to send push notification for ticket creation (non-critical): " . $pushError->getMessage());
-        }
+        // Push notification will be sent automatically by SendPushNotificationListener
+        // when the notification is created in the system
 
         return response()->json([
             'ticket' => [
@@ -671,31 +648,16 @@ class TenantController extends Controller
             'device.name_device'
         ]);
 
-        // Send push notification for Android ticket creation
-        try {
-            Log::info("Sending push notification for Android ticket creation", [
-                'tenant_id' => $tenant->id,
-                'ticket_id' => $ticket->id
-            ]);
-            
-            $pushResult = $this->pushService->sendPushToTenant($tenant->id, [
-                'title' => '🎫 Ticket Android Creado',
-                'body' => "Tu ticket #{$ticket->id} fue creado exitosamente desde Android",
-                'data' => [
-                    'type' => 'ticket',
-                    'screen' => '/tickets',
-                    'entityId' => $ticket->id,
-                    'action' => 'ticket_created_android'
-                ]
-            ]);
-            
-            Log::info("Push notification result for Android ticket creation", [
-                'success' => $pushResult['success'],
-                'sent_to_devices' => $pushResult['sent_to_devices'] ?? 0
-            ]);
-        } catch (\Exception $pushError) {
-            Log::error("Failed to send push notification for Android ticket creation (non-critical): " . $pushError->getMessage());
-        }
+        // Load device relations for response
+        $ticket->load([
+            'device.brand',
+            'device.model', 
+            'device.system',
+            'device.name_device'
+        ]);
+
+        // Push notification will be sent automatically by SendPushNotificationListener
+        // when the notification is created in the system
 
         return response()->json([
             'ticket' => [
@@ -1158,31 +1120,8 @@ class TenantController extends Controller
             
             Log::info("History entry created", ['history_id' => $historyEntry->id]);
 
-            // Send push notification to tenant confirming message was sent
-            try {
-                Log::info("Sending push notification to tenant for message confirmation", [
-                    'tenant_id' => $user->tenant->id,
-                    'ticket_id' => $ticket->id
-                ]);
-                
-                $pushResult = $this->pushService->sendPushToTenant($user->tenant->id, [
-                    'title' => '💬 Mensaje Enviado',
-                    'body' => "Tu mensaje fue enviado al técnico para el ticket #{$ticket->id}",
-                    'data' => [
-                        'type' => 'ticket',
-                        'screen' => '/tickets',
-                        'entityId' => $ticket->id,
-                        'action' => 'message_sent'
-                    ]
-                ]);
-                
-                Log::info("Push notification result for tenant", [
-                    'success' => $pushResult['success'],
-                    'sent_to_devices' => $pushResult['sent_to_devices'] ?? 0
-                ]);
-            } catch (\Exception $pushError) {
-                Log::error("Failed to send push notification to tenant (non-critical): " . $pushError->getMessage());
-            }
+            // Push notification will be sent automatically by SendPushNotificationListener
+            // when the notification is created in the system
 
             // Send notification to technician - WRAP IN TRY-CATCH
             $technical = $ticket->technical;

@@ -64,8 +64,8 @@ class SendPushNotificationListener implements ShouldQueue
 
             // Prepare push notification message
             $pushMessage = [
-                'title' => $notificationData['title'] ?? '🔔 Nueva Notificación',
-                'body' => $notificationData['message'] ?? 'Tienes una nueva notificación',
+                'title' => $notificationData['title'] ?? '🔔 New Notification',
+                'body' => $notificationData['message'] ?? 'You have a new notification',
                 'data' => [
                     'type' => $this->extractNotificationType($notificationData),
                     'screen' => $this->extractTargetScreen($notificationData),
