@@ -62,10 +62,13 @@ class SendPushNotificationListener implements ShouldQueue
                 ? $event->notification 
                 : $event->notification->data ?? [];
 
+            // Improve push notification message with better formatting
+            $improvedMessage = $this->improvePushMessage($notificationData);
+
             // Prepare push notification message
             $pushMessage = [
-                'title' => $notificationData['title'] ?? '🔔 New Notification',
-                'body' => $notificationData['message'] ?? 'You have a new notification',
+                'title' => $improvedMessage['title'],
+                'body' => $improvedMessage['body'],
                 'data' => [
                     'type' => $this->extractNotificationType($notificationData),
                     'screen' => $this->extractTargetScreen($notificationData),
@@ -82,6 +85,7 @@ class SendPushNotificationListener implements ShouldQueue
                 'tenant_id' => $tenant->id,
                 'user_id' => $event->userId,
                 'title' => $pushMessage['title'],
+                'body' => $pushMessage['body'],
                 'success' => $result['success'],
                 'sent_to_devices' => $result['sent_to_devices'] ?? 0
             ]);
@@ -136,5 +140,89 @@ class SendPushNotificationListener implements ShouldQueue
         }
 
         return '/notifications';
+    }
+
+    /**
+     * Improve push notification message with better formatting
+     */
+    private function improvePushMessage($data): array
+    {
+        $title = $data['title'] ?? '🔔 New Notification';
+        $body = $data['message'] ?? 'You have a new notification';
+
+        // Improve ticket-related messages
+        if (isset($data['ticket_id'])) {
+            // Use ticket title instead of code if available
+            $ticketTitle = $data['ticket_title'] ?? null;
+            $ticketCode = $data['ticket_code'] ?? "Ticket #{$data['ticket_id']}";
+            
+            // For status changes, improve the message format
+            if (isset($data['type']) && $data['type'] === 'ticket_status_changed') {
+                $newStatus = $this->formatStatusName($data['new_status'] ?? 'updated');
+                
+                if ($ticketTitle) {
+                    $title = "📋 Ticket Updated";
+                    $body = "'{$ticketTitle}' is now {$newStatus}";
+                } else {
+                    $title = "📋 Ticket Updated";
+                    $body = "{$ticketCode} is now {$newStatus}";
+                }
+            }
+            // For assignment notifications
+            elseif (isset($data['type']) && $data['type'] === 'ticket_assigned') {
+                $technicalName = $data['technical_name'] ?? 'a technician';
+                
+                if ($ticketTitle) {
+                    $title = "👷 Ticket Assigned";
+                    $body = "'{$ticketTitle}' has been assigned to {$technicalName}";
+                } else {
+                    $title = "👷 Ticket Assigned";
+                    $body = "{$ticketCode} has been assigned to {$technicalName}";
+                }
+            }
+            // For new tickets
+            elseif (isset($data['type']) && $data['type'] === 'ticket_created') {
+                if ($ticketTitle) {
+                    $title = "🎫 New Ticket Created";
+                    $body = "'{$ticketTitle}' has been created";
+                } else {
+                    $title = "🎫 New Ticket Created";
+                    $body = "{$ticketCode} has been created";
+                }
+            }
+        }
+        
+        // Improve appointment-related messages
+        elseif (isset($data['appointment_id'])) {
+            if (isset($data['type']) && strpos($data['type'], 'appointment') !== false) {
+                $title = "📅 " . ucfirst(str_replace(['appointment_', '_'], ['', ' '], $data['type']));
+            }
+        }
+
+        return [
+            'title' => $title,
+            'body' => $body
+        ];
+    }
+
+    /**
+     * Format status name for better readability
+     */
+    private function formatStatusName($status): string
+    {
+        $statusMap = [
+            'open' => 'Open',
+            'in_progress' => 'In Progress', 
+            'pending' => 'Pending',
+            'resolved' => 'Resolved',
+            'closed' => 'Closed',
+            'cancelled' => 'Cancelled',
+            'reopened' => 'Reopened',
+            'on_hold' => 'On Hold',
+            'waiting_parts' => 'Waiting for Parts',
+            'scheduled' => 'Scheduled'
+        ];
+
+        return $statusMap[$status] ?? ucfirst(str_replace('_', ' ', $status));
     }
 }

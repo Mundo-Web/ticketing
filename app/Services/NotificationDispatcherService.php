@@ -289,15 +289,9 @@ class NotificationDispatcherService
             ]);
             event(new NotificationCreated($notification, $user->id));
 
-            // Si el usuario es member, también emitir evento para móvil
-            if ($user->hasRole('member')) {
-                Log::info('Broadcasting MobileNotificationCreated event for member', [
-                    'user_id' => $user->id,
-                    'notification_id' => $notification->id,
-                    'type' => $data['type'] ?? 'unknown'
-                ]);
-                event(new \App\Events\MobileNotificationCreated($notification, $user->id));
-            }
+            // El evento MobileNotificationCreated se removió para evitar duplicados
+            // El SendPushNotificationListener ya maneja las notificaciones móviles
+            // a través del evento NotificationCreated
 
             Log::info('Database notification created', [
                 'user_id' => $user->id,
