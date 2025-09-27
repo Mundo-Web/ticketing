@@ -29,11 +29,18 @@ class SendPushNotificationListener implements ShouldQueue
     public function handle(NotificationCreated $event): void
     {
         try {
+            // 🔍 LOG 1: Datos iniciales del evento
+            Log::info('📱 PUSH NOTIFICATION LISTENER - Event Received', [
+                'user_id' => $event->userId,
+                'notification_type' => get_class($event->notification),
+                'notification_id' => $event->notification->id ?? 'N/A',
+            ]);
+
             // Get the user who should receive the notification
             $user = User::find($event->userId);
             
             if (!$user) {
-                Log::warning('Push notification skipped: User not found', [
+                Log::warning('❌ Push notification skipped: User not found', [
                     'user_id' => $event->userId
                 ]);
                 return;
@@ -41,7 +48,7 @@ class SendPushNotificationListener implements ShouldQueue
 
             // Only send push notifications to members (tenants)
             if (!$user->hasRole('member')) {
-                Log::info('Push notification skipped: User is not a member', [
+                Log::info('⏭️ Push notification skipped: User is not a member', [
                     'user_id' => $event->userId,
                     'user_roles' => $user->roles->pluck('name')
                 ]);
@@ -51,19 +58,45 @@ class SendPushNotificationListener implements ShouldQueue
             // Get tenant info
             $tenant = $user->tenant;
             if (!$tenant) {
-                Log::warning('Push notification skipped: Tenant not found', [
+                Log::warning('❌ Push notification skipped: Tenant not found', [
                     'user_id' => $event->userId
                 ]);
                 return;
             }
+
+            // 🔍 LOG 2: Usuario y tenant validados
+            Log::info('✅ PUSH NOTIFICATION - User and Tenant Validated', [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'user_email' => $user->email,
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name,
+                'tenant_phone' => $tenant->phone
+            ]);
 
             // Extract notification data
             $notificationData = is_array($event->notification) 
                 ? $event->notification 
                 : $event->notification->data ?? [];
 
+            // 🔍 LOG 3: Datos RAW de la notificación
+            Log::info('📋 PUSH NOTIFICATION - Raw Notification Data', [
+                'raw_notification_data' => $notificationData,
+                'data_type' => gettype($notificationData),
+                'data_keys' => is_array($notificationData) ? array_keys($notificationData) : 'Not array'
+            ]);
+
             // Improve push notification message with better formatting
             $improvedMessage = $this->improvePushMessage($notificationData);
+
+            // 🔍 LOG 4: Mensaje mejorado generado
+            Log::info('✨ PUSH NOTIFICATION - Improved Message Generated', [
+                'original_title' => $notificationData['title'] ?? 'N/A',
+                'original_message' => $notificationData['message'] ?? 'N/A',
+                'improved_title' => $improvedMessage['title'],
+                'improved_body' => $improvedMessage['body'],
+                'notification_type' => $notificationData['type'] ?? 'unknown'
+            ]);
 
             // Prepare push notification message with enhanced data (using real model fields)
             $pushMessage = [
@@ -131,23 +164,61 @@ class SendPushNotificationListener implements ShouldQueue
                 ]
             ];
 
+            // 🔍 LOG 5: Payload completo que se envía al móvil
+            Log::info('📤 PUSH NOTIFICATION - Complete Payload Being Sent', [
+                'tenant_id' => $tenant->id,
+                'complete_push_message' => $pushMessage,
+                'message_structure' => [
+                    'title' => $pushMessage['title'],
+                    'body' => $pushMessage['body'],
+                    'data_keys' => array_keys($pushMessage['data']),
+                    'ticket_data_available' => !is_null($pushMessage['data']['ticket_data']),
+                    'technical_data_available' => !is_null($pushMessage['data']['technical_data']),
+                    'device_data_available' => !is_null($pushMessage['data']['device_data']),
+                    'appointment_data_available' => !is_null($pushMessage['data']['appointment_data']),
+                    'location_data_keys' => array_keys(array_filter($pushMessage['data']['location_data'] ?? []))
+                ]
+            ]);
+
             // Send push notification
             $result = $this->pushService->sendPushToTenant($tenant->id, $pushMessage);
 
-            Log::info('Push notification sent from listener', [
+            // 🔍 LOG 6: Resultado del envío
+            Log::info('📬 PUSH NOTIFICATION - Send Result', [
                 'tenant_id' => $tenant->id,
                 'user_id' => $event->userId,
                 'title' => $pushMessage['title'],
                 'body' => $pushMessage['body'],
-                'success' => $result['success'],
-                'sent_to_devices' => $result['sent_to_devices'] ?? 0
+                'push_service_result' => $result,
+                'success' => $result['success'] ?? false,
+                'sent_to_devices' => $result['sent_to_devices'] ?? 0,
+                'error_message' => $result['error'] ?? null
             ]);
 
+            // 🔍 LOG 7: Resumen final
+            if ($result['success'] ?? false) {
+                Log::info('✅ PUSH NOTIFICATION - Successfully Sent', [
+                    'notification_type' => $notificationData['type'] ?? 'unknown',
+                    'entity_type' => isset($notificationData['ticket_id']) ? 'ticket' : (isset($notificationData['appointment_id']) ? 'appointment' : 'other'),
+                    'entity_id' => $notificationData['ticket_id'] ?? $notificationData['appointment_id'] ?? null,
+                    'devices_reached' => $result['sent_to_devices'] ?? 0
+                ]);
+            } else {
+                Log::warning('⚠️ PUSH NOTIFICATION - Send Failed', [
+                    'notification_type' => $notificationData['type'] ?? 'unknown', 
+                    'error' => $result['error'] ?? 'Unknown error',
+                    'devices_attempted' => $result['attempted_devices'] ?? 0
+                ]);
+            }
+
         } catch (\Exception $e) {
-            Log::error('Error sending push notification from listener', [
+            // 🔍 LOG 8: Error crítico
+            Log::error('❌ PUSH NOTIFICATION - Critical Error', [
                 'user_id' => $event->userId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'stack_trace' => $e->getTraceAsString()
             ]);
         }
     }

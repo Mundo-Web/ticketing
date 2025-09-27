@@ -451,6 +451,17 @@ class NotificationDispatcherService
     private function createDatabaseNotification(User $user, array $data): void
     {
         try {
+            // 🔍 LOG: Datos antes de crear la notificación
+            Log::info('🔔 NOTIFICATION DISPATCHER - Creating Database Notification', [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'user_email' => $user->email,
+                'user_roles' => $user->roles->pluck('name'),
+                'notification_type' => $data['type'] ?? 'unknown',
+                'notification_data_keys' => array_keys($data),
+                'complete_data' => $data
+            ]);
+
             $notification = DatabaseNotification::create([
                 'id' => \Illuminate\Support\Str::uuid(),
                 'type' => 'App\Notifications\TicketNotification',
@@ -462,23 +473,28 @@ class NotificationDispatcherService
                 'updated_at' => now(),
             ]);
 
+            // 🔍 LOG: Notificación creada exitosamente
+            Log::info('✅ NOTIFICATION DISPATCHER - Database Notification Created', [
+                'notification_id' => $notification->id,
+                'user_id' => $user->id,
+                'notification_type' => $data['type'] ?? 'unknown',
+                'will_trigger_push' => $user->hasRole('member') ? 'YES' : 'NO',
+                'stored_data' => $notification->data
+            ]);
+
             // Emitir evento socket para notificación en tiempo real (web)
-            Log::info('Broadcasting NotificationCreated event', [
+            Log::info('📡 NOTIFICATION DISPATCHER - Broadcasting NotificationCreated Event', [
                 'user_id' => $user->id,
                 'notification_id' => $notification->id,
-                'type' => $data['type'] ?? 'unknown'
+                'type' => $data['type'] ?? 'unknown',
+                'event_will_trigger_push_listener' => true
             ]);
+            
             event(new NotificationCreated($notification, $user->id));
 
             // El evento MobileNotificationCreated se removió para evitar duplicados
             // El SendPushNotificationListener ya maneja las notificaciones móviles
             // a través del evento NotificationCreated
-
-            Log::info('Database notification created', [
-                'user_id' => $user->id,
-                'type' => $data['type'] ?? 'unknown',
-                'is_member' => $user->hasRole('member')
-            ]);
         } catch (\Exception $e) {
             Log::error('Error creating database notification', [
                 'user_id' => $user->id,
