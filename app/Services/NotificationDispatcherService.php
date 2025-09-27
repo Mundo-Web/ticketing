@@ -100,6 +100,7 @@ class NotificationDispatcherService
             'technical_phone' => $technical->phone,
             'technical_email' => $technical->email,
             'technical_shift' => $technical->shift,
+            'technical_photo' => $technical->photo,
             'assigned_by' => $assignedBy->name,
             // Device data (campos reales)
             'device_id' => $ticket->device->id,
@@ -107,6 +108,7 @@ class NotificationDispatcherService
             'device_brand' => $ticket->device->brand->name ?? null,
             'device_model' => $ticket->device->model->name ?? null,
             'device_ubicacion' => $ticket->device->ubicacion,
+            'device_icon' => $ticket->device->icon_id ?? null,
             // Client data (campos reales)
             'client_name' => $ticket->user->tenant?->name ?? $ticket->user->name,
             'client_phone' => $ticket->user->tenant?->phone,
@@ -116,6 +118,7 @@ class NotificationDispatcherService
             'apartment_ubicacion' => $ticket->user->tenant?->apartment?->ubicacion,
             'building_name' => $ticket->user->tenant?->apartment?->building?->name,
             'building_address' => $ticket->user->tenant?->apartment?->building?->address,
+            'building_photo' => $ticket->user->tenant?->apartment?->building?->image,
             'message' => "Ticket #{$ticket->code} has been assigned to you",
             'type' => 'ticket_assigned',
             'priority' => 'high'
@@ -134,6 +137,7 @@ class NotificationDispatcherService
                 'technical_phone' => $technical->phone,
                 'technical_email' => $technical->email,
                 'technical_shift' => $technical->shift,
+                'technical_photo' => $technical->photo,
                 'assigned_by' => $assignedBy->name,
                 // Device data (campos reales)
                 'device_id' => $ticket->device->id,
@@ -141,6 +145,7 @@ class NotificationDispatcherService
                 'device_brand' => $ticket->device->brand->name ?? null,
                 'device_model' => $ticket->device->model->name ?? null,
                 'device_ubicacion' => $ticket->device->ubicacion,
+                'device_icon' => $ticket->device->icon_id ?? null,
                 'message' => "Your ticket #{$ticket->code} has been assigned to {$technical->name}",
                 'type' => 'ticket_assigned',
                 'priority' => 'medium'
@@ -189,6 +194,7 @@ class NotificationDispatcherService
             'ticket_priority' => $ticket->priority,
             'technical_id' => $previousTechnical->id,
             'technical_name' => $previousTechnical->name,
+            'technical_photo' => $previousTechnical->photo,
             'unassigned_by' => $unassignedBy->name,
             // Device data (campos reales)
             'device_id' => $ticket->device->id,
@@ -196,6 +202,7 @@ class NotificationDispatcherService
             'device_brand' => $ticket->device->brand->name ?? null,
             'device_model' => $ticket->device->model->name ?? null,
             'device_ubicacion' => $ticket->device->ubicacion,
+            'device_icon' => $ticket->device->icon_id ?? null,
             // Client data (campos reales)
             'client_name' => $ticket->user->tenant?->name ?? $ticket->user->name,
             'client_phone' => $ticket->user->tenant?->phone,
@@ -221,6 +228,7 @@ class NotificationDispatcherService
                 'device_brand' => $ticket->device->brand->name ?? null,
                 'device_model' => $ticket->device->model->name ?? null,
                 'device_ubicacion' => $ticket->device->ubicacion,
+                'device_icon' => $ticket->device->icon_id ?? null,
                 'message' => "The technician {$previousTechnical->name} has been unassigned from your ticket #{$ticket->code}",
                 'type' => 'ticket_unassigned',
                 'priority' => 'medium'
@@ -286,6 +294,9 @@ class NotificationDispatcherService
                 'technical_phone' => $ticket->technical?->phone,
                 'technical_email' => $ticket->technical?->email,
                 'technical_shift' => $ticket->technical?->shift,
+                'technical_photo' => $ticket->technical?->photo,
+                // Device icon
+                'device_icon' => $ticket->device->icon_id ?? null,
                 // Location data (campos reales)
                 'tenant_name' => $ticket->user->tenant?->name,
                 'tenant_phone' => $ticket->user->tenant?->phone,
@@ -293,6 +304,7 @@ class NotificationDispatcherService
                 'apartment_ubicacion' => $ticket->user->tenant?->apartment?->ubicacion,
                 'building_name' => $ticket->user->tenant?->apartment?->building?->name,
                 'building_address' => $ticket->user->tenant?->apartment?->building?->address,
+                'building_photo' => $ticket->user->tenant?->apartment?->building?->image,
                 'message' => "Your ticket #{$ticket->code} status changed from {$oldStatus} to {$newStatus}",
                 'type' => 'ticket_status_changed',
                 'priority' => $this->getStatusChangePriority($newStatus)
@@ -316,6 +328,7 @@ class NotificationDispatcherService
                 'device_brand' => $ticket->device->brand->name ?? null,
                 'device_model' => $ticket->device->model->name ?? null,
                 'device_ubicacion' => $ticket->device->ubicacion,
+                'device_icon' => $ticket->device->icon ?? null,
                 // Client data (campos reales)
                 'client_name' => $ticket->user->tenant?->name ?? $ticket->user->name,
                 'client_phone' => $ticket->user->tenant?->phone,
@@ -325,6 +338,7 @@ class NotificationDispatcherService
                 'apartment_ubicacion' => $ticket->user->tenant?->apartment?->ubicacion,
                 'building_name' => $ticket->user->tenant?->apartment?->building?->name,
                 'building_address' => $ticket->user->tenant?->apartment?->building?->address,
+                'building_photo' => $ticket->user->tenant?->apartment?->building?->photo,
                 'message' => "Ticket #{$ticket->code} status changed to {$newStatus}",
                 'type' => 'ticket_status_changed',
                 'priority' => 'medium'
@@ -372,6 +386,7 @@ class NotificationDispatcherService
                 'comment' => substr($comment, 0, 100) . (strlen($comment) > 100 ? '...' : ''),
                 'comment_by' => $commentBy->name,
                 'device_name' => $ticket->device->name_device->name ?? 'Unknown Device',
+                'device_icon' => $ticket->device->icon_id ?? null,
                 'message' => "New comment on ticket #{$ticket->code} by {$commentBy->name}",
                 'type' => 'ticket_comment',
                 'priority' => 'medium'
@@ -387,6 +402,7 @@ class NotificationDispatcherService
                 'comment' => substr($comment, 0, 100) . (strlen($comment) > 100 ? '...' : ''),
                 'comment_by' => $commentBy->name,
                 'device_name' => $ticket->device->name_device->name ?? 'Unknown Device',
+                'device_icon' => $ticket->device->icon_id ?? null,
                 'message' => "New comment on your ticket #{$ticket->code} by {$commentBy->name}",
                 'type' => 'ticket_comment',
                 'priority' => 'medium'
@@ -554,8 +570,11 @@ class NotificationDispatcherService
                 'ticket_title' => $ticket->title,
                 'status' => $status,
                 'changed_by' => $changedBy->name,
+                'technical_photo' => $ticket->technical?->photo,
                 'device_name' => $ticket->device->name_device->name ?? 'Unknown Device',
+                'device_icon' => $ticket->device->icon_id ?? null,
                 'building_name' => $building->name,
+                'building_photo' => $building->image,
                 'apartment_name' => $ticket->user->tenant->apartment->name ?? 'Unknown Apartment',
                 'member_name' => $ticket->user->name ?? 'Unknown Member',
                 'message' => "Ticket #{$ticket->code} in {$building->name} has been resolved",

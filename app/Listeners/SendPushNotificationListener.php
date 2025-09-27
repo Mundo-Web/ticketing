@@ -137,6 +137,7 @@ class SendPushNotificationListener implements ShouldQueue
                         'phone' => $notificationData['technical_phone'] ?? null,
                         'email' => $notificationData['technical_email'] ?? null,
                         'shift' => $notificationData['technical_shift'] ?? null,
+                        'photo' => $notificationData['technical_photo'] ?? null,
                     ] : null,
                     
                     // Enhanced device data if available (using real fields from Device model)
@@ -146,6 +147,7 @@ class SendPushNotificationListener implements ShouldQueue
                         'brand' => $notificationData['device_brand'] ?? null,
                         'model' => $notificationData['device_model'] ?? null,
                         'ubicacion' => $notificationData['device_ubicacion'] ?? null,
+                        'icon' => $notificationData['device_icon'] ?? null,
                     ] : null,
                     
                     // Enhanced appointment data if available (using real fields)
@@ -170,6 +172,7 @@ class SendPushNotificationListener implements ShouldQueue
                         'apartment_ubicacion' => $notificationData['apartment_ubicacion'] ?? null,
                         'building_name' => $notificationData['building_name'] ?? null,
                         'building_address' => $notificationData['building_address'] ?? null,
+                        'building_photo' => $notificationData['building_photo'] ?? null,
                     ]
                 ]
             ];
