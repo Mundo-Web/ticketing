@@ -21,6 +21,12 @@ class PushNotificationController extends Controller
      */
     public function registerToken(Request $request)
     {
+        Log::info("📱 PUSH TOKEN REGISTRATION ATTEMPT", [
+            'user_agent' => $request->header('User-Agent'),
+            'ip' => $request->ip(),
+            'request_data' => $request->all()
+        ]);
+
         try {
             $validated = $request->validate([
                 'push_token' => 'required|string',
@@ -32,6 +38,10 @@ class PushNotificationController extends Controller
                 'app_ownership' => 'nullable|string',
                 'is_standalone' => 'nullable|boolean',
                 'execution_environment' => 'nullable|string',
+            ]);
+
+            Log::info("✅ VALIDATION PASSED", [
+                'validated_data' => $validated
             ]);
 
             $user = $request->user();

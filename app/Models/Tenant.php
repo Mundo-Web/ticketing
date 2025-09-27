@@ -54,4 +54,12 @@ class Tenant extends Model
         return $this->tickets()->count();
     }
 
+    /**
+     * Push tokens for push notifications
+     */
+    public function pushTokens()
+    {
+        return $this->hasMany(PushToken::class);
+    }
+
 }

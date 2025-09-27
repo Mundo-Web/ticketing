@@ -37,11 +37,43 @@ class PushNotificationService
     public function sendPushToTenant($tenantId, $message)
     {
         try {
+            // DEBUGGING LOG - Ver qué se está intentando enviar
+            Log::info("🔔 PUSH NOTIFICATION REQUEST", [
+                'tenant_id' => $tenantId,
+                'title' => $message['title'],
+                'body' => $message['body']
+            ]);
+
             // Get all active tokens for the tenant
             $tokenRecords = PushToken::forTenant($tenantId)->active()->get();
 
+            // DEBUGGING LOG - Ver qué tokens existen para este tenant
+            Log::info("📊 TOKENS FOUND FOR TENANT", [
+                'tenant_id' => $tenantId,
+                'total_tokens' => $tokenRecords->count(),
+                'tokens_detail' => $tokenRecords->map(function($token) {
+                    return [
+                        'id' => $token->id,
+                        'type' => $token->token_type,
+                        'platform' => $token->platform,
+                        'device' => $token->device_name,
+                        'standalone' => $token->is_standalone,
+                        'token_preview' => substr($token->push_token, 0, 30) . '...'
+                    ];
+                })->toArray()
+            ]);
+
             if ($tokenRecords->isEmpty()) {
-                Log::info("No push tokens found for tenant: {$tenantId}");
+                Log::warning("❌ NO PUSH TOKENS FOUND", [
+                    'tenant_id' => $tenantId,
+                    'message' => 'No active push tokens found for this tenant',
+                    'possible_causes' => [
+                        'App not registering tokens',
+                        'User not logged in mobile app',
+                        'Tokens expired or deactivated'
+                    ]
+                ]);
+                
                 return [
                     'success' => false,
                     'message' => 'No active push tokens found',
