@@ -36,12 +36,30 @@ class PushNotificationService
             foreach ($tokenRecords as $tokenRecord) {
                 try {
                     if ($tokenRecord->isFcm()) {
-                        $result = $this->sendToFirebase(
-                            $tokenRecord->push_token,
-                            $message['title'],
-                            $message['body'],
-                            $message['data'] ?? []
-                        );
+                        // Try FCM first, fallback to Expo if Firebase not available
+                        try {
+                            $result = $this->sendToFirebase(
+                                $tokenRecord->push_token,
+                                $message['title'],
+                                $message['body'],
+                                $message['data'] ?? []
+                            );
+                        } catch (\Exception $fcmError) {
+                            Log::warning("FCM failed, trying Expo fallback", [
+                                'tenant_id' => $tenantId,
+                                'fcm_error' => $fcmError->getMessage(),
+                                'token' => substr($tokenRecord->push_token, 0, 20) . '...'
+                            ]);
+                            
+                            // Fallback to Expo if FCM fails
+                            $result = $this->sendToExpo(
+                                $tokenRecord->push_token,
+                                $message['title'],
+                                $message['body'],
+                                $message['data'] ?? []
+                            );
+                            $result['fallback'] = 'expo';
+                        }
                     } else {
                         $result = $this->sendToExpo(
                             $tokenRecord->push_token,
@@ -138,14 +156,28 @@ class PushNotificationService
     private function sendToFirebase($token, $title, $body, $data)
     {
         try {
-            // Check if Firebase is configured
-            if (!config('services.firebase.credentials') || !config('services.firebase.project_id')) {
-                throw new \Exception('Firebase credentials not configured');
+                        // Check if credentials file exists
+            $credentialsPath = config('services.firebase.credentials');
+            $fullPath = null;
+            
+            // Try different path combinations
+            if (file_exists($credentialsPath)) {
+                $fullPath = $credentialsPath;
+            } elseif (file_exists(base_path($credentialsPath))) {
+                $fullPath = base_path($credentialsPath);
+            } elseif (file_exists(storage_path('app/firebase/firebase-adminsdk.json'))) {
+                $fullPath = storage_path('app/firebase/firebase-adminsdk.json');
+            }
+            
+            if (!$fullPath) {
+                throw new \Exception('Firebase credentials file not found. Tried: ' . $credentialsPath . ', ' . base_path($credentialsPath) . ', ' . storage_path('app/firebase/firebase-adminsdk.json'));
             }
 
+            Log::info('Using Firebase credentials file: ' . $fullPath);
+
             // Initialize Firebase
-            $factory = (new Factory)
-                ->withServiceAccount(config('services.firebase.credentials'))
+            $factory = (new \Kreait\Firebase\Factory)
+                ->withServiceAccount($fullPath)
                 ->withProjectId(config('services.firebase.project_id'));
                 
             $messaging = $factory->createMessaging();
