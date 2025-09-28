@@ -6,6 +6,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\DoormanController;
+use App\Http\Controllers\NameDeviceController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\TechnicalController;
 use App\Http\Controllers\TicketController;
@@ -288,6 +289,9 @@ Route::get('/test-send-notification-simple', function () {
         ->name('technicals.reset-password');
     Route::post('technicals/{technical}/send-instruction', [TechnicalController::class, 'sendInstruction'])
         ->name('technicals.send-instruction');
+
+    // Name Devices Routes - Protected for super-admin and default technical only
+    Route::resource('name-devices', NameDeviceController::class);
 
     // Chief Tech Routes - Protected by chief_tech middleware
     Route::prefix('chief-tech')->name('chief-tech.')->middleware('chief_tech')->group(function () {

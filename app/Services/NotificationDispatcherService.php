@@ -109,7 +109,7 @@ class NotificationDispatcherService
             'device_brand' => $ticket->device->brand->name ?? null,
             'device_model' => $ticket->device->model->name ?? null,
             'device_ubicacion' => $ticket->device->ubicacion,
-            'device_icon' => $ticket->device->icon_id ?? null,
+            'device_icon' => $ticket->device->name_device->image ?? null,
             // Client data (campos reales)
             'client_name' => $ticket->user->tenant?->name ?? $ticket->user->name,
             'client_phone' => $ticket->user->tenant?->phone,
@@ -148,6 +148,7 @@ class NotificationDispatcherService
                 'device_model' => $ticket->device->model->name ?? null,
                 'device_ubicacion' => $ticket->device->ubicacion,
                 'device_icon' => $ticket->device->icon_id ?? null,
+                'device_image' => $ticket->device->name_device->image ?? null,
                 'message' => "Your ticket #{$ticket->code} has been assigned to {$technical->name}",
                 'type' => 'ticket_assigned',
                 'priority' => 'medium'
@@ -205,7 +206,7 @@ class NotificationDispatcherService
             'device_brand' => $ticket->device->brand->name ?? null,
             'device_model' => $ticket->device->model->name ?? null,
             'device_ubicacion' => $ticket->device->ubicacion,
-            'device_icon' => $ticket->device->icon_id ?? null,
+            'device_icon' => $ticket->device->name_device->image ?? null,
             // Client data (campos reales)
             'client_name' => $ticket->user->tenant?->name ?? $ticket->user->name,
             'client_phone' => $ticket->user->tenant?->phone,
@@ -233,6 +234,7 @@ class NotificationDispatcherService
                 'device_model' => $ticket->device->model->name ?? null,
                 'device_ubicacion' => $ticket->device->ubicacion,
                 'device_icon' => $ticket->device->icon_id ?? null,
+                'device_image' => $ticket->device->name_device->image ?? null,
                 'message' => "The technician {$previousTechnical->name} has been unassigned from your ticket #{$ticket->code}",
                 'type' => 'ticket_unassigned',
                 'priority' => 'medium'
@@ -301,6 +303,7 @@ class NotificationDispatcherService
                 'technical_photo' => $ticket->technical?->photo,
                 // Device icon
                 'device_icon' => $ticket->device->icon_id ?? null,
+                'device_image' => $ticket->device->name_device->image ?? null,
                 // Location data (campos reales)
                 'tenant_name' => $ticket->user->tenant?->name,
                 'tenant_phone' => $ticket->user->tenant?->phone,
@@ -332,7 +335,8 @@ class NotificationDispatcherService
                 'device_brand' => $ticket->device->brand->name ?? null,
                 'device_model' => $ticket->device->model->name ?? null,
                 'device_ubicacion' => $ticket->device->ubicacion,
-                'device_icon' => $ticket->device->icon ?? null,
+                'device_icon' => $ticket->device->icon_id ?? null,
+                'device_image' => $ticket->device->name_device->image ?? null,
                 // Client data (campos reales)
                 'client_name' => $ticket->user->tenant?->name ?? $ticket->user->name,
                 'client_phone' => $ticket->user->tenant?->phone,
@@ -392,6 +396,7 @@ class NotificationDispatcherService
                 'comment_by' => $commentBy->name,
                 'device_name' => $ticket->device->name_device->name ?? 'Unknown Device',
                 'device_icon' => $ticket->device->icon_id ?? null,
+                'device_image' => $ticket->device->name_device->image ?? null,
                 'message' => "New comment on ticket #{$ticket->code} by {$commentBy->name}",
                 'type' => 'ticket_comment',
                 'priority' => 'medium'
@@ -409,6 +414,7 @@ class NotificationDispatcherService
                 'comment_by' => $commentBy->name,
                 'device_name' => $ticket->device->name_device->name ?? 'Unknown Device',
                 'device_icon' => $ticket->device->icon_id ?? null,
+                'device_image' => $ticket->device->name_device->image ?? null,
                 'message' => "New comment on your ticket #{$ticket->code} by {$commentBy->name}",
                 'type' => 'ticket_comment',
                 'priority' => 'medium'
@@ -579,6 +585,7 @@ class NotificationDispatcherService
                 'technical_photo' => $ticket->technical?->photo,
                 'device_name' => $ticket->device->name_device->name ?? 'Unknown Device',
                 'device_icon' => $ticket->device->icon_id ?? null,
+                'device_image' => $ticket->device->name_device->image ?? null,
                 'building_name' => $building->name,
                 'building_photo' => $building->image,
                 'apartment_name' => $ticket->user->tenant->apartment->name ?? 'Unknown Apartment',

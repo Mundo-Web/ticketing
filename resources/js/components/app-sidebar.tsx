@@ -75,6 +75,12 @@ export function AppSidebar() {
       isActive: route().current('technicals.*'),
     },
     {
+      title: 'Devices',
+      href: '/name-devices',
+      icon: Laptop,
+      isActive: route().current('name-devices.*'),
+    },
+    {
       title: 'Tickets',
       icon: FileText,
       isActive: route().current('tickets.*'),
@@ -222,13 +228,19 @@ export function AppSidebar() {
       },
     ];
 
-    // Solo agregar el menú "Technicals" si el usuario es technical default
+    // Solo agregar el menú "Technicals" y "Devices" si el usuario es technical default
     if (isDefaultTechnical) {
       baseItems.splice(1, 0, {
         title: 'Technicals',
         href: '/technicals',
         icon: Users,
         isActive: route().current('technicals.*'),
+      });
+      baseItems.splice(2, 0, {
+        title: 'Devices',
+        href: '/name-devices',
+        icon: Laptop,
+        isActive: route().current('name-devices.*'),
       });
     }
 
