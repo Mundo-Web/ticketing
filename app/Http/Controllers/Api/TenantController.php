@@ -253,6 +253,7 @@ class TenantController extends Controller
                         'system' => $ticket->device->system?->name,
                         'device_type' => $ticket->device->name_device?->name,
                         'icon_id' => $ticket->device->icon_id,
+                        'ubicacion' => $ticket->device->ubicacion,
                         'name_device' => $ticket->device->name_device ? [
                             'id' => $ticket->device->name_device->id,
                             'name' => $ticket->device->name_device->name,
