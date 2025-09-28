@@ -265,6 +265,7 @@ class TenantController extends Controller
                         'name' => $ticket->technical->name,
                         'email' => $ticket->technical->email,
                         'phone' => $ticket->technical->phone,
+                        'photo' => $ticket->technical->photo,
                     ] : null,
                     'histories_count' => $ticket->histories->count(),
                 ];
