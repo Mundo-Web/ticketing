@@ -215,6 +215,10 @@ class AppointmentController extends Controller
             $technical->id
         );
 
+        // Dispatch appointment created notification
+        $notificationService = new \App\Services\NotificationDispatcherService();
+        $notificationService->dispatchAppointmentCreated($appointment);
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,

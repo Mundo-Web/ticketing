@@ -312,7 +312,7 @@ class NotificationDispatcherService
                 'building_name' => $ticket->user->tenant?->apartment?->building?->name,
                 'building_address' => $ticket->user->tenant?->apartment?->building?->address,
                 'building_photo' => $ticket->user->tenant?->apartment?->building?->image,
-                'message' => "Your ticket #{$ticket->code} status changed from {$oldStatus} to {$newStatus}",
+                'message' => "{$changedBy->name} has changed your ticket '{$ticket->code}' to " . ucfirst(str_replace('_', ' ', $newStatus)),
                 'type' => 'ticket_status_changed',
                 'priority' => $this->getStatusChangePriority($newStatus)
             ]);
@@ -347,7 +347,7 @@ class NotificationDispatcherService
                 'building_name' => $ticket->user->tenant?->apartment?->building?->name,
                 'building_address' => $ticket->user->tenant?->apartment?->building?->address,
                 'building_photo' => $ticket->user->tenant?->apartment?->building?->photo,
-                'message' => "Ticket #{$ticket->code} status changed to {$newStatus}",
+                'message' => "{$changedBy->name} has changed ticket '{$ticket->code}' to " . ucfirst(str_replace('_', ' ', $newStatus)),
                 'type' => 'ticket_status_changed',
                 'priority' => 'medium'
             ]);
@@ -385,40 +385,69 @@ class NotificationDispatcherService
             'comment_by' => $commentBy->id
         ]);
         
+        // Cargar relaciones necesarias
+        $ticket->load([
+            'user.tenant.apartment.building',
+            'device.name_device',
+            'device.brand',
+            'device.model',
+            'technical'
+        ]);
+        
+        // Obtener información del comentarista
+        $technical = \App\Models\Technical::where('email', $commentBy->email)->first();
+        $commenterName = $technical ? $technical->name : $commentBy->name;
+        
+        // Preparar datos base completos
+        $baseData = [
+            'ticket_id' => $ticket->id,
+            'ticket_code' => $ticket->code,
+            'ticket_title' => $ticket->title,
+            'ticket_status' => $ticket->status,
+            'ticket_priority' => $ticket->priority,
+            
+            // Device data completo
+            'device_id' => $ticket->device->id,
+            'device_name' => $ticket->device->name_device->name ?? $ticket->device->name ?? 'Unknown Device',
+            'device_image' => $ticket->device->name_device?->image,
+            'device_icon' => $ticket->device->icon_id,
+            'device_brand' => $ticket->device->brand->name ?? null,
+            'device_model' => $ticket->device->model->name ?? null,
+            'device_ubicacion' => $ticket->device->ubicacion,
+            
+            // Comment data
+            'comment_text' => $comment,
+            'comment_by' => $commenterName,
+            'comment_by_type' => $technical ? 'technician' : 'user',
+            
+            // Technical data
+            'technical_id' => $technical?->id,
+            'technical_name' => $technical?->name,
+            'technical_phone' => $technical?->phone,
+            'technical_photo' => $technical?->photo,
+            
+            // Client/Location data
+            'client_name' => $ticket->user->tenant?->name ?? $ticket->user->name,
+            'client_phone' => $ticket->user->tenant?->phone ?? $ticket->user->phone,
+            'apartment_name' => $ticket->user->tenant?->apartment?->name,
+            'building_name' => $ticket->user->tenant?->apartment?->building?->name,
+            
+            'type' => 'ticket_comment_added',
+            'priority' => 'medium'
+        ];
+        
         // 1. Notificar al técnico asignado (si no es quien comentó)
         if ($ticket->technical && $ticket->technical->email !== $commentBy->email) {
-            $this->notifyTechnical($ticket->technical, [
-                'ticket_id' => $ticket->id,
-                'ticket_code' => $ticket->code,
-                'ticket_title' => $ticket->title,
-                'ticket_status' => $ticket->status,
-                'comment' => substr($comment, 0, 100) . (strlen($comment) > 100 ? '...' : ''),
-                'comment_by' => $commentBy->name,
-                'device_name' => $ticket->device->name_device->name ?? 'Unknown Device',
-                'device_icon' => $ticket->device->icon_id ?? null,
-                'device_image' => $ticket->device->name_device->image ?? null,
-                'message' => "New comment on ticket #{$ticket->code} by {$commentBy->name}",
-                'type' => 'ticket_comment',
-                'priority' => 'medium'
-            ]);
+            $this->notifyTechnical($ticket->technical, array_merge($baseData, [
+                'message' => "{$commenterName} has commented on ticket '{$ticket->code}' mentioning: {$comment}",
+            ]));
         }
         
         // 2. Notificar al usuario que creó el ticket (si no es quien comentó)
         if ($ticket->user && $ticket->user->id !== $commentBy->id) {
-            $this->notifyUser($ticket->user, [
-                'ticket_id' => $ticket->id,
-                'ticket_code' => $ticket->code,
-                'ticket_title' => $ticket->title,
-                'ticket_status' => $ticket->status,
-                'comment' => substr($comment, 0, 100) . (strlen($comment) > 100 ? '...' : ''),
-                'comment_by' => $commentBy->name,
-                'device_name' => $ticket->device->name_device->name ?? 'Unknown Device',
-                'device_icon' => $ticket->device->icon_id ?? null,
-                'device_image' => $ticket->device->name_device->image ?? null,
-                'message' => "New comment on your ticket #{$ticket->code} by {$commentBy->name}",
-                'type' => 'ticket_comment',
-                'priority' => 'medium'
-            ]);
+            $this->notifyUser($ticket->user, array_merge($baseData, [
+                'message' => "{$commenterName} has commented on your ticket '{$ticket->code}' mentioning: {$comment}",
+            ]));
         }
     }
     
@@ -700,6 +729,8 @@ class NotificationDispatcherService
             default => 'low'
         };
     }
+
+
 
     /**
      * Crear notificación de cita creada

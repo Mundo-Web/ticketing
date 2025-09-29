@@ -877,6 +877,12 @@ class TicketController extends Controller
             $technicalId
         );
 
+        // Disparar notificación de comentario si es un comentario
+        if ($validated['action'] === 'comment' && !empty($description)) {
+            $notificationService = new \App\Services\NotificationDispatcherService();
+            $notificationService->dispatchTicketCommentAdded($ticket, $description, $user);
+        }
+
         // Emitir evento socket si corresponde
         if (
             $request->has('broadcastNotification') &&

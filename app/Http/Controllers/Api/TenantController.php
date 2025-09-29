@@ -936,6 +936,20 @@ class TenantController extends Controller
                     'new_status' => $data['new_status'] ?? null,
                     'changed_by' => $data['changed_by'] ?? null,
                     
+                    // Comment data (for comment notifications)
+                    'comment_text' => $data['comment_text'] ?? null,
+                    'comment_by' => $data['comment_by'] ?? null,
+                    'comment_by_type' => $data['comment_by_type'] ?? null,
+                    
+                    // Appointment data (for appointment notifications)
+                    'appointment_id' => $data['appointment_id'] ?? null,
+                    'appointment_title' => $data['appointment_title'] ?? null,
+                    'appointment_address' => $data['appointment_address'] ?? null,
+                    'appointment_status' => $data['appointment_status'] ?? null,
+                    'appointment_date_formatted' => $data['appointment_date_formatted'] ?? null,
+                    'scheduled_for' => $data['scheduled_for'] ?? null,
+                    'estimated_duration' => $data['estimated_duration'] ?? null,
+                    
                     // UI data
                     'action_url' => $data['action_url'] ?? null,
                     'icon' => $this->getNotificationIcon($data),
@@ -1564,6 +1578,9 @@ class TenantController extends Controller
             case 'ticket_comment':
                 return '💬 New Comment';
                 
+            case 'ticket_comment_added':
+                return '💬 New Comment';
+                
             case 'ticket_resolved':
                 return '✅ Ticket Resolved';
                 
@@ -1604,6 +1621,8 @@ class TenantController extends Controller
             case 'ticket_unassigned':
                 return 'person-remove';
             case 'ticket_comment':
+                return 'chatbubble';
+            case 'ticket_comment_added':
                 return 'chatbubble';
             case 'ticket_resolved':
                 return 'checkmark-circle';
@@ -1648,6 +1667,8 @@ class TenantController extends Controller
             case 'ticket_unassigned':
                 return '#FF3B30'; // Red
             case 'ticket_comment':
+                return '#AF52DE'; // Purple
+            case 'ticket_comment_added':
                 return '#AF52DE'; // Purple
             case 'ticket_resolved':
                 return '#30D158'; // Bright Green
