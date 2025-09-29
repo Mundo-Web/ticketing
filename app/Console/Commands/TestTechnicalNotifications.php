@@ -77,15 +77,35 @@ class TestTechnicalNotifications extends Command
         
         $this->info('Test notification created!');
         
+        $this->info('=== TESTING APPOINTMENT NOTIFICATIONS ===');
+        
+        // Buscar una cita para probar
+        $appointment = \App\Models\Appointment::with(['ticket', 'technical', 'scheduledBy'])->first();
+        if ($appointment) {
+            $this->info("Testing appointment: {$appointment->id}");
+            $this->info("Ticket: {$appointment->ticket->code}");
+            $this->info("Technical: " . ($appointment->technical ? $appointment->technical->name : 'None'));
+            $this->info("Scheduled by: " . ($appointment->scheduledBy ? $appointment->scheduledBy->name : 'None'));
+            
+            // Ejecutar el servicio de notificaciones de appointment
+            $service->dispatchAppointmentCreated($appointment);
+            $this->info('Appointment notification dispatched!');
+        } else {
+            $this->info('No appointments found for testing');
+        }
+        
         // Mostrar la nueva notificación
         $this->info('Nueva notificación creada:');
         $newNotification = DatabaseNotification::latest()->first();
         $data = is_array($newNotification->data) ? $newNotification->data : json_decode($newNotification->data, true);
         
         $this->line("ID: {$newNotification->id}");
+        $this->line("Type: " . ($data['type'] ?? 'null'));
         $this->line("Technical ID: " . ($data['technical_id'] ?? 'null'));
         $this->line("Technical Name: " . ($data['technical_name'] ?? 'null'));
         $this->line("Device Name: " . ($data['device_name'] ?? 'null'));
+        $this->line("Appointment Title: " . ($data['appointment_title'] ?? 'null'));
+        $this->line("Created By: " . ($data['created_by'] ?? 'null'));
         $this->line("Message: " . ($data['message'] ?? 'null'));
     }
 }

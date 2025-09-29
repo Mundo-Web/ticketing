@@ -788,55 +788,132 @@ class NotificationDispatcherService
             'ticket_id' => $appointment->ticket_id
         ]);
 
-        // Cargar todas las relaciones necesarias
-        $appointment->load(['ticket.user.tenant.apartment.building', 'technical']);
+        // Cargar TODAS las relaciones necesarias incluyendo device, technical y scheduledBy
+        $appointment->load([
+            'ticket.user.tenant.apartment.building',
+            'ticket.device.name_device',
+            'ticket.device.brand',
+            'ticket.device.model',
+            'ticket.technical',
+            'technical',
+            'scheduledBy'
+        ]);
 
-        $appointmentDateFormatted = \Carbon\Carbon::parse($appointment->scheduled_for)->format('M d, Y \a\t g:i A');
+        $appointmentDateFormatted = \Carbon\Carbon::parse($appointment->scheduled_for)->format('d/m/Y \a\t H:i');
+        $appointmentDay = \Carbon\Carbon::parse($appointment->scheduled_for)->format('l, F j, Y');
+        $appointmentTime = \Carbon\Carbon::parse($appointment->scheduled_for)->format('H:i');
+        
+        // Obtener información de quién creó la cita
+        $createdBy = $appointment->scheduledBy;
+        $createdByName = $createdBy ? $createdBy->name : 'System';
+        
+        // Preparar datos base completos para la cita
+        $baseAppointmentData = [
+            // Appointment data
+            'appointment_id' => $appointment->id,
+            'appointment_title' => $appointment->title,
+            'appointment_description' => $appointment->description,
+            'appointment_address' => $appointment->address,
+            'appointment_notes' => $appointment->notes,
+            'appointment_member_instructions' => $appointment->member_instructions,
+            'scheduled_for' => $appointment->scheduled_for,
+            'appointment_date_formatted' => $appointmentDateFormatted,
+            'appointment_day' => $appointmentDay,
+            'appointment_time' => $appointmentTime,
+            'appointment_status' => $appointment->status,
+            'estimated_duration' => $appointment->estimated_duration,
+            'created_by' => $createdByName,
+            'created_at' => $appointment->created_at->format('d/m/Y H:i'),
+            
+            // Ticket data
+            'ticket_id' => $appointment->ticket->id,
+            'ticket_code' => $appointment->ticket->code,
+            'ticket_title' => $appointment->ticket->title,
+            'ticket_status' => $appointment->ticket->status,
+            'ticket_priority' => $appointment->ticket->priority,
+            'ticket_category' => $appointment->ticket->category,
+            
+            // Device data (información completa del dispositivo)
+            'device_id' => $appointment->ticket->device->id,
+            'device_name' => $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device',
+            'device_image' => $appointment->ticket->device->name_device?->image,
+            'device_brand' => $appointment->ticket->device->brand->name ?? null,
+            'device_model' => $appointment->ticket->device->model->name ?? null,
+            'device_ubicacion' => $appointment->ticket->device->ubicacion,
+            'device_icon' => $appointment->ticket->device->icon_id,
+            
+            // Technical data PRINCIPAL (del appointment - es el más relevante para la notificación)
+            'technical_id' => $appointment->technical?->id,
+            'technical_name' => $appointment->technical?->name,
+            'technical_phone' => $appointment->technical?->phone,
+            'technical_photo' => $appointment->technical?->photo,
+            
+            // Technical data adicional del appointment (para referencia)
+            'appointment_technical_id' => $appointment->technical?->id,
+            'appointment_technical_name' => $appointment->technical?->name,
+            'appointment_technical_phone' => $appointment->technical?->phone,
+            'appointment_technical_photo' => $appointment->technical?->photo,
+            
+            // Technical data del ticket (puede ser diferente)
+            'ticket_technical_id' => $appointment->ticket->technical?->id,
+            'ticket_technical_name' => $appointment->ticket->technical?->name,
+            'ticket_technical_phone' => $appointment->ticket->technical?->phone,
+            'ticket_technical_photo' => $appointment->ticket->technical?->photo,
+            
+            // Client/Location data
+            'client_name' => $appointment->ticket->user->tenant?->name ?? $appointment->ticket->user->name,
+            'client_phone' => $appointment->ticket->user->tenant?->phone ?? $appointment->ticket->user->phone,
+            'apartment_name' => $appointment->ticket->user->tenant?->apartment?->name,
+            'building_name' => $appointment->ticket->user->tenant?->apartment?->building?->name,
+            'building_address' => $appointment->ticket->user->tenant?->apartment?->building?->address,
+            
+            'type' => 'appointment_created',
+            'priority' => 'high'
+        ];
 
-        // 1. Notificar al técnico asignado
+        // 1. Notificar al técnico asignado a la cita
         if ($appointment->technical) {
-            $this->notifyTechnical($appointment->technical, [
-                'appointment_id' => $appointment->id,
-                'appointment_title' => $appointment->title,
-                'appointment_address' => $appointment->address,
-                'scheduled_for' => $appointment->scheduled_for,
-                'appointment_date_formatted' => $appointmentDateFormatted,
-                'appointment_status' => $appointment->status,
-                'estimated_duration' => $appointment->estimated_duration,
-                'ticket_id' => $appointment->ticket->id,
-                'ticket_code' => $appointment->ticket->code,
-                'ticket_title' => $appointment->ticket->title,
-                'client_name' => $appointment->ticket->user->name,
-                'client_phone' => $appointment->ticket->user->phone ?? null,
-                'building_name' => $appointment->ticket->user->tenant->apartment->building->name ?? 'Unknown Building',
-                'apartment_name' => $appointment->ticket->user->tenant->apartment->name ?? 'Unknown Apartment',
-                'message' => "New appointment '{$appointment->title}' has been scheduled for {$appointmentDateFormatted}",
-                'type' => 'appointment_created',
-                'priority' => 'high'
-            ]);
+            $deviceInfo = $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device';
+            $locationInfo = $appointment->ticket->user->tenant?->apartment?->name 
+                ? "Apt. " . $appointment->ticket->user->tenant->apartment->name . " - " . ($appointment->ticket->user->tenant->apartment->building->name ?? '')
+                : 'Location TBD';
+            
+            $notesSection = $appointment->notes ? " | Notes: {$appointment->notes}" : '';
+            $instructionsSection = $appointment->member_instructions ? " | Instructions: {$appointment->member_instructions}" : '';
+            
+            $this->notifyTechnical($appointment->technical, array_merge($baseAppointmentData, [
+                'message' => "NEW APPOINTMENT: '{$appointment->title}' created by {$createdByName} for {$appointmentDay} at {$appointmentTime} | Ticket: {$appointment->ticket->code} ({$appointment->ticket->title}) | Device: {$deviceInfo} | Location: {$locationInfo}{$notesSection}{$instructionsSection}",
+            ]));
         }
 
-        // 2. Notificar al cliente
+        // 2. Notificar al cliente del ticket
         if ($appointment->ticket->user) {
-            $this->notifyUser($appointment->ticket->user, [
-                'appointment_id' => $appointment->id,
-                'appointment_title' => $appointment->title,
-                'appointment_address' => $appointment->address,
-                'scheduled_for' => $appointment->scheduled_for,
-                'appointment_date_formatted' => $appointmentDateFormatted,
-                'appointment_status' => $appointment->status,
-                'estimated_duration' => $appointment->estimated_duration,
-                'ticket_id' => $appointment->ticket->id,
-                'ticket_code' => $appointment->ticket->code,
-                'ticket_title' => $appointment->ticket->title,
-                'technical_name' => $appointment->technical->name ?? 'TBD',
-                'technical_phone' => $appointment->technical->phone ?? null,
-                'technical_speciality' => $appointment->technical->speciality ?? null,
-                'message' => "A new appointment '{$appointment->title}' has been scheduled for {$appointmentDateFormatted}",
-                'type' => 'appointment_created',
-                'priority' => 'medium'
-            ]);
+            $deviceInfo = $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device';
+            $technicianInfo = $appointment->technical ? $appointment->technical->name : 'TBD';
+            
+            $this->notifyUser($appointment->ticket->user, array_merge($baseAppointmentData, [
+                'message' => "APPOINTMENT SCHEDULED: '{$appointment->title}' with technician {$technicianInfo} on {$appointmentDay} at {$appointmentTime} for your ticket {$appointment->ticket->code} ({$deviceInfo}). Created by: {$createdByName}",
+            ]));
         }
+
+        // 3. Si el técnico del ticket es diferente al del appointment, también notificar al técnico del ticket
+        if ($appointment->ticket->technical && 
+            $appointment->technical && 
+            $appointment->ticket->technical->id !== $appointment->technical->id) {
+            
+            $deviceInfo = $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device';
+            
+            $this->notifyTechnical($appointment->ticket->technical, array_merge($baseAppointmentData, [
+                'message' => "APPOINTMENT CREATED for your ticket {$appointment->ticket->code}: '{$appointment->title}' assigned to {$appointment->technical->name} on {$appointmentDay} at {$appointmentTime} | Device: {$deviceInfo} | Created by: {$createdByName}",
+            ]));
+        }
+
+        // 4. Notificar a admins sobre la nueva cita
+        $technicianName = $appointment->technical ? $appointment->technical->name : 'TBD';
+        $this->notifyAdmins(array_merge($baseAppointmentData, [
+            'message' => "New appointment '{$appointment->title}' created by {$createdByName} for ticket {$appointment->ticket->code} | Technician: {$technicianName} | Date: {$appointmentDay} at {$appointmentTime}",
+            'priority' => 'low'
+        ]), [$createdBy?->id]);
     }
 
     /**
