@@ -900,7 +900,7 @@ class TenantController extends Controller
                 return [
                     'id' => $notification->id,
                     'type' => $notification->type,
-                    'title' => $data['title'] ?? 'Notificación',
+                    'title' => $this->getNotificationTitle($data),
                     'message' => $data['message'] ?? 'Nueva notificación',
                     
                     // Ticket data
@@ -938,8 +938,8 @@ class TenantController extends Controller
                     
                     // UI data
                     'action_url' => $data['action_url'] ?? null,
-                    'icon' => $data['icon'] ?? 'bell',
-                    'color' => $data['color'] ?? 'blue',
+                    'icon' => $this->getNotificationIcon($data),
+                    'color' => $this->getNotificationColor($data),
                     'priority' => $data['priority'] ?? 'medium',
                     'notification_type' => $data['type'] ?? 'unknown',
                     
@@ -1539,5 +1539,130 @@ class TenantController extends Controller
         } while (\App\Models\Ticket::where('code', $code)->exists());
 
         return $code;
+    }
+
+    /**
+     * Get notification title with emojis based on type
+     */
+    private function getNotificationTitle($data)
+    {
+        $type = $data['type'] ?? 'unknown';
+        
+        switch ($type) {
+            case 'ticket_created':
+                return '🎫 New Ticket Created';
+                
+            case 'ticket_assigned':
+                return '👨‍🔧 Ticket Assigned';
+                
+            case 'ticket_status_changed':
+                return '🔄 Status Updated';
+                
+            case 'ticket_unassigned':
+                return '❌ Technician Unassigned';
+                
+            case 'ticket_comment':
+                return '💬 New Comment';
+                
+            case 'ticket_resolved':
+                return '✅ Ticket Resolved';
+                
+            case 'appointment_created':
+                return '📅 New Appointment';
+                
+            case 'appointment_started':
+                return '🚀 Appointment Started';
+                
+            case 'appointment_completed':
+                return '✅ Appointment Completed';
+                
+            case 'appointment_cancelled':
+                return '❌ Appointment Cancelled';
+                
+            case 'appointment_rescheduled':
+                return '🔄 Appointment Rescheduled';
+                
+            default:
+                return '🔔 Notification';
+        }
+    }
+
+    /**
+     * Get notification icon based on type
+     */
+    private function getNotificationIcon($data)
+    {
+        $type = $data['type'] ?? 'unknown';
+        
+        switch ($type) {
+            case 'ticket_created':
+                return 'ticket';
+            case 'ticket_assigned':
+                return 'person-add';
+            case 'ticket_status_changed':
+                return 'refresh';
+            case 'ticket_unassigned':
+                return 'person-remove';
+            case 'ticket_comment':
+                return 'chatbubble';
+            case 'ticket_resolved':
+                return 'checkmark-circle';
+            case 'appointment_created':
+                return 'calendar';
+            case 'appointment_started':
+                return 'play-circle';
+            case 'appointment_completed':
+                return 'checkmark-done-circle';
+            case 'appointment_cancelled':
+                return 'close-circle';
+            case 'appointment_rescheduled':
+                return 'time';
+            default:
+                return 'notifications';
+        }
+    }
+
+    /**
+     * Get notification color based on type and priority
+     */
+    private function getNotificationColor($data)
+    {
+        $type = $data['type'] ?? 'unknown';
+        $priority = $data['priority'] ?? 'medium';
+        
+        // Priority-based colors
+        if ($priority === 'urgent') {
+            return '#FF3B30'; // Red
+        } elseif ($priority === 'high') {
+            return '#FF9500'; // Orange
+        }
+        
+        // Type-based colors
+        switch ($type) {
+            case 'ticket_created':
+                return '#007AFF'; // Blue
+            case 'ticket_assigned':
+                return '#34C759'; // Green
+            case 'ticket_status_changed':
+                return '#5AC8FA'; // Light Blue
+            case 'ticket_unassigned':
+                return '#FF3B30'; // Red
+            case 'ticket_comment':
+                return '#AF52DE'; // Purple
+            case 'ticket_resolved':
+                return '#30D158'; // Bright Green
+            case 'appointment_created':
+                return '#007AFF'; // Blue
+            case 'appointment_started':
+                return '#32D74B'; // Green
+            case 'appointment_completed':
+                return '#30D158'; // Bright Green
+            case 'appointment_cancelled':
+                return '#FF453A'; // Red
+            case 'appointment_rescheduled':
+                return '#FF9F0A'; // Orange
+            default:
+                return '#8E8E93'; // Gray
+        }
     }
 }

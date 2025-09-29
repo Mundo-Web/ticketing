@@ -42,17 +42,17 @@ Authorization: Bearer {token}
     {
       "id": "uuid-notification-id",
       "type": "App\\Notifications\\TicketNotification",
-      "title": "Notificación",
-      "message": "Your ticket #TCK-00123 has been assigned to John Doe",
+      "title": "👨‍🔧 Ticket Assigned",
+      "message": "The ticket 'Problema con aire acondicionado' has been assigned to John Doe (Phone: +1234567890) - Device: Samsung Aire Acondicionado Sala at Apto 301, Edificio Central",
       
-      // 🎫 TICKET DATA
+      // 🎫 TICKET DATA (campos directos como en push notifications)
       "ticket_id": 123,
       "ticket_code": "TCK-00123",
       "ticket_title": "Problema con aire acondicionado",
       "ticket_status": "assigned",
       "ticket_priority": "high",
       
-      // 🔧 DEVICE DATA (incluye imagen nueva)
+      // 🔧 DEVICE DATA (campos directos, incluye imagen nueva)
       "device_id": 456,
       "device_name": "Aire Acondicionado Sala",
       "device_image": "/storage/name_devices/ac_image.jpg", // ✅ NUEVA IMAGEN
@@ -61,13 +61,13 @@ Authorization: Bearer {token}
       "device_model": "WindFree",
       "device_ubicacion": "Sala Principal",
       
-      // 👨‍💻 TECHNICAL DATA
+      // 👨‍💻 TECHNICAL DATA (campos directos)
       "technical_id": 789,
       "technical_name": "John Doe",
       "technical_phone": "+1234567890",
       "technical_photo": "/storage/technicals/john_photo.jpg",
       
-      // 🏠 LOCATION DATA
+      // 🏠 LOCATION DATA (campos directos)
       "client_name": "María García",
       "client_phone": "+0987654321",
       "building_name": "Edificio Central",
@@ -257,20 +257,27 @@ class NotificationService {
         this.modalOpen = true;
         
         const modalData = {
-            // Todos los datos están disponibles en la API
+            // Los datos están disponibles directamente (no en objetos anidados)
             ticketId: notification.ticket_id,
             ticketCode: notification.ticket_code,
             ticketTitle: notification.ticket_title,
             
-            // Device data (con nueva imagen)
+            // Device data (con nueva imagen) - campos directos
             deviceName: notification.device_name,
             deviceImage: notification.device_image, // ✅ Nueva imagen disponible
             deviceBrand: notification.device_brand,
+            deviceUbicacion: notification.device_ubicacion,
             
-            // Technical data
+            // Technical data - campos directos
             technicalName: notification.technical_name,
             technicalPhone: notification.technical_phone,
             technicalPhoto: notification.technical_photo,
+            
+            // Client/Location data - campos directos
+            clientName: notification.client_name,
+            clientPhone: notification.client_phone,
+            apartmentName: notification.apartment_name,
+            buildingName: notification.building_name,
             
             // Notification data
             message: notification.message,
@@ -293,7 +300,7 @@ class NotificationService {
             
             const pushData = response.notification.request.content.data;
             
-            // Mostrar modal con datos del push
+            // Los datos del push vienen directamente en pushData (no objetos anidados)
             this.showModalFromPushData(pushData);
         });
     }
@@ -655,7 +662,7 @@ Si quieres implementar **solo lo básico** para que funcione inmediatamente:
 Notifications.addNotificationReceivedListener(notification => {
     const data = notification.request.content.data;
     
-    // Modal básico con datos del push
+    // Modal básico con datos del push (campos directos)
     Alert.alert(
         data.notification_type === 'ticket_assigned' ? '✅ Técnico Asignado' : '🔔 Notificación',
         data.body || data.message,
@@ -680,11 +687,11 @@ function navigateToTicket(ticketId) {
 Si quieres modales más elaborados con toda la información:
 
 ```javascript
-// Modal personalizado con toda la data del push
+// Modal personalizado con toda la data del push (campos directos)
 function showAdvancedModal(pushData) {
     const modalContent = (
         <View style={styles.modalContent}>
-            {/* Imagen del device */}
+            {/* Imagen del device - campo directo */}
             {pushData.device_image && (
                 <Image 
                     source={{ uri: `${API_BASE_URL}${pushData.device_image}` }}
@@ -692,16 +699,19 @@ function showAdvancedModal(pushData) {
                 />
             )}
             
-            {/* Info del ticket */}
+            {/* Info del ticket - campos directos */}
             <Text style={styles.title}>{pushData.ticket_title}</Text>
             <Text style={styles.code}>#{pushData.ticket_code}</Text>
             
-            {/* Info del device */}
+            {/* Info del device - campos directos */}
             <Text style={styles.device}>
                 📱 {pushData.device_name} ({pushData.device_brand})
             </Text>
+            <Text style={styles.location}>
+                📍 {pushData.device_ubicacion}
+            </Text>
             
-            {/* Info del técnico */}
+            {/* Info del técnico - campos directos */}
             {pushData.technical_name && (
                 <View style={styles.technicalInfo}>
                     <Text>👨‍🔧 {pushData.technical_name}</Text>
@@ -709,6 +719,13 @@ function showAdvancedModal(pushData) {
                         <Text>📞 {pushData.technical_phone}</Text>
                     )}
                 </View>
+            )}
+            
+            {/* Info de ubicación - campos directos */}
+            {pushData.apartment_name && pushData.building_name && (
+                <Text style={styles.locationInfo}>
+                    🏢 {pushData.apartment_name}, {pushData.building_name}
+                </Text>
             )}
             
             {/* Botones */}
