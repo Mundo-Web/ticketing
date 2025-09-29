@@ -879,8 +879,32 @@ class TicketController extends Controller
 
         // Disparar notificación de comentario si es un comentario
         if ($validated['action'] === 'comment' && !empty($description)) {
-            $notificationService = new \App\Services\NotificationDispatcherService();
-            $notificationService->dispatchTicketCommentAdded($ticket, $description, $user);
+            try {
+                // Recargar el ticket con todas las relaciones necesarias
+                $ticketWithRelations = Ticket::with([
+                    'user.tenant.apartment.building',
+                    'device.name_device',
+                    'device.brand',
+                    'device.model',
+                    'technical'
+                ])->find($ticket->id);
+                
+                $notificationService = new \App\Services\NotificationDispatcherService();
+                $notificationService->dispatchTicketCommentAdded($ticketWithRelations, $description, $user);
+                
+                Log::info('Comment notification dispatched successfully', [
+                    'ticket_id' => $ticket->id,
+                    'comment_by' => $user->id,
+                    'comment' => substr($description, 0, 100)
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error sending comment notification', [
+                    'ticket_id' => $ticket->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // No interrumpir el flujo si la notificación falla
+            }
         }
 
         // Emitir evento socket si corresponde

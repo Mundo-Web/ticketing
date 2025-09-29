@@ -438,16 +438,45 @@ class NotificationDispatcherService
         
         // 1. Notificar al técnico asignado (si no es quien comentó)
         if ($ticket->technical && $ticket->technical->email !== $commentBy->email) {
+            Log::info('Sending comment notification to technical', [
+                'technical_id' => $ticket->technical->id,
+                'technical_email' => $ticket->technical->email,
+                'commenter_email' => $commentBy->email,
+                'ticket_id' => $ticket->id
+            ]);
+            
             $this->notifyTechnical($ticket->technical, array_merge($baseData, [
                 'message' => "{$commenterName} has commented on ticket '{$ticket->code}' mentioning: {$comment}",
             ]));
+        } else {
+            Log::info('Skipping technical notification', [
+                'has_technical' => !!$ticket->technical,
+                'technical_email' => $ticket->technical?->email,
+                'commenter_email' => $commentBy->email,
+                'same_person' => $ticket->technical?->email === $commentBy->email
+            ]);
         }
         
         // 2. Notificar al usuario que creó el ticket (si no es quien comentó)
         if ($ticket->user && $ticket->user->id !== $commentBy->id) {
+            Log::info('Sending comment notification to ticket owner', [
+                'ticket_user_id' => $ticket->user->id,
+                'ticket_user_email' => $ticket->user->email,
+                'commenter_id' => $commentBy->id,
+                'commenter_email' => $commentBy->email,
+                'ticket_id' => $ticket->id
+            ]);
+            
             $this->notifyUser($ticket->user, array_merge($baseData, [
                 'message' => "{$commenterName} has commented on your ticket '{$ticket->code}' mentioning: {$comment}",
             ]));
+        } else {
+            Log::info('Skipping user notification', [
+                'has_user' => !!$ticket->user,
+                'ticket_user_id' => $ticket->user?->id,
+                'commenter_id' => $commentBy->id,
+                'same_person' => $ticket->user?->id === $commentBy->id
+            ]);
         }
     }
     
@@ -487,10 +516,27 @@ class NotificationDispatcherService
      */
     private function notifyTechnical(Technical $technical, array $data): void
     {
+        Log::info('NotifyTechnical called', [
+            'technical_id' => $technical->id,
+            'technical_email' => $technical->email,
+            'notification_type' => $data['type'] ?? 'unknown'
+        ]);
+        
         $technicalUser = User::where('email', $technical->email)->first();
         
         if ($technicalUser) {
+            Log::info('Technical user found, creating notification', [
+                'technical_user_id' => $technicalUser->id,
+                'technical_user_email' => $technicalUser->email,
+                'technical_user_roles' => $technicalUser->roles->pluck('name')
+            ]);
+            
             $this->createDatabaseNotification($technicalUser, $data);
+        } else {
+            Log::warning('Technical user not found', [
+                'technical_id' => $technical->id,
+                'technical_email' => $technical->email
+            ]);
         }
     }
     
