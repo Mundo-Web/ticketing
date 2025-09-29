@@ -420,11 +420,11 @@ class NotificationDispatcherService
             'comment_by' => $commenterName,
             'comment_by_type' => $technical ? 'technician' : 'user',
             
-            // Technical data
-            'technical_id' => $technical?->id,
-            'technical_name' => $technical?->name,
-            'technical_phone' => $technical?->phone,
-            'technical_photo' => $technical?->photo,
+            // Technical data (assigned technical)
+            'technical_id' => $ticket->technical?->id,
+            'technical_name' => $ticket->technical?->name,
+            'technical_phone' => $ticket->technical?->phone,
+            'technical_photo' => $ticket->technical?->photo,
             
             // Client/Location data
             'client_name' => $ticket->user->tenant?->name ?? $ticket->user->name,
