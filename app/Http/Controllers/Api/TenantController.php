@@ -902,11 +902,48 @@ class TenantController extends Controller
                     'type' => $notification->type,
                     'title' => $data['title'] ?? 'Notificación',
                     'message' => $data['message'] ?? 'Nueva notificación',
+                    
+                    // Ticket data
                     'ticket_id' => $data['ticket_id'] ?? null,
                     'ticket_code' => $data['ticket_code'] ?? null,
+                    'ticket_title' => $data['ticket_title'] ?? null,
+                    'ticket_status' => $data['ticket_status'] ?? null,
+                    'ticket_priority' => $data['ticket_priority'] ?? null,
+                    
+                    // Device data (con imagen que agregamos)
+                    'device_id' => $data['device_id'] ?? null,
+                    'device_name' => $data['device_name'] ?? null,
+                    'device_image' => $data['device_image'] ?? null,
+                    'device_icon' => $data['device_icon'] ?? null,
+                    'device_brand' => $data['device_brand'] ?? null,
+                    'device_model' => $data['device_model'] ?? null,
+                    'device_ubicacion' => $data['device_ubicacion'] ?? null,
+                    
+                    // Technical data
+                    'technical_id' => $data['technical_id'] ?? null,
+                    'technical_name' => $data['technical_name'] ?? null,
+                    'technical_phone' => $data['technical_phone'] ?? null,
+                    'technical_photo' => $data['technical_photo'] ?? null,
+                    
+                    // Client/Location data
+                    'client_name' => $data['client_name'] ?? null,
+                    'client_phone' => $data['client_phone'] ?? null,
+                    'building_name' => $data['building_name'] ?? null,
+                    'apartment_name' => $data['apartment_name'] ?? null,
+                    
+                    // Status change specific
+                    'old_status' => $data['old_status'] ?? null,
+                    'new_status' => $data['new_status'] ?? null,
+                    'changed_by' => $data['changed_by'] ?? null,
+                    
+                    // UI data
                     'action_url' => $data['action_url'] ?? null,
                     'icon' => $data['icon'] ?? 'bell',
                     'color' => $data['color'] ?? 'blue',
+                    'priority' => $data['priority'] ?? 'medium',
+                    'notification_type' => $data['type'] ?? 'unknown',
+                    
+                    // Meta
                     'is_read' => !is_null($notification->read_at),
                     'read_at' => $notification->read_at,
                     'created_at' => $notification->created_at->toISOString(),
