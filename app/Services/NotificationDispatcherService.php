@@ -961,79 +961,362 @@ class NotificationDispatcherService
     public function dispatchAppointmentCompleted(Appointment $appointment): void
     {
         Log::info('Dispatching appointment completed notifications', [
-            'appointment_id' => $appointment->id
+            'appointment_id' => $appointment->id,
+            'ticket_id' => $appointment->ticket_id
         ]);
 
-        $appointment->load(['ticket.user', 'technical']);
+        // Cargar TODAS las relaciones necesarias
+        $appointment->load([
+            'ticket.user.tenant.apartment.building',
+            'ticket.device.name_device',
+            'ticket.device.brand',
+            'ticket.device.model',
+            'ticket.technical',
+            'technical',
+            'scheduledBy'
+        ]);
+
+        $appointmentDateFormatted = \Carbon\Carbon::parse($appointment->scheduled_for)->format('d/m/Y \a\t H:i');
+        $completedAt = \Carbon\Carbon::parse($appointment->completed_at)->format('d/m/Y \a\t H:i');
+        
+        // Preparar datos base completos
+        $baseCompletionData = [
+            // Appointment data
+            'appointment_id' => $appointment->id,
+            'appointment_title' => $appointment->title,
+            'appointment_description' => $appointment->description,
+            'appointment_address' => $appointment->address,
+            'appointment_notes' => $appointment->notes,
+            'appointment_member_instructions' => $appointment->member_instructions,
+            'appointment_completion_notes' => $appointment->completion_notes,
+            'scheduled_for' => $appointment->scheduled_for,
+            'completed_at' => $appointment->completed_at,
+            'appointment_date_formatted' => $appointmentDateFormatted,
+            'completed_at_formatted' => $completedAt,
+            'appointment_status' => $appointment->status,
+            'estimated_duration' => $appointment->estimated_duration,
+            
+            // Ticket data
+            'ticket_id' => $appointment->ticket->id,
+            'ticket_code' => $appointment->ticket->code,
+            'ticket_title' => $appointment->ticket->title,
+            'ticket_status' => $appointment->ticket->status,
+            'ticket_priority' => $appointment->ticket->priority,
+            'ticket_category' => $appointment->ticket->category,
+            
+            // Device data
+            'device_id' => $appointment->ticket->device->id,
+            'device_name' => $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device',
+            'device_image' => $appointment->ticket->device->name_device?->image,
+            'device_brand' => $appointment->ticket->device->brand->name ?? null,
+            'device_model' => $appointment->ticket->device->model->name ?? null,
+            'device_ubicacion' => $appointment->ticket->device->ubicacion,
+            'device_icon' => $appointment->ticket->device->icon_id,
+            
+            // Technical data PRINCIPAL
+            'technical_id' => $appointment->technical?->id,
+            'technical_name' => $appointment->technical?->name,
+            'technical_phone' => $appointment->technical?->phone,
+            'technical_photo' => $appointment->technical?->photo,
+            
+            // Client/Location data
+            'client_name' => $appointment->ticket->user->tenant?->name ?? $appointment->ticket->user->name,
+            'client_phone' => $appointment->ticket->user->tenant?->phone ?? $appointment->ticket->user->phone,
+            'apartment_name' => $appointment->ticket->user->tenant?->apartment?->name,
+            'building_name' => $appointment->ticket->user->tenant?->apartment?->building?->name,
+            'building_address' => $appointment->ticket->user->tenant?->apartment?->building?->address,
+            
+            'type' => 'appointment_completed',
+            'priority' => 'high'
+        ];
 
         // 1. Notificar al cliente que la cita ha terminado
         if ($appointment->ticket->user) {
-            $this->notifyUser($appointment->ticket->user, [
-                'appointment_id' => $appointment->id,
-                'appointment_title' => $appointment->title,
-                'technical_name' => $appointment->technical->name,
-                'ticket_code' => $appointment->ticket->code,
-                'completion_notes' => $appointment->completion_notes ?? '',
-                'message' => "Your appointment '{$appointment->title}' has been completed by {$appointment->technical->name}",
-                'type' => 'appointment_completed',
-                'priority' => 'medium'
-            ]);
+            $deviceInfo = $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device';
+            $completionNotes = $appointment->completion_notes ? " | Work completed: {$appointment->completion_notes}" : '';
+            
+            $this->notifyUser($appointment->ticket->user, array_merge($baseCompletionData, [
+                'message' => "VISIT COMPLETED: '{$appointment->title}' by technician {$appointment->technical->name} on {$completedAt} for ticket {$appointment->ticket->code} ({$deviceInfo}){$completionNotes}",
+            ]));
         }
 
-        // 2. Notificar a admins
-        $this->notifyAdmins([
-            'appointment_id' => $appointment->id,
-            'appointment_title' => $appointment->title,
-            'technical_name' => $appointment->technical->name,
-            'client_name' => $appointment->ticket->user->name,
-            'ticket_code' => $appointment->ticket->code,
-            'message' => "Appointment '{$appointment->title}' completed by {$appointment->technical->name}",
-            'type' => 'appointment_completed',
+        // 2. Notificar al técnico del ticket (si es diferente al que completó)
+        if ($appointment->ticket->technical && 
+            $appointment->technical && 
+            $appointment->ticket->technical->id !== $appointment->technical->id) {
+            
+            $deviceInfo = $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device';
+            
+            $this->notifyTechnical($appointment->ticket->technical, array_merge($baseCompletionData, [
+                'message' => "APPOINTMENT COMPLETED for your ticket {$appointment->ticket->code}: '{$appointment->title}' completed by {$appointment->technical->name} on {$completedAt} | Device: {$deviceInfo}",
+            ]));
+        }
+
+        // 3. Notificar a admins
+        $this->notifyAdmins(array_merge($baseCompletionData, [
+            'message' => "Appointment '{$appointment->title}' completed by {$appointment->technical->name} for ticket {$appointment->ticket->code} on {$completedAt}",
             'priority' => 'low'
-        ]);
+        ]));
     }
 
     /**
      * Crear notificación de cita cancelada
      */
-    public function dispatchAppointmentCancelled(Appointment $appointment, string $reason = null): void
+    public function dispatchAppointmentCancelled(Appointment $appointment, string $reason = null, User $cancelledBy = null): void
     {
         Log::info('Dispatching appointment cancelled notifications', [
             'appointment_id' => $appointment->id,
-            'reason' => $reason
+            'ticket_id' => $appointment->ticket_id,
+            'reason' => $reason,
+            'cancelled_by' => $cancelledBy?->id
         ]);
 
-        $appointment->load(['ticket.user', 'technical']);
-        $appointmentDateFormatted = \Carbon\Carbon::parse($appointment->scheduled_for)->format('M d, Y \a\t g:i A');
+        // Cargar TODAS las relaciones necesarias
+        $appointment->load([
+            'ticket.user.tenant.apartment.building',
+            'ticket.device.name_device',
+            'ticket.device.brand',
+            'ticket.device.model',
+            'ticket.technical',
+            'technical',
+            'scheduledBy'
+        ]);
 
-        // 1. Notificar al técnico
+        $appointmentDateFormatted = \Carbon\Carbon::parse($appointment->scheduled_for)->format('d/m/Y \a\t H:i');
+        $appointmentDay = \Carbon\Carbon::parse($appointment->scheduled_for)->format('l, F j, Y');
+        $appointmentTime = \Carbon\Carbon::parse($appointment->scheduled_for)->format('H:i');
+        $cancelledByName = $cancelledBy ? $cancelledBy->name : 'System';
+        
+        // Preparar datos base completos
+        $baseCancellationData = [
+            // Appointment data
+            'appointment_id' => $appointment->id,
+            'appointment_title' => $appointment->title,
+            'appointment_description' => $appointment->description,
+            'appointment_address' => $appointment->address,
+            'appointment_notes' => $appointment->notes,
+            'appointment_member_instructions' => $appointment->member_instructions,
+            'scheduled_for' => $appointment->scheduled_for,
+            'appointment_date_formatted' => $appointmentDateFormatted,
+            'appointment_day' => $appointmentDay,
+            'appointment_time' => $appointmentTime,
+            'appointment_status' => $appointment->status,
+            'estimated_duration' => $appointment->estimated_duration,
+            'cancellation_reason' => $reason,
+            'cancelled_by' => $cancelledByName,
+            'cancelled_at' => now()->format('d/m/Y H:i'),
+            
+            // Ticket data
+            'ticket_id' => $appointment->ticket->id,
+            'ticket_code' => $appointment->ticket->code,
+            'ticket_title' => $appointment->ticket->title,
+            'ticket_status' => $appointment->ticket->status,
+            'ticket_priority' => $appointment->ticket->priority,
+            'ticket_category' => $appointment->ticket->category,
+            
+            // Device data
+            'device_id' => $appointment->ticket->device->id,
+            'device_name' => $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device',
+            'device_image' => $appointment->ticket->device->name_device?->image,
+            'device_brand' => $appointment->ticket->device->brand->name ?? null,
+            'device_model' => $appointment->ticket->device->model->name ?? null,
+            'device_ubicacion' => $appointment->ticket->device->ubicacion,
+            'device_icon' => $appointment->ticket->device->icon_id,
+            
+            // Technical data PRINCIPAL
+            'technical_id' => $appointment->technical?->id,
+            'technical_name' => $appointment->technical?->name,
+            'technical_phone' => $appointment->technical?->phone,
+            'technical_photo' => $appointment->technical?->photo,
+            
+            // Client/Location data
+            'client_name' => $appointment->ticket->user->tenant?->name ?? $appointment->ticket->user->name,
+            'client_phone' => $appointment->ticket->user->tenant?->phone ?? $appointment->ticket->user->phone,
+            'apartment_name' => $appointment->ticket->user->tenant?->apartment?->name,
+            'building_name' => $appointment->ticket->user->tenant?->apartment?->building?->name,
+            'building_address' => $appointment->ticket->user->tenant?->apartment?->building?->address,
+            
+            'type' => 'appointment_cancelled',
+            'priority' => 'high'
+        ];
+
+        // 1. Notificar al técnico asignado
         if ($appointment->technical) {
-            $this->notifyTechnical($appointment->technical, [
-                'appointment_id' => $appointment->id,
-                'appointment_title' => $appointment->title,
-                'appointment_date_formatted' => $appointmentDateFormatted,
-                'client_name' => $appointment->ticket->user->name,
-                'ticket_code' => $appointment->ticket->code,
-                'cancellation_reason' => $reason,
-                'message' => "Appointment '{$appointment->title}' scheduled for {$appointmentDateFormatted} has been cancelled" . ($reason ? " - Reason: {$reason}" : ""),
-                'type' => 'appointment_cancelled',
-                'priority' => 'medium'
-            ]);
+            $deviceInfo = $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device';
+            $reasonText = $reason ? " | Reason: {$reason}" : '';
+            
+            $this->notifyTechnical($appointment->technical, array_merge($baseCancellationData, [
+                'message' => "APPOINTMENT CANCELLED: '{$appointment->title}' scheduled for {$appointmentDay} at {$appointmentTime} has been cancelled by {$cancelledByName} | Ticket: {$appointment->ticket->code} ({$deviceInfo}){$reasonText}",
+            ]));
         }
 
         // 2. Notificar al cliente
         if ($appointment->ticket->user) {
-            $this->notifyUser($appointment->ticket->user, [
-                'appointment_id' => $appointment->id,
-                'appointment_title' => $appointment->title,
-                'appointment_date_formatted' => $appointmentDateFormatted,
-                'technical_name' => $appointment->technical->name ?? 'Unknown',
-                'ticket_code' => $appointment->ticket->code,
-                'cancellation_reason' => $reason,
-                'message' => "Your appointment '{$appointment->title}' scheduled for {$appointmentDateFormatted} has been cancelled" . ($reason ? " - Reason: {$reason}" : ""),
-                'type' => 'appointment_cancelled',
-                'priority' => 'high'
-            ]);
+            $deviceInfo = $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device';
+            $technicianInfo = $appointment->technical ? $appointment->technical->name : 'TBD';
+            $reasonText = $reason ? " | Reason: {$reason}" : '';
+            
+            $this->notifyUser($appointment->ticket->user, array_merge($baseCancellationData, [
+                'message' => "APPOINTMENT CANCELLED: '{$appointment->title}' with technician {$technicianInfo} scheduled for {$appointmentDay} at {$appointmentTime} has been cancelled by {$cancelledByName} | Ticket: {$appointment->ticket->code} ({$deviceInfo}){$reasonText}",
+            ]));
         }
+
+        // 3. Si el técnico del ticket es diferente al del appointment, también notificar
+        if ($appointment->ticket->technical && 
+            $appointment->technical && 
+            $appointment->ticket->technical->id !== $appointment->technical->id) {
+            
+            $deviceInfo = $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device';
+            $reasonText = $reason ? " | Reason: {$reason}" : '';
+            
+            $this->notifyTechnical($appointment->ticket->technical, array_merge($baseCancellationData, [
+                'message' => "APPOINTMENT CANCELLED for your ticket {$appointment->ticket->code}: '{$appointment->title}' with {$appointment->technical->name} scheduled for {$appointmentDay} at {$appointmentTime} was cancelled by {$cancelledByName} | Device: {$deviceInfo}{$reasonText}",
+            ]));
+        }
+
+        // 4. Notificar a admins
+        $technicianName = $appointment->technical ? $appointment->technical->name : 'TBD';
+        $reasonText = $reason ? " | Reason: {$reason}" : '';
+        
+        $this->notifyAdmins(array_merge($baseCancellationData, [
+            'message' => "Appointment '{$appointment->title}' cancelled by {$cancelledByName} for ticket {$appointment->ticket->code} | Technician: {$technicianName} | Date: {$appointmentDay} at {$appointmentTime}{$reasonText}",
+            'priority' => 'low'
+        ]), [$cancelledBy?->id]);
+    }
+
+    /**
+     * Crear notificación de cita reprogramada
+     */
+    public function dispatchAppointmentRescheduled(Appointment $appointment, string $oldScheduledFor, string $reason = null, User $rescheduledBy = null): void
+    {
+        Log::info('Dispatching appointment rescheduled notifications', [
+            'appointment_id' => $appointment->id,
+            'ticket_id' => $appointment->ticket_id,
+            'old_scheduled_for' => $oldScheduledFor,
+            'new_scheduled_for' => $appointment->scheduled_for,
+            'reason' => $reason,
+            'rescheduled_by' => $rescheduledBy?->id
+        ]);
+
+        // Cargar TODAS las relaciones necesarias
+        $appointment->load([
+            'ticket.user.tenant.apartment.building',
+            'ticket.device.name_device',
+            'ticket.device.brand',
+            'ticket.device.model',
+            'ticket.technical',
+            'technical',
+            'scheduledBy'
+        ]);
+
+        $oldDateFormatted = \Carbon\Carbon::parse($oldScheduledFor)->format('d/m/Y \a\t H:i');
+        $oldDay = \Carbon\Carbon::parse($oldScheduledFor)->format('l, F j, Y');
+        $oldTime = \Carbon\Carbon::parse($oldScheduledFor)->format('H:i');
+        
+        $newDateFormatted = \Carbon\Carbon::parse($appointment->scheduled_for)->format('d/m/Y \a\t H:i');
+        $newDay = \Carbon\Carbon::parse($appointment->scheduled_for)->format('l, F j, Y');
+        $newTime = \Carbon\Carbon::parse($appointment->scheduled_for)->format('H:i');
+        
+        $rescheduledByName = $rescheduledBy ? $rescheduledBy->name : 'System';
+        
+        // Preparar datos base completos
+        $baseRescheduleData = [
+            // Appointment data
+            'appointment_id' => $appointment->id,
+            'appointment_title' => $appointment->title,
+            'appointment_description' => $appointment->description,
+            'appointment_address' => $appointment->address,
+            'appointment_notes' => $appointment->notes,
+            'appointment_member_instructions' => $appointment->member_instructions,
+            'old_scheduled_for' => $oldScheduledFor,
+            'old_date_formatted' => $oldDateFormatted,
+            'old_day' => $oldDay,
+            'old_time' => $oldTime,
+            'scheduled_for' => $appointment->scheduled_for,
+            'new_date_formatted' => $newDateFormatted,
+            'new_day' => $newDay,
+            'new_time' => $newTime,
+            'appointment_status' => $appointment->status,
+            'estimated_duration' => $appointment->estimated_duration,
+            'reschedule_reason' => $reason,
+            'rescheduled_by' => $rescheduledByName,
+            'rescheduled_at' => now()->format('d/m/Y H:i'),
+            
+            // Ticket data
+            'ticket_id' => $appointment->ticket->id,
+            'ticket_code' => $appointment->ticket->code,
+            'ticket_title' => $appointment->ticket->title,
+            'ticket_status' => $appointment->ticket->status,
+            'ticket_priority' => $appointment->ticket->priority,
+            'ticket_category' => $appointment->ticket->category,
+            
+            // Device data
+            'device_id' => $appointment->ticket->device->id,
+            'device_name' => $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device',
+            'device_image' => $appointment->ticket->device->name_device?->image,
+            'device_brand' => $appointment->ticket->device->brand->name ?? null,
+            'device_model' => $appointment->ticket->device->model->name ?? null,
+            'device_ubicacion' => $appointment->ticket->device->ubicacion,
+            'device_icon' => $appointment->ticket->device->icon_id,
+            
+            // Technical data PRINCIPAL
+            'technical_id' => $appointment->technical?->id,
+            'technical_name' => $appointment->technical?->name,
+            'technical_phone' => $appointment->technical?->phone,
+            'technical_photo' => $appointment->technical?->photo,
+            
+            // Client/Location data
+            'client_name' => $appointment->ticket->user->tenant?->name ?? $appointment->ticket->user->name,
+            'client_phone' => $appointment->ticket->user->tenant?->phone ?? $appointment->ticket->user->phone,
+            'apartment_name' => $appointment->ticket->user->tenant?->apartment?->name,
+            'building_name' => $appointment->ticket->user->tenant?->apartment?->building?->name,
+            'building_address' => $appointment->ticket->user->tenant?->apartment?->building?->address,
+            
+            'type' => 'appointment_rescheduled',
+            'priority' => 'high'
+        ];
+
+        // 1. Notificar al técnico asignado
+        if ($appointment->technical) {
+            $deviceInfo = $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device';
+            $reasonText = $reason ? " | Reason: {$reason}" : '';
+            
+            $this->notifyTechnical($appointment->technical, array_merge($baseRescheduleData, [
+                'message' => "APPOINTMENT RESCHEDULED: '{$appointment->title}' moved from {$oldDay} at {$oldTime} to {$newDay} at {$newTime} by {$rescheduledByName} | Ticket: {$appointment->ticket->code} ({$deviceInfo}){$reasonText}",
+            ]));
+        }
+
+        // 2. Notificar al cliente
+        if ($appointment->ticket->user) {
+            $deviceInfo = $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device';
+            $technicianInfo = $appointment->technical ? $appointment->technical->name : 'TBD';
+            $reasonText = $reason ? " | Reason: {$reason}" : '';
+            
+            $this->notifyUser($appointment->ticket->user, array_merge($baseRescheduleData, [
+                'message' => "APPOINTMENT RESCHEDULED: '{$appointment->title}' with technician {$technicianInfo} moved from {$oldDay} at {$oldTime} to {$newDay} at {$newTime} by {$rescheduledByName} | Ticket: {$appointment->ticket->code} ({$deviceInfo}){$reasonText}",
+            ]));
+        }
+
+        // 3. Si el técnico del ticket es diferente al del appointment, también notificar
+        if ($appointment->ticket->technical && 
+            $appointment->technical && 
+            $appointment->ticket->technical->id !== $appointment->technical->id) {
+            
+            $deviceInfo = $appointment->ticket->device->name_device->name ?? $appointment->ticket->device->name ?? 'Unknown Device';
+            $reasonText = $reason ? " | Reason: {$reason}" : '';
+            
+            $this->notifyTechnical($appointment->ticket->technical, array_merge($baseRescheduleData, [
+                'message' => "APPOINTMENT RESCHEDULED for your ticket {$appointment->ticket->code}: '{$appointment->title}' with {$appointment->technical->name} moved from {$oldDay} at {$oldTime} to {$newDay} at {$newTime} by {$rescheduledByName} | Device: {$deviceInfo}{$reasonText}",
+            ]));
+        }
+
+        // 4. Notificar a admins
+        $technicianName = $appointment->technical ? $appointment->technical->name : 'TBD';
+        $reasonText = $reason ? " | Reason: {$reason}" : '';
+        
+        $this->notifyAdmins(array_merge($baseRescheduleData, [
+            'message' => "Appointment '{$appointment->title}' rescheduled by {$rescheduledByName} for ticket {$appointment->ticket->code} | Technician: {$technicianName} | From: {$oldDay} at {$oldTime} | To: {$newDay} at {$newTime}{$reasonText}",
+            'priority' => 'low'
+        ]), [$rescheduledBy?->id]);
     }
 }

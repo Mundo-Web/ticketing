@@ -944,11 +944,37 @@ class TenantController extends Controller
                     // Appointment data (for appointment notifications)
                     'appointment_id' => $data['appointment_id'] ?? null,
                     'appointment_title' => $data['appointment_title'] ?? null,
+                    'appointment_description' => $data['appointment_description'] ?? null,
                     'appointment_address' => $data['appointment_address'] ?? null,
+                    'appointment_notes' => $data['appointment_notes'] ?? null,
+                    'appointment_member_instructions' => $data['appointment_member_instructions'] ?? null,
+                    'appointment_completion_notes' => $data['appointment_completion_notes'] ?? null,
                     'appointment_status' => $data['appointment_status'] ?? null,
                     'appointment_date_formatted' => $data['appointment_date_formatted'] ?? null,
+                    'appointment_day' => $data['appointment_day'] ?? null,
+                    'appointment_time' => $data['appointment_time'] ?? null,
                     'scheduled_for' => $data['scheduled_for'] ?? null,
+                    'completed_at' => $data['completed_at'] ?? null,
+                    'completed_at_formatted' => $data['completed_at_formatted'] ?? null,
                     'estimated_duration' => $data['estimated_duration'] ?? null,
+                    
+                    // Appointment action specific data
+                    'created_by' => $data['created_by'] ?? null,
+                    'cancelled_by' => $data['cancelled_by'] ?? null,
+                    'rescheduled_by' => $data['rescheduled_by'] ?? null,
+                    'cancellation_reason' => $data['cancellation_reason'] ?? null,
+                    'reschedule_reason' => $data['reschedule_reason'] ?? null,
+                    'cancelled_at' => $data['cancelled_at'] ?? null,
+                    'rescheduled_at' => $data['rescheduled_at'] ?? null,
+                    
+                    // Reschedule specific data
+                    'old_scheduled_for' => $data['old_scheduled_for'] ?? null,
+                    'old_date_formatted' => $data['old_date_formatted'] ?? null,
+                    'old_day' => $data['old_day'] ?? null,
+                    'old_time' => $data['old_time'] ?? null,
+                    'new_date_formatted' => $data['new_date_formatted'] ?? null,
+                    'new_day' => $data['new_day'] ?? null,
+                    'new_time' => $data['new_time'] ?? null,
                     
                     // UI data
                     'action_url' => $data['action_url'] ?? null,

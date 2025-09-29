@@ -318,6 +318,10 @@ class AppointmentController extends Controller
                 ]
             );
 
+            // Dispatch appointment completed notification
+            $notificationService = new \App\Services\NotificationDispatcherService();
+            $notificationService->dispatchAppointmentCompleted($appointment);
+
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => true,
@@ -373,6 +377,10 @@ class AppointmentController extends Controller
                 ]
             );
 
+            // Dispatch final appointment completed notification (now with member feedback)
+            $notificationService = new \App\Services\NotificationDispatcherService();
+            $notificationService->dispatchAppointmentCompleted($appointment);
+
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => true,
@@ -409,6 +417,10 @@ class AppointmentController extends Controller
 
         try {
             $appointment->cancel($request->reason);
+
+            // Dispatch appointment cancelled notification
+            $notificationService = new \App\Services\NotificationDispatcherService();
+            $notificationService->dispatchAppointmentCancelled($appointment, $request->reason, Auth::user());
 
             if (request()->expectsJson()) {
                 return response()->json([
@@ -468,7 +480,14 @@ class AppointmentController extends Controller
         }
 
         try {
+            // Store old scheduled date before rescheduling
+            $oldScheduledFor = $appointment->scheduled_for;
+            
             $appointment->reschedule($request->new_scheduled_for, $request->reason, Auth::user());
+
+            // Dispatch appointment rescheduled notification
+            $notificationService = new \App\Services\NotificationDispatcherService();
+            $notificationService->dispatchAppointmentRescheduled($appointment, $oldScheduledFor, $request->reason, Auth::user());
 
             if (request()->expectsJson()) {
                 return response()->json([

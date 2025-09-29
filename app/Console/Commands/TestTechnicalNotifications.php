@@ -87,9 +87,25 @@ class TestTechnicalNotifications extends Command
             $this->info("Technical: " . ($appointment->technical ? $appointment->technical->name : 'None'));
             $this->info("Scheduled by: " . ($appointment->scheduledBy ? $appointment->scheduledBy->name : 'None'));
             
-            // Ejecutar el servicio de notificaciones de appointment
+            // Test 1: Appointment Created
             $service->dispatchAppointmentCreated($appointment);
-            $this->info('Appointment notification dispatched!');
+            $this->info('✅ Appointment CREATED notification dispatched!');
+            
+            // Test 2: Appointment Completed  
+            $appointment->update(['status' => 'awaiting_feedback', 'completed_at' => now(), 'completion_notes' => 'Test completion notes']);
+            $service->dispatchAppointmentCompleted($appointment);
+            $this->info('✅ Appointment COMPLETED notification dispatched!');
+            
+            // Test 3: Appointment Cancelled
+            $service->dispatchAppointmentCancelled($appointment, 'Test cancellation reason', \App\Models\User::first());
+            $this->info('✅ Appointment CANCELLED notification dispatched!');
+            
+            // Test 4: Appointment Rescheduled
+            $oldDate = $appointment->scheduled_for;
+            $appointment->update(['scheduled_for' => now()->addDays(2)]);
+            $service->dispatchAppointmentRescheduled($appointment, $oldDate, 'Test reschedule reason', \App\Models\User::first());
+            $this->info('✅ Appointment RESCHEDULED notification dispatched!');
+            
         } else {
             $this->info('No appointments found for testing');
         }

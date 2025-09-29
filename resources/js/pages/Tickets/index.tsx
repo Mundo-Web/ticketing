@@ -3483,6 +3483,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                                         placeholder="Ex: comment, resolution, consultation"
                                         className="pl-4 pr-4 h-12 text-base border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                                         required
+                                        disabled
                                     />
                                 </div>
                             </div>
