@@ -3472,7 +3472,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                         className="space-y-6"
                     >
                         <div className="space-y-4">
-                            <div>
+                            <div className="hidden">
                                 <label className="block text-sm font-semibold text-slate-800 mb-3">
                                     Action Type
                                 </label>
@@ -3489,7 +3489,7 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-slate-800 mb-3">
-                                    Description
+                                    Comment / Description
                                 </label>
                                 <div className="relative">
                                     <textarea
