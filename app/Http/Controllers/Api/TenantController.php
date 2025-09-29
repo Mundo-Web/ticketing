@@ -171,10 +171,12 @@ class TenantController extends Controller
                     'system' => $device->system?->name,
                     'device_type' => $device->name_device?->name,
                     'icon_id' => $device->icon_id,
+                    'device_image' => $device->name_device?->image,
                     'name_device' => $device->name_device ? [
                         'id' => $device->name_device->id,
                         'name' => $device->name_device->name,
-                        'status' => $device->name_device->status
+                        'status' => $device->name_device->status,
+                        'image' => $device->name_device->image
                     ] : null,
                 ];
             }),
@@ -189,10 +191,12 @@ class TenantController extends Controller
                     'system' => $device->system?->name,
                     'device_type' => $device->name_device?->name,
                     'icon_id' => $device->icon_id,
+                    'device_image' => $device->name_device?->image,
                     'name_device' => $device->name_device ? [
                         'id' => $device->name_device->id,
                         'name' => $device->name_device->name,
-                        'status' => $device->name_device->status
+                        'status' => $device->name_device->status,
+                        'image' => $device->name_device->image
                     ] : null,
                     'owner' => $device->owner->first() ? [
                         'id' => $device->owner->first()->id,
@@ -253,11 +257,13 @@ class TenantController extends Controller
                         'system' => $ticket->device->system?->name,
                         'device_type' => $ticket->device->name_device?->name,
                         'icon_id' => $ticket->device->icon_id,
+                        'device_image' => $ticket->device->name_device?->image,
                         'ubicacion' => $ticket->device->ubicacion,
                         'name_device' => $ticket->device->name_device ? [
                             'id' => $ticket->device->name_device->id,
                             'name' => $ticket->device->name_device->name,
-                            'status' => $ticket->device->name_device->status
+                            'status' => $ticket->device->name_device->status,
+                            'image' => $ticket->device->name_device->image
                         ] : null,
                     ] : null,
                     'technical' => $ticket->technical ? [
@@ -679,10 +685,12 @@ class TenantController extends Controller
                     'system' => $ticket->device->system?->name,
                     'device_type' => $ticket->device->name_device?->name,
                     'icon_id' => $ticket->device->icon_id,
+                    'device_image' => $ticket->device->name_device?->image,
                     'name_device' => $ticket->device->name_device ? [
                         'id' => $ticket->device->name_device->id,
                         'name' => $ticket->device->name_device->name,
-                        'status' => $ticket->device->name_device->status
+                        'status' => $ticket->device->name_device->status,
+                        'image' => $ticket->device->name_device->image
                     ] : null,
                 ] : null,
                 'attachments' => $attachments
@@ -739,10 +747,12 @@ class TenantController extends Controller
                     'device_type' => $ticket->device->name_device?->name,
                     'ubicacion' => $ticket->device->ubicacion,
                     'icon_id' => $ticket->device->icon_id,
+                    'device_image' => $ticket->device->name_device?->image,
                     'name_device' => $ticket->device->name_device ? [
                         'id' => $ticket->device->name_device->id,
                         'name' => $ticket->device->name_device->name,
-                        'status' => $ticket->device->name_device->status
+                        'status' => $ticket->device->name_device->status,
+                        'image' => $ticket->device->name_device->image
                     ] : null,
                 ] : null,
                 'technical' => $ticket->technical ? [
