@@ -127,9 +127,9 @@ const formatHistoryDateTime = (dateString: string) => {
 const TICKET_CATEGORIES = [
     "Hardware",
     "Software",
-    "Red",
-    "Soporte",
-    "Otro",
+    "Network",
+    "Support",
+    "Other",
 ];
 
 // Enhanced status configuration with better colors and icons
