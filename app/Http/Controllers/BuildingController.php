@@ -222,6 +222,11 @@ class BuildingController extends Controller
     }
     private function saveDoormen(Request $request, Building $building)
     {
+        // Validar que existan doormen antes de procesar
+        if (!$request->has('doormen') || !is_array($request->doormen) || empty($request->doormen)) {
+            return;
+        }
+
         // Eliminar doormen que se removieron
         $currentDoormanIds = $building->doormen->pluck('id')->toArray();
         $newDoormanIds = collect($request->doormen)->pluck('id')->filter()->toArray();
