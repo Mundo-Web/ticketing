@@ -156,7 +156,26 @@ Route::post('/send-test-notification', function (Illuminate\Http\Request $reques
 // Technical API routes
 Route::get('/technicals', [TechnicalController::class, 'index']);
 Route::get('/technicals/{technical}/tickets', [TechnicalController::class, 'getTickets']);
+Route::get('/technicals/{technical}/appointments', [TechnicalController::class, 'getAppointments']);
 Route::get('/tickets/{ticket}/detail', [TechnicalController::class, 'getTicketDetail']);
+
+// Protected Technical API routes (require authentication)
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Ticket Actions
+    Route::post('/tickets/{ticket}/update-status', [\App\Http\Controllers\TicketController::class, 'updateStatus']);
+    Route::post('/tickets/{ticket}/add-history', [\App\Http\Controllers\TicketController::class, 'addHistory']);
+    Route::post('/tickets/{ticket}/upload-evidence', [\App\Http\Controllers\TicketController::class, 'uploadEvidence']);
+    Route::post('/tickets/{ticket}/add-private-note', [\App\Http\Controllers\TicketController::class, 'addPrivateNote']);
+    Route::post('/tickets/{ticket}/send-message-to-technical', [\App\Http\Controllers\TicketController::class, 'sendMessageToTechnical']);
+    
+    // Appointments
+    Route::get('/appointments/{appointment}/details', [\App\Http\Controllers\AppointmentController::class, 'getDetails']);
+    Route::post('/tickets/{ticket}/appointments', [\App\Http\Controllers\AppointmentController::class, 'store']);
+    Route::post('/appointments/{appointment}/start', [\App\Http\Controllers\AppointmentController::class, 'start']);
+    Route::post('/appointments/{appointment}/complete', [\App\Http\Controllers\AppointmentController::class, 'complete']);
+    Route::post('/appointments/{appointment}/cancel', [\App\Http\Controllers\AppointmentController::class, 'cancel']);
+    Route::post('/appointments/{appointment}/reschedule', [\App\Http\Controllers\AppointmentController::class, 'reschedule']);
+});
 
 // Tenants API routes for admin/technical
 Route::get('/tenants/all', [TenantController::class, 'getAllTenants']);

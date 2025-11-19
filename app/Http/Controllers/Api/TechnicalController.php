@@ -109,4 +109,44 @@ class TechnicalController extends Controller
 
         return response()->json($ticket);
     }
+
+    /**
+     * Get appointments for a specific technical
+     */
+    public function getAppointments(Request $request, $technicalId)
+    {
+        $technical = Technical::findOrFail($technicalId);
+        $date = $request->get('date');
+        
+        $query = \App\Models\Appointment::where('technical_id', $technical->id)
+            ->with([
+                'ticket:id,title,status,priority,user_id,device_id',
+                'ticket.device:id,name',
+                'ticket.apartment:id,number,building_id',
+                'ticket.apartment.building:id,name,address',
+                'ticket.user:id,name,email',
+                'ticket.user.tenant:user_id,phone'
+            ]);
+        
+        if ($date) {
+            $query->whereDate('scheduled_for', $date);
+        }
+        
+        $appointments = $query->orderBy('scheduled_for')->get();
+        
+        // Enrich appointments with tenant info
+        $appointments = $appointments->map(function($appointment) {
+            if ($appointment->ticket && $appointment->ticket->user) {
+                $appointment->tenant = [
+                    'id' => $appointment->ticket->user->id,
+                    'name' => $appointment->ticket->user->name,
+                    'email' => $appointment->ticket->user->email,
+                    'phone' => $appointment->ticket->user->tenant->phone ?? null,
+                ];
+            }
+            return $appointment;
+        });
+        
+        return response()->json($appointments);
+    }
 }
