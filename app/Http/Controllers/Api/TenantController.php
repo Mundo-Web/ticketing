@@ -39,41 +39,69 @@ class TenantController extends Controller
             ]);
         }
 
-        // Verificar que el usuario tiene rol de member (tenant)
-        if (!$user->hasRole('member')) {
+        // Verificar que el usuario tiene rol de member (tenant) o technical
+        if (!$user->hasRole('member') && !$user->hasRole('technical')) {
             throw ValidationException::withMessages([
-                'email' => ['Access denied. Not a valid tenant account.'],
-            ]);
-        }
-
-        // Obtener información del tenant
-        $tenant = $user->tenant;
-        if (!$tenant) {
-            throw ValidationException::withMessages([
-                'email' => ['Tenant profile not found.'],
+                'email' => ['Access denied. Not a valid mobile account.'],
             ]);
         }
 
         // Crear token
-        $token = $user->createToken('tenant-token')->plainTextToken;
+        $token = $user->createToken('mobile-app-token')->plainTextToken;
 
-        return response()->json([
+        // Preparar respuesta según el rol
+        $response = [
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'tenant_id' => $tenant->id,
+                'roles' => $user->roles->pluck('name')->toArray(),
             ],
-            'tenant' => [
+            'token' => $token,
+        ];
+
+        // Si es member (tenant), agregar datos de tenant
+        if ($user->hasRole('member')) {
+            $tenant = $user->tenant;
+            if (!$tenant) {
+                throw ValidationException::withMessages([
+                    'email' => ['Tenant profile not found.'],
+                ]);
+            }
+
+            $response['user']['tenant_id'] = $tenant->id;
+            $response['tenant'] = [
                 'id' => $tenant->id,
                 'name' => $tenant->name,
                 'email' => $tenant->email,
                 'phone' => $tenant->phone,
                 'photo' => $tenant->photo,
                 'apartment_id' => $tenant->apartment_id,
-            ],
-            'token' => $token,
-        ]);
+            ];
+        }
+
+        // Si es technical, agregar datos de technical
+        if ($user->hasRole('technical')) {
+            $technical = $user->technical;
+            if (!$technical) {
+                throw ValidationException::withMessages([
+                    'email' => ['Technical profile not found.'],
+                ]);
+            }
+
+            $response['technical'] = [
+                'id' => $technical->id,
+                'name' => $technical->name,
+                'email' => $technical->email,
+                'phone' => $technical->phone,
+                'photo' => $technical->photo,
+                'is_default' => $technical->is_default,
+                'shift' => $technical->shift,
+                'status' => $technical->status,
+            ];
+        }
+
+        return response()->json($response);
     }
 
     /**
