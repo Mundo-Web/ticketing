@@ -1,30 +1,28 @@
-# 📱 Guía Completa: Technical Mobile App - De Login a Todas las Funcionalidades
+# 📱 Guía Completa: Technical Mobile App - APIs y Funcionalidades
 
-> **Documento Único y Definitivo** - Todo lo que necesitas saber desde el login hasta cada funcionalidad del técnico en React Native.
+> **Documento Completo y Actualizado** - Todas las APIs, endpoints y funcionalidades para técnicos en React Native.
 
 ## 📑 Tabla de Contenidos
 
 ### 🚀 Getting Started
 1. [Resumen Ejecutivo](#-resumen-ejecutivo)
-2. [Estado Actual del Proyecto](#-estado-actual-del-proyecto)
-3. [Arquitectura del Sistema](#️-arquitectura-del-sistema)
+2. [Arquitectura del Sistema](#️-arquitectura-del-sistema)
 
 ### 🔐 Autenticación
-4. [Login Unificado](#-login-unificado)
-5. [2 Tipos de Técnicos](#-dos-tipos-de-técnicos)
-6. [Detección en Mobile](#-detección-en-mobile)
+3. [Login Unificado](#-login-unificado)
+4. [Tipos de Técnicos](#-tipos-de-técnicos)
+5. [Detección de Tipo](#-detección-de-tipo)
 
-### 📊 Funcionalidades
-7. [Dashboard](#-dashboard)
-8. [Gestión de Tickets](#️-gestión-de-tickets)
-9. [Gestión de Citas](#-gestión-de-citas-appointments)
-10. [Notificaciones Push](#-notificaciones-push)
+### 📊 APIs Completas
+6. [APIs de Autenticación](#-apis-de-autenticación)
+7. [APIs de Tickets](#️-apis-de-tickets)
+8. [APIs de Appointments](#-apis-de-appointments)
+9. [APIs de Notificaciones](#-apis-de-notificaciones)
+10. [APIs de Técnicos](#-apis-de-técnicos)
 
 ### 💻 Implementación
-11. [Setup del Proyecto Mobile](#-setup-del-proyecto-mobile)
-12. [Estructura de Código](#-estructura-de-código)
-13. [Testing](#-testing-y-validación)
-14. [Deployment](#-deployment)
+11. [Estructura de Código](#-estructura-de-código)
+12. [Ejemplos de Uso](#-ejemplos-de-uso)
 
 ---
 
@@ -32,77 +30,32 @@
 
 ### ¿Qué es este proyecto?
 
-Sistema completo de gestión de tickets y citas para **técnicos** en app móvil React Native (Expo). La app ya funciona perfectamente para **members (tenants)**, ahora se extiende para técnicos.
+Sistema completo de gestión de tickets y citas para **técnicos** en app móvil React Native (Expo). La app funciona para **members (tenants)** y **técnicos** usando el mismo endpoint de login.
 
-### ✅ Lo que YA está implementado (Backend)
-- ✅ Login unificado (`POST /api/tenant/login`)
-- ✅ Todas las rutas API con `auth:sanctum`
-- ✅ Método `getAppointments()` en TechnicalController
-- ✅ Endpoints de tickets (update-status, add-history, upload-evidence, add-private-note)
-- ✅ Endpoints de appointments (start, complete, cancel, reschedule)
+### ✅ Backend Completamente Implementado
 
-### ⚠️ Lo que FALTA implementar (Mobile)
-- ❌ Detectar tipo de técnico después del login
-- ❌ Navegación diferenciada (Regular vs Jefe)
-- ❌ Dashboards (personal vs global)
-- ❌ Pantallas de tickets con acciones
-- ❌ Pantallas de citas con acciones
-- ❌ UI/UX completo
+- ✅ Login unificado para members y técnicos
+- ✅ Detección automática de tipo de usuario (member/technical)
+- ✅ Diferenciación entre técnico regular y técnico jefe (is_default)
+- ✅ Todas las APIs de tickets (CRUD, acciones, evidencia, notas)
+- ✅ Todas las APIs de appointments (crear, iniciar, completar, cancelar, reprogramar, no-show)
+- ✅ Sistema de notificaciones completo
+- ✅ Push notifications con Expo
 
-### 📊 Timeline Estimado
-- **Backend**: ✅ Completado (1 día)
-- **Mobile**: 10-15 días
-  - Login y navegación: 1-2 días
-  - Dashboards: 2-3 días
-  - Tickets: 3-4 días
-  - Appointments: 3-4 días
-  - Polish: 1-2 días
+### 🔑 Conceptos Clave
 
----
+**Técnico Regular (`is_default: false`)**:
+- Ve solo SUS tickets asignados
+- Ve solo SUS citas programadas
+- Puede actualizar estado, subir evidencia, agregar notas
+- Dashboard personal con sus estadísticas
 
-## 📦 Estado Actual del Proyecto
-
-### Backend (Laravel) - ✅ 100% Listo
-
-**Archivo**: `routes/api.php`
-```php
-// ✅ Rutas Implementadas
-GET  /api/technicals
-GET  /api/technicals/{technical}/tickets?type={type}
-GET  /api/technicals/{technical}/appointments?date={date}
-GET  /api/tickets/{ticket}/detail
-
-// ✅ Rutas con auth:sanctum
-POST /api/tickets/{ticket}/update-status
-POST /api/tickets/{ticket}/add-history
-POST /api/tickets/{ticket}/upload-evidence
-POST /api/tickets/{ticket}/add-private-note
-POST /api/tickets/{ticket}/send-message-to-technical
-GET  /api/appointments/{appointment}/details
-POST /api/tickets/{ticket}/appointments
-POST /api/appointments/{appointment}/start
-POST /api/appointments/{appointment}/complete
-POST /api/appointments/{appointment}/cancel
-POST /api/appointments/{appointment}/reschedule
-```
-
-**Controladores listos**:
-- ✅ `TechnicalController.php` - Con método `getAppointments()`
-- ✅ `TicketController.php` - Todos los métodos de acciones
-- ✅ `AppointmentController.php` - Todos los métodos de gestión
-
-### Mobile (React Native) - ⏳ Por Implementar
-
-**Lo que falta**:
-- Screens de técnicos
-- Services para APIs
-- Navegación diferenciada
-- Components específicos
-- Context para estado global
-
----
-
-## 🏗️ Arquitectura del Sistema
+**Técnico Jefe (`is_default: true`)**:
+- Ve TODOS los tickets del sistema
+- Ve TODAS las citas de todos los técnicos
+- Puede asignar/reasignar tickets
+- Dashboard global con estadísticas del equipo
+- Puede enviar instrucciones a otros técnicos
 
 ---
 
@@ -115,6 +68,7 @@ POST /api/appointments/{appointment}/reschedule
 - Autenticación: Laravel Sanctum (Token-based)
 - Base de datos: MySQL
 - APIs: RESTful JSON
+- Broadcasting: Pusher (notificaciones en tiempo real)
 
 **Mobile**
 - Framework: React Native (Expo)
@@ -124,37 +78,20 @@ POST /api/appointments/{appointment}/reschedule
 - Notificaciones: Expo Notifications + FCM
 - Estado: Context API / Redux
 
-### Flujo de Comunicación
+### Base URL
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Mobile App (React Native/Expo)                         │
-│  - Screens (Login, Dashboard, Tickets, Appointments)    │
-│  - Services (API calls)                                 │
-│  - Context (Global state)                               │
-└────────────────────┬────────────────────────────────────┘
-                     │ HTTP Request
-                     │ Authorization: Bearer {token}
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│  Laravel Backend                                         │
-│  routes/api.php → auth:sanctum middleware               │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│  Controllers                                             │
-│  - TechnicalController                                   │
-│  - TicketController                                      │
-│  - AppointmentController                                 │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│  Database (MySQL)                                        │
-│  - users, technicals, tickets, appointments             │
-└─────────────────────────────────────────────────────────┘
+https://adkassist.com/api
 ```
+
+### Autenticación
+
+Todas las rutas protegidas requieren el header:
+```
+Authorization: Bearer {token}
+```
+
+El token se obtiene del endpoint `/api/tenant/login`.
 
 ---
 
@@ -164,7 +101,7 @@ POST /api/appointments/{appointment}/reschedule
 
 **URL Completa**: `https://adkassist.com/api/tenant/login`
 
-Tanto **members** como **técnicos** usan el **mismo endpoint**. El backend detecta automáticamente el tipo de usuario por email.
+Tanto **members** como **técnicos** usan el **mismo endpoint**. El backend detecta automáticamente el tipo de usuario.
 
 ### Request
 
@@ -184,23 +121,17 @@ Tanto **members** como **técnicos** usan el **mismo endpoint**. El backend dete
     "id": 5,
     "name": "Juan Pérez",
     "email": "technical@example.com",
-    "roles": [
-      {
-        "id": 3,
-        "name": "technical"
-      }
-    ],
-    "technical": {
-      "id": 2,
-      "name": "Juan Pérez",
-      "email": "technical@example.com",
-      "phone": "+1234567890",
-      "photo": "/storage/technicals/juan.jpg",
-      "shift": "morning",
-      "status": true,
-      "is_default": false,
-      "created_at": "2024-01-15T10:00:00.000000Z"
-    }
+    "roles": ["technical"]
+  },
+  "technical": {
+    "id": 2,
+    "name": "Juan Pérez",
+    "email": "technical@example.com",
+    "phone": "+1234567890",
+    "photo": "/storage/technicals/juan.jpg",
+    "is_default": false,
+    "shift": "morning",
+    "status": true
   }
 }
 ```
@@ -214,23 +145,17 @@ Tanto **members** como **técnicos** usan el **mismo endpoint**. El backend dete
     "id": 3,
     "name": "Pedro García",
     "email": "chief@example.com",
-    "roles": [
-      {
-        "id": 3,
-        "name": "technical"
-      }
-    ],
-    "technical": {
-      "id": 1,
-      "name": "Pedro García",
-      "email": "chief@example.com",
-      "phone": "+9876543210",
-      "photo": "/storage/technicals/pedro.jpg",
-      "shift": "full_day",
-      "status": true,
-      "is_default": true,
-      "created_at": "2024-01-10T08:00:00.000000Z"
-    }
+    "roles": ["technical"]
+  },
+  "technical": {
+    "id": 1,
+    "name": "Pedro García",
+    "email": "chief@example.com",
+    "phone": "+9876543210",
+    "photo": "/storage/technicals/pedro.jpg",
+    "is_default": true,
+    "shift": "full_day",
+    "status": true
   }
 }
 ```
@@ -244,35 +169,28 @@ Tanto **members** como **técnicos** usan el **mismo endpoint**. El backend dete
     "id": 10,
     "name": "María García",
     "email": "member@example.com",
-    "roles": [
-      {
-        "id": 2,
-        "name": "member"
-      }
-    ],
-    "tenant": {
-      "id": 15,
-      "name": "María García",
-      "email": "member@example.com",
-      "phone": "+9876543210",
-      "apartment_id": 101,
-      "apartment": {
-        "id": 101,
-        "number": "301",
-        "building_id": 5
-      }
-    }
+    "roles": ["member"]
+  },
+  "tenant": {
+    "id": 15,
+    "name": "María García",
+    "email": "member@example.com",
+    "phone": "+9876543210",
+    "photo": "/storage/tenants/maria.jpg",
+    "apartment_id": 101
   }
 }
 ```
 
+### Códigos de Error
+
+- `422` - Credenciales incorrectas
+- `422` - Usuario no tiene rol de member o technical
+- `422` - Perfil de técnico no encontrado
+
 ---
 
-## 👥 Dos Tipos de Técnicos
-
----
-
-## 👥 Dos Tipos de Técnicos
+## 👥 Tipos de Técnicos
 
 El campo `is_default` en la tabla `technicals` determina el tipo y los permisos:
 
@@ -287,414 +205,1213 @@ El campo `is_default` en la tabla `technicals` determina el tipo y los permisos:
 | **Ve Técnicos** | ❌ No ve lista de técnicos | ✅ Ve todos + estadísticas |
 | **Filtros** | Solo de sus datos | Puede filtrar por técnico |
 | **Gestión** | Solo sus asignaciones | Todo el equipo |
-| **Permisos** | Limitado | ≈ Super Admin |
 
-### Queries del Backend
+---
 
-**Técnico Regular** - Queries limitadas:
-```sql
--- Solo ve SUS tickets
-SELECT * FROM tickets WHERE technical_id = {myId};
+## 🔑 APIs de Autenticación
 
--- Solo ve SUS citas
-SELECT * FROM appointments WHERE technical_id = {myId};
+### 1. Login
+
+**Endpoint**: `POST /api/tenant/login`
+
+**Request**:
+```json
+{
+  "email": "technical@example.com",
+  "password": "password123"
+}
 ```
 
-**Técnico Jefe** - Queries sin restricción:
-```sql
--- Ve TODOS los tickets
-SELECT * FROM tickets;
+**Response**: Ver sección [Login Unificado](#-login-unificado)
 
--- Ve TODAS las citas
-SELECT * FROM appointments;
+### 2. Logout
 
--- Ve TODOS los técnicos
-SELECT * FROM technicals;
+**Endpoint**: `POST /api/tenant/logout`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+```
+
+**Response**:
+```json
+{
+  "message": "Logged out successfully"
+}
 ```
 
 ---
 
-## 📲 Detección en Mobile
+## 🎫 APIs de Tickets
 
-### Código Completo de AuthService
+### 1. Obtener Lista de Técnicos
+
+**Endpoint**: `GET /api/technicals`
+
+**Descripción**: Lista todos los técnicos (para vista de jefe o asignación)
+
+**Headers**: No requiere autenticación
+
+**Response**:
+```json
+{
+  "technicals": [
+    {
+      "id": 1,
+      "name": "Pedro García",
+      "email": "chief@example.com",
+      "photo": "/storage/technicals/pedro.jpg",
+      "shift": "full_day",
+      "status": true,
+      "is_default": true
+    },
+    {
+      "id": 2,
+      "name": "Juan Pérez",
+      "email": "technical@example.com",
+      "photo": "/storage/technicals/juan.jpg",
+      "shift": "morning",
+      "status": true,
+      "is_default": false
+    }
+  ]
+}
+```
+
+### 2. Obtener Tickets de un Técnico
+
+**Endpoint**: `GET /api/technicals/{technical_id}/tickets`
+
+**Query Parameters**:
+- `type` (opcional): Filtro de tickets
+  - `all` - Todos los tickets (default)
+  - `today` - Tickets creados hoy
+  - `week` - Tickets de esta semana
+  - `month` - Tickets de este mes
+  - `open` - Tickets abiertos
+  - `in_progress` - Tickets en progreso
+  - `resolved` - Tickets resueltos
+  - `closed` - Tickets cerrados
+  - `recent` - Tickets completados en últimos 7 días
+
+**Headers**: No requiere autenticación
+
+**Ejemplo**: `GET /api/technicals/2/tickets?type=today`
+
+**Response**:
+```json
+[
+  {
+    "id": 123,
+    "title": "Laptop no enciende",
+    "status": "in_progress",
+    "priority": "high",
+    "created_at": "2024-01-15T10:30:00.000000Z",
+    "building_id": 5,
+    "device_id": 42,
+    "apartment_id": 101,
+    "building": {
+      "id": 5,
+      "name": "Edificio Central"
+    },
+    "device": {
+      "id": 42,
+      "name": "Laptop Dell"
+    },
+    "apartment": {
+      "id": 101,
+      "number": "301"
+    }
+  }
+]
+```
+
+### 3. Obtener Detalle de un Ticket
+
+**Endpoint**: `GET /api/tickets/{ticket_id}/detail`
+
+**Headers**: No requiere autenticación
+
+**Response**:
+```json
+{
+  "id": 123,
+  "title": "Laptop no enciende",
+  "description": "La laptop no responde al presionar el botón de encendido",
+  "status": "in_progress",
+  "priority": "high",
+  "created_at": "2024-01-15T10:30:00.000000Z",
+  "resolved_at": null,
+  "building": {
+    "id": 5,
+    "name": "Edificio Central",
+    "address": "Av. Principal 123"
+  },
+  "device": {
+    "id": 42,
+    "name": "Laptop Dell",
+    "brand": {
+      "id": 3,
+      "name": "Dell"
+    },
+    "model": {
+      "id": 15,
+      "name": "Latitude 5420"
+    }
+  },
+  "apartment": {
+    "id": 101,
+    "number": "301"
+  },
+  "tenant": {
+    "id": 50,
+    "name": "María García",
+    "email": "maria@example.com",
+    "phone": "+1234567890"
+  },
+  "history": [
+    {
+      "id": 456,
+      "action": "status_updated",
+      "description": "Status updated to in_progress by Juan Pérez",
+      "created_at": "2024-01-15T11:00:00.000000Z",
+      "user": {
+        "id": 5,
+        "name": "Juan Pérez"
+      }
+    }
+  ],
+  "comments": [
+    {
+      "id": 789,
+      "comment": "Revisando el equipo",
+      "created_at": "2024-01-15T11:05:00.000000Z",
+      "user": {
+        "id": 5,
+        "name": "Juan Pérez"
+      }
+    }
+  ]
+}
+```
+
+### 4. Actualizar Estado de Ticket
+
+**Endpoint**: `POST /api/tickets/{ticket_id}/update-status`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request**:
+```json
+{
+  "status": "in_progress"
+}
+```
+
+**Valores válidos para status**:
+- `open` - Abierto
+- `in_progress` - En progreso
+- `resolved` - Resuelto
+- `closed` - Cerrado
+
+**Response**:
+```json
+{
+  "success": true
+}
+```
+
+### 5. Agregar Entrada al Historial
+
+**Endpoint**: `POST /api/tickets/{ticket_id}/add-history`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request**:
+```json
+{
+  "action": "comment",
+  "description": "Revisé el equipo, parece ser problema de batería"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "History entry added successfully"
+}
+```
+
+### 6. Subir Evidencia (Foto/Video)
+
+**Endpoint**: `POST /api/tickets/{ticket_id}/upload-evidence`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+```
+
+**Request** (FormData):
+```
+evidence: [File] (jpg, jpeg, png, gif, mp4, mov, avi - max 10MB)
+description: "Foto del problema detectado" (opcional)
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Evidence uploaded successfully",
+  "file_path": "ticket_evidence/1705318200_photo.jpg",
+  "file_name": "1705318200_photo.jpg"
+}
+```
+
+### 7. Agregar Nota Privada
+
+**Endpoint**: `POST /api/tickets/{ticket_id}/add-private-note`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request**:
+```json
+{
+  "note": "El cliente mencionó que el problema empezó después de una actualización"
+}
+```
+
+**Nota**: Las notas privadas solo son visibles para técnicos y administradores.
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Private note added successfully"
+}
+```
+
+### 8. Enviar Mensaje al Member
+
+**Endpoint**: `POST /api/tickets/{ticket_id}/send-message-to-technical`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request**:
+```json
+{
+  "message": "Hola, necesito que me proporciones más información sobre el problema"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Message sent successfully to member"
+}
+```
+
+---
+
+## 📅 APIs de Appointments
+
+### 1. Obtener Citas de un Técnico
+
+**Endpoint**: `GET /api/technicals/{technical_id}/appointments`
+
+**Query Parameters**:
+- `date` (opcional): Fecha en formato YYYY-MM-DD
+  - Si se proporciona, filtra citas de esa fecha
+  - Si no se proporciona, retorna todas las citas del técnico
+
+**Headers**: No requiere autenticación
+
+**Ejemplo**: `GET /api/technicals/2/appointments?date=2024-01-15`
+
+**Response**:
+```json
+[
+  {
+    "id": 45,
+    "ticket_id": 123,
+    "technical_id": 2,
+    "scheduled_for": "2024-01-15T14:00:00.000000Z",
+    "status": "scheduled",
+    "started_at": null,
+    "completed_at": null,
+    "completion_notes": null,
+    "member_rating": null,
+    "member_feedback": null,
+    "ticket": {
+      "id": 123,
+      "title": "Laptop no enciende",
+      "status": "in_progress",
+      "priority": "high",
+      "device": {
+        "id": 42,
+        "name": "Laptop Dell"
+      },
+      "apartment": {
+        "id": 101,
+        "number": "301",
+        "building": {
+          "id": 5,
+          "name": "Edificio Central",
+          "address": "Av. Principal 123"
+        }
+      },
+      "user": {
+        "id": 50,
+        "name": "María García",
+        "email": "maria@example.com"
+      }
+    },
+    "tenant": {
+      "id": 50,
+      "name": "María García",
+      "email": "maria@example.com",
+      "phone": "+1234567890"
+    }
+  }
+]
+```
+
+**Estados de Appointment**:
+- `scheduled` - Programada
+- `in_progress` - En progreso (técnico llegó)
+- `awaiting_feedback` - Esperando feedback del member
+- `completed` - Completada (con feedback del member)
+- `cancelled` - Cancelada
+- `no_show` - No se presentó el member
+
+### 2. Obtener Detalle de una Cita
+
+**Endpoint**: `GET /api/appointments/{appointment_id}/details`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+```
+
+**Response**:
+```json
+{
+  "id": 45,
+  "ticket_id": 123,
+  "technical_id": 2,
+  "scheduled_for": "2024-01-15T14:00:00.000000Z",
+  "status": "scheduled",
+  "started_at": null,
+  "completed_at": null,
+  "completion_notes": null,
+  "member_rating": null,
+  "member_feedback": null,
+  "no_show_reason": null,
+  "no_show_description": null,
+  "ticket": {
+    "id": 123,
+    "title": "Laptop no enciende",
+    "description": "La laptop no responde",
+    "status": "in_progress",
+    "priority": "high",
+    "device": {
+      "id": 42,
+      "name": "Laptop Dell",
+      "brand": {
+        "id": 3,
+        "name": "Dell"
+      }
+    },
+    "apartment": {
+      "id": 101,
+      "number": "301",
+      "building": {
+        "id": 5,
+        "name": "Edificio Central",
+        "address": "Av. Principal 123"
+      }
+    },
+    "tenant": {
+      "id": 50,
+      "name": "María García",
+      "email": "maria@example.com",
+      "phone": "+1234567890"
+    }
+  }
+}
+```
+
+### 3. Crear Cita para un Ticket
+
+**Endpoint**: `POST /api/tickets/{ticket_id}/appointments`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request**:
+```json
+{
+  "technical_id": 2,
+  "scheduled_for": "2024-01-15T14:00:00",
+  "notes": "Revisar batería y fuente de poder"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Appointment created successfully",
+  "appointment": {
+    "id": 45,
+    "ticket_id": 123,
+    "technical_id": 2,
+    "scheduled_for": "2024-01-15T14:00:00.000000Z",
+    "status": "scheduled",
+    "notes": "Revisar batería y fuente de poder"
+  }
+}
+```
+
+### 4. Iniciar Cita (Técnico Llega)
+
+**Endpoint**: `POST /api/appointments/{appointment_id}/start`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+```
+
+**Request**: No requiere body
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Visita iniciada exitosamente",
+  "appointment": {
+    "id": 45,
+    "status": "in_progress",
+    "started_at": "2024-01-15T14:05:00.000000Z"
+  }
+}
+```
+
+### 5. Completar Cita
+
+**Endpoint**: `POST /api/appointments/{appointment_id}/complete`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request**:
+```json
+{
+  "completion_notes": "Se reemplazó la batería. El equipo ahora funciona correctamente."
+}
+```
+
+**Nota**: Después de completar, el estado cambia a `awaiting_feedback`. El member debe proporcionar rating y feedback para que cambie a `completed`.
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Visit completed. Waiting for member feedback.",
+  "appointment": {
+    "id": 45,
+    "status": "awaiting_feedback",
+    "completed_at": "2024-01-15T15:30:00.000000Z",
+    "completion_notes": "Se reemplazó la batería. El equipo ahora funciona correctamente."
+  }
+}
+```
+
+### 6. Marcar No-Show
+
+**Endpoint**: `POST /api/appointments/{appointment_id}/no-show`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request**:
+```json
+{
+  "reason": "member_not_available",
+  "description": "El member no estaba en el apartamento a la hora programada"
+}
+```
+
+**Razones válidas**:
+- `member_not_available` - Member no disponible
+- `member_cancelled_last_minute` - Member canceló a último minuto
+- `access_denied` - Acceso denegado
+- `other` - Otra razón
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Appointment marked as No Show successfully",
+  "appointment": {
+    "id": 45,
+    "status": "no_show",
+    "no_show_reason": "member_not_available",
+    "no_show_description": "El member no estaba en el apartamento a la hora programada",
+    "marked_no_show_at": "2024-01-15T14:10:00.000000Z"
+  }
+}
+```
+
+### 7. Cancelar Cita
+
+**Endpoint**: `POST /api/appointments/{appointment_id}/cancel`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request**:
+```json
+{
+  "reason": "technical_unavailable",
+  "description": "Emergencia en otro edificio"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Appointment cancelled successfully",
+  "appointment": {
+    "id": 45,
+    "status": "cancelled",
+    "cancelled_at": "2024-01-15T13:00:00.000000Z"
+  }
+}
+```
+
+### 8. Reprogramar Cita
+
+**Endpoint**: `POST /api/appointments/{appointment_id}/reschedule`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request**:
+```json
+{
+  "scheduled_for": "2024-01-16T10:00:00",
+  "reason": "Member requested different time"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Appointment rescheduled successfully",
+  "appointment": {
+    "id": 45,
+    "scheduled_for": "2024-01-16T10:00:00.000000Z",
+    "status": "scheduled"
+  }
+}
+```
+
+---
+
+## 🔔 APIs de Notificaciones
+
+### 1. Obtener Notificaciones
+
+**Endpoint**: `GET /api/tenant/notifications`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+```
+
+**Response**:
+```json
+{
+  "notifications": [
+    {
+      "id": 123,
+      "title": "🎫 Nuevo Ticket Asignado",
+      "message": "Se te ha asignado el ticket #456: Laptop no enciende",
+      "type": "ticket_assigned",
+      "is_read": false,
+      "created_at": "2024-01-15T10:00:00.000000Z",
+      "data": {
+        "ticket_id": 456,
+        "ticket_title": "Laptop no enciende",
+        "priority": "high"
+      }
+    }
+  ],
+  "unread_count": 5
+}
+```
+
+**Tipos de notificaciones para técnicos**:
+- `ticket_assigned` - Ticket asignado
+- `ticket_status_changed` - Estado de ticket cambió
+- `appointment_scheduled` - Cita programada
+- `appointment_reminder` - Recordatorio de cita (1 hora antes)
+- `member_message` - Mensaje del member
+- `instruction_received` - Instrucción del jefe técnico
+
+### 2. Marcar Notificación como Leída
+
+**Endpoint**: `POST /api/tenant/notifications/{notification_id}/read`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Notification marked as read"
+}
+```
+
+### 3. Marcar Todas como Leídas
+
+**Endpoint**: `POST /api/tenant/notifications/mark-all-read`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "All notifications marked as read",
+  "count": 5
+}
+```
+
+### 4. Registrar Token de Push Notification
+
+**Endpoint**: `POST /api/tenant/register-push-token`
+
+**Headers**:
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request**:
+```json
+{
+  "token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+  "device_type": "ios"
+}
+```
+
+**Valores válidos para device_type**:
+- `ios`
+- `android`
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Push token registered successfully"
+}
+```
+
+---
+
+## 👨‍🔧 APIs de Técnicos
+
+### 1. Obtener Todos los Tenants
+
+**Endpoint**: `GET /api/tenants/all`
+
+**Descripción**: Lista todos los tenants (members) para crear tickets en su nombre
+
+**Headers**: No requiere autenticación
+
+**Response**:
+```json
+[
+  {
+    "id": 50,
+    "name": "María García",
+    "email": "maria@example.com",
+    "phone": "+1234567890",
+    "apartment_id": 101,
+    "apartment": {
+      "id": 101,
+      "number": "301",
+      "building_id": 5
+    }
+  }
+]
+```
+
+---
+
+## 💻 Estructura de Código
+
+### Service para APIs de Técnicos
 
 ```javascript
-// services/AuthService.js
+// services/TechnicalService.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const API_URL = 'https://adkassist.com/api';
 
-class AuthService {
-  // Login unificado
-  async login(email, password) {
-    try {
-      const response = await axios.post(`${API_URL}/tenant/login`, {
-        email,
-        password
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-      
-      const { token, user } = response.data;
-      
-      // 1. Guardar token
-      await AsyncStorage.setItem('authToken', token);
-      
-      // 2. Detectar tipo de usuario
-      const isMember = user.roles?.some(role => role.name === 'member');
-      const isTechnical = user.roles?.some(role => role.name === 'technical');
-      
-      // 3. Guardar datos específicos del tipo
-      if (isTechnical && user.technical) {
-        await AsyncStorage.setItem('technical', JSON.stringify(user.technical));
-        await AsyncStorage.setItem('isDefaultTechnical', JSON.stringify(user.technical.is_default));
-        await AsyncStorage.setItem('technicalId', user.technical.id.toString());
-      }
-      
-      if (isMember && user.tenant) {
-        await AsyncStorage.setItem('tenant', JSON.stringify(user.tenant));
-      }
-      
-      // 4. Guardar datos generales
-      await AsyncStorage.setItem('user', JSON.stringify(user));
-      await AsyncStorage.setItem('userType', isTechnical ? 'technical' : 'member');
-      
-      // 5. Retornar información completa
-      return {
-        success: true,
-        user,
-        userType: isTechnical ? 'technical' : 'member',
-        isDefaultTechnical: user.technical?.is_default || false,
-        token
-      };
-    } catch (error) {
-      console.error('Login error:', error);
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Error al iniciar sesión'
-      };
-    }
-  }
-
-  // Obtener usuario actual
-  async getCurrentUser() {
-    const user = await AsyncStorage.getItem('user');
-    const userType = await AsyncStorage.getItem('userType');
-    const isDefaultTechnical = await AsyncStorage.getItem('isDefaultTechnical');
-    
-    return {
-      user: user ? JSON.parse(user) : null,
-      userType,
-      isDefaultTechnical: isDefaultTechnical ? JSON.parse(isDefaultTechnical) : false
-    };
-  }
-
+class TechnicalService {
   // Obtener token
   async getToken() {
     return await AsyncStorage.getItem('authToken');
   }
 
-  // Logout
-  async logout() {
-    try {
-      const token = await this.getToken();
-      
-      // Llamar al endpoint de logout
-      await axios.post(`${API_URL}/tenant/logout`, {}, {
+  // Obtener ID del técnico actual
+  async getCurrentTechnicalId() {
+    const technicalData = await AsyncStorage.getItem('technical');
+    if (technicalData) {
+      const technical = JSON.parse(technicalData);
+      return technical.id;
+    }
+    return null;
+  }
+
+  // Obtener si es técnico default
+  async isDefaultTechnical() {
+    const isDefault = await AsyncStorage.getItem('isDefaultTechnical');
+    return isDefault === 'true';
+  }
+
+  // ==================== TICKETS ====================
+
+  // Obtener tickets del técnico
+  async getMyTickets(technicalId, type = 'all') {
+    const token = await this.getToken();
+    const response = await axios.get(
+      `${API_URL}/technicals/${technicalId}/tickets`,
+      {
+        params: { type },
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
         }
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      // Limpiar storage
-      await AsyncStorage.multiRemove([
-        'authToken',
-        'user',
-        'userType',
-        'technical',
-        'tenant',
-        'isDefaultTechnical',
-        'technicalId'
-      ]);
-    }
+      }
+    );
+    return response.data;
   }
 
-  // Verificar si está autenticado
-  async isAuthenticated() {
+  // Obtener detalle de ticket
+  async getTicketDetail(ticketId) {
     const token = await this.getToken();
-    return !!token;
+    const response = await axios.get(
+      `${API_URL}/tickets/${ticketId}/detail`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Actualizar estado de ticket
+  async updateTicketStatus(ticketId, status) {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/tickets/${ticketId}/update-status`,
+      { status },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Subir evidencia
+  async uploadEvidence(ticketId, file, description = null) {
+    const token = await this.getToken();
+    const formData = new FormData();
+    formData.append('evidence', {
+      uri: file.uri,
+      type: file.type,
+      name: file.fileName || 'evidence.jpg'
+    });
+    if (description) {
+      formData.append('description', description);
+    }
+
+    const response = await axios.post(
+      `${API_URL}/tickets/${ticketId}/upload-evidence`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Agregar nota privada
+  async addPrivateNote(ticketId, note) {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/tickets/${ticketId}/add-private-note`,
+      { note },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Enviar mensaje al member
+  async sendMessageToMember(ticketId, message) {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/tickets/${ticketId}/send-message-to-technical`,
+      { message },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // ==================== APPOINTMENTS ====================
+
+  // Obtener citas del técnico
+  async getMyAppointments(technicalId, date = null) {
+    const token = await this.getToken();
+    const params = {};
+    if (date) {
+      // Convertir Date a YYYY-MM-DD
+      const dateStr = date.toISOString().split('T')[0];
+      params.date = dateStr;
+    }
+
+    const response = await axios.get(
+      `${API_URL}/technicals/${technicalId}/appointments`,
+      {
+        params,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Obtener detalle de cita
+  async getAppointmentDetails(appointmentId) {
+    const token = await this.getToken();
+    const response = await axios.get(
+      `${API_URL}/appointments/${appointmentId}/details`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Crear cita
+  async createAppointment(ticketId, technicalId, scheduledFor, notes = null) {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/tickets/${ticketId}/appointments`,
+      {
+        technical_id: technicalId,
+        scheduled_for: scheduledFor,
+        notes
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Iniciar cita
+  async startAppointment(appointmentId) {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/appointments/${appointmentId}/start`,
+      {},
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Completar cita
+  async completeAppointment(appointmentId, completionNotes) {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/appointments/${appointmentId}/complete`,
+      { completion_notes: completionNotes },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Marcar no-show
+  async markNoShow(appointmentId, reason, description = null) {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/appointments/${appointmentId}/no-show`,
+      {
+        reason,
+        description
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Cancelar cita
+  async cancelAppointment(appointmentId, reason, description = null) {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/appointments/${appointmentId}/cancel`,
+      {
+        reason,
+        description
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Reprogramar cita
+  async rescheduleAppointment(appointmentId, scheduledFor, reason) {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/appointments/${appointmentId}/reschedule`,
+      {
+        scheduled_for: scheduledFor,
+        reason
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // ==================== NOTIFICACIONES ====================
+
+  // Obtener notificaciones
+  async getNotifications() {
+    const token = await this.getToken();
+    const response = await axios.get(
+      `${API_URL}/tenant/notifications`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Marcar notificación como leída
+  async markNotificationAsRead(notificationId) {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/tenant/notifications/${notificationId}/read`,
+      {},
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Marcar todas como leídas
+  async markAllNotificationsAsRead() {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/tenant/notifications/mark-all-read`,
+      {},
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // Registrar token de push
+  async registerPushToken(pushToken, deviceType) {
+    const token = await this.getToken();
+    const response = await axios.post(
+      `${API_URL}/tenant/register-push-token`,
+      {
+        token: pushToken,
+        device_type: deviceType
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  }
+
+  // ==================== TÉCNICOS ====================
+
+  // Obtener lista de técnicos (para jefe)
+  async getAllTechnicals() {
+    const token = await this.getToken();
+    const response = await axios.get(
+      `${API_URL}/technicals`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data.technicals;
+  }
+
+  // Obtener lista de tenants (para crear tickets)
+  async getAllTenants() {
+    const token = await this.getToken();
+    const response = await axios.get(
+      `${API_URL}/tenants/all`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    return response.data;
   }
 }
 
-export default new AuthService();
-```
-
-### Navegación Según Tipo
-
-```javascript
-// navigation/AppNavigator.tsx
-import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import AuthService from '../services/AuthService';
-import LoginScreen from '../screens/Auth/LoginScreen';
-import MemberNavigator from './MemberNavigator';
-import TechnicalRegularNavigator from './TechnicalRegularNavigator';
-import TechnicalChiefNavigator from './TechnicalChiefNavigator';
-
-const Stack = createNativeStackNavigator();
-
-const AppNavigator = () => {
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userType, setUserType] = useState(null);
-  const [isDefaultTechnical, setIsDefaultTechnical] = useState(false);
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    const authenticated = await AuthService.isAuthenticated();
-    setIsAuthenticated(authenticated);
-    
-    if (authenticated) {
-      const { userType: type, isDefaultTechnical: isDefault } = await AuthService.getCurrentUser();
-      setUserType(type);
-      setIsDefaultTechnical(isDefault);
-    }
-    
-    setLoading(false);
-  };
-
-  if (loading) {
-    return null; // O un SplashScreen
-  }
-
-  // No autenticado → Login
-  if (!isAuthenticated) {
-    return (
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login" component={LoginScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    );
-  }
-
-  // Autenticado → Decidir navegador según tipo
-  if (userType === 'member') {
-    return <MemberNavigator />;
-  }
-
-  if (userType === 'technical') {
-    if (isDefaultTechnical) {
-      // Técnico JEFE → Dashboard completo
-      return <TechnicalChiefNavigator />;
-    } else {
-      // Técnico REGULAR → Dashboard personal
-      return <TechnicalRegularNavigator />;
-    }
-  }
-
-  return null;
-};
-
-export default AppNavigator;
-```
-
-### Pantalla de Login
-
-```javascript
-// screens/Auth/LoginScreen.tsx
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Alert
-} from 'react-native';
-import AuthService from '../../services/AuthService';
-
-const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
-      return;
-    }
-
-    setLoading(true);
-    const result = await AuthService.login(email, password);
-    setLoading(false);
-
-    if (result.success) {
-      // El AppNavigator detectará automáticamente el cambio y navegará
-      // No necesitas navegar manualmente
-      if (result.userType === 'member') {
-        navigation.replace('MemberApp');
-      } else if (result.userType === 'technical') {
-        if (result.isDefaultTechnical) {
-          navigation.replace('TechnicalChiefApp');
-        } else {
-          navigation.replace('TechnicalRegularApp');
-        }
-      }
-    } else {
-      Alert.alert('Error', result.message);
-    }
-  };
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Iniciar Sesión</Text>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Contraseña"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#FFF" />
-        ) : (
-          <Text style={styles.buttonText}>Ingresar</Text>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#F5F5F5'
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 40,
-    textAlign: 'center'
-  },
-  input: {
-    backgroundColor: '#FFF',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    fontSize: 16
-  },
-  button: {
-    backgroundColor: '#3B82F6',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10
-  },
-  buttonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold'
-  }
-});
-
-export default LoginScreen;
+export default new TechnicalService();
 ```
 
 ---
 
-## 📊 Dashboard
+## 📝 Ejemplos de Uso
 
-### Dashboard para Técnico Regular
-
-**Objetivo**: Mostrar estadísticas y actividad personal del técnico.
-
-#### Datos a Mostrar:
-
-1. **Estadísticas Personales**:
-   - Total de mis tickets
-   - Tickets abiertos (open)
-   - Tickets en progreso (in_progress)
-   - Tickets resueltos hoy
-
-2. **Mis Tickets de Hoy**:
-   - Lista de tickets asignados creados hoy
-   - Con prioridad, estado, device
-
-3. **Mis Citas de Hoy**:
-   - Lista de citas programadas para hoy
-   - Con hora, ubicación, estado
-
-#### APIs Necesarias:
+### Ejemplo 1: Cargar Dashboard de Técnico Regular
 
 ```javascript
-// TechnicalService.js
-const technicalId = user.technical.id;
-
-// 1. Obtener tickets del técnico
-const myTickets = await axios.get(`/api/technicals/${technicalId}/tickets?type=all`, {
-  headers: { Authorization: `Bearer ${token}` }
-});
-
-// Calcular estadísticas localmente:
-const totalTickets = myTickets.data.length;
-const openTickets = myTickets.data.filter(t => t.status === 'open').length;
-const inProgressTickets = myTickets.data.filter(t => t.status === 'in_progress').length;
-
-// 2. Tickets de hoy
-const todayTickets = await axios.get(`/api/technicals/${technicalId}/tickets?type=today`, {
-  headers: { Authorization: `Bearer ${token}` }
-});
-
-// 3. Citas de hoy
-const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-const todayAppointments = await axios.get(`/api/technicals/${technicalId}/appointments?date=${today}`, {
-  headers: { Authorization: `Bearer ${token}` }
-});
-```
-
-#### Código React Native (RegularDashboard.tsx):
-```typescript
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, RefreshControl } from 'react-native';
 import TechnicalService from '../services/TechnicalService';
 
-const RegularDashboard = () => {
+const TechnicalDashboard = () => {
   const [stats, setStats] = useState({
     total: 0,
     open: 0,
     inProgress: 0,
-    resolvedToday: 0
+    resolved: 0
   });
   const [todayTickets, setTodayTickets] = useState([]);
   const [todayAppointments, setTodayAppointments] = useState([]);
@@ -705,7 +1422,7 @@ const RegularDashboard = () => {
       setLoading(true);
       const technicalId = await TechnicalService.getCurrentTechnicalId();
       
-      // Cargar todos los tickets
+      // Cargar todos los tickets para estadísticas
       const allTickets = await TechnicalService.getMyTickets(technicalId, 'all');
       
       // Calcular estadísticas
@@ -713,10 +1430,7 @@ const RegularDashboard = () => {
         total: allTickets.length,
         open: allTickets.filter(t => t.status === 'open').length,
         inProgress: allTickets.filter(t => t.status === 'in_progress').length,
-        resolvedToday: allTickets.filter(t => 
-          t.status === 'resolved' && 
-          new Date(t.updated_at).toDateString() === new Date().toDateString()
-        ).length
+        resolved: allTickets.filter(t => t.status === 'resolved').length
       });
       
       // Cargar tickets de hoy
@@ -740,1168 +1454,207 @@ const RegularDashboard = () => {
 
   return (
     <ScrollView 
-      style={styles.container}
       refreshControl={
         <RefreshControl refreshing={loading} onRefresh={loadDashboard} />
       }
     >
-      {/* Estadísticas */}
-      <View style={styles.statsContainer}>
-        <StatCard title="Total Tickets" value={stats.total} color="#3B82F6" />
-        <StatCard title="Abiertos" value={stats.open} color="#F59E0B" />
-        <StatCard title="En Progreso" value={stats.inProgress} color="#10B981" />
-        <StatCard title="Resueltos Hoy" value={stats.resolvedToday} color="#6B7280" />
+      <View>
+        <Text>Total: {stats.total}</Text>
+        <Text>Abiertos: {stats.open}</Text>
+        <Text>En Progreso: {stats.inProgress}</Text>
+        <Text>Resueltos: {stats.resolved}</Text>
       </View>
-
-      {/* Mis Tickets de Hoy */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Mis Tickets de Hoy</Text>
+      
+      <View>
+        <Text>Tickets de Hoy ({todayTickets.length})</Text>
         {todayTickets.map(ticket => (
-          <TicketCard key={ticket.id} ticket={ticket} />
+          <Text key={ticket.id}>{ticket.title}</Text>
         ))}
       </View>
-
-      {/* Mis Citas de Hoy */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Mis Citas de Hoy</Text>
-        {todayAppointments.map(appointment => (
-          <AppointmentCard key={appointment.id} appointment={appointment} />
+      
+      <View>
+        <Text>Citas de Hoy ({todayAppointments.length})</Text>
+        {todayAppointments.map(apt => (
+          <Text key={apt.id}>{apt.ticket.title}</Text>
         ))}
       </View>
     </ScrollView>
   );
 };
+
+export default TechnicalDashboard;
 ```
 
-### Dashboard para Técnico Jefe
-
-**Objetivo**: Mostrar estadísticas globales del sistema y rendimiento de todos los técnicos.
-
-#### Datos a Mostrar:
-
-1. **Estadísticas Globales**:
-   - Total de técnicos activos
-   - Total de tickets en el sistema
-   - Tickets por estado (open, in_progress, resolved, closed)
-   - Rendimiento general
-
-2. **Lista de Técnicos**:
-   - Nombre, foto, turno
-   - Tickets asignados
-   - Tickets resueltos
-   - Badge de rendimiento
-
-3. **Gráficos** (opcional):
-   - Rendimiento por técnico
-   - Tickets por día/semana/mes
-
-#### APIs Necesarias:
+### Ejemplo 2: Actualizar Estado de Ticket
 
 ```javascript
-// 1. Obtener todos los técnicos
-const allTechnicals = await axios.get('/api/technicals', {
-  headers: { Authorization: `Bearer ${token}` }
-});
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import TechnicalService from '../services/TechnicalService';
 
-// 2. Para cada técnico, obtener sus tickets
-const technicalStats = await Promise.all(
-  allTechnicals.data.technicals.map(async (tech) => {
-    const tickets = await axios.get(`/api/technicals/${tech.id}/tickets?type=all`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    return {
-      technical: tech,
-      totalTickets: tickets.data.length,
-      openTickets: tickets.data.filter(t => t.status === 'open').length,
-      resolvedTickets: tickets.data.filter(t => t.status === 'resolved').length,
-    };
-  })
-);
+const UpdateTicketStatus = ({ ticketId, currentStatus, onSuccess }) => {
+  const [loading, setLoading] = useState(false);
 
-// 3. Calcular estadísticas globales
-const globalStats = {
-  totalTechnicals: allTechnicals.data.technicals.length,
-  totalTickets: technicalStats.reduce((sum, t) => sum + t.totalTickets, 0),
-  totalOpen: technicalStats.reduce((sum, t) => sum + t.openTickets, 0),
-  totalResolved: technicalStats.reduce((sum, t) => sum + t.resolvedTickets, 0),
-};
-```
-
----
-
-## 🎫 Gestión de Tickets
-
-### 1. Lista de Tickets
-
-**Endpoint**: `GET /api/technicals/{technical_id}/tickets?type={type}`
-
-**Tipos de filtro**:
-- `today` - Tickets de hoy
-- `week` - Tickets de esta semana
-- `month` - Tickets de este mes
-- `open` - Solo abiertos
-- `in_progress` - Solo en progreso
-- `resolved` - Solo resueltos
-- `closed` - Solo cerrados
-- `all` - Todos los tickets
-
-#### Código Mobile:
-```javascript
-// TechnicalService.js
-async getMyTickets(technicalId, type = 'all') {
-  const token = await AsyncStorage.getItem('token');
-  const response = await axios.get(
-    `/api/technicals/${technicalId}/tickets?type=${type}`,
-    {
-      headers: { Authorization: `Bearer ${token}` }
+  const updateStatus = async (newStatus) => {
+    try {
+      setLoading(true);
+      await TechnicalService.updateTicketStatus(ticketId, newStatus);
+      Alert.alert('Éxito', 'Estado actualizado correctamente');
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo actualizar el estado');
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-  );
-  return response.data;
-}
-```
-
-#### UI - TicketsList.tsx:
-```typescript
-const TicketsList = () => {
-  const [tickets, setTickets] = useState([]);
-  const [filter, setFilter] = useState('all');
-
-  const loadTickets = async () => {
-    const technicalId = await TechnicalService.getCurrentTechnicalId();
-    const data = await TechnicalService.getMyTickets(technicalId, filter);
-    setTickets(data);
   };
 
   return (
-    <View style={styles.container}>
-      {/* Filtros */}
-      <ScrollView horizontal style={styles.filters}>
-        <FilterButton title="Todos" value="all" current={filter} onPress={setFilter} />
-        <FilterButton title="Hoy" value="today" current={filter} onPress={setFilter} />
-        <FilterButton title="Abiertos" value="open" current={filter} onPress={setFilter} />
-        <FilterButton title="En Progreso" value="in_progress" current={filter} onPress={setFilter} />
-        <FilterButton title="Resueltos" value="resolved" current={filter} onPress={setFilter} />
-      </ScrollView>
-
-      {/* Lista */}
-      <FlatList
-        data={tickets}
-        keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) => <TicketCard ticket={item} />}
-      />
+    <View>
+      <Text>Estado actual: {currentStatus}</Text>
+      
+      {currentStatus === 'open' && (
+        <TouchableOpacity 
+          onPress={() => updateStatus('in_progress')}
+          disabled={loading}
+        >
+          <Text>Iniciar Trabajo</Text>
+        </TouchableOpacity>
+      )}
+      
+      {currentStatus === 'in_progress' && (
+        <TouchableOpacity 
+          onPress={() => updateStatus('resolved')}
+          disabled={loading}
+        >
+          <Text>Marcar como Resuelto</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
+
+export default UpdateTicketStatus;
 ```
 
-### 2. Detalle de Ticket
+### Ejemplo 3: Iniciar y Completar Cita
 
-**Endpoint**: `GET /api/tickets/{ticket_id}/detail`
-
-**Response**:
-```json
-{
-  "id": 42,
-  "title": "Laptop no enciende",
-  "description": "La laptop Dell del apartamento 301 no enciende...",
-  "status": "in_progress",
-  "priority": "high",
-  "created_at": "2024-11-15T10:30:00.000000Z",
-  "building": {
-    "id": 5,
-    "name": "Torre A",
-    "address": "Av. Principal 123"
-  },
-  "apartment": {
-    "id": 101,
-    "number": "301"
-  },
-  "device": {
-    "id": 88,
-    "name": "Laptop Dell Inspiron",
-    "brand": { "name": "Dell" },
-    "model": { "name": "Inspiron 15" }
-  },
-  "tenant": {
-    "id": 15,
-    "name": "María García",
-    "email": "maria@example.com",
-    "phone": "+1234567890"
-  },
-  "history": [
-    {
-      "id": 120,
-      "action": "status_changed",
-      "description": "Estado cambiado de 'open' a 'in_progress'",
-      "created_at": "2024-11-15T11:00:00.000000Z",
-      "user": {
-        "id": 5,
-        "name": "Juan Pérez (Technical)"
-      }
-    },
-    {
-      "id": 121,
-      "action": "comment_added",
-      "description": "Revisaré el equipo hoy en la tarde",
-      "created_at": "2024-11-15T11:05:00.000000Z",
-      "user": {
-        "id": 5,
-        "name": "Juan Pérez (Technical)"
-      }
-    }
-  ],
-  "comments": [
-    {
-      "id": 55,
-      "content": "Ya llegué al apartamento",
-      "created_at": "2024-11-15T14:00:00.000000Z",
-      "user": {
-        "id": 5,
-        "name": "Juan Pérez"
-      }
-    }
-  ]
-}
-```
-
-### 3. Cambiar Estado de Ticket
-
-**Endpoint**: `POST /api/tickets/{ticket_id}/update-status`  
-**Autenticación**: Requiere `auth:sanctum`
-
-**Request**:
-```json
-{
-  "status": "in_progress",
-  "comment": "Iniciando revisión del equipo"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Ticket status updated successfully",
-  "ticket": { ... }
-}
-```
-
-#### Código Mobile:
 ```javascript
-// TechnicalService.js
-async updateTicketStatus(ticketId, status, comment = null) {
-  const token = await AsyncStorage.getItem('token');
-  const response = await axios.post(
-    `/api/tickets/${ticketId}/update-status`,
-    { status, comment },
-    {
-      headers: { Authorization: `Bearer ${token}` }
-    }
-  );
-  return response.data;
-}
-```
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import TechnicalService from '../services/TechnicalService';
 
-#### UI - TicketDetail.tsx:
-```typescript
-const TicketDetail = ({ ticket }) => {
-  const [showStatusModal, setShowStatusModal] = useState(false);
+const AppointmentActions = ({ appointment, onSuccess }) => {
+  const [completionNotes, setCompletionNotes] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleStatusChange = async (newStatus, comment) => {
+  const handleStart = async () => {
     try {
-      await TechnicalService.updateTicketStatus(ticket.id, newStatus, comment);
-      Alert.alert('Éxito', 'Estado actualizado correctamente');
-      // Recargar ticket
-      loadTicketDetail();
+      setLoading(true);
+      await TechnicalService.startAppointment(appointment.id);
+      Alert.alert('Éxito', 'Visita iniciada');
+      if (onSuccess) onSuccess();
     } catch (error) {
-      Alert.alert('Error', 'No se pudo actualizar el estado');
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <ScrollView>
-      <Button 
-        title="Cambiar Estado" 
-        onPress={() => setShowStatusModal(true)} 
-      />
-      
-      <StatusChangeModal
-        visible={showStatusModal}
-        currentStatus={ticket.status}
-        onClose={() => setShowStatusModal(false)}
-        onSubmit={handleStatusChange}
-      />
-    </ScrollView>
-  );
-};
-```
-
-### 4. Agregar Comentario/Historial
-
-**Endpoint**: `POST /api/tickets/{ticket_id}/add-history`  
-**Autenticación**: Requiere `auth:sanctum`
-
-**Request**:
-```json
-{
-  "action": "comment_added",
-  "description": "He revisado el equipo y el problema es la fuente de poder"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "History entry added successfully",
-  "history": {
-    "id": 125,
-    "action": "comment_added",
-    "description": "He revisado el equipo...",
-    "created_at": "2024-11-15T15:30:00.000000Z"
-  }
-}
-```
-
-#### Código Mobile:
-```javascript
-async addComment(ticketId, comment) {
-  const token = await AsyncStorage.getItem('token');
-  const response = await axios.post(
-    `/api/tickets/${ticketId}/add-history`,
-    {
-      action: 'comment_added',
-      description: comment
-    },
-    {
-      headers: { Authorization: `Bearer ${token}` }
-    }
-  );
-  return response.data;
-}
-```
-
-### 5. Subir Evidencia (Fotos/Videos)
-
-**Endpoint**: `POST /api/tickets/{ticket_id}/upload-evidence`  
-**Autenticación**: Requiere `auth:sanctum`  
-**Content-Type**: `multipart/form-data`
-
-**Request** (FormData):
-```javascript
-const formData = new FormData();
-formData.append('file', {
-  uri: imageUri,
-  type: 'image/jpeg',
-  name: 'evidence.jpg'
-});
-formData.append('description', 'Foto del equipo después de la reparación');
-formData.append('uploaded_by', 'technical');
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Evidence uploaded successfully",
-  "attachment": {
-    "id": 88,
-    "file_path": "/storage/tickets/42/evidence_123456.jpg",
-    "file_type": "image/jpeg",
-    "uploaded_by": "technical",
-    "description": "Foto del equipo después de la reparación"
-  }
-}
-```
-
-#### Código Mobile:
-```javascript
-// TechnicalService.js
-async uploadEvidence(ticketId, imageUri, description) {
-  const token = await AsyncStorage.getItem('token');
-  
-  const formData = new FormData();
-  formData.append('file', {
-    uri: imageUri,
-    type: 'image/jpeg',
-    name: `evidence_${Date.now()}.jpg`
-  });
-  formData.append('description', description);
-  formData.append('uploaded_by', 'technical');
-  
-  const response = await axios.post(
-    `/api/tickets/${ticketId}/upload-evidence`,
-    formData,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data'
-      }
-    }
-  );
-  return response.data;
-}
-```
-
-#### UI - Capturar y Subir Foto:
-```typescript
-import * as ImagePicker from 'expo-image-picker';
-
-const UploadEvidenceButton = ({ ticketId }) => {
-  const takePhoto = async () => {
-    // Pedir permisos
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Error', 'Se necesita permiso para usar la cámara');
+  const handleComplete = async () => {
+    if (!completionNotes.trim()) {
+      Alert.alert('Error', 'Por favor ingresa notas de completación');
       return;
     }
 
-    // Tomar foto
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-      allowsEditing: true
-    });
-
-    if (!result.canceled) {
-      // Subir foto
-      try {
-        await TechnicalService.uploadEvidence(
-          ticketId,
-          result.assets[0].uri,
-          'Evidencia del trabajo realizado'
-        );
-        Alert.alert('Éxito', 'Evidencia subida correctamente');
-      } catch (error) {
-        Alert.alert('Error', 'No se pudo subir la evidencia');
-      }
+    try {
+      setLoading(true);
+      await TechnicalService.completeAppointment(appointment.id, completionNotes);
+      Alert.alert('Éxito', 'Visita completada. Esperando feedback del member.');
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  return (
-    <TouchableOpacity onPress={takePhoto} style={styles.button}>
-      <Icon name="camera" size={24} />
-      <Text>Subir Evidencia</Text>
-    </TouchableOpacity>
-  );
-};
-```
-
-### 6. Agregar Nota Privada
-
-**Endpoint**: `POST /api/tickets/{ticket_id}/add-private-note`  
-**Autenticación**: Requiere `auth:sanctum`
-
-**Request**:
-```json
-{
-  "note": "El cliente tiene otros 2 equipos con problemas similares. Proponer mantenimiento preventivo."
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Private note added successfully",
-  "note": {
-    "id": 45,
-    "content": "El cliente tiene otros 2 equipos...",
-    "is_private": true,
-    "created_at": "2024-11-15T16:00:00.000000Z"
-  }
-}
-```
-
-**Nota**: Las notas privadas solo son visibles para técnicos y admins, NO para members.
-
-### 7. Enviar Mensaje al Member
-
-**Endpoint**: `POST /api/tickets/{ticket_id}/send-message-to-technical`  
-**Autenticación**: Requiere `auth:sanctum`
-
-**Request**:
-```json
-{
-  "message": "He completado la reparación. El equipo ya funciona correctamente.",
-  "action": "technical_message"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Message sent successfully to member",
-  "history": {
-    "id": 130,
-    "action": "technical_message",
-    "description": "He completado la reparación...",
-    "created_at": "2024-11-15T17:00:00.000000Z"
-  }
-}
-```
-
----
-
-## 📅 Gestión de Citas (Appointments)
-
-### 1. Obtener Mis Citas
-
-**Endpoint**: `GET /api/technicals/{technical_id}/appointments?date={YYYY-MM-DD}`
-
-**Query Params**:
-- `date` (opcional): Filtrar por fecha específica (formato: YYYY-MM-DD)
-
-**Response**:
-```json
-[
-  {
-    "id": 25,
-    "title": "Reparación Laptop Dell",
-    "description": "Revisar y reparar laptop que no enciende",
-    "scheduled_for": "2024-11-15T14:00:00.000000Z",
-    "estimated_duration": 60,
-    "status": "scheduled",
-    "technical_id": 2,
-    "ticket_id": 42,
-    "ticket": {
-      "id": 42,
-      "title": "Laptop no enciende",
-      "status": "in_progress",
-      "priority": "high",
-      "device": {
-        "id": 88,
-        "name": "Laptop Dell Inspiron"
-      },
-      "apartment": {
-        "id": 101,
-        "number": "301",
-        "building": {
-          "id": 5,
-          "name": "Torre A",
-          "address": "Av. Principal 123"
-        }
-      },
-      "user": {
-        "id": 15,
-        "name": "María García",
-        "email": "maria@example.com",
-        "tenant": {
-          "phone": "+1234567890"
-        }
-      }
-    },
-    "tenant": {
-      "id": 15,
-      "name": "María García",
-      "email": "maria@example.com",
-      "phone": "+1234567890"
-    }
-  }
-]
-```
-
-#### Código Mobile:
-```javascript
-// TechnicalService.js
-async getMyAppointments(technicalId, date = null) {
-  const token = await AsyncStorage.getItem('token');
-  let url = `/api/technicals/${technicalId}/appointments`;
-  
-  if (date) {
-    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
-    url += `?date=${dateStr}`;
-  }
-  
-  const response = await axios.get(url, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  return response.data;
-}
-```
-
-### 2. Detalle de Cita
-
-**Endpoint**: `GET /api/appointments/{appointment_id}/details`  
-**Autenticación**: Requiere `auth:sanctum`
-
-**Response**:
-```json
-{
-  "appointment": {
-    "id": 25,
-    "title": "Reparación Laptop Dell",
-    "description": "Revisar y reparar laptop que no enciende",
-    "scheduled_for": "2024-11-15T14:00:00.000000Z",
-    "estimated_duration": 60,
-    "status": "scheduled",
-    "technical_notes": null,
-    "member_instructions": "Por favor tocar el timbre del apartamento",
-    "started_at": null,
-    "completed_at": null,
-    "ticket": { ... },
-    "technical": { ... }
-  },
-  "googleMapsApiKey": "AIza..."
-}
-```
-
-### 3. Crear Nueva Cita
-
-**Endpoint**: `POST /api/tickets/{ticket_id}/appointments`  
-**Autenticación**: Requiere `auth:sanctum`
-
-**Request**:
-```json
-{
-  "title": "Revisión de Router",
-  "description": "Revisar configuración del router WiFi",
-  "scheduled_for": "2024-11-16T10:00:00",
-  "estimated_duration": 45,
-  "technical_notes": "Llevar cable Ethernet de repuesto",
-  "member_instructions": "Asegurarse de estar en casa"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Appointment created successfully",
-  "appointment": {
-    "id": 26,
-    "title": "Revisión de Router",
-    "scheduled_for": "2024-11-16T10:00:00.000000Z",
-    "status": "scheduled"
-  }
-}
-```
-
-### 4. Iniciar Cita
-
-**Endpoint**: `POST /api/appointments/{appointment_id}/start`  
-**Autenticación**: Requiere `auth:sanctum`
-
-**Request**: (vacío)
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Appointment started successfully",
-  "appointment": {
-    "id": 25,
-    "status": "in_progress",
-    "started_at": "2024-11-15T14:05:00.000000Z"
-  }
-}
-```
-
-**Reglas de Negocio**:
-- Solo se puede iniciar si `status = 'scheduled'`
-- Cambia el estado a `in_progress`
-- Registra `started_at` con timestamp actual
-
-#### Código Mobile:
-```javascript
-async startAppointment(appointmentId) {
-  const token = await AsyncStorage.getItem('token');
-  const response = await axios.post(
-    `/api/appointments/${appointmentId}/start`,
-    {},
-    {
-      headers: { Authorization: `Bearer ${token}` }
-    }
-  );
-  return response.data;
-}
-```
-
-#### UI:
-```typescript
-const AppointmentDetail = ({ appointment }) => {
-  const handleStart = async () => {
-    Alert.alert(
-      'Iniciar Cita',
-      '¿Confirmas que has llegado al lugar?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Iniciar',
-          onPress: async () => {
-            try {
-              await TechnicalService.startAppointment(appointment.id);
-              Alert.alert('Éxito', 'Cita iniciada correctamente');
-              // Recargar
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo iniciar la cita');
-            }
-          }
-        }
-      ]
-    );
   };
 
   return (
     <View>
       {appointment.status === 'scheduled' && (
-        <Button title="Iniciar Cita" onPress={handleStart} />
+        <TouchableOpacity onPress={handleStart} disabled={loading}>
+          <Text>Iniciar Visita</Text>
+        </TouchableOpacity>
+      )}
+
+      {appointment.status === 'in_progress' && (
+        <View>
+          <TextInput
+            placeholder="Notas de completación..."
+            value={completionNotes}
+            onChangeText={setCompletionNotes}
+            multiline
+          />
+          <TouchableOpacity onPress={handleComplete} disabled={loading}>
+            <Text>Completar Visita</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
 };
-```
 
-### 5. Completar Cita
-
-**Endpoint**: `POST /api/appointments/{appointment_id}/complete`  
-**Autenticación**: Requiere `auth:sanctum`
-
-**Request**:
-```json
-{
-  "completion_notes": "Reparación completada. Reemplacé la fuente de poder y el equipo funciona correctamente."
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Appointment completed successfully",
-  "appointment": {
-    "id": 25,
-    "status": "awaiting_feedback",
-    "completed_at": "2024-11-15T15:30:00.000000Z",
-    "completion_notes": "Reparación completada..."
-  }
-}
-```
-
-**Reglas de Negocio**:
-- Solo se puede completar si `status = 'in_progress'`
-- Cambia el estado a `awaiting_feedback` (esperando feedback del member)
-- Registra `completed_at` con timestamp actual
-
-### 6. Cancelar Cita
-
-**Endpoint**: `POST /api/appointments/{appointment_id}/cancel`  
-**Autenticación**: Requiere `auth:sanctum`
-
-**Request**:
-```json
-{
-  "cancellation_reason": "El miembro no está disponible en el horario programado"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Appointment cancelled successfully",
-  "appointment": {
-    "id": 25,
-    "status": "cancelled",
-    "cancellation_reason": "El miembro no está disponible..."
-  }
-}
-```
-
-### 7. Reprogramar Cita
-
-**Endpoint**: `POST /api/appointments/{appointment_id}/reschedule`  
-**Autenticación**: Requiere `auth:sanctum`
-
-**Request**:
-```json
-{
-  "new_date": "2024-11-16T16:00:00",
-  "reason": "Conflicto con otra cita urgente"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Appointment rescheduled successfully",
-  "appointment": {
-    "id": 25,
-    "scheduled_for": "2024-11-16T16:00:00.000000Z",
-    "reschedule_reason": "Conflicto con otra cita urgente"
-  }
-}
+export default AppointmentActions;
 ```
 
 ---
 
-## 🔔 Notificaciones Push
+## 🔒 Seguridad y Permisos
 
-### 1. Registrar Token de Push
+### Permisos por Endpoint
 
-**Endpoint**: `POST /api/tenant/register-push-token`  
-**Autenticación**: Requiere `auth:sanctum`
+| Endpoint | Técnico Regular | Técnico Jefe | Autenticación |
+|----------|----------------|--------------|---------------|
+| `GET /api/technicals` | ✅ | ✅ | No requerida |
+| `GET /api/technicals/{id}/tickets` | ✅ Solo sus tickets | ✅ Todos | No requerida |
+| `GET /api/technicals/{id}/appointments` | ✅ Solo sus citas | ✅ Todas | No requerida |
+| `POST /api/tickets/{id}/update-status` | ✅ Solo sus tickets | ✅ Todos | Requerida |
+| `POST /api/tickets/{id}/upload-evidence` | ✅ Solo sus tickets | ✅ Todos | Requerida |
+| `POST /api/tickets/{id}/add-private-note` | ✅ | ✅ | Requerida |
+| `POST /api/appointments/{id}/start` | ✅ Solo sus citas | ✅ Todas | Requerida |
+| `POST /api/appointments/{id}/complete` | ✅ Solo sus citas | ✅ Todas | Requerida |
 
-**Request**:
-```json
-{
-  "token": "ExponentPushToken[abc123xyz...]",
-  "device_type": "android"
-}
-```
+### Validaciones del Backend
 
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Push token registered successfully"
-}
-```
-
-#### Código Mobile:
-```javascript
-// NotificationService.js
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-
-async registerForPushNotifications() {
-  let token;
-  
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    
-    if (finalStatus !== 'granted') {
-      alert('No se pudo obtener permiso para notificaciones');
-      return;
-    }
-    
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-  }
-  
-  // Registrar en el backend
-  const authToken = await AsyncStorage.getItem('token');
-  await axios.post(
-    '/api/tenant/register-push-token',
-    {
-      token: token,
-      device_type: Platform.OS
-    },
-    {
-      headers: { Authorization: `Bearer ${authToken}` }
-    }
-  );
-  
-  return token;
-}
-```
-
-### 2. Tipos de Notificaciones para Técnicos
-
-| Evento | Título | Descripción |
-|--------|--------|-------------|
-| **Ticket Asignado** | "Nuevo Ticket Asignado" | "Se te ha asignado el ticket #42: Laptop no enciende" |
-| **Mensaje de Member** | "Nuevo Mensaje" | "María García envió un mensaje en el ticket #42" |
-| **Cita Próxima** | "Cita en 1 hora" | "Recuerda tu cita en Torre A, Apt 301 a las 2:00 PM" |
-| **Cambio de Prioridad** | "Prioridad Actualizada" | "El ticket #42 cambió a prioridad URGENTE" |
-| **Ticket Reabierto** | "Ticket Reabierto" | "El ticket #42 fue reabierto por el member" |
-
-### 3. Manejar Notificaciones en App
-
-```javascript
-// App.tsx
-useEffect(() => {
-  // Handler cuando la app está en primer plano
-  const subscription = Notifications.addNotificationReceivedListener(notification => {
-    console.log('Notificación recibida:', notification);
-    // Mostrar banner o actualizar badge
-  });
-
-  // Handler cuando el usuario toca la notificación
-  const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-    const { data } = response.notification.request.content;
-    
-    if (data.type === 'ticket_assigned' || data.type === 'message_received') {
-      // Navegar al detalle del ticket
-      navigation.navigate('TicketDetail', { ticketId: data.ticket_id });
-    } else if (data.type === 'appointment_reminder') {
-      // Navegar al detalle de la cita
-      navigation.navigate('AppointmentDetail', { appointmentId: data.appointment_id });
-    }
-  });
-
-  return () => {
-    subscription.remove();
-    responseSubscription.remove();
-  };
-}, []);
-```
+1. **Tickets**: Solo el técnico asignado, técnico default o super-admin pueden modificar
+2. **Appointments**: Solo el técnico asignado puede iniciar/completar
+3. **Evidencia**: Max 10MB, formatos: jpg, jpeg, png, gif, mp4, mov, avi
+4. **Notas privadas**: Solo técnicos pueden agregar
 
 ---
 
-## 📱 Implementación Mobile
+## 📊 Códigos de Estado HTTP
 
-### Estructura de Carpetas Sugerida
-
-```
-src/
-├── screens/
-│   ├── Technical/
-│   │   ├── Dashboard/
-│   │   │   ├── RegularDashboard.tsx
-│   │   │   └── ChiefDashboard.tsx
-│   │   ├── Tickets/
-│   │   │   ├── TicketsList.tsx
-│   │   │   ├── TicketDetail.tsx
-│   │   │   └── TicketFilters.tsx
-│   │   ├── Appointments/
-│   │   │   ├── AppointmentsList.tsx
-│   │   │   ├── AppointmentDetail.tsx
-│   │   │   └── CreateAppointment.tsx
-│   │   └── TechnicalsList.tsx (solo para chief)
-│   └── Auth/
-│       └── Login.tsx
-├── services/
-│   ├── AuthService.js
-│   ├── TechnicalService.js
-│   ├── TicketService.js
-│   ├── AppointmentService.js
-│   └── NotificationService.js
-├── components/
-│   ├── TicketCard.tsx
-│   ├── AppointmentCard.tsx
-│   ├── StatusBadge.tsx
-│   ├── PriorityBadge.tsx
-│   └── FilterButton.tsx
-├── navigation/
-│   ├── AppNavigator.tsx
-│   ├── TechnicalNavigator.tsx
-│   └── MemberNavigator.tsx
-└── contexts/
-    └── AuthContext.tsx
-```
-
-### Navegación
-
-```typescript
-// AppNavigator.tsx
-const AppNavigator = () => {
-  const { user, userType, isDefaultTechnical } = useAuth();
-
-  if (!user) {
-    return <AuthStack />;
-  }
-
-  if (userType === 'member') {
-    return <MemberNavigator />;
-  }
-
-  if (userType === 'technical') {
-    if (isDefaultTechnical) {
-      return <TechnicalChiefNavigator />;
-    } else {
-      return <TechnicalRegularNavigator />;
-    }
-  }
-
-  return null;
-};
-
-// TechnicalRegularNavigator.tsx
-const TechnicalRegularNavigator = () => {
-  return (
-    <Tab.Navigator>
-      <Tab.Screen name="Dashboard" component={RegularDashboard} />
-      <Tab.Screen name="MyTickets" component={TicketsList} />
-      <Tab.Screen name="MyAppointments" component={AppointmentsList} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-    </Tab.Navigator>
-  );
-};
-
-// TechnicalChiefNavigator.tsx
-const TechnicalChiefNavigator = () => {
-  return (
-    <Tab.Navigator>
-      <Tab.Screen name="Dashboard" component={ChiefDashboard} />
-      <Tab.Screen name="AllTickets" component={TicketsList} />
-      <Tab.Screen name="AllAppointments" component={AppointmentsList} />
-      <Tab.Screen name="Technicals" component={TechnicalsList} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-    </Tab.Navigator>
-  );
-};
-```
+- `200` - Éxito
+- `401` - No autenticado (token inválido o expirado)
+- `403` - No autorizado (sin permisos)
+- `404` - Recurso no encontrado
+- `422` - Error de validación
+- `500` - Error del servidor
 
 ---
 
-## 🧪 Testing y Validación
+## 🎯 Próximos Pasos
 
-### Backend Testing (Postman)
-
-#### 1. Login como Técnico
-```http
-POST /api/tenant/login
-Content-Type: application/json
-
-{
-  "email": "technical@example.com",
-  "password": "password"
-}
-
-# Guardar el token de la respuesta
-```
-
-#### 2. Obtener Mis Tickets
-```http
-GET /api/technicals/2/tickets?type=all
-Authorization: Bearer {token}
-```
-
-#### 3. Cambiar Estado de Ticket
-```http
-POST /api/tickets/42/update-status
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-  "status": "in_progress",
-  "comment": "Iniciando revisión"
-}
-```
-
-#### 4. Subir Evidencia
-```http
-POST /api/tickets/42/upload-evidence
-Authorization: Bearer {token}
-Content-Type: multipart/form-data
-
-file: (binary)
-description: "Foto del equipo reparado"
-uploaded_by: "technical"
-```
-
-#### 5. Iniciar Cita
-```http
-POST /api/appointments/25/start
-Authorization: Bearer {token}
-```
-
-### Mobile Testing Checklist
-
-- [ ] Login como técnico regular
-- [ ] Login como técnico jefe
-- [ ] Dashboard muestra estadísticas correctas
-- [ ] Lista de tickets carga correctamente
-- [ ] Filtros de tickets funcionan
-- [ ] Detalle de ticket muestra toda la información
-- [ ] Cambiar estado de ticket
-- [ ] Agregar comentario a ticket
-- [ ] Subir foto como evidencia
-- [ ] Agregar nota privada
-- [ ] Lista de citas carga correctamente
-- [ ] Detalle de cita muestra mapa
-- [ ] Iniciar cita
-- [ ] Completar cita con notas
-- [ ] Cancelar cita
-- [ ] Reprogramar cita
-- [ ] Notificaciones push se reciben
-- [ ] Tocar notificación navega a detalle
-- [ ] Logout funciona correctamente
+1. **Implementar AuthService** con detección de tipo de usuario
+2. **Crear TechnicalService** con todos los métodos de API
+3. **Implementar navegación** diferenciada (Regular vs Jefe)
+4. **Crear pantallas** de Dashboard, Tickets, Appointments
+5. **Integrar push notifications** con Expo
+6. **Testing** completo de todas las funcionalidades
 
 ---
 
-## 📝 Resumen de Endpoints
+**Última actualización**: 2024-01-15
 
-### Autenticación
-| Método | Endpoint | Auth | Descripción |
-|--------|----------|------|-------------|
-| POST | `/api/tenant/login` | No | Login unificado (members y técnicos) |
-| POST | `/api/tenant/logout` | Sí | Cerrar sesión |
-| GET | `/api/tenant/me` | Sí | Obtener usuario actual |
-
-### Técnicos
-| Método | Endpoint | Auth | Descripción |
-|--------|----------|------|-------------|
-| GET | `/api/technicals` | No | Lista de todos los técnicos |
-| GET | `/api/technicals/{id}/tickets` | No | Tickets de un técnico |
-| GET | `/api/technicals/{id}/appointments` | No | Citas de un técnico |
-
-### Tickets
-| Método | Endpoint | Auth | Descripción |
-|--------|----------|------|-------------|
-| GET | `/api/tickets/{id}/detail` | No | Detalle de un ticket |
-| POST | `/api/tickets/{id}/update-status` | Sí | Cambiar estado |
-| POST | `/api/tickets/{id}/add-history` | Sí | Agregar comentario |
-| POST | `/api/tickets/{id}/upload-evidence` | Sí | Subir evidencia |
-| POST | `/api/tickets/{id}/add-private-note` | Sí | Agregar nota privada |
-| POST | `/api/tickets/{id}/send-message-to-technical` | Sí | Enviar mensaje |
-
-### Appointments
-| Método | Endpoint | Auth | Descripción |
-|--------|----------|------|-------------|
-| GET | `/api/appointments/{id}/details` | Sí | Detalle de cita |
-| POST | `/api/tickets/{id}/appointments` | Sí | Crear cita |
-| POST | `/api/appointments/{id}/start` | Sí | Iniciar cita |
-| POST | `/api/appointments/{id}/complete` | Sí | Completar cita |
-| POST | `/api/appointments/{id}/cancel` | Sí | Cancelar cita |
-| POST | `/api/appointments/{id}/reschedule` | Sí | Reprogramar cita |
-
-### Notificaciones
-| Método | Endpoint | Auth | Descripción |
-|--------|----------|------|-------------|
-| POST | `/api/tenant/register-push-token` | Sí | Registrar token push |
-| GET | `/api/tenant/notifications` | Sí | Obtener notificaciones |
-| POST | `/api/tenant/notifications/{id}/read` | Sí | Marcar como leída |
-
----
-
-## 🎯 Checklist de Implementación
-
-### Backend ✅
-- [x] Rutas API agregadas en `routes/api.php`
-- [x] Método `getAppointments()` en `TechnicalController`
-- [x] Métodos existentes verificados en `TicketController`
-- [x] Métodos existentes verificados en `AppointmentController`
-
-### Mobile 📱
-- [ ] Modificar `AuthService` para detectar tipo de usuario
-- [ ] Crear `TechnicalNavigator` con 2 variantes (regular/chief)
-- [ ] Implementar `RegularDashboard`
-- [ ] Implementar `ChiefDashboard`
-- [ ] Crear `TicketsList` con filtros
-- [ ] Crear `TicketDetail` con todas las acciones
-- [ ] Crear `AppointmentsList`
-- [ ] Crear `AppointmentDetail` con mapa
-- [ ] Implementar acciones de citas (start, complete, cancel, reschedule)
-- [ ] Implementar notificaciones push
-- [ ] Testing en iOS y Android
-
-### Documentación ✅
-- [x] Guía completa de implementación
-- [x] Ejemplos de código para cada endpoint
-- [x] Diagramas de flujo
-- [x] Checklist de testing
-
----
-
-## 🚀 ¡Comienza Aquí!
-
-1. **Backend**: Las rutas ya están implementadas ✅
-2. **Testing**: Prueba los endpoints con Postman
-3. **Mobile**: Empieza con el login y detección de tipo de usuario
-4. **Dashboard**: Implementa primero el dashboard (algo visual rápido)
-5. **Tickets**: Luego los tickets (funcionalidad más usada)
-6. **Appointments**: Finalmente las citas (más complejo)
-
-**¿Necesitas ayuda?** Revisa los ejemplos de código en esta guía. Cada endpoint tiene su ejemplo completo.
-
-**¡Éxito con la implementación! 🎉**
+**Versión del documento**: 2.0 - Completo y Actualizado

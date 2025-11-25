@@ -89,6 +89,9 @@ class TenantController extends Controller
                 ]);
             }
 
+            // Agregar technical_id al objeto user para consistencia con tenant_id
+            $response['user']['technical_id'] = $technical->id;
+
             $response['technical'] = [
                 'id' => $technical->id,
                 'name' => $technical->name,

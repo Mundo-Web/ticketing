@@ -175,6 +175,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/appointments/{appointment}/complete', [\App\Http\Controllers\AppointmentController::class, 'complete']);
     Route::post('/appointments/{appointment}/cancel', [\App\Http\Controllers\AppointmentController::class, 'cancel']);
     Route::post('/appointments/{appointment}/reschedule', [\App\Http\Controllers\AppointmentController::class, 'reschedule']);
+    Route::post('/appointments/{appointment}/no-show', [\App\Http\Controllers\AppointmentController::class, 'noShow']);
 });
 
 // Tenants API routes for admin/technical

@@ -65,33 +65,40 @@ npm install @react-native-cookies/cookies
 - [ ] **Crear `services/TechnicalAPIService.js`**
 
 #### Métodos de Tickets
-- [ ] `getMyTickets(type)` - GET `/api/technicals/{id}/tickets`
-- [ ] `getTicketDetail(ticketId)` - GET `/api/tickets/{id}/detail`
-- [ ] `updateTicketStatus(ticketId, status)` - POST `/tickets/{id}/update-status`
-- [ ] `uploadEvidence(ticketId, file, description)` - POST `/tickets/{id}/upload-evidence`
-- [ ] `addPrivateNote(ticketId, note)` - POST `/tickets/{id}/add-private-note`
-- [ ] `sendMessageToMember(ticketId, message)` - POST `/tickets/{id}/send-message-to-technical`
+- [ ] `getMyTickets(technicalId, type)` - GET `/api/technicals/{technical_id}/tickets?type={type}`
+  - Tipos: `all`, `today`, `week`, `month`, `open`, `in_progress`, `resolved`, `closed`, `recent`
+- [ ] `getTicketDetail(ticketId)` - GET `/api/tickets/{ticket_id}/detail`
+- [ ] `updateTicketStatus(ticketId, status)` - POST `/api/tickets/{ticket_id}/update-status`
+  - Estados: `open`, `in_progress`, `resolved`, `closed`
+- [ ] `addHistory(ticketId, action, description)` - POST `/api/tickets/{ticket_id}/add-history`
+- [ ] `uploadEvidence(ticketId, file, description)` - POST `/api/tickets/{ticket_id}/upload-evidence`
+  - Formatos: jpg, jpeg, png, gif, mp4, mov, avi (max 10MB)
+- [ ] `addPrivateNote(ticketId, note)` - POST `/api/tickets/{ticket_id}/add-private-note`
+- [ ] `sendMessageToMember(ticketId, message)` - POST `/api/tickets/{ticket_id}/send-message-to-technical`
 
 #### Métodos de Appointments
-- [ ] `getMyAppointments(startDate, endDate)` - GET `/appointments`
-- [ ] `getAppointmentDetails(appointmentId)` - GET `/appointments/{id}/details`
-- [ ] `createAppointment(data)` - POST `/appointments`
-- [ ] `startAppointment(appointmentId)` - POST `/appointments/{id}/start`
-- [ ] `completeAppointment(appointmentId, notes)` - POST `/appointments/{id}/complete`
-- [ ] `markNoShow(appointmentId, reason)` - POST `/appointments/{id}/no-show`
-- [ ] `rescheduleAppointment(appointmentId, date, reason)` - POST `/appointments/{id}/reschedule`
-- [ ] `cancelAppointment(appointmentId, reason)` - POST `/appointments/{id}/cancel`
+- [ ] `getMyAppointments(technicalId, date)` - GET `/api/technicals/{technical_id}/appointments?date={YYYY-MM-DD}`
+- [ ] `getAppointmentDetails(appointmentId)` - GET `/api/appointments/{appointment_id}/details`
+- [ ] `createAppointment(ticketId, technicalId, scheduledFor, notes)` - POST `/api/tickets/{ticket_id}/appointments`
+- [ ] `startAppointment(appointmentId)` - POST `/api/appointments/{appointment_id}/start`
+- [ ] `completeAppointment(appointmentId, completionNotes)` - POST `/api/appointments/{appointment_id}/complete`
+  - Cambia estado a `awaiting_feedback` (espera rating del member)
+- [ ] `markNoShow(appointmentId, reason, description)` - POST `/api/appointments/{appointment_id}/no-show`
+  - Razones: `member_not_available`, `member_cancelled_last_minute`, `access_denied`, `other`
+- [ ] `rescheduleAppointment(appointmentId, scheduledFor, reason)` - POST `/api/appointments/{appointment_id}/reschedule`
+- [ ] `cancelAppointment(appointmentId, reason, description)` - POST `/api/appointments/{appointment_id}/cancel`
 
 #### Métodos de Notificaciones
-- [ ] `getNotifications()` - GET `/notifications/api`
-- [ ] `markAsRead(notificationId)` - POST `/notifications/{id}/read`
-- [ ] `markAllAsRead()` - POST `/notifications/mark-all-read`
+- [ ] `getNotifications()` - GET `/api/tenant/notifications`
+- [ ] `markAsRead(notificationId)` - POST `/api/tenant/notifications/{notification_id}/read`
+- [ ] `markAllAsRead()` - POST `/api/tenant/notifications/mark-all-read`
 - [ ] `registerPushToken(token, deviceType)` - POST `/api/tenant/register-push-token`
+  - Device types: `ios`, `android`
 
-#### Métodos de Técnico Default (opcional)
-- [ ] `assignTicket(ticketId, technicalId, comment)` - POST `/tickets/{id}/assign-technical`
-- [ ] `unassignTicket(ticketId)` - POST `/tickets/{id}/unassign`
+#### Métodos de Técnico Default/Jefe (opcional)
 - [ ] `getAllTechnicals()` - GET `/api/technicals`
+- [ ] `getAllTenants()` - GET `/api/tenants/all`
+- [ ] Nota: Asignación de tickets se hace desde web admin, no desde mobile
 
 ### Testing del Servicio
 - [ ] Probar 2-3 métodos desde una pantalla de prueba
