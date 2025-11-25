@@ -24,7 +24,7 @@ class TechnicalController extends Controller
     /**
      * Get tickets for a specific technical (including default technicals)
      */
-    public function tickets(Request $request, $technicalId)
+    public function getTickets(Request $request, $technicalId)
     {
         Log::info('🔍 tickets endpoint called', ['technical_id' => $technicalId, 'type' => $request->get('type', 'all')]);
         try {
