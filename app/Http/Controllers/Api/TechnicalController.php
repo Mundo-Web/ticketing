@@ -43,9 +43,10 @@ class TechnicalController extends Controller
             \Illuminate\Support\Facades\Log::info('📊 Construyendo query de tickets...');
             
             // Usar with() sin select específico para permitir relaciones NULL
+            // NOTA: La tabla tickets NO tiene columna 'priority'
             $query = $technical->tickets()
                 ->with(['building', 'device', 'apartment'])
-                ->select('id', 'title', 'status', 'priority', 'created_at', 'building_id', 'device_id', 'apartment_id');
+                ->select('id', 'title', 'status', 'created_at', 'building_id', 'device_id', 'apartment_id');
             
             \Illuminate\Support\Facades\Log::info('🔍 Aplicando filtro tipo: ' . $type);
             
