@@ -37,14 +37,19 @@ class TechnicalController extends Controller
             $type = $request->get('type', 'all');
             
             // Construir query base
-            // Usamos Ticket::query() en lugar de $technical->tickets() para tener control total
-            // y evitar problemas con relaciones automáticas si las hubiera
-            $query = Ticket::where('technical_id', $technicalId)
+            // Si es técnico jefe (is_default), ve TODOS los tickets
+            // Si es técnico regular, ve solo sus tickets asignados
+            $query = Ticket::query()
                 ->with([
                     'device',           // Para obtener nombre del dispositivo
                     'user',             // Para obtener nombre del usuario (tenant)
                     'user.tenant'       // Para obtener detalles del tenant (teléfono, etc)
                 ]);
+
+            if (!$technical->is_default) {
+                $query->where('technical_id', $technicalId);
+            }
+            // Si es default, NO aplicamos filtro por technical_id, así ve todos
 
             // Aplicar filtros
             switch ($type) {
