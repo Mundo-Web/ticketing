@@ -25,49 +25,88 @@ class TechnicalController extends Controller
      */
     public function getTickets(Request $request, $technicalId)
     {
-        $technical = Technical::findOrFail($technicalId);
-        $type = $request->get('type', 'all');
+        \Illuminate\Support\Facades\Log::info('🔍 getTickets iniciado', [
+            'technical_id' => $technicalId,
+            'type' => $request->get('type', 'all')
+        ]);
         
-        $query = $technical->tickets()
-            ->with(['building:id,name', 'device:id,name', 'apartment:id,number'])
-            ->select('id', 'title', 'status', 'priority', 'created_at', 'building_id', 'device_id', 'apartment_id');
-        
-        switch ($type) {
-            case 'today':
-                $query->whereDate('created_at', today());
-                break;
-            case 'week':
-                $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
-                break;
-            case 'month':
-                $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
-                break;
-            case 'open':
-                $query->where('status', 'open');
-                break;
-            case 'in_progress':
-                $query->where('status', 'in_progress');
-                break;
-            case 'resolved':
-                $query->where('status', 'resolved');
-                break;
-            case 'closed':
-                $query->where('status', 'closed');
-                break;
-            case 'recent':
-                // Recent completed tickets from last 7 days (excluding active tickets)
-                $query->where('created_at', '>=', now()->subDays(7))
-                      ->whereIn('status', ['resolved', 'closed']);
-                break;
-            case 'all':
-            default:
-                // No additional filtering for 'all'
-                break;
+        try {
+            \Illuminate\Support\Facades\Log::info('📝 Buscando técnico...');
+            $technical = Technical::findOrFail($technicalId);
+            \Illuminate\Support\Facades\Log::info('✅ Técnico encontrado', [
+                'id' => $technical->id,
+                'name' => $technical->name
+            ]);
+            
+            $type = $request->get('type', 'all');
+            
+            \Illuminate\Support\Facades\Log::info('📊 Construyendo query de tickets...');
+            
+            // Usar with() sin select específico para permitir relaciones NULL
+            $query = $technical->tickets()
+                ->with(['building', 'device', 'apartment'])
+                ->select('id', 'title', 'status', 'priority', 'created_at', 'building_id', 'device_id', 'apartment_id');
+            
+            \Illuminate\Support\Facades\Log::info('🔍 Aplicando filtro tipo: ' . $type);
+            
+            switch ($type) {
+                case 'today':
+                    $query->whereDate('created_at', today());
+                    break;
+                case 'week':
+                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                    break;
+                case 'month':
+                    $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
+                    break;
+                case 'open':
+                    $query->where('status', 'open');
+                    break;
+                case 'in_progress':
+                    $query->where('status', 'in_progress');
+                    break;
+                case 'resolved':
+                    $query->where('status', 'resolved');
+                    break;
+                case 'closed':
+                    $query->where('status', 'closed');
+                    break;
+                case 'recent':
+                    // Recent completed tickets from last 7 days (excluding active tickets)
+                    $query->where('created_at', '>=', now()->subDays(7))
+                          ->whereIn('status', ['resolved', 'closed']);
+                    break;
+                case 'all':
+                default:
+                    // No additional filtering for 'all'
+                    break;
+            }
+            
+            \Illuminate\Support\Facades\Log::info('🔄 Ejecutando query...');
+            $tickets = $query->latest()->get();
+            \Illuminate\Support\Facades\Log::info('✅ Tickets obtenidos', [
+                'count' => $tickets->count()
+            ]);
+            
+            return response()->json($tickets);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('❌ ERROR en getTickets', [
+                'technical_id' => $technicalId,
+                'type' => $request->get('type', 'all'),
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Error al obtener tickets',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
-        
-        $tickets = $query->latest()->get();
-        
-        return response()->json($tickets);
     }
 
     /**
