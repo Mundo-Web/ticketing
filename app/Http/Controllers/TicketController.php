@@ -19,6 +19,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class TicketController extends Controller
 {
@@ -1192,6 +1193,114 @@ class TicketController extends Controller
         }
 
         return redirect()->back()->with('success', 'Private note added successfully');
+    }
+
+    /**
+     * Upload evidence with base64 (for mobile Android)
+     */
+    public function uploadEvidenceBase64(Request $request, Ticket $ticket)
+    {
+        Log::info('UploadEvidenceBase64 called', [
+            'user_id' => Auth::id(),
+            'ticket_id' => $ticket->id,
+            'expects_json' => $request->expectsJson(),
+        ]);
+
+        $validated = $request->validate([
+            'evidence_base64' => 'required|string',
+            'file_name' => 'required|string|max:255',
+            'file_type' => 'required|string|in:image/jpeg,image/png,image/jpg,image/gif,video/mp4,video/mov,video/avi',
+            'file_size' => 'required|integer|max:10485760', // 10MB max
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $user = Auth::user();
+        
+        // Verificar permisos: solo el técnico asignado, técnico default o admin pueden subir evidencia
+        $technical = Technical::where('email', $user->email)->first();
+        $isTechnicalDefault = $technical && $technical->is_default;
+        $isSuperAdmin = $user->hasRole('super-admin');
+        $isAssignedTechnical = $ticket->technical_id === $technical?->id;
+
+        if (!$isSuperAdmin && !$isTechnicalDefault && !$isAssignedTechnical) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You can only upload evidence to tickets assigned to you.'
+            ], 403);
+        }
+
+        try {
+            // Decode base64
+            $fileData = base64_decode($validated['evidence_base64']);
+            
+            if ($fileData === false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid base64 data'
+                ], 400);
+            }
+
+            // Generar nombre único
+            $extension = match($validated['file_type']) {
+                'image/jpeg', 'image/jpg' => 'jpg',
+                'image/png' => 'png',
+                'image/gif' => 'gif',
+                'video/mp4' => 'mp4',
+                'video/mov' => 'mov',
+                'video/avi' => 'avi',
+                default => 'jpg'
+            };
+
+            $fileName = time() . '_' . uniqid() . '.' . $extension;
+            $filePath = 'ticket_evidence/' . $fileName;
+
+            // Guardar archivo
+            Storage::disk('public')->put($filePath, $fileData);
+
+            // Agregar al historial
+            $actorName = $technical ? $technical->name : $user->name;
+            $description = $validated['description'] 
+                ? "Evidence uploaded by {$actorName}: " . $validated['description']
+                : "Evidence uploaded by {$actorName}";
+
+            $ticket->addHistory(
+                'evidence_uploaded',
+                $description,
+                [
+                    'file_path' => $filePath,
+                    'file_name' => $fileName,
+                    'file_type' => $validated['file_type'],
+                    'file_size' => $validated['file_size'],
+                    'original_name' => $validated['file_name'],
+                    'upload_method' => 'base64_mobile'
+                ],
+                $technical?->id
+            );
+
+            Log::info('Evidence uploaded successfully via base64', [
+                'file_path' => $filePath,
+                'file_size' => $validated['file_size']
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Evidence uploaded successfully',
+                'file_path' => $filePath,
+                'file_name' => $fileName,
+                'file_url' => asset('storage/' . $filePath)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error uploading evidence base64', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error uploading evidence: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function assignUnassigned()

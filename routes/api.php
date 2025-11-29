@@ -168,6 +168,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/tickets/{ticket}/update-status', [\App\Http\Controllers\TicketController::class, 'updateStatus']);
     Route::post('/tickets/{ticket}/add-history', [\App\Http\Controllers\TicketController::class, 'addHistory']);
     Route::post('/tickets/{ticket}/upload-evidence', [\App\Http\Controllers\TicketController::class, 'uploadEvidence']);
+    Route::post('/tickets/{ticket}/upload-evidence-base64', [\App\Http\Controllers\TicketController::class, 'uploadEvidenceBase64']);
     Route::post('/tickets/{ticket}/add-private-note', [\App\Http\Controllers\TicketController::class, 'addPrivateNote']);
     Route::post('/tickets/{ticket}/send-message-to-technical', [\App\Http\Controllers\TicketController::class, 'sendMessageToTechnical']);
     
