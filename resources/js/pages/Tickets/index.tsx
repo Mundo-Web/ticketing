@@ -1355,9 +1355,10 @@ Por favor, revise el dispositivo y complete los detalles adicionales si es neces
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'Accept': 'application/json',
+                    // NO incluir Content-Type - el navegador lo establece automáticamente con el boundary correcto
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                     'X-Requested-With': 'XMLHttpRequest',
-                    ...createCSRFHeaders()
+                    'Accept': 'application/json',
                 },
             });
             console.log('Fetch request completed!');
