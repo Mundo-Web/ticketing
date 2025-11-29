@@ -1062,21 +1062,10 @@ class TicketController extends Controller
      */
     public function uploadEvidence(Request $request, Ticket $ticket)
     {
-        // Debug logging
-        Log::info('UploadEvidence called', [
-            'user_id' => Auth::id(),
-            'ticket_id' => $ticket->id,
-            'request_headers' => $request->headers->all(),
-            'has_file' => $request->hasFile('evidence'),
-            'expects_json' => $request->expectsJson(),
-        ]);
-
         $validated = $request->validate([
             'evidence' => 'required|file|mimes:jpg,jpeg,png,gif,mp4,mov,avi|max:10240', // 10MB max
             'description' => 'nullable|string|max:500',
         ]);
-
-        Log::info('Validation passed', ['validated' => $validated]);
 
         $user = Auth::user();
         
@@ -1085,14 +1074,6 @@ class TicketController extends Controller
         $isTechnicalDefault = $technical && $technical->is_default;
         $isSuperAdmin = $user->hasRole('super-admin');
         $isAssignedTechnical = $ticket->technical_id === $technical?->id;
-
-        Log::info('Permission check', [
-            'technical_id' => $technical?->id,
-            'ticket_technical_id' => $ticket->technical_id,
-            'isTechnicalDefault' => $isTechnicalDefault,
-            'isSuperAdmin' => $isSuperAdmin,
-            'isAssignedTechnical' => $isAssignedTechnical,
-        ]);
 
         if (!$isSuperAdmin && !$isTechnicalDefault && !$isAssignedTechnical) {
             abort(403, 'You can only upload evidence to tickets assigned to you.');
@@ -1105,7 +1086,8 @@ class TicketController extends Controller
 
         // Actualizar el campo attachments del ticket
         $attachments = $ticket->attachments ?? [];
-        $attachments[] = [
+        
+        $newAttachment = [
             'type' => 'evidence',
             'path' => $filePath,
             'name' => $fileName,
@@ -1116,15 +1098,20 @@ class TicketController extends Controller
             'uploaded_at' => now()->toDateTimeString(),
             'description' => $validated['description'] ?? null
         ];
+        
+        $attachments[] = $newAttachment;
+        
+        // Deshabilitar auditoría temporalmente para evitar conflictos
+        $ticket->disableAuditing();
         $ticket->attachments = $attachments;
-        $ticket->save();
-
-        Log::info('File saved to ticket attachments', [
-            'ticket_id' => $ticket->id,
-            'file_path' => $filePath,
-            'file_name' => $fileName,
-            'total_attachments' => count($attachments)
-        ]);
+        
+        try {
+            $ticket->save();
+        } catch (\Exception $saveException) {
+            throw $saveException;
+        } finally {
+            $ticket->enableAuditing();
+        }
 
         // Agregar al historial con metadata del archivo
         $actorName = $technical ? $technical->name : $user->name;
@@ -1162,19 +1149,9 @@ class TicketController extends Controller
      */
     public function addPrivateNote(Request $request, Ticket $ticket)
     {
-        // Debug logging
-        Log::info('AddPrivateNote called', [
-            'user_id' => Auth::id(),
-            'ticket_id' => $ticket->id,
-            'request_data' => $request->all(),
-            'expects_json' => $request->expectsJson(),
-        ]);
-
         $validated = $request->validate([
             'note' => 'required|string|max:1000',
         ]);
-
-        Log::info('AddPrivateNote validation passed', ['validated' => $validated]);
 
         $user = Auth::user();
         
@@ -1182,15 +1159,7 @@ class TicketController extends Controller
         $technical = Technical::where('email', $user->email)->first();
         $isSuperAdmin = $user->hasRole('super-admin');
 
-        Log::info('AddPrivateNote permission check', [
-            'technical_found' => !!$technical,
-            'technical_id' => $technical?->id,
-            'isSuperAdmin' => $isSuperAdmin,
-            'user_email' => $user->email,
-        ]);
-
         if (!$technical && !$isSuperAdmin) {
-            Log::info('AddPrivateNote permission denied');
             abort(403, 'Only technicians can add private notes.');
         }
 
@@ -1223,43 +1192,15 @@ class TicketController extends Controller
      */
     public function uploadEvidenceBase64(Request $request, Ticket $ticket)
     {
-        Log::info('========== UPLOAD EVIDENCE BASE64 START ==========');
-        Log::info('Step 1: Method called', [
-            'user_id' => Auth::id(),
-            'ticket_id' => $ticket->id,
-            'expects_json' => $request->expectsJson(),
-            'request_data_keys' => array_keys($request->all()),
+        $validated = $request->validate([
+            'evidence_base64' => 'required|string',
+            'file_name' => 'required|string|max:255',
+            'file_type' => 'required|string|in:image/jpeg,image/png,image/jpg,image/gif,video/mp4,video/mov,video/avi',
+            'file_size' => 'required|integer|max:10485760', // 10MB max
+            'description' => 'nullable|string|max:500',
         ]);
-
-        try {
-            $validated = $request->validate([
-                'evidence_base64' => 'required|string',
-                'file_name' => 'required|string|max:255',
-                'file_type' => 'required|string|in:image/jpeg,image/png,image/jpg,image/gif,video/mp4,video/mov,video/avi',
-                'file_size' => 'required|integer|max:10485760', // 10MB max
-                'description' => 'nullable|string|max:500',
-            ]);
-            Log::info('Step 2: Validation passed', [
-                'file_name' => $validated['file_name'],
-                'file_type' => $validated['file_type'],
-                'file_size' => $validated['file_size'],
-                'has_description' => !empty($validated['description']),
-                'base64_length' => strlen($validated['evidence_base64']),
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Step 2 FAILED: Validation failed', [
-                'errors' => $e->errors(),
-                'request_data' => $request->except(['evidence_base64']), // Don't log the entire base64
-            ]);
-            throw $e;
-        }
 
         $user = Auth::user();
-        Log::info('Step 3: User authenticated', [
-            'user_id' => $user->id,
-            'user_email' => $user->email,
-            'user_roles' => $user->roles->pluck('name'),
-        ]);
         
         // Verificar permisos: solo el técnico asignado, técnico default o admin pueden subir evidencia
         $technical = Technical::where('email', $user->email)->first();
@@ -1267,17 +1208,7 @@ class TicketController extends Controller
         $isSuperAdmin = $user->hasRole('super-admin');
         $isAssignedTechnical = $ticket->technical_id === $technical?->id;
 
-        Log::info('Step 4: Permission check', [
-            'technical_id' => $technical?->id,
-            'ticket_technical_id' => $ticket->technical_id,
-            'isTechnicalDefault' => $isTechnicalDefault,
-            'isSuperAdmin' => $isSuperAdmin,
-            'isAssignedTechnical' => $isAssignedTechnical,
-            'has_permission' => $isSuperAdmin || $isTechnicalDefault || $isAssignedTechnical,
-        ]);
-
         if (!$isSuperAdmin && !$isTechnicalDefault && !$isAssignedTechnical) {
-            Log::error('Step 4 FAILED: Permission denied');
             return response()->json([
                 'success' => false,
                 'message' => 'You can only upload evidence to tickets assigned to you.'
@@ -1285,26 +1216,17 @@ class TicketController extends Controller
         }
 
         try {
-            Log::info('Step 5: Starting base64 decode');
             // Decode base64
             $fileData = base64_decode($validated['evidence_base64']);
             
             if ($fileData === false) {
-                Log::error('Step 5 FAILED: Base64 decode failed');
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid base64 data'
                 ], 400);
             }
-            
-            Log::info('Step 5: Base64 decoded successfully', [
-                'decoded_size' => strlen($fileData),
-                'expected_size' => $validated['file_size'],
-                'size_match' => abs(strlen($fileData) - $validated['file_size']) < 1000, // Allow small difference
-            ]);
 
             // Generar nombre único
-            Log::info('Step 6: Generating file name');
             $extension = match($validated['file_type']) {
                 'image/jpeg', 'image/jpg' => 'jpg',
                 'image/png' => 'png',
@@ -1317,40 +1239,21 @@ class TicketController extends Controller
 
             $fileName = time() . '_' . uniqid() . '.' . $extension;
             $filePath = 'ticket_evidence/' . $fileName;
-            
-            Log::info('Step 6: File name generated', [
-                'file_name' => $fileName,
-                'file_path' => $filePath,
-                'extension' => $extension,
-            ]);
 
             // Guardar archivo
-            Log::info('Step 7: Attempting to save file to storage');
             $saved = Storage::disk('public')->put($filePath, $fileData);
             
             if (!$saved) {
-                Log::error('Step 7 FAILED: Storage put failed');
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to save file to storage'
                 ], 500);
             }
-            
-            Log::info('Step 7: File saved to storage successfully', [
-                'file_path' => $filePath,
-                'exists' => Storage::disk('public')->exists($filePath),
-                'size' => Storage::disk('public')->size($filePath),
-            ]);
 
             // Actualizar el campo attachments del ticket
-            Log::info('Step 8: Updating ticket attachments field');
             $attachments = $ticket->attachments ?? [];
-            Log::info('Step 8a: Current attachments', [
-                'current_count' => count($attachments),
-                'current_attachments' => $attachments,
-            ]);
             
-            $attachments[] = [
+            $newAttachment = [
                 'type' => 'evidence',
                 'path' => $filePath,
                 'name' => $fileName,
@@ -1363,28 +1266,27 @@ class TicketController extends Controller
                 'upload_method' => 'base64_mobile'
             ];
             
-            Log::info('Step 8b: New attachment added to array', [
-                'new_count' => count($attachments),
-                'last_attachment' => end($attachments),
-            ]);
+            $attachments[] = $newAttachment;
             
+            // Deshabilitar auditoría temporalmente para evitar conflictos
+            $ticket->disableAuditing();
             $ticket->attachments = $attachments;
-            $ticketSaved = $ticket->save();
             
-            Log::info('Step 8c: Ticket saved', [
-                'save_result' => $ticketSaved,
-                'ticket_id' => $ticket->id,
-                'final_attachments_count' => count($ticket->fresh()->attachments ?? []),
-            ]);
+            try {
+                $ticket->save();
+            } catch (\Exception $saveException) {
+                throw $saveException;
+            } finally {
+                $ticket->enableAuditing();
+            }
 
             // Agregar al historial
-            Log::info('Step 9: Adding history entry');
             $actorName = $technical ? $technical->name : $user->name;
             $description = $validated['description'] 
                 ? "Evidence uploaded by {$actorName}: " . $validated['description']
                 : "Evidence uploaded by {$actorName}";
 
-            $historyEntry = $ticket->addHistory(
+            $ticket->addHistory(
                 'evidence_uploaded',
                 $description,
                 [
@@ -1398,18 +1300,6 @@ class TicketController extends Controller
                 $technical?->id
             );
 
-            Log::info('Step 9: History entry added', [
-                'history_id' => $historyEntry->id,
-                'action' => $historyEntry->action,
-            ]);
-
-            Log::info('Step 10: SUCCESS - Evidence uploaded via base64', [
-                'file_path' => $filePath,
-                'file_size' => $validated['file_size'],
-                'file_url' => asset('storage/' . $filePath),
-            ]);
-            Log::info('========== UPLOAD EVIDENCE BASE64 END (SUCCESS) ==========');
-
             return response()->json([
                 'success' => true,
                 'message' => 'Evidence uploaded successfully',
@@ -1419,14 +1309,6 @@ class TicketController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('========== UPLOAD EVIDENCE BASE64 FAILED ==========');
-            Log::error('Exception caught', [
-                'error_message' => $e->getMessage(),
-                'error_file' => $e->getFile(),
-                'error_line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'Error uploading evidence: ' . $e->getMessage()
