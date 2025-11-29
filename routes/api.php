@@ -40,9 +40,10 @@ Route::prefix('tenant')->group(function () {
     Route::post('/login', [TenantController::class, 'login']);
 });
 
-// Technical ticket detail endpoint (NO auth required, NO tenant middleware)
+// Technical ticket endpoints (NO tenant middleware required)
 // MUST be registered BEFORE tenant routes to avoid route conflicts
 Route::get('/tickets/{ticket}/detail', [TechnicalController::class, 'getTicketDetail']);
+Route::middleware(['auth:sanctum'])->post('/tickets/{ticket}/send-message-to-technical', [\App\Http\Controllers\TicketController::class, 'sendMessageToTechnical']);
 
 // Protected Tenant API Routes
 Route::middleware(['auth:sanctum', 'tenant'])->prefix('tenant')->group(function () {
@@ -170,7 +171,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/tickets/{ticket}/upload-evidence', [\App\Http\Controllers\TicketController::class, 'uploadEvidence']);
     Route::post('/tickets/{ticket}/upload-evidence-base64', [\App\Http\Controllers\TicketController::class, 'uploadEvidenceBase64']);
     Route::post('/tickets/{ticket}/add-private-note', [\App\Http\Controllers\TicketController::class, 'addPrivateNote']);
-    Route::post('/tickets/{ticket}/send-message-to-technical', [\App\Http\Controllers\TicketController::class, 'sendMessageToTechnical']);
     
     // Appointments
     Route::get('/appointments/{appointment}/details', [\App\Http\Controllers\AppointmentController::class, 'getDetails']);
