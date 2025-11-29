@@ -136,7 +136,14 @@ class TechnicalController extends Controller
      */
     public function getTicketDetail($ticketId)
     {
+        dump("🔥 LLEGÓ PETICIÓN AL MÉTODO getTicketDetail");
+        dump("Ticket ID solicitado: " . $ticketId);
+        dump("Request method: " . request()->method());
+        dump("Request URL: " . request()->fullUrl());
+        
         try {
+            dump("✅ Dentro del try...");
+            
             // Buscar el ticket con todas las relaciones necesarias
             $ticket = Ticket::with([
                 'device.brand',
@@ -154,10 +161,15 @@ class TechnicalController extends Controller
                 'histories.technical'
             ])->find($ticketId);
 
+            dump("Ticket encontrado:", $ticket ? "SÍ (ID: {$ticket->id})" : "NO (null)");
+
             if (!$ticket) {
+                dump("❌ Retornando 404 porque ticket es null");
                 return response()->json(['error' => 'Ticket not found'], 404);
             }
 
+            dump("✅ Construyendo response...");
+            
             // Construir response idéntico al de tenant
             return response()->json([
                 'ticket' => [
@@ -225,7 +237,15 @@ class TechnicalController extends Controller
                     }),
                 ]
             ]);
+            
+            dump("🎉 Response construido exitosamente, retornando JSON...");
+            
         } catch (\Exception $e) {
+            dump("💥 EXCEPCIÓN CAPTURADA:");
+            dump("Mensaje: " . $e->getMessage());
+            dump("Archivo: " . $e->getFile());
+            dump("Línea: " . $e->getLine());
+            
             Log::error('Error getting ticket detail: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Error al obtener detalle del ticket',
