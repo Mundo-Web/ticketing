@@ -115,9 +115,26 @@ trait Auditable
             $friendlyField = $this->getFriendlyFieldName($field);
             $originalValue = $this->getOriginal($field);
             
-            if (is_null($originalValue)) {
+            // Convertir arrays y objetos a JSON para evitar "Array to string conversion"
+            if (is_array($newValue) || is_object($newValue)) {
+                $newValue = json_encode($newValue);
+            }
+            if (is_array($originalValue) || is_object($originalValue)) {
+                $originalValue = json_encode($originalValue);
+            }
+            
+            // Truncar valores muy largos (como JSON de attachments)
+            $maxLength = 100;
+            if (strlen($newValue) > $maxLength) {
+                $newValue = substr($newValue, 0, $maxLength) . '...';
+            }
+            if (strlen($originalValue) > $maxLength) {
+                $originalValue = substr($originalValue, 0, $maxLength) . '...';
+            }
+            
+            if (is_null($originalValue) || $originalValue === '' || $originalValue === 'null') {
                 $changedFields[] = "set {$friendlyField} to '{$newValue}'";
-            } elseif (is_null($newValue)) {
+            } elseif (is_null($newValue) || $newValue === '' || $newValue === 'null') {
                 $changedFields[] = "cleared {$friendlyField}";
             } else {
                 $changedFields[] = "changed {$friendlyField} from '{$originalValue}' to '{$newValue}'";
@@ -154,6 +171,8 @@ trait Auditable
             'managing_company' => 'managing company',
             'location_link' => 'location link',
             'image' => 'image',
+            'attachments' => 'attachments',
+            'technical_id' => 'assigned technical',
         ];
         
         return $fieldNames[$field] ?? str_replace('_', ' ', $field);
