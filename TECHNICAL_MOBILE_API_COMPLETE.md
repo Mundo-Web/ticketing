@@ -666,6 +666,10 @@ const addPrivateNote = async (ticketId, note) => {
 
 **Uso:** Técnico envía mensaje al member (usuario que creó el ticket)
 
+**Autorización:**
+- **Técnico**: Debe ser el asignado al ticket O ser técnico jefe (`is_default: true`)
+- **Member**: Debe ser el propietario del ticket
+
 **Request Body:**
 ```json
 {
