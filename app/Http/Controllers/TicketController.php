@@ -1089,7 +1089,23 @@ class TicketController extends Controller
             // Guardar el archivo
             $file = $request->file('evidence');
             $fileName = time() . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('ticket_evidence', $fileName, 'public');
+            
+            // Asegurarse de que el directorio existe
+            $directory = 'ticket_evidence';
+            Storage::disk('public')->makeDirectory($directory);
+            
+            $filePath = $file->storeAs($directory, $fileName, 'public');
+            
+            // Verificar que el archivo se guardó correctamente
+            if (!$filePath || !Storage::disk('public')->exists($filePath)) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to save file to storage. Directory may not be writable.'
+                    ], 500);
+                }
+                throw new \Exception('Failed to save file to storage');
+            }
 
             // Actualizar el campo attachments del ticket
             $attachments = $ticket->attachments ?? [];
@@ -1276,6 +1292,9 @@ class TicketController extends Controller
             $fileName = time() . '_' . uniqid() . '.' . $extension;
             $filePath = 'ticket_evidence/' . $fileName;
 
+            // Asegurarse de que el directorio existe
+            Storage::disk('public')->makeDirectory('ticket_evidence');
+
             // Guardar archivo
             $saved = Storage::disk('public')->put($filePath, $fileData);
             
@@ -1283,6 +1302,14 @@ class TicketController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to save file to storage'
+                ], 500);
+            }
+            
+            // Verificar que el archivo existe
+            if (!Storage::disk('public')->exists($filePath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File saved but not found. Storage may not be configured correctly.'
                 ], 500);
             }
 
