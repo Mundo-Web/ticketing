@@ -132,41 +132,106 @@ class TechnicalController extends Controller
     }
 
     /**
-     * Get detailed information about a specific ticket
+     * Get detailed information about a specific ticket (with full timeline like tenant endpoint)
      */
     public function getTicketDetail($ticketId)
     {
-        $ticket = Ticket::with([
-            'building:id,name,address',
-            'device:id,name',
-            'device.brand:id,name',
-            'device.model:id,name',
-            'apartment:id,number',
-            'tenant:id,name,email,phone',
-            'history' => function($query) {
-                $query->with('user:id,name')->orderBy('created_at', 'desc');
-            },
-            'comments' => function($query) {
-                $query->with('user:id,name')->orderBy('created_at', 'desc');
+        try {
+            // Buscar el ticket con todas las relaciones necesarias
+            $ticket = Ticket::with([
+                'device.brand',
+                'device.model',
+                'device.system',
+                'device.name_device',
+                'technical',
+                'user', // Member que creó el ticket
+                'user.tenant', // Datos del tenant
+                'user.tenant.apartment', // Apartamento del tenant
+                'user.tenant.apartment.building', // Edificio
+                'histories' => function ($query) {
+                    $query->orderBy('created_at', 'desc');
+                },
+                'histories.technical'
+            ])->find($ticketId);
+
+            if (!$ticket) {
+                return response()->json(['error' => 'Ticket not found'], 404);
             }
-        ])->findOrFail($ticketId);
 
-        if ($ticket->status === 'resolved' && $ticket->resolved_at) {
-            $ticket->resolution_time = $ticket->created_at->diffInHours($ticket->resolved_at);
+            // Construir response idéntico al de tenant
+            return response()->json([
+                'ticket' => [
+                    'id' => $ticket->id,
+                    'title' => $ticket->title,
+                    'description' => $ticket->description,
+                    'category' => $ticket->category,
+                    'status' => $ticket->status,
+                    'priority' => $ticket->priority,
+                    'created_at' => $ticket->created_at,
+                    'updated_at' => $ticket->updated_at,
+                    'device' => $ticket->device ? [
+                        'id' => $ticket->device->id,
+                        'name' => $ticket->device->name,
+                        'brand' => $ticket->device->brand?->name,
+                        'model' => $ticket->device->model?->name,
+                        'system' => $ticket->device->system?->name,
+                        'device_type' => $ticket->device->name_device?->name,
+                        'ubicacion' => $ticket->device->ubicacion,
+                        'icon_id' => $ticket->device->icon_id,
+                        'device_image' => $ticket->device->name_device?->image,
+                        'name_device' => $ticket->device->name_device ? [
+                            'id' => $ticket->device->name_device->id,
+                            'name' => $ticket->device->name_device->name,
+                            'status' => $ticket->device->name_device->status,
+                            'image' => $ticket->device->name_device->image
+                        ] : null,
+                    ] : null,
+                    'technical' => $ticket->technical ? [
+                        'id' => $ticket->technical->id,
+                        'name' => $ticket->technical->name,
+                        'email' => $ticket->technical->email,
+                        'phone' => $ticket->technical->phone,
+                        'photo' => $ticket->technical->photo,
+                        'shift' => $ticket->technical->shift,
+                    ] : null,
+                    'member' => $ticket->user ? [
+                        'id' => $ticket->user->id,
+                        'name' => $ticket->user->name,
+                        'email' => $ticket->user->email,
+                        'phone' => $ticket->user->tenant?->phone,
+                        'photo' => $ticket->user->tenant?->photo,
+                        'apartment' => $ticket->user->tenant?->apartment ? [
+                            'id' => $ticket->user->tenant->apartment->id,
+                            'number' => $ticket->user->tenant->apartment->number,
+                            'building' => $ticket->user->tenant->apartment->building ? [
+                                'id' => $ticket->user->tenant->apartment->building->id,
+                                'name' => $ticket->user->tenant->apartment->building->name,
+                                'address' => $ticket->user->tenant->apartment->building->address,
+                            ] : null,
+                        ] : null,
+                    ] : null,
+                    'histories' => $ticket->histories->map(function ($history) {
+                        return [
+                            'id' => $history->id,
+                            'action' => $history->action,
+                            'description' => $history->description,
+                            'user_name' => $history->user_name,
+                            'created_at' => $history->created_at,
+                            'technical' => $history->technical ? [
+                                'id' => $history->technical->id,
+                                'name' => $history->technical->name,
+                            ] : null,
+                        ];
+                    }),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting ticket detail: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error al obtener detalle del ticket',
+                'message' => $e->getMessage()
+            ], 500);
         }
-
-        if ($ticket->status === 'resolved') {
-            $ticket->rating = rand(3,5);
-            $ticket->feedback = [
-                "Great job! Very professional service.",
-                "Quick resolution, thank you!",
-                "Excellent technical support.",
-                "Very satisfied with the service.",
-                "Outstanding work, highly recommend!"
-            ][rand(0,4)];
-        }
-
-        return response()->json($ticket);
     }
 
     /**
