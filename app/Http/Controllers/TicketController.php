@@ -1062,86 +1062,126 @@ class TicketController extends Controller
      */
     public function uploadEvidence(Request $request, Ticket $ticket)
     {
-        $validated = $request->validate([
-            'evidence' => 'required|file|mimes:jpg,jpeg,png,gif,mp4,mov,avi|max:10240', // 10MB max
-            'description' => 'nullable|string|max:500',
-        ]);
-
-        $user = Auth::user();
-        
-        // Verificar permisos: solo el técnico asignado, técnico default o admin pueden subir evidencia
-        $technical = Technical::where('email', $user->email)->first();
-        $isTechnicalDefault = $technical && $technical->is_default;
-        $isSuperAdmin = $user->hasRole('super-admin');
-        $isAssignedTechnical = $ticket->technical_id === $technical?->id;
-
-        if (!$isSuperAdmin && !$isTechnicalDefault && !$isAssignedTechnical) {
-            abort(403, 'You can only upload evidence to tickets assigned to you.');
-        }
-
-        // Guardar el archivo
-        $file = $request->file('evidence');
-        $fileName = time() . '_' . $file->getClientOriginalName();
-        $filePath = $file->storeAs('ticket_evidence', $fileName, 'public');
-
-        // Actualizar el campo attachments del ticket
-        $attachments = $ticket->attachments ?? [];
-        
-        $newAttachment = [
-            'type' => 'evidence',
-            'path' => $filePath,
-            'name' => $fileName,
-            'original_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType(),
-            'size' => $file->getSize(),
-            'uploaded_by' => $user->name,
-            'uploaded_at' => now()->toDateTimeString(),
-            'description' => $validated['description'] ?? null
-        ];
-        
-        $attachments[] = $newAttachment;
-        
-        // Deshabilitar auditoría temporalmente para evitar conflictos
-        $ticket->disableAuditing();
-        $ticket->attachments = $attachments;
-        
         try {
-            $ticket->save();
-        } catch (\Exception $saveException) {
-            throw $saveException;
-        } finally {
-            $ticket->enableAuditing();
-        }
-
-        // Agregar al historial con metadata del archivo
-        $actorName = $technical ? $technical->name : $user->name;
-        $description = $validated['description'] 
-            ? "Evidence uploaded by {$actorName}: " . $validated['description']
-            : "Evidence uploaded by {$actorName}";
-
-        $ticket->addHistory(
-            'evidence_uploaded',
-            $description,
-            [
-                'file_path' => $filePath,
-                'file_name' => $fileName,
-                'file_type' => $file->getMimeType(),
-                'file_size' => $file->getSize(),
-                'original_name' => $file->getClientOriginalName()
-            ],
-            $technical?->id
-        );
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Evidence uploaded successfully',
-                'file_path' => $filePath,
-                'file_name' => $fileName
+            $validated = $request->validate([
+                'evidence' => 'required|file|mimes:jpg,jpeg,png,gif,mp4,mov,avi|max:10240', // 10MB max
+                'description' => 'nullable|string|max:500',
             ]);
-        }
 
-        return redirect()->back()->with('success', 'Evidence uploaded successfully');
+            $user = Auth::user();
+            
+            // Verificar permisos: solo el técnico asignado, técnico default o admin pueden subir evidencia
+            $technical = Technical::where('email', $user->email)->first();
+            $isTechnicalDefault = $technical && $technical->is_default;
+            $isSuperAdmin = $user->hasRole('super-admin');
+            $isAssignedTechnical = $ticket->technical_id === $technical?->id;
+
+            if (!$isSuperAdmin && !$isTechnicalDefault && !$isAssignedTechnical) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You can only upload evidence to tickets assigned to you.'
+                    ], 403);
+                }
+                abort(403, 'You can only upload evidence to tickets assigned to you.');
+            }
+
+            // Guardar el archivo
+            $file = $request->file('evidence');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $filePath = $file->storeAs('ticket_evidence', $fileName, 'public');
+
+            // Actualizar el campo attachments del ticket
+            $attachments = $ticket->attachments ?? [];
+            
+            $newAttachment = [
+                'type' => 'evidence',
+                'path' => $filePath,
+                'name' => $fileName,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'uploaded_by' => $user->name,
+                'uploaded_at' => now()->toDateTimeString(),
+                'description' => $validated['description'] ?? null
+            ];
+            
+            $attachments[] = $newAttachment;
+            
+            // Deshabilitar auditoría temporalmente para evitar conflictos
+            $ticket->disableAuditing();
+            $ticket->attachments = $attachments;
+            
+            try {
+                $ticket->save();
+            } catch (\Exception $saveException) {
+                $ticket->enableAuditing();
+                
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Error saving ticket: ' . $saveException->getMessage()
+                    ], 500);
+                }
+                throw $saveException;
+            } finally {
+                $ticket->enableAuditing();
+            }
+
+            // Agregar al historial con metadata del archivo
+            $actorName = $technical ? $technical->name : $user->name;
+            $description = $validated['description'] 
+                ? "Evidence uploaded by {$actorName}: " . $validated['description']
+                : "Evidence uploaded by {$actorName}";
+
+            $ticket->addHistory(
+                'evidence_uploaded',
+                $description,
+                [
+                    'file_path' => $filePath,
+                    'file_name' => $fileName,
+                    'file_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'original_name' => $file->getClientOriginalName()
+                ],
+                $technical?->id
+            );
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Evidence uploaded successfully',
+                    'file_path' => $filePath,
+                    'file_name' => $fileName
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'Evidence uploaded successfully');
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error uploading evidence', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error uploading evidence: ' . $e->getMessage()
+                ], 500);
+            }
+            throw $e;
+        }
     }
 
     /**
@@ -1275,7 +1315,11 @@ class TicketController extends Controller
             try {
                 $ticket->save();
             } catch (\Exception $saveException) {
-                throw $saveException;
+                $ticket->enableAuditing();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error saving ticket: ' . $saveException->getMessage()
+                ], 500);
             } finally {
                 $ticket->enableAuditing();
             }
@@ -1309,6 +1353,12 @@ class TicketController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Error uploading evidence base64', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Error uploading evidence: ' . $e->getMessage()
