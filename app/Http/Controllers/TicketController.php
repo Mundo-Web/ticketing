@@ -1094,14 +1094,36 @@ class TicketController extends Controller
             $directory = 'ticket_evidence';
             Storage::disk('public')->makeDirectory($directory);
             
+            // Intentar guardar el archivo
             $filePath = $file->storeAs($directory, $fileName, 'public');
             
+            // LOG INMEDIATO para debug
+            Log::info('UPLOAD DEBUG', [
+                'filePath_result' => $filePath,
+                'filePath_type' => gettype($filePath),
+                'filePath_is_false' => $filePath === false,
+                'storage_path' => Storage::disk('public')->path($directory),
+                'directory_exists' => is_dir(Storage::disk('public')->path($directory)),
+                'directory_writable' => is_writable(Storage::disk('public')->path($directory)),
+            ]);
+            
             // Verificar que el archivo se guardó correctamente
-            if (!$filePath || !Storage::disk('public')->exists($filePath)) {
+            if ($filePath === false || !$filePath || !Storage::disk('public')->exists($filePath)) {
+                Log::error('UPLOAD FAILED', [
+                    'filePath' => $filePath,
+                    'directory' => Storage::disk('public')->path($directory),
+                    'file_name' => $fileName,
+                ]);
+                
                 if ($request->expectsJson()) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Failed to save file to storage. Directory may not be writable.'
+                        'message' => 'Failed to save file to storage. Directory may not be writable.',
+                        'debug' => [
+                            'storage_path' => Storage::disk('public')->path($directory),
+                            'directory_exists' => is_dir(Storage::disk('public')->path($directory)),
+                            'directory_writable' => is_writable(Storage::disk('public')->path($directory)),
+                        ]
                     ], 500);
                 }
                 throw new \Exception('Failed to save file to storage');
