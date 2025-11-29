@@ -136,13 +136,14 @@ class TechnicalController extends Controller
      */
     public function getTicketDetail($ticketId)
     {
-        dump("🔥 LLEGÓ PETICIÓN AL MÉTODO getTicketDetail");
-        dump("Ticket ID solicitado: " . $ticketId);
-        dump("Request method: " . request()->method());
-        dump("Request URL: " . request()->fullUrl());
+        Log::info("🔥 LLEGÓ PETICIÓN AL MÉTODO getTicketDetail", [
+            'ticket_id' => $ticketId,
+            'method' => request()->method(),
+            'url' => request()->fullUrl()
+        ]);
         
         try {
-            dump("✅ Dentro del try...");
+            Log::info("✅ Dentro del try, buscando ticket...");
             
             // Buscar el ticket con todas las relaciones necesarias
             $ticket = Ticket::with([
@@ -161,14 +162,17 @@ class TechnicalController extends Controller
                 'histories.technical'
             ])->find($ticketId);
 
-            dump("Ticket encontrado:", $ticket ? "SÍ (ID: {$ticket->id})" : "NO (null)");
+            Log::info("Resultado búsqueda ticket", [
+                'found' => $ticket ? true : false,
+                'ticket_id' => $ticket ? $ticket->id : null
+            ]);
 
             if (!$ticket) {
-                dump("❌ Retornando 404 porque ticket es null");
+                Log::warning("❌ Ticket no encontrado, retornando 404", ['ticket_id' => $ticketId]);
                 return response()->json(['error' => 'Ticket not found'], 404);
             }
 
-            dump("✅ Construyendo response...");
+            Log::info("✅ Construyendo response...");
             
             // Construir response idéntico al de tenant
             return response()->json([
@@ -238,15 +242,22 @@ class TechnicalController extends Controller
                 ]
             ]);
             
-            dump("🎉 Response construido exitosamente, retornando JSON...");
+            Log::info("🎉 Response construido exitosamente, retornando JSON", [
+                'ticket_id' => $ticket->id,
+                'has_device' => $ticket->device ? true : false,
+                'has_technical' => $ticket->technical ? true : false,
+                'histories_count' => $ticket->histories->count()
+            ]);
             
         } catch (\Exception $e) {
-            dump("💥 EXCEPCIÓN CAPTURADA:");
-            dump("Mensaje: " . $e->getMessage());
-            dump("Archivo: " . $e->getFile());
-            dump("Línea: " . $e->getLine());
+            Log::error("💥 EXCEPCIÓN CAPTURADA en getTicketDetail", [
+                'ticket_id' => $ticketId,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
             
-            Log::error('Error getting ticket detail: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Error al obtener detalle del ticket',
                 'message' => $e->getMessage()
