@@ -40,6 +40,10 @@ Route::prefix('tenant')->group(function () {
     Route::post('/login', [TenantController::class, 'login']);
 });
 
+// Technical ticket detail endpoint (NO auth required, NO tenant middleware)
+// MUST be registered BEFORE tenant routes to avoid route conflicts
+Route::get('/tickets/{ticket}/detail', [TechnicalController::class, 'getTicketDetail']);
+
 // Protected Tenant API Routes
 Route::middleware(['auth:sanctum', 'tenant'])->prefix('tenant')->group(function () {
     Route::post('/logout', [TenantController::class, 'logout']);
@@ -157,7 +161,6 @@ Route::post('/send-test-notification', function (Illuminate\Http\Request $reques
 Route::get('/technicals', [TechnicalController::class, 'index']);
 Route::get('/technicals/{technical}/tickets', [TechnicalController::class, 'getTickets']);
 Route::get('/technicals/{technical}/appointments', [TechnicalController::class, 'getAppointments']);
-Route::get('/tickets/{ticket}/detail', [TechnicalController::class, 'getTicketDetail']);
 
 // Protected Technical API routes (require authentication)
 Route::middleware(['auth:sanctum'])->group(function () {
