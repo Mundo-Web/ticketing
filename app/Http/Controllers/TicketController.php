@@ -1108,15 +1108,13 @@ class TicketController extends Controller
             
             $attachments[] = $newAttachment;
             
-            // Deshabilitar auditoría temporalmente para evitar conflictos
-            $ticket->disableAuditing();
+            // Actualizar attachments sin disparar eventos de auditoría
             $ticket->attachments = $attachments;
             
             try {
-                $ticket->save();
+                // saveQuietly() no dispara eventos, evitando problemas con Auditable
+                $ticket->saveQuietly();
             } catch (\Exception $saveException) {
-                $ticket->enableAuditing();
-                
                 if ($request->expectsJson()) {
                     return response()->json([
                         'success' => false,
@@ -1124,8 +1122,6 @@ class TicketController extends Controller
                     ], 500);
                 }
                 throw $saveException;
-            } finally {
-                $ticket->enableAuditing();
             }
 
             // Agregar al historial con metadata del archivo
@@ -1308,20 +1304,17 @@ class TicketController extends Controller
             
             $attachments[] = $newAttachment;
             
-            // Deshabilitar auditoría temporalmente para evitar conflictos
-            $ticket->disableAuditing();
+            // Actualizar attachments sin disparar eventos de auditoría
             $ticket->attachments = $attachments;
             
             try {
-                $ticket->save();
+                // saveQuietly() no dispara eventos, evitando problemas con Auditable
+                $ticket->saveQuietly();
             } catch (\Exception $saveException) {
-                $ticket->enableAuditing();
                 return response()->json([
                     'success' => false,
                     'message' => 'Error saving ticket: ' . $saveException->getMessage()
                 ], 500);
-            } finally {
-                $ticket->enableAuditing();
             }
 
             // Agregar al historial
