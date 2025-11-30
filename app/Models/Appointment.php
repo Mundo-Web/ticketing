@@ -300,7 +300,7 @@ class Appointment extends Model
     public function start()
     {
         if (!$this->canStart()) {
-            throw new \Exception('No se puede iniciar esta cita en este momento.');
+            throw new \Exception('Cannot start this appointment at this time. The appointment must be scheduled and within 15 minutes of the scheduled time.');
         }
 
         $this->update([
@@ -322,7 +322,7 @@ class Appointment extends Model
     public function complete($completionNotes = null, $memberFeedback = null, $rating = null)
     {
         if (!$this->canComplete()) {
-            throw new \Exception('No se puede completar esta cita en su estado actual.');
+            throw new \Exception('Cannot complete this appointment in its current state. The appointment must be in progress.');
         }
 
         $this->update([
@@ -348,7 +348,7 @@ class Appointment extends Model
     public function cancel($reason = null)
     {
         if (!$this->canCancel()) {
-            throw new \Exception('No se puede cancelar esta cita en su estado actual.');
+            throw new \Exception('Cannot cancel this appointment in its current state.');
         }
 
         $this->update([
@@ -370,7 +370,7 @@ class Appointment extends Model
     public function reschedule($newDateTime, $reason = null, $performedBy = null)
     {
         if (!$this->canReschedule()) {
-            throw new \Exception('No se puede reagendar esta cita en su estado actual.');
+            throw new \Exception('Cannot reschedule this appointment in its current state.');
         }
 
         // Get the current date string before updating (no Carbon conversion)
