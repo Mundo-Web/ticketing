@@ -268,41 +268,575 @@ class TechnicalController extends Controller
 
     /**
      * Get appointments for a specific technical
+     * GET /api/technicals/{technicalId}/appointments
      */
     public function getAppointments(Request $request, $technicalId)
     {
-        $technical = Technical::findOrFail($technicalId);
-        $date = $request->get('date');
+        Log::info('📅 Get appointments endpoint called', ['technical_id' => $technicalId]);
+        
+        try {
+            $technical = Technical::findOrFail($technicalId);
+            $date = $request->get('date');
+            $status = $request->get('status'); // scheduled, in_progress, completed, etc.
 
-        $query = Appointment::where('technical_id', $technical->id)
-            ->with([
-                'ticket:id,title,status,priority,user_id,device_id',
-                'ticket.device:id,name',
-                'ticket.apartment:id,number,building_id',
-                'ticket.apartment.building:id,name,address',
-                'ticket.user:id,name,email',
-                'ticket.user.tenant:user_id,phone'
+            $query = Appointment::with([
+                'ticket',
+                'ticket.device',
+                'ticket.device.tenants',
+                'ticket.device.tenants.apartment',
+                'ticket.device.tenants.apartment.building',
+                'ticket.user',
+                'ticket.user.tenant',
+                'ticket.user.tenant.apartment',
+                'ticket.user.tenant.apartment.building',
+                'technical'
             ]);
 
-        if ($date) {
-            $query->whereDate('scheduled_for', $date);
-        }
-
-        $appointments = $query->orderBy('scheduled_for')->get();
-
-        $appointments = $appointments->map(function($appointment) {
-            if ($appointment->ticket && $appointment->ticket->user) {
-                $appointment->tenant = [
-                    'id' => $appointment->ticket->user->id,
-                    'name' => $appointment->ticket->user->name,
-                    'email' => $appointment->ticket->user->email,
-                    'phone' => $appointment->ticket->user->tenant->phone ?? null,
-                ];
+            // Filter by technical (show all if is_default)
+            if (!$technical->is_default) {
+                $query->where('technical_id', $technical->id);
             }
-            return $appointment;
-        });
 
-        return response()->json($appointments);
+            // Filter by date if provided
+            if ($date) {
+                $query->whereDate('scheduled_for', $date);
+            }
+
+            // Filter by status if provided
+            if ($status) {
+                $query->where('status', $status);
+            }
+
+            $appointments = $query->orderBy('scheduled_for')->get();
+
+            // Map appointments to API format
+            $mappedAppointments = $appointments->map(function($appointment) {
+                return [
+                    'id' => $appointment->id,
+                    'title' => $appointment->title,
+                    'description' => $appointment->description,
+                    'address' => $appointment->address,
+                    'scheduled_for' => $appointment->scheduled_for,
+                    'estimated_duration' => $appointment->estimated_duration,
+                    'estimated_end_time' => $appointment->estimated_end_time,
+                    'status' => $appointment->status,
+                    'member_instructions' => $appointment->member_instructions,
+                    'notes' => $appointment->notes,
+                    'completion_notes' => $appointment->completion_notes,
+                    'started_at' => $appointment->started_at,
+                    'completed_at' => $appointment->completed_at,
+                    'service_rating' => $appointment->service_rating,
+                    'member_feedback' => $appointment->member_feedback,
+                    'ticket' => $appointment->ticket ? [
+                        'id' => $appointment->ticket->id,
+                        'title' => $appointment->ticket->title,
+                        'status' => $appointment->ticket->status,
+                        'priority' => $appointment->ticket->priority,
+                        'category' => $appointment->ticket->category,
+                        'device' => $appointment->ticket->device ? [
+                            'id' => $appointment->ticket->device->id,
+                            'name' => $appointment->ticket->device->name,
+                            'ubicacion' => $appointment->ticket->device->ubicacion,
+                        ] : null,
+                    ] : null,
+                    'technical' => $appointment->technical ? [
+                        'id' => $appointment->technical->id,
+                        'name' => $appointment->technical->name,
+                        'email' => $appointment->technical->email,
+                        'phone' => $appointment->technical->phone,
+                        'photo' => $appointment->technical->photo,
+                    ] : null,
+                    'member' => $appointment->ticket && $appointment->ticket->user ? [
+                        'id' => $appointment->ticket->user->id,
+                        'name' => $appointment->ticket->user->name,
+                        'email' => $appointment->ticket->user->email,
+                        'phone' => $appointment->ticket->user->tenant?->phone,
+                        'apartment' => $appointment->ticket->user->tenant?->apartment ? [
+                            'number' => $appointment->ticket->user->tenant->apartment->number,
+                            'building' => $appointment->ticket->user->tenant->apartment->building ? [
+                                'name' => $appointment->ticket->user->tenant->apartment->building->name,
+                                'address' => $appointment->ticket->user->tenant->apartment->building->address,
+                            ] : null,
+                        ] : null,
+                    ] : null,
+                ];
+            });
+
+            Log::info('✅ Appointments retrieved', ['count' => $mappedAppointments->count()]);
+            return response()->json($mappedAppointments);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR in appointments endpoint', [
+                'technical_id' => $technicalId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error' => 'Error al obtener appointments',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get appointment detail
+     * GET /api/appointments/{appointmentId}/detail
+     */
+    public function getAppointmentDetail($appointmentId)
+    {
+        Log::info("📅 Get appointment detail endpoint called", ['appointment_id' => $appointmentId]);
+        
+        try {
+            $appointment = Appointment::with([
+                'ticket',
+                'ticket.device',
+                'ticket.device.tenants',
+                'ticket.device.tenants.apartment',
+                'ticket.device.tenants.apartment.building',
+                'ticket.user',
+                'ticket.user.tenant',
+                'ticket.user.tenant.apartment',
+                'ticket.user.tenant.apartment.building',
+                'technical'
+            ])->find($appointmentId);
+
+            if (!$appointment) {
+                Log::warning("❌ Appointment no encontrado", ['appointment_id' => $appointmentId]);
+                return response()->json(['error' => 'Appointment not found'], 404);
+            }
+
+            return response()->json([
+                'appointment' => [
+                    'id' => $appointment->id,
+                    'title' => $appointment->title,
+                    'description' => $appointment->description,
+                    'address' => $appointment->address,
+                    'scheduled_for' => $appointment->scheduled_for,
+                    'estimated_duration' => $appointment->estimated_duration,
+                    'estimated_end_time' => $appointment->estimated_end_time,
+                    'status' => $appointment->status,
+                    'member_instructions' => $appointment->member_instructions,
+                    'notes' => $appointment->notes,
+                    'completion_notes' => $appointment->completion_notes,
+                    'started_at' => $appointment->started_at,
+                    'completed_at' => $appointment->completed_at,
+                    'service_rating' => $appointment->service_rating,
+                    'member_feedback' => $appointment->member_feedback,
+                    'ticket' => $appointment->ticket ? [
+                        'id' => $appointment->ticket->id,
+                        'title' => $appointment->ticket->title,
+                        'description' => $appointment->ticket->description,
+                        'status' => $appointment->ticket->status,
+                        'priority' => $appointment->ticket->priority,
+                        'category' => $appointment->ticket->category,
+                        'device' => $appointment->ticket->device ? [
+                            'id' => $appointment->ticket->device->id,
+                            'name' => $appointment->ticket->device->name,
+                            'ubicacion' => $appointment->ticket->device->ubicacion,
+                        ] : null,
+                    ] : null,
+                    'technical' => $appointment->technical ? [
+                        'id' => $appointment->technical->id,
+                        'name' => $appointment->technical->name,
+                        'email' => $appointment->technical->email,
+                        'phone' => $appointment->technical->phone,
+                        'photo' => $appointment->technical->photo,
+                        'shift' => $appointment->technical->shift,
+                    ] : null,
+                    'member' => $appointment->ticket && $appointment->ticket->user ? [
+                        'id' => $appointment->ticket->user->id,
+                        'name' => $appointment->ticket->user->name,
+                        'email' => $appointment->ticket->user->email,
+                        'phone' => $appointment->ticket->user->tenant?->phone,
+                        'photo' => $appointment->ticket->user->tenant?->photo,
+                        'apartment' => $appointment->ticket->user->tenant?->apartment ? [
+                            'id' => $appointment->ticket->user->tenant->apartment->id,
+                            'number' => $appointment->ticket->user->tenant->apartment->number,
+                            'building' => $appointment->ticket->user->tenant->apartment->building ? [
+                                'id' => $appointment->ticket->user->tenant->apartment->building->id,
+                                'name' => $appointment->ticket->user->tenant->apartment->building->name,
+                                'address' => $appointment->ticket->user->tenant->apartment->building->address,
+                            ] : null,
+                        ] : null,
+                    ] : null,
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error("💥 Error getting appointment detail", [
+                'appointment_id' => $appointmentId,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'error' => 'Error al obtener detalle del appointment',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Start an appointment (technician arrives)
+     * POST /api/appointments/{appointmentId}/start
+     */
+    public function startAppointment(Request $request, $appointmentId)
+    {
+        Log::info("▶️ Start appointment endpoint called", ['appointment_id' => $appointmentId]);
+        
+        try {
+            $appointment = Appointment::findOrFail($appointmentId);
+            
+            // Verificar que el técnico autenticado sea el asignado
+            $user = $request->user();
+            $technical = Technical::where('email', $user->email)->first();
+            
+            if (!$technical) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only technicians can start appointments'
+                ], 403);
+            }
+
+            if ($appointment->technical_id !== $technical->id && !$technical->is_default) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only start appointments assigned to you'
+                ], 403);
+            }
+
+            // Start the appointment
+            $appointment->start();
+
+            Log::info("✅ Appointment started successfully", ['appointment_id' => $appointmentId]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Appointment started successfully',
+                'appointment' => [
+                    'id' => $appointment->id,
+                    'status' => $appointment->status,
+                    'started_at' => $appointment->started_at,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("❌ Error starting appointment", [
+                'appointment_id' => $appointmentId,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error starting appointment: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * Complete an appointment (Technical side)
+     * POST /api/appointments/{appointmentId}/complete
+     */
+    public function completeAppointment(Request $request, $appointmentId)
+    {
+        Log::info("✅ Complete appointment endpoint called", ['appointment_id' => $appointmentId]);
+        
+        try {
+            $validated = $request->validate([
+                'completion_notes' => 'required|string|max:1000',
+            ]);
+
+            $appointment = Appointment::findOrFail($appointmentId);
+            
+            // Verificar que el técnico autenticado sea el asignado
+            $user = $request->user();
+            $technical = Technical::where('email', $user->email)->first();
+            
+            if (!$technical) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only technicians can complete appointments'
+                ], 403);
+            }
+
+            if ($appointment->technical_id !== $technical->id && !$technical->is_default) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only complete appointments assigned to you'
+                ], 403);
+            }
+
+            // Update appointment to awaiting_feedback
+            $appointment->update([
+                'status' => 'awaiting_feedback',
+                'completion_notes' => $validated['completion_notes'],
+                'completed_at' => now(),
+            ]);
+
+            // Add to ticket history
+            if ($appointment->ticket_id) {
+                $appointment->ticket->addHistory(
+                    'technical_completed',
+                    'Technical completed visit',
+                    [
+                        'appointment_id' => $appointment->id,
+                        'completion_notes' => $validated['completion_notes']
+                    ]
+                );
+            }
+
+            Log::info("✅ Appointment completed successfully", ['appointment_id' => $appointmentId]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Visit completed successfully. Member will provide feedback.',
+                'appointment' => [
+                    'id' => $appointment->id,
+                    'status' => $appointment->status,
+                    'completed_at' => $appointment->completed_at,
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error("❌ Error completing appointment", [
+                'appointment_id' => $appointmentId,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error completing appointment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel an appointment
+     * POST /api/appointments/{appointmentId}/cancel
+     */
+    public function cancelAppointment(Request $request, $appointmentId)
+    {
+        Log::info("❌ Cancel appointment endpoint called", ['appointment_id' => $appointmentId]);
+        
+        try {
+            $validated = $request->validate([
+                'reason' => 'required|string|max:500',
+            ]);
+
+            $appointment = Appointment::findOrFail($appointmentId);
+            
+            // Verificar que el técnico autenticado sea el asignado
+            $user = $request->user();
+            $technical = Technical::where('email', $user->email)->first();
+            
+            if (!$technical) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only technicians can cancel appointments'
+                ], 403);
+            }
+
+            if ($appointment->technical_id !== $technical->id && !$technical->is_default) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only cancel appointments assigned to you'
+                ], 403);
+            }
+
+            // Cancel the appointment
+            $appointment->cancel($validated['reason']);
+
+            Log::info("✅ Appointment cancelled successfully", ['appointment_id' => $appointmentId]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Appointment cancelled successfully',
+                'appointment' => [
+                    'id' => $appointment->id,
+                    'status' => $appointment->status,
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error("❌ Error cancelling appointment", [
+                'appointment_id' => $appointmentId,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error cancelling appointment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reschedule an appointment
+     * POST /api/appointments/{appointmentId}/reschedule
+     */
+    public function rescheduleAppointment(Request $request, $appointmentId)
+    {
+        Log::info("🔄 Reschedule appointment endpoint called", ['appointment_id' => $appointmentId]);
+        
+        try {
+            $validated = $request->validate([
+                'new_scheduled_for' => 'required|date',
+                'reason' => 'nullable|string|max:500',
+            ]);
+
+            $appointment = Appointment::findOrFail($appointmentId);
+            
+            // Verificar que el técnico autenticado sea el asignado
+            $user = $request->user();
+            $technical = Technical::where('email', $user->email)->first();
+            
+            if (!$technical) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only technicians can reschedule appointments'
+                ], 403);
+            }
+
+            if ($appointment->technical_id !== $technical->id && !$technical->is_default) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only reschedule appointments assigned to you'
+                ], 403);
+            }
+
+            // Store old date before rescheduling
+            $oldScheduledFor = $appointment->scheduled_for;
+            
+            // Reschedule the appointment
+            $appointment->reschedule($validated['new_scheduled_for'], $validated['reason'] ?? null, $user);
+
+            Log::info("✅ Appointment rescheduled successfully", ['appointment_id' => $appointmentId]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Appointment rescheduled successfully',
+                'appointment' => [
+                    'id' => $appointment->id,
+                    'status' => $appointment->status,
+                    'old_scheduled_for' => $oldScheduledFor,
+                    'new_scheduled_for' => $appointment->scheduled_for,
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error("❌ Error rescheduling appointment", [
+                'appointment_id' => $appointmentId,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error rescheduling appointment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark appointment as No Show
+     * POST /api/appointments/{appointmentId}/no-show
+     */
+    public function markNoShow(Request $request, $appointmentId)
+    {
+        Log::info("⚠️ Mark no-show endpoint called", ['appointment_id' => $appointmentId]);
+        
+        try {
+            $validated = $request->validate([
+                'reason' => 'required|string|max:255',
+                'description' => 'nullable|string|max:500',
+            ]);
+
+            $appointment = Appointment::findOrFail($appointmentId);
+            
+            // Verificar que el técnico autenticado sea el asignado
+            $user = $request->user();
+            $technical = Technical::where('email', $user->email)->first();
+            
+            if (!$technical) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only technicians can mark appointments as no-show'
+                ], 403);
+            }
+
+            if ($appointment->technical_id !== $technical->id && !$technical->is_default) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only mark appointments assigned to you as no-show'
+                ], 403);
+            }
+
+            // Update appointment status to no-show
+            $appointment->status = 'no_show';
+            $appointment->no_show_reason = $validated['reason'];
+            $appointment->no_show_description = $validated['description'] ?? null;
+            $appointment->marked_no_show_at = now();
+            $appointment->marked_no_show_by = $user->id;
+            $appointment->save();
+
+            // Add to ticket timeline
+            if ($appointment->ticket_id) {
+                $appointment->ticket->addHistory(
+                    'appointment_no_show',
+                    "Appointment marked as No Show: {$validated['reason']}",
+                    [
+                        'appointment_id' => $appointment->id,
+                        'reason' => $validated['reason'],
+                        'description' => $validated['description'] ?? null
+                    ]
+                );
+            }
+
+            Log::info("✅ Appointment marked as no-show successfully", ['appointment_id' => $appointmentId]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Appointment marked as No Show successfully',
+                'appointment' => [
+                    'id' => $appointment->id,
+                    'status' => $appointment->status,
+                    'no_show_reason' => $appointment->no_show_reason,
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error("❌ Error marking appointment as no-show", [
+                'appointment_id' => $appointmentId,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error marking appointment as no-show: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

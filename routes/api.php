@@ -47,6 +47,14 @@ Route::middleware(['auth:sanctum'])->post('/tickets/{ticket}/resolve', [Technica
 Route::middleware(['auth:sanctum'])->post('/tickets/{ticket}/comment', [TechnicalController::class, 'addComment']);
 Route::middleware(['auth:sanctum'])->post('/tickets/{ticket}/send-message-to-technical', [\App\Http\Controllers\TicketController::class, 'sendMessageToTechnical']);
 
+// Technical appointment endpoints
+Route::get('/appointments/{appointment}/detail', [TechnicalController::class, 'getAppointmentDetail']);
+Route::middleware(['auth:sanctum'])->post('/appointments/{appointment}/start', [TechnicalController::class, 'startAppointment']);
+Route::middleware(['auth:sanctum'])->post('/appointments/{appointment}/complete', [TechnicalController::class, 'completeAppointment']);
+Route::middleware(['auth:sanctum'])->post('/appointments/{appointment}/cancel', [TechnicalController::class, 'cancelAppointment']);
+Route::middleware(['auth:sanctum'])->post('/appointments/{appointment}/reschedule', [TechnicalController::class, 'rescheduleAppointment']);
+Route::middleware(['auth:sanctum'])->post('/appointments/{appointment}/no-show', [TechnicalController::class, 'markNoShow']);
+
 // Protected Tenant API Routes
 Route::middleware(['auth:sanctum', 'tenant'])->prefix('tenant')->group(function () {
     Route::post('/logout', [TenantController::class, 'logout']);
