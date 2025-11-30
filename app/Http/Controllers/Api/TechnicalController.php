@@ -402,8 +402,8 @@ class TechnicalController extends Controller
             $ticket->addHistory(
                 'status_change_resolved',
                 $description,
-                $technical->id,
-                ['resolution_notes' => $validated['resolution_notes'], 'evidence_uploaded' => $evidenceUploaded]
+                ['resolution_notes' => $validated['resolution_notes'], 'evidence_uploaded' => $evidenceUploaded],
+                $technical->id
             );
 
             Log::info("✅ Ticket resolved successfully", ['ticket_id' => $ticketId]);
@@ -480,8 +480,8 @@ class TechnicalController extends Controller
             $ticket->addHistory(
                 'comment',
                 $description,
-                $technical->id,
-                ['comment' => $validated['comment']]
+                ['comment' => $validated['comment']],
+                $technical->id
             );
 
             Log::info("✅ Comment added successfully", ['ticket_id' => $ticketId]);
