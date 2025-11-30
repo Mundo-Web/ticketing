@@ -1134,11 +1134,11 @@ class TicketController extends Controller
             
             $newAttachment = [
                 'type' => 'evidence',
-                'path' => $filePath,
+                'file_path' => $filePath,
                 'name' => $fileName,
                 'original_name' => $file->getClientOriginalName(),
                 'mime_type' => $file->getMimeType(),
-                'size' => $file->getSize(),
+                'file_size' => $file->getSize(),
                 'uploaded_by' => $user->name,
                 'uploaded_at' => now()->toDateTimeString(),
                 'description' => $validated['description'] ?? null
@@ -1340,11 +1340,11 @@ class TicketController extends Controller
             
             $newAttachment = [
                 'type' => 'evidence',
-                'path' => $filePath,
+                'file_path' => $filePath,
                 'name' => $fileName,
                 'original_name' => $validated['file_name'],
                 'mime_type' => $validated['file_type'],
-                'size' => $validated['file_size'],
+                'file_size' => $validated['file_size'],
                 'uploaded_by' => $user->name,
                 'uploaded_at' => now()->toDateTimeString(),
                 'description' => $validated['description'] ?? null,
