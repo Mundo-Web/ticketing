@@ -185,6 +185,7 @@ class TechnicalController extends Controller
                     'priority' => $ticket->priority,
                     'created_at' => $ticket->created_at,
                     'updated_at' => $ticket->updated_at,
+                    'attachments' => $ticket->attachments ?? [],
                     'device' => $ticket->device ? [
                         'id' => $ticket->device->id,
                         'name' => $ticket->device->name,
