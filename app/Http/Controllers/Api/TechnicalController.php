@@ -304,4 +304,210 @@ class TechnicalController extends Controller
 
         return response()->json($appointments);
     }
+
+    /**
+     * Resolve a ticket (mark as resolved)
+     * POST /api/tickets/{ticketId}/resolve
+     */
+    public function resolveTicket(Request $request, $ticketId)
+    {
+        Log::info("🔧 Resolve ticket endpoint called", ['ticket_id' => $ticketId]);
+        
+        try {
+            $validated = $request->validate([
+                'resolution_notes' => 'required|string|max:1000',
+                'evidence_base64' => 'nullable|string',
+                'file_name' => 'required_with:evidence_base64|string|max:255',
+                'file_type' => 'required_with:evidence_base64|string|in:image/jpeg,image/png,image/jpg,image/gif,video/mp4,video/mov,video/avi',
+                'file_size' => 'required_with:evidence_base64|integer|max:10485760', // 10MB max
+            ]);
+
+            $ticket = Ticket::findOrFail($ticketId);
+            
+            // Verificar que el técnico autenticado sea el asignado o sea default/admin
+            $user = $request->user();
+            $technical = Technical::where('email', $user->email)->first();
+            
+            if (!$technical) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only technicians can resolve tickets'
+                ], 403);
+            }
+
+            $isTechnicalDefault = $technical->is_default;
+            $isAssignedTechnical = $ticket->technical_id === $technical->id;
+
+            if (!$isTechnicalDefault && !$isAssignedTechnical) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only resolve tickets assigned to you'
+                ], 403);
+            }
+
+            // Subir evidencia si se proporciona
+            $evidenceUploaded = false;
+            if (!empty($validated['evidence_base64'])) {
+                $fileData = base64_decode($validated['evidence_base64']);
+                
+                if ($fileData !== false) {
+                    $extension = match($validated['file_type']) {
+                        'image/jpeg', 'image/jpg' => 'jpg',
+                        'image/png' => 'png',
+                        'image/gif' => 'gif',
+                        'video/mp4' => 'mp4',
+                        'video/mov' => 'mov',
+                        'video/avi' => 'avi',
+                        default => 'jpg'
+                    };
+
+                    $fileName = time() . '_' . uniqid() . '.' . $extension;
+                    $filePath = 'ticket_evidence/' . $fileName;
+
+                    \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory('ticket_evidence');
+                    $saved = \Illuminate\Support\Facades\Storage::disk('public')->put($filePath, $fileData);
+                    
+                    if ($saved && \Illuminate\Support\Facades\Storage::disk('public')->exists($filePath)) {
+                        // Agregar a attachments
+                        $attachments = $ticket->attachments ?? [];
+                        $attachments[] = [
+                            'type' => 'evidence',
+                            'file_path' => $filePath,
+                            'name' => $fileName,
+                            'original_name' => $validated['file_name'],
+                            'mime_type' => $validated['file_type'],
+                            'file_size' => $validated['file_size'],
+                            'uploaded_by' => $technical->name,
+                            'uploaded_at' => now()->toDateTimeString(),
+                            'description' => 'Resolution evidence',
+                            'upload_method' => 'base64_mobile'
+                        ];
+                        $ticket->attachments = $attachments;
+                        $evidenceUploaded = true;
+                    }
+                }
+            }
+
+            // Cambiar estado a resolved
+            $ticket->status = 'resolved';
+            $ticket->resolved_at = now();
+            $ticket->saveQuietly();
+
+            // Agregar al historial
+            $description = "Ticket resolved by {$technical->name}. Notes: " . $validated['resolution_notes'];
+            if ($evidenceUploaded) {
+                $description .= " (Evidence uploaded)";
+            }
+
+            $ticket->addHistory(
+                'status_change_resolved',
+                $description,
+                $technical->id,
+                ['resolution_notes' => $validated['resolution_notes'], 'evidence_uploaded' => $evidenceUploaded]
+            );
+
+            Log::info("✅ Ticket resolved successfully", ['ticket_id' => $ticketId]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ticket resolved successfully',
+                'ticket' => [
+                    'id' => $ticket->id,
+                    'status' => $ticket->status,
+                    'resolved_at' => $ticket->resolved_at,
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error("❌ Error resolving ticket", [
+                'ticket_id' => $ticketId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error resolving ticket: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Add a comment to a ticket
+     * POST /api/tickets/{ticketId}/comment
+     */
+    public function addComment(Request $request, $ticketId)
+    {
+        Log::info("💬 Add comment endpoint called", ['ticket_id' => $ticketId]);
+        
+        try {
+            $validated = $request->validate([
+                'comment' => 'required|string|max:1000',
+            ]);
+
+            $ticket = Ticket::findOrFail($ticketId);
+            
+            // Verificar que el técnico autenticado sea el asignado o sea default/admin
+            $user = $request->user();
+            $technical = Technical::where('email', $user->email)->first();
+            
+            if (!$technical) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only technicians can add comments'
+                ], 403);
+            }
+
+            $isTechnicalDefault = $technical->is_default;
+            $isAssignedTechnical = $ticket->technical_id === $technical->id;
+
+            if (!$isTechnicalDefault && !$isAssignedTechnical) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only comment on tickets assigned to you'
+                ], 403);
+            }
+
+            // Agregar comentario al historial
+            $description = "Comment by {$technical->name}: " . $validated['comment'];
+
+            $ticket->addHistory(
+                'comment',
+                $description,
+                $technical->id,
+                ['comment' => $validated['comment']]
+            );
+
+            Log::info("✅ Comment added successfully", ['ticket_id' => $ticketId]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Comment added successfully',
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error("❌ Error adding comment", [
+                'ticket_id' => $ticketId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error adding comment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
