@@ -359,7 +359,7 @@ class Appointment extends Model
         // Add history to ticket
         $this->ticket->addHistory(
             'appointment_cancelled',
-            "Cita cancelada" . ($reason ? " - {$reason}" : ''),
+            "Appointment cancelled" . ($reason ? " - {$reason}" : ''),
             ['appointment_id' => $this->id],
             $this->technical_id
         );
