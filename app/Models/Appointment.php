@@ -375,7 +375,10 @@ class Appointment extends Model
 
         // Get the current date string before updating (no Carbon conversion)
         $oldDateString = $this->scheduled_for;
-        $newDateString = is_string($newDateTime) ? $newDateTime : $newDateTime->format('Y-m-d H:i:s');
+        
+        // Parse new date to ensure proper MySQL format
+        $newDateCarbon = is_string($newDateTime) ? Carbon::parse($newDateTime) : $newDateTime;
+        $newDateString = $newDateCarbon->format('Y-m-d H:i:s');
         
         // Crear clave única para prevenir ejecuciones duplicadas
         $rescheduleKey = "reschedule_processing_{$this->id}_{$oldDateString}_{$newDateString}";
