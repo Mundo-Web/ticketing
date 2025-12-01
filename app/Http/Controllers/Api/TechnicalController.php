@@ -1059,7 +1059,7 @@ class TechnicalController extends Controller
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'address' => 'nullable|string',
-                'scheduled_for' => 'required|date|after:now',
+                'scheduled_for' => 'required|date',
                 'estimated_duration' => 'required|integer|min:30|max:480', // 30 min to 8 hours
                 'member_instructions' => 'nullable|string',
                 'notes' => 'nullable|string',

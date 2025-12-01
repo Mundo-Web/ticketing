@@ -689,7 +689,7 @@ GET /api/technicals/3/appointments?date=2025-11-30&status=scheduled
 | `title` | string | **Sí** | Título de la cita (máx. 255 caracteres) |
 | `description` | string | No | Descripción de la cita |
 | `address` | string | No | Dirección donde se realizará la cita |
-| `scheduled_for` | string (datetime) | **Sí** | Fecha/hora programada (ISO 8601, debe ser futura) |
+| `scheduled_for` | string (datetime) | **Sí** | Fecha/hora programada (ISO 8601, cualquier fecha) |
 | `estimated_duration` | integer | **Sí** | Duración estimada en minutos (30-480) |
 | `member_instructions` | string | No | Instrucciones para el miembro |
 | `notes` | string | No | Notas internas del técnico |
@@ -756,7 +756,7 @@ GET /api/technicals/3/appointments?date=2025-11-30&status=scheduled
   "success": false,
   "message": "Validation error",
   "errors": {
-    "scheduled_for": ["The scheduled for field must be a date after now."],
+    "title": ["The title field is required."],
     "estimated_duration": ["The estimated duration field must be at least 30."]
   }
 }
