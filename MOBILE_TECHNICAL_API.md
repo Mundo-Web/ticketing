@@ -236,6 +236,17 @@ https://adkassist.com/api
         "description": "Evidence uploaded by Juan Pérez"
       }
     ],
+    "active_appointment": {
+      "id": 15,
+      "title": "Visita técnica - Router no funciona",
+      "status": "scheduled",
+      "scheduled_for": "2025-11-30T10:00:00.000000Z",
+      "estimated_duration": 60,
+      "technical": {
+        "id": 3,
+        "name": "Carlos Técnico"
+      }
+    },
     "device": {
       "id": 15,
       "name": "Router TP-Link",
@@ -304,6 +315,12 @@ https://adkassist.com/api
 - Ejemplo: `https://adkassist.com/storage/ticket_evidence/1764460402_router.png`
 - Usa el campo `mime_type` para determinar si es imagen o video
 - `file_size` está en bytes
+
+**Nota sobre Active Appointment:**
+- `active_appointment` será `null` si el ticket no tiene citas activas
+- Una cita activa puede estar en estados: `scheduled`, `in_progress`, o `awaiting_feedback`
+- Si existe, incluye el ID, título, estado, fecha programada y técnico asignado
+- Útil para mostrar si ya existe una cita programada antes de crear una nueva
 
 ---
 

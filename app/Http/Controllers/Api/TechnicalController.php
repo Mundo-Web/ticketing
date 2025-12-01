@@ -172,6 +172,12 @@ class TechnicalController extends Controller
                 return response()->json(['error' => 'Ticket not found'], 404);
             }
 
+            // Verificar si tiene una cita activa
+            $activeAppointment = Appointment::where('ticket_id', $ticketId)
+                ->whereIn('status', ['scheduled', 'in_progress', 'awaiting_feedback'])
+                ->with(['technical'])
+                ->first();
+
             Log::info("✅ Construyendo response...");
             
             // Construir response idéntico al de tenant
@@ -186,6 +192,17 @@ class TechnicalController extends Controller
                     'created_at' => $ticket->created_at,
                     'updated_at' => $ticket->updated_at,
                     'attachments' => $ticket->attachments ?? [],
+                    'active_appointment' => $activeAppointment ? [
+                        'id' => $activeAppointment->id,
+                        'title' => $activeAppointment->title,
+                        'status' => $activeAppointment->status,
+                        'scheduled_for' => $activeAppointment->scheduled_for,
+                        'estimated_duration' => $activeAppointment->estimated_duration,
+                        'technical' => $activeAppointment->technical ? [
+                            'id' => $activeAppointment->technical->id,
+                            'name' => $activeAppointment->technical->name,
+                        ] : null,
+                    ] : null,
                     'device' => $ticket->device ? [
                         'id' => $ticket->device->id,
                         'name' => $ticket->device->name,
