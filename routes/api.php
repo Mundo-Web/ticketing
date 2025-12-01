@@ -45,6 +45,7 @@ Route::prefix('tenant')->group(function () {
 Route::get('/tickets/{ticket}/detail', [TechnicalController::class, 'getTicketDetail']);
 Route::middleware(['auth:sanctum'])->post('/tickets/{ticket}/resolve', [TechnicalController::class, 'resolveTicket']);
 Route::middleware(['auth:sanctum'])->post('/tickets/{ticket}/comment', [TechnicalController::class, 'addComment']);
+Route::middleware(['auth:sanctum'])->post('/tickets/{ticket}/appointments/create', [TechnicalController::class, 'createAppointment']);
 Route::middleware(['auth:sanctum'])->post('/tickets/{ticket}/send-message-to-technical', [\App\Http\Controllers\TicketController::class, 'sendMessageToTechnical']);
 
 // Technical appointment endpoints

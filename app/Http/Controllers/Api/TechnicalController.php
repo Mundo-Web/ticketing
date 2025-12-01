@@ -1044,4 +1044,142 @@ class TechnicalController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Create a new appointment for a ticket
+     * POST /api/tickets/{ticketId}/appointments/create
+     */
+    public function createAppointment(Request $request, $ticketId)
+    {
+        Log::info("📅 Create appointment endpoint called", ['ticket_id' => $ticketId]);
+        
+        try {
+            $validated = $request->validate([
+                'technical_id' => 'required|exists:technicals,id',
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'address' => 'nullable|string',
+                'scheduled_for' => 'required|date|after:now',
+                'estimated_duration' => 'required|integer|min:30|max:480', // 30 min to 8 hours
+                'member_instructions' => 'nullable|string',
+                'notes' => 'nullable|string',
+            ]);
+
+            $ticket = Ticket::findOrFail($ticketId);
+            
+            // Verificar que el técnico autenticado sea el asignado o sea default/admin
+            $user = $request->user();
+            $technical = Technical::where('email', $user->email)->first();
+            
+            if (!$technical) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only technicians can create appointments'
+                ], 403);
+            }
+
+            $isTechnicalDefault = $technical->is_default;
+            $isAssignedTechnical = $ticket->technical_id === $technical->id;
+
+            if (!$isTechnicalDefault && !$isAssignedTechnical) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only create appointments for tickets assigned to you'
+                ], 403);
+            }
+
+            // Verificar que el ticket pueda tener una cita agendada
+            if (!$ticket->canScheduleAppointment()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot schedule an appointment for this ticket in its current state'
+                ], 400);
+            }
+
+            $assignedTechnical = Technical::findOrFail($validated['technical_id']);
+            $scheduledFor = \Carbon\Carbon::parse($validated['scheduled_for']);
+            $estimatedEnd = $scheduledFor->copy()->addMinutes($validated['estimated_duration']);
+
+            // Verificar conflictos de horario
+            $conflicts = Appointment::where('technical_id', $validated['technical_id'])
+                ->where('status', Appointment::STATUS_SCHEDULED)
+                ->where(function($query) use ($scheduledFor, $estimatedEnd) {
+                    $query->whereBetween('scheduled_for', [$scheduledFor, $estimatedEnd])
+                          ->orWhere(function($q) use ($scheduledFor, $estimatedEnd) {
+                              $q->where('scheduled_for', '<=', $scheduledFor)
+                                ->whereRaw('DATE_ADD(scheduled_for, INTERVAL estimated_duration MINUTE) >= ?', [$scheduledFor]);
+                          });
+                })->exists();
+
+            if ($conflicts) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The technician already has an appointment scheduled at this time'
+                ], 422);
+            }
+
+            // Crear la cita
+            $appointment = Appointment::create([
+                'ticket_id' => $ticketId,
+                'technical_id' => $validated['technical_id'],
+                'scheduled_by' => $user->id,
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'scheduled_for' => $scheduledFor,
+                'estimated_duration' => $validated['estimated_duration'],
+                'member_instructions' => $validated['member_instructions'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            // Agregar al historial del ticket
+            $ticket->addHistory(
+                'appointment_scheduled',
+                "In-person appointment scheduled for {$scheduledFor->format('d/m/Y H:i')} with {$assignedTechnical->name}",
+                ['appointment_id' => $appointment->id],
+                $assignedTechnical->id
+            );
+
+            // Despachar notificación de cita creada
+            $notificationService = new \App\Services\NotificationDispatcherService();
+            $notificationService->dispatchAppointmentCreated($appointment);
+
+            Log::info("✅ Appointment created successfully", [
+                'appointment_id' => $appointment->id,
+                'ticket_id' => $ticketId
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Appointment created successfully',
+                'appointment' => [
+                    'id' => $appointment->id,
+                    'ticket_id' => $appointment->ticket_id,
+                    'technical_id' => $appointment->technical_id,
+                    'title' => $appointment->title,
+                    'scheduled_for' => $appointment->scheduled_for,
+                    'estimated_duration' => $appointment->estimated_duration,
+                    'status' => $appointment->status,
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error("❌ Error creating appointment", [
+                'ticket_id' => $ticketId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating appointment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
